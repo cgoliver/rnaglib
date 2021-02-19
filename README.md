@@ -1,4 +1,4 @@
-# veRNAml
+# RNAGlib
 
 ## Associated Repositories:
 [VeRNAl](https://github.com/cgoliver/vernal)
