@@ -9,7 +9,7 @@
 Networkx graphs which are sliced into portions containing RNA interfaces and their respective complement counterparts. Graphs are Augmented Base Pairing Networks. Here is an example of one overlayed on a PDB structure. Backbones are in white, canonical Watson-Crick bonds are in green and non-canonical bonds are in red.
 
 
-![RNA motif binding to CMC ligand](images/1qvg_graphandchimera.png)
+![RNA motif binding to CMC ligand](images/structures/1qvg_graphandchimera.png)
 
 To generate this data:
 1. Retrieve a representative set of RCSB PDB structures.
