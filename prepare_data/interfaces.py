@@ -3,31 +3,33 @@ import numpy as np
 from Bio.PDB import *
 from Bio.PDB.MMCIF2Dict import MMCIF2Dict
 import csv
+import sys
 
-scriptdir = os.path.dirname(os.path.realpath(__file__))
+script_dir = os.path.dirname(os.path.realpath(__file__))
+sys.path.append(os.path.join(script_dir, '..'))
 
-def get_repr_set(input_file, quiet=False):
+from prepare_data.retrieve_structures import load_csv
+
+def get_nonRedundantChains(NR_csv_file):
     """
-    load a csv of from rna.bgsu.edu of representative set
-    get a list of tuples:
-        (structure, model, chain)
-    :param input_file: path to csv file
-    :param quiet: set to true to turn off warnings
-    :return repr_set: list of equivalence class RNAs
+    Parse NR BGSU csv file for a list of non-redundant RNA chains
+    list can be downloaded from:
+        http://rna.bgsu.edu/rna3dhub/nrlist
+    :param repr_set: Set of representative RNAs output (see load_csv())
+    :return: set of non-redundant RNA chains (tuples of (structure, model, chain))
     """
-    repr_set = []
-    with open(input_file, 'r') as f:
-        reader = csv.reader(f)
-        for row in reader:
-            try:
-                for item in row[1].split('+'):
-                    for structure, model, chain in item.split('|'):
-                        repr_set.append((structure, model, chain))
-            except csv.Error as e:
-                if not quiet:
-                    print(f'Warning error {e} found when trying to parse row: \n {row}')
 
-    return repr_set
+    nonRedundantStrings = load_csv(NR_csv_file)
+    nonRedundantChains = []
+
+    # split into each IFE (Integrated Functional Element)
+    for representative in nonRedundantStrings:
+        items = representative.split('+')
+        for entry in items:
+            pbid, model, chain = entry.split('|')
+            nonRedundantChains.append((pbid, model, chain))
+
+    return set(nonRedundantChains)
 
 def find_ligand_annotations(cif_path, ligands):
     """
@@ -100,16 +102,24 @@ def get_offset_pos(res):
         else:
             return res.id[1] + 1
 
-def get_interfaces(cif_path, ligands, cutoff=10, skipWater=True):
+def get_interfaces(cif_path, ligands,
+                    redundancy_filter=None,
+                    pbid_filter = None,
+                    cutoff=10,
+                    skipWater=True):
     """Obtain RNA interface residues within a single structure of polymers. Uses
     KDTree data structure for vector search, by the biopython NeighborSearch module.
 
     Args:
         `cif_path (str)`: Path to structure to analyze (MMCif format)
+        `ligands `: list of molecules to classify as small molecule interactions
+        `redundancy_filter`: List of non redundancy RNA chains. Can be downloaded from
+                        rna.bgsu.edu/rna3dhub/nrlist
         `cutoff (float, int)`: Number of Angstroms to use as cutoff distance
         for interface calculation.
     Returns:
-        `interface_residues`: List of tuples of the pbid, position, chain of RNA-RNA, interaction type
+        `interface_residues`: List of tuples of the pbid, position, chain of RNA-RNA,
+                                interaction type, interacting residue, pbid_position
         `Structure`: BioPython Structure object
     """
     parser = MMCIFParser(QUIET=True)
@@ -121,15 +131,17 @@ def get_interfaces(cif_path, ligands, cutoff=10, skipWater=True):
         print(f'ERROR: file {cif_path} not found')
         return None
 
+    if redundancy_filter:
+        representative_set = get_nonRedundantChains(redundancy_filter)
+
+
     print(f'Finding RNA interfaces for structure: {structure_id}')
     #3-D KD tree
     atom_list = Selection.unfold_entities(structure, 'A')
     neighbors = NeighborSearch(atom_list)
     close_residues = neighbors.search_all(cutoff, level='R')
     interface_residues = []
-    for r in close_residues:
-        res_1 = r[0]
-        res_2 = r[1]
+    for res_1, res_2 in close_residues:
 
        # skip interactions with water
         if skipWater:
@@ -155,6 +167,15 @@ def get_interfaces(cif_path, ligands, cutoff=10, skipWater=True):
         c2 = res_2.get_parent().id.strip()
         r1 = res_1.get_resname().strip()
         r2 = res_2.get_resname().strip()
+
+        # Filter for redundancy
+        if redundancy_filter:
+            model1 = res_1.get_full_id()[1]
+            full_id1 = (structure_id.upper(), str(model1 + 1), c1.upper())
+            model2 = res_2.get_full_id()[1]
+            full_id2 = (structure_id.upper(), str(model2 + 1), c2.upper())
+            if full_id1 not in representative_set and full_id2 not in representative_set:
+                continue
 
         # Determine interaction type and append to corresponding dataset
         # RNA-Protein 
