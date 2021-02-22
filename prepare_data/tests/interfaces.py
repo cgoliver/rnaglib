@@ -21,26 +21,43 @@ parser = MMCIFParser(QUIET=True)
 
 class InterfacesTestCase(unittest.TestCase):
 
-    def test_get_repr_set(self):
-        bgsu_file = os.path.join(data_dir, 'nrlist_3.145_4.0A.csv')
+    def test_redundancyFiltering3j7q(self):
+        """
+        3J7Q chain 7 is labelled as redundant in NR release 3.166
+        The chain has multiple protein interaction
+        When redundancy is set to none we should see protein interaction in the output
+        when redundancy set to nr_3.166 file we should not see any
+        """
+        redu = os.path.join(data_dir, 'nrlist_3.166_4.0A.csv')
+        path = os.path.join(test_structures_dir, '3j7q.cif')
+        interfaces_redundancyFiltered, _ = get_interfaces(path, ligands, cutoff=10,
+                                                        redundancy_filter = redu)
+        interfaces, _ = get_interfaces(path, ligands, cutoff=10)
 
-        repr_set = get_repr_set(bgsu_file)
-        print(repr_set)
+        print('interfaces - interfaces_redundancyFiltered:')
+        # print(set(interfaces) - set(interfaces_redundancyFiltered))
 
-    def test_get_interfaces_none(self):
+        self.assertIn(('3j7q', 95, '7', 'protein', 'True', 95), interfaces)
+        self.assertNotIn(('3j7q', 95, '7', 'protein', 'True', 95),
+                                interfaces_redundancyFiltered)
+        self.assertIn(('3j7q', 2822, '5', 'protein', 'True', 2822), interfaces)
+        self.assertIn(('3j7q', 2822, '5', 'protein', 'True', 2822),
+                            interfaces_redundancyFiltered)
 
-        path = os.path.join(rnadir, '1av6.cif')
-        interfaces,_ = get_interfaces(path, ligands, cutoff=10)
 
-        self.assertEqual(len(interfaces), 6)
+    # def test_get_interfaces_none(self):
 
-    def test_get_interfaces_SAM(self):
+        # path = os.path.join(rnadir, '1av6.cif')
+        # interfaces,_ = get_interfaces(path, ligands, cutoff=10)
 
-        path = os.path.join(test_structures_dir, '5fk3.cif')
-        interfaces,_ = get_interfaces(path, ligands, cutoff=50)
+        # self.assertEqual(len(interfaces), 6)
 
-        known_interfaces = find_ligand_annotations(path, ligands)
-        self.assertIn(known_interfaces, interfaces)
+    # def test_get_interfaces_SAM(self):
+        # path = os.path.join(test_structures_dir, '5fk3.cif')
+        # interfaces,_ = get_interfaces(path, ligands, cutoff=50)
+
+        # known_interfaces = find_ligand_annotations(path, ligands)
+        # self.assertIn(known_interfaces, interfaces)
 
 #    def test_get_interfaces_other(self):
 #

@@ -64,6 +64,8 @@ def main():
                                 can be any of {protein, ion, rna, ligand, all}\
                                 (input multiple options in space seperated string)',
                         default='all')
+    parser.add_argument('-pf', '--pbid_filter',
+                        help='comma seperated text file containing pbids to include')
     args = parser.parse_args()
 
     args = parser.parse_args()
@@ -82,12 +84,17 @@ def main():
         interface_residues = []
         files_not_found = []
 
+        # Get filter list
+        if args.pbid_filter:
+            with open(args.pbid_filter, 'r') as f:
+                pbid_filter = f.readline().split(',')
+                pbid_filter = set([x.lower() for x in pbid_filter])
+
         # find interfaces
-        i = 0
         for cif_file in os.listdir(args.pbd_dir):
-            # DEBUGGING: Loop control
-            # if i == 30: break
-            # i+=1
+            if pbid_filter:
+                pbid = cif_file[:4]
+                if pbid not in pbid_filter: continue
             path = os.path.join(args.pbd_dir, cif_file)
             try:
                 residues, _ = get_interfaces(path, ligands = ligands, cutoff = cutoff)
