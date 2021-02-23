@@ -29,6 +29,11 @@ def dssr_exec(cif):
         return (1, None)
     return (0, json.loads(annot))
 
+def rna_only_nts(annot):
+    """ Filter nucleotide annotations to only keep RNA.
+    """
+    return filter(lambda x: x['nt_type'] == 'RNA', annot)
+
 def annot_2_graph(annot):
     """
     DSSR Annotation JSON Keys:
@@ -64,16 +69,18 @@ def annot_2_graph(annot):
 
     G = nx.DiGraph()
 
+    nt_annot = rna_only_nts(annot['nts'])
+
     # add nucleotides
-    G.add_nodes_from((d['nt_id'] for d in annot['nts']))
+    G.add_nodes_from((d['nt_id'] for d in nt_annot))
 
     # add backbones
-    bbs = get_backbons(annot['nts'])
+    bbs = get_backbones(annot['nts'])
     G.add_edges_from(((five_p['nt_id'], three_p['nt_id'], {'label': 'B53'}) \
                       for five_p, three_p in bbs))
 
     # add base pairs
-    G.add_edges_from(((pair['nt1'], pair['nt2']) for pair in annot['pairs']))
+    G.add_edges_from(((pair['nt1'], pair['nt2']) for pair in nt_annot))
 
     # import matplotlib.pyplot as plt
     # nx.draw(G)
@@ -83,7 +90,9 @@ def annot_2_graph(annot):
 
 def build_one(cif):
     exit_code, annot = dssr_exec(cif)
-    print(annot['pairs'][0])
+    # print(annot['pairs'][0])
+    for nt in annot['nts']:
+        print(nt)
     G = annot_2_graph(annot)
     pass
 
@@ -91,4 +100,4 @@ def build_all():
     pass
 
 if __name__ == "__main__":
-    build_one("../data/1aju.cif")
+    build_one("../data/1ehz.cif")
