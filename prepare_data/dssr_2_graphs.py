@@ -29,10 +29,22 @@ def dssr_exec(cif):
         return (1, None)
     return (0, json.loads(annot))
 
+def find_nt(nt_annot, nt_id):
+    for nt in nt_annot:
+        if nt['nt_id'] == nt_id:
+            return nt
+
 def rna_only_nts(annot):
     """ Filter nucleotide annotations to only keep RNA.
     """
-    return filter(lambda x: x['nt_type'] == 'RNA', annot)
+    return filter(lambda x: x['nt_type'] == 'RNA', annot['nts'])
+
+def rna_only_pairs(annot):
+    """ Only keep pairs between RNAs."""
+    return filter(lambda x: find_nt(annot['nts'], x['nt1'])['nt_type'] == 'RNA' and \
+                            find_nt(annot['nts'], x['nt2'])['nt_type'] == 'RNA', \
+                  annot['pairs']
+                  )
 
 def annot_2_graph(annot):
     """
@@ -69,30 +81,32 @@ def annot_2_graph(annot):
 
     G = nx.DiGraph()
 
-    nt_annot = rna_only_nts(annot['nts'])
+    nt_annot = rna_only_nts(annot)
 
     # add nucleotides
-    G.add_nodes_from((d['nt_id'] for d in nt_annot))
+    G.add_nodes_from(((d['nt_id'], d) for d in nt_annot))
 
     # add backbones
     bbs = get_backbones(annot['nts'])
-    G.add_edges_from(((five_p['nt_id'], three_p['nt_id'], {'label': 'B53'}) \
+    G.add_edges_from(((five_p['nt_id'], three_p['nt_id'], {'LW': 'B53', 'backbone': True}) \
                       for five_p, three_p in bbs))
 
     # add base pairs
-    G.add_edges_from(((pair['nt1'], pair['nt2']) for pair in nt_annot))
+    rna_pairs = rna_only_pairs(annot)
+    G.add_edges_from(((pair['nt1'], pair['nt2'], pair)\
+                      for pair in rna_pairs))
+    G.add_edges_from(((pair['nt2'], pair['nt1'], pair)\
+                      for pair in rna_pairs))
 
     # import matplotlib.pyplot as plt
     # nx.draw(G)
     # plt.show()
 
-    pass
+    return G
 
 def build_one(cif):
     exit_code, annot = dssr_exec(cif)
     # print(annot['pairs'][0])
-    for nt in annot['nts']:
-        print(nt)
     G = annot_2_graph(annot)
     pass
 
