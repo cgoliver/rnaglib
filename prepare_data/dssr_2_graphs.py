@@ -29,6 +29,65 @@ def dssr_exec(cif):
         return (1, None)
     return (0, json.loads(annot))
 
+def snap_exec(cif):
+    try:
+        annot = check_output(["x3dna-dssr", "snap", f"-i={cif}"] )
+    except Exception as e:
+        print(e)
+        return (1, None)
+    return (0, annot.decode("utf-8"))
+
+def snap_parse(snap_out):
+    """ It seems SNAP output is raw text so we have to parse it.
+    For now we just retrieve nucleotide-aa contacts and related info.
+
+    Output has sections that look like this
+
+    ****************************************************************************
+    List of 7 nucleotide/amino-acid interactions
+        id   nt-aa   nt           aa              Tdst    Rdst     Tx      Ty      Tz      Rx      Ry      Rz
+    1  1aju  A-arg  A.A22        A.ARG47          7.27 -144.55   -2.96    6.04    2.75   19.89   63.03 -137.41
+    2  1aju  U-arg  A.U23        A.ARG47         -9.86  159.76    7.92   -5.66    1.55  -12.69   76.33  153.98
+    3  1aju  G-arg  A.G26        A.ARG47          7.04  153.29   -1.62   -6.69   -1.49  -49.89  -49.73  147.15
+    4  1aju  A-arg  A.A27        A.ARG47         -6.60  142.39   -0.97   -4.94   -4.26  -54.29  -28.82  135.95
+    5  1aju  C-arg  A.C37        A.ARG47          6.62 -114.00   -1.15    1.89    6.23  -53.57   19.41 -103.42
+    6  1aju  U-arg  A.U38        A.ARG47          6.41 -139.96   -1.23    5.41    3.20  -61.93   31.00 -130.83
+    7  1aju  C-arg  A.C39        A.ARG47         -7.42 -171.37   -0.96    7.35   -0.33  -67.02   33.23 -169.13
+
+    ****************************************************************************
+
+
+    """
+    import re
+    print(snap_out)
+
+    lines = iter(snap_out.split("\n"))
+
+    # skip to nucleotide amino acid section (i know this is ugly)
+    while True:
+        l = next(lines)
+        print(l)
+        if re.match("List of [0-9]+ nucleotide/amino-acid", l):
+            break
+        else:
+            next(lines)
+
+    interface_nts = dict()
+    for i,l in enumerate(lines):
+        if i == 0:
+            header = l.split()[1:]
+            continue
+        if l.startswith("*"):
+            break
+        if not l:
+            break
+        # get rid of first two columns
+        l = l.split()[2:]
+        nt_id = l[1]
+        interface_nts[nt_id] = dict(zip(header, l))
+
+    return interface_nts
+
 def find_nt(nt_annot, nt_id):
     for nt in nt_annot:
         if nt['nt_id'] == nt_id:
@@ -81,7 +140,7 @@ def add_sses(g, annot):
                 if nt in g.nodes():
                     sse_annots[nt] = {'sse': f'{sse[:-1]}_{elem["index"]}'}
     return sse_annots
-def annot_2_graph(annot):
+def annot_2_graph(annot, rbp_annot):
     """
     DSSR Annotation JSON Keys:
 
@@ -94,11 +153,6 @@ def annot_2_graph(annot):
     """
 
     G = nx.DiGraph()
-
-    print(annot.keys())
-    print(annot['dbn'])
-    print(annot['hairpins'])
-    # print(annot['chains'])
 
     nt_annot = rna_only_nts(annot)
 
@@ -125,6 +179,12 @@ def annot_2_graph(annot):
         except KeyError:
             G.nodes[node]['sse'] = {'sse': None}
 
+    # add RNA-Protein interface data
+    for node in G.nodes():
+        try:
+            G.nodes[node]['rbp'] = rbp_annot[node]
+        except KeyError:
+            G.nodes[node]['rbp'] = None
     # import matplotlib.pyplot as plt
     # nx.draw(G)
     # plt.show()
@@ -133,8 +193,13 @@ def annot_2_graph(annot):
 
 def build_one(cif):
     exit_code, annot = dssr_exec(cif)
+    rbp_exit_code, rbp_out = snap_exec(cif)
+    try:
+        rbp_annot = snap_parse(rbp_out)
+    except:
+        rbp_annot = {}
     # print(annot['pairs'][0])
-    G = annot_2_graph(annot)
+    G = annot_2_graph(annot, rbp_annot)
     pass
 
 def build_all():
@@ -142,6 +207,6 @@ def build_all():
 
 if __name__ == "__main__":
     # doc example with multiloop
-    build_one("../data/1ehz.cif")
+    build_one("../data/1aju.cif")
     # multi chain
     # build_one("../data/4q0b.cif")
