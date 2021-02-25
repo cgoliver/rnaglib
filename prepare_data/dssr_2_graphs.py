@@ -200,6 +200,9 @@ def build_one(cif):
         rbp_annot = {}
     # print(annot['pairs'][0])
     G = annot_2_graph(annot, rbp_annot)
+    G_data = nx.readwrite.json_graph.node_link_data(G)
+    with open("1aju.json", "w") as out:
+        json.dump(G_data, out)
     pass
 
 def build_all():
