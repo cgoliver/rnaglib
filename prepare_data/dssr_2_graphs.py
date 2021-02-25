@@ -43,9 +43,44 @@ def rna_only_pairs(annot):
     """ Only keep pairs between RNAs."""
     return filter(lambda x: find_nt(annot['nts'], x['nt1'])['nt_type'] == 'RNA' and \
                             find_nt(annot['nts'], x['nt2'])['nt_type'] == 'RNA', \
-                  annot['pairs']
-                  )
+                  annot['pairs'])
 
+def get_backbones(nts):
+    """ Get backbone pairs.
+    Args:
+    ___
+    nts (dict): DSSR nucleotide info.
+
+    Returns:
+    ---
+    bb (list): list of tuples (5' base, 3' base)
+    """
+    bb = []
+    for i, three_p in enumerate(nts):
+        if i == 0:
+            continue
+        five_p = nts[i-1]
+        if five_p['chain_name'] != three_p['chain_name']:
+            continue
+        if 'break' not in three_p['summary']:
+            bb.append((five_p, three_p))
+    return bb
+
+def add_sses(g, annot):
+    """ Return dict of nodes that are in an sse as a list of
+    annotations. TODO: add helices and stems """
+    sse_annots = dict()
+    sse_types = ['hairpins', 'junctions', 'bulges', 'internal']
+    for sse in sse_types:
+        try:
+            elements = annot[sse]
+        except KeyError:
+            continue
+        for elem in elements:
+            for nt in elem['nts_long'].split(','):
+                if nt in g.nodes():
+                    sse_annots[nt] = {'sse': f'{sse[:-1]}_{elem["index"]}'}
+    return sse_annots
 def annot_2_graph(annot):
     """
     DSSR Annotation JSON Keys:
@@ -58,28 +93,12 @@ def annot_2_graph(annot):
         'refCoords', 'metadata']
     """
 
-    def get_backbones(nts):
-        """ Get backbone pairs.
-        Args:
-        ___
-        nts (dict): DSSR nucleotide info.
-
-        Returns:
-        ---
-        bb (list): list of tuples (5' base, 3' base)
-        """
-        bb = []
-        for i, three_p in enumerate(nts):
-            if i == 0:
-                continue
-            five_p = nts[i-1]
-            if five_p['chain_name'] != three_p['chain_name']:
-                continue
-            if 'break' not in three_p['summary']:
-                bb.append((five_p, three_p))
-        return bb
-
     G = nx.DiGraph()
+
+    print(annot.keys())
+    print(annot['dbn'])
+    print(annot['hairpins'])
+    # print(annot['chains'])
 
     nt_annot = rna_only_nts(annot)
 
@@ -98,6 +117,14 @@ def annot_2_graph(annot):
     G.add_edges_from(((pair['nt2'], pair['nt1'], pair)\
                       for pair in rna_pairs))
 
+    # add SSE data
+    sse_nodes = add_sses(G, annot)
+    for node in G.nodes():
+        try:
+            G.nodes[node]['sse'] = sse_nodes[node]
+        except KeyError:
+            G.nodes[node]['sse'] = {'sse': None}
+
     # import matplotlib.pyplot as plt
     # nx.draw(G)
     # plt.show()
@@ -114,4 +141,7 @@ def build_all():
     pass
 
 if __name__ == "__main__":
+    # doc example with multiloop
     build_one("../data/1ehz.cif")
+    # multi chain
+    # build_one("../data/4q0b.cif")
