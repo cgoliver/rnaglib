@@ -4,6 +4,7 @@ from Bio.PDB import *
 from Bio.PDB.MMCIF2Dict import MMCIF2Dict
 import csv
 import sys
+from tqdm import tqdm
 
 script_dir = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(os.path.join(script_dir, '..'))
@@ -130,12 +131,15 @@ def get_interfaces(cif_path, ligands,
     except FileNotFoundError:
         print(f'ERROR: file {cif_path} not found')
         return None
+    except ValueError:
+        print(f'ERROR: Could not parse {cif_path}, file may be broken')
+        return None
 
     if redundancy_filter:
         representative_set = get_nonRedundantChains(redundancy_filter)
 
 
-    print(f'Finding RNA interfaces for structure: {structure_id}')
+    # print(f'Finding RNA interfaces for structure: {structure_id}')
     #3-D KD tree
     atom_list = Selection.unfold_entities(structure, 'A')
     neighbors = NeighborSearch(atom_list)
