@@ -9,6 +9,7 @@ import os
 import numpy as np
 from Bio.PDB import *
 import json
+from tqdm import tqdm
 
 scriptdir = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(os.path.join(scriptdir, '..'))
@@ -57,8 +58,6 @@ def main():
                         help='CSV file of list of interface residues\
                                 call with this option if prepare_data/main has\
                                 been called before to speed up execution')
-    parser.add_argument('interface_graphs_dir',
-                        help='output directory to store interface graphs')
     parser.add_argument('-t','--type',
                         help='RNA interface interaction partner\
                                 can be any of {protein, ion, rna, ligand, all}\
@@ -66,6 +65,11 @@ def main():
                         default='all')
     parser.add_argument('-pf', '--pbid_filter',
                         help='comma seperated text file containing pbids to include')
+    parser.add_argument('-nr', '--nr_list',
+                        help='non redundant structures list.\
+                                Can be downloaded from rna.bgsu.edu')
+    parser.add_argument('interface_graphs_dir',
+                        help='output directory to store interface graphs')
     args = parser.parse_args()
 
     args = parser.parse_args()
@@ -85,21 +89,26 @@ def main():
         files_not_found = []
 
         # Get filter list
+        pbid_filter = None
         if args.pbid_filter:
             with open(args.pbid_filter, 'r') as f:
                 pbid_filter = f.readline().split(',')
                 pbid_filter = set([x.lower() for x in pbid_filter])
 
         # find interfaces
-        for cif_file in os.listdir(args.pbd_dir):
+        for cif_file in tqdm(os.listdir(args.pbd_dir)):
+            if '.cif' not in cif_file: continue
             if pbid_filter:
                 pbid = cif_file[:4]
                 if pbid not in pbid_filter: continue
             path = os.path.join(args.pbd_dir, cif_file)
             try:
-                residues, _ = get_interfaces(path, ligands = ligands, cutoff = cutoff)
+                residues, _ = get_interfaces(path, ligands = ligands,
+                                                cutoff = cutoff,
+                                                redundancy_filter=args.nr_list)
             except TypeError:
                 files_not_found.append(path)
+                continue
             interface_residues = interface_residues + residues
 
         # Write interfaces to csv and parse csv
