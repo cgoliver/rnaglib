@@ -40,7 +40,7 @@ def main():
     parser.add_argument('-S', '--pbd_dir',
                         help='Input directory of PBD structures (format=mmCIF)',
                         default= os.path.join(scriptdir,'..','data','structures'))
-    parser.add_argument('-interface_list_output',
+    parser.add_argument('-o', '--interface_list_output',
                         help='Output CSV file of interface residue list',
                         default = os.path.join(scriptdir, '..', 'data',
                             'interface_residue_list.csv'))
@@ -68,7 +68,7 @@ def main():
     parser.add_argument('-nr', '--nr_list',
                         help='non redundant structures list.\
                                 Can be downloaded from rna.bgsu.edu')
-    parser.add_argument('interface_graphs_dir',
+    parser.add_argument('-interface_graphs_dir',
                         help='output directory to store interface graphs')
     args = parser.parse_args()
 
@@ -119,13 +119,13 @@ def main():
         interface_list_input = args.interface_list_input
 
     # Parse interfaces into dictionaries
-    subset = parse_subset_fromcsv(interface_list_input, interaction_type)
+    # subset = parse_subset_fromcsv(interface_list_input, interaction_type)
 
     # with open(os.path.join(scriptdir, '..', 'junk', 'subset.json'), 'w') as f:
         # json.dump(subset, f, indent=4)
 
     # slice graphs from interface residues list 
-    slice_all(args.native_graphs_dir, args.interface_graphs_dir, subset)
+    # slice_all(args.native_graphs_dir, args.interface_graphs_dir, subset)
 
     print("DONE")
 
