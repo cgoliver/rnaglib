@@ -4,7 +4,7 @@ Build annotated graphs using [x3dna DSSR](http://docs.x3dna.org/dssr-manual.pdf)
 Requires a x3dna-dssr executable to be in $PATH.
 
 """
-
+import os
 import json
 import multiprocessing as mp
 from subprocess import check_output
@@ -59,7 +59,6 @@ def snap_parse(snap_out):
 
     """
     import re
-    print(snap_out)
 
     lines = iter(snap_out.split("\n"))
 
@@ -140,7 +139,8 @@ def add_sses(g, annot):
                 if nt in g.nodes():
                     sse_annots[nt] = {'sse': f'{sse[:-1]}_{elem["index"]}'}
     return sse_annots
-def annot_2_graph(annot, rbp_annot):
+
+def annot_2_graph(annot, rbp_annot, pdbid):
     """
     DSSR Annotation JSON Keys:
 
@@ -185,6 +185,11 @@ def annot_2_graph(annot, rbp_annot):
             G.nodes[node]['rbp'] = rbp_annot[node]
         except KeyError:
             G.nodes[node]['rbp'] = None
+
+    # relabel nodes to include PDBID
+    new_labels = {n: pdbid+"." + n for n in G.nodes()}
+    G = nx.relabel_nodes(G, new_labels)
+
     # import matplotlib.pyplot as plt
     # nx.draw(G)
     # plt.show()
@@ -199,7 +204,8 @@ def build_one(cif):
     except:
         rbp_annot = {}
     # print(annot['pairs'][0])
-    G = annot_2_graph(annot, rbp_annot)
+    pdbid = os.path.basename(cif).split(".")[0]
+    G = annot_2_graph(annot, rbp_annot, pdbid)
     G_data = nx.readwrite.json_graph.node_link_data(G)
     with open("1aju.json", "w") as out:
         json.dump(G_data, out)
