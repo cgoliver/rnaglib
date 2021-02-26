@@ -125,15 +125,23 @@ def get_interfaces(cif_path, ligands,
     """
     parser = MMCIFParser(QUIET=True)
     structure_id = cif_path[-8:-4]
-    print(f'Loading structure {structure_id}...')
+    print(f'Parsing structure {structure_id}...')
     try:
-        structure = parser.get_structure('X', cif_path)
-    except FileNotFoundError:
-        print(f'ERROR: file {cif_path} not found')
-        return None
-    except ValueError:
-        print(f'ERROR: Could not parse {cif_path}, file may be broken')
-        return None
+        structure = parser.get_structure(structure_id, cif_path)
+    except KeyboardInterrupt:
+        print('Execution stopped')
+        raise Exception
+    except:
+        print(f'ERROR: file {cif_path} not found, trying to download from pdb...')
+        pdbl = PDBList()
+        struct_path = os.path.join(script_dir, '..', 'data', 'structures', '.downloads')
+        pdbl.retrieve_pdb_file(structure_id, struct_path)
+        cif_path = os.path.join(struct_path, structure_id + '.cif')
+        try:
+            structure = parser.get_structure(structure_id, cif_path)
+        except ValueError:
+            print('Could not parse new downloaded file either')
+            return None
 
     if redundancy_filter:
         representative_set = get_nonRedundantChains(redundancy_filter)
