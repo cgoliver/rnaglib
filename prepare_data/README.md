@@ -109,3 +109,18 @@ These are the keys in the node data dictionary:
 
 ### Edge data
 
+Each edge also has an attribute dictionary:
+
+```python
+G.edges[(<node_1>, <node_2>)]
+```
+
+* `'index'`: (int) Index of edge in DSSR ordering.
+* `'nt1'`: (str) DSSR nucleotide ID of first base (e.g. `'A.G17'`)
+* `'nt2'`: (str) DSSR nucleotide ID of second base (e.g. `'A.G29'`)
+* `'bp'` (str): Nucleotide identity of paired residues (e.g. `'G-C'`)
+* `'name'`: (str) (e.g. `'WC'`)
+* `'Saenger'`: (str) Saenger base pairing category (e.g. `'19-XIX'`),
+* `'LW'`: (str) Leontis-Westhof base pair geometry category (e.g. `'cWW'`)
+* `'DSSR'`: (str) Custom DSSR base pair geometry category (e.g. `'cW-W'`)
+
