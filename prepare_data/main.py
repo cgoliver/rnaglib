@@ -7,6 +7,7 @@ import multiprocessing as mp
 import os
 import sys
 import argparse
+from Bio.PDB.PDBList import update_pdb
 
 script_dir = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(os.path.join(script_dir, '..'))
@@ -52,6 +53,10 @@ def main():
     # args.structures_dir = '../data/structures/test_structures/'
     # args.output_dir = '../data/graphs/DSSR/annotated/'
     # g, _ = load_graph('../examples/1aju.json')
+
+    # Update PDB
+    pl = PDBList(pdb=args.structures_dir)
+    pl.update_pdb()
 
     cifs = listdir_fullpath(args.structures_dir)
     todo = ((cif, args.output_dir) for cif in cifs)
