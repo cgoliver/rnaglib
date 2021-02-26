@@ -18,7 +18,7 @@ from prepare_data.annotations import parse_interfaces, annotate_graph, write_gra
 def listdir_fullpath(d):
         return [os.path.join(d, f) for f in os.listdir(d)]
 
-def do_one(cif, output_dir, g):
+def do_one(cif, output_dir):
 
     if '.cif' not in cif: return
     pbid = cif[-8:-4]
@@ -44,6 +44,7 @@ def main():
     parser.add_argument('-O', '--output_dir',
                         help='directory to output graphs')
     parser.add_argument('-nw', '--num_workers',
+                        type=int,
                         help='number of workers for multiprocessing',
                         default = 1)
     args = parser.parse_args()
@@ -53,7 +54,7 @@ def main():
     # g, _ = load_graph('../examples/1aju.json')
 
     cifs = listdir_fullpath(args.structures_dir)
-    todo = [(cif, args.output_dir, g) for cif in cifs]
+    todo = ((cif, args.output_dir) for cif in cifs)
 
     pool = mp.Pool(args.num_workers)
 
