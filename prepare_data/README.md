@@ -104,7 +104,7 @@ These are the keys in the node data dictionary:
 * `'filter_rmsd'`: (float)
 * `'frame':` (dict)  e.g. (`{'rmsd': 0.006, 'origin': [-4.856, 8.564, -1.171], 'x_axis': [0.922, 0.386, -0.006], 'y_axis': [0.098, -0.25, -0.963], 'z_axis': [-0.374, 0.888, -0.269], 'quaternion': [0.592, -0.781, -0.155, 0.122]}`
 * `'sse'`: (dict) Secondary structure info (e.g. residue inside third hairpin `{'sse': 'hairpin-3'}`)
-* `'rbp'`: (dict) RNA-Protein interface. If no interface found, `None`. Else, dictionary (e.g. `{'nt-aa': 'C-arg', 'nt': 'A.C37', 'aa': 'A.ARG47', 'Tdst': '6.62', 'Rdst': '-114.00', 'Tx': '-1.15', 'Ty': '1.89', 'Tz': '6.23', 'Rx': '-53.57', 'Ry': '19.41', 'Rz': '-103.42'}`)
+* `'binding_protein'`: (dict) RNA-Protein interface. If no interface found, `None`. Else, dictionary (e.g. `{'nt-aa': 'C-arg', 'nt': 'A.C37', 'aa': 'A.ARG47', 'Tdst': '6.62', 'Rdst': '-114.00', 'Tx': '-1.15', 'Ty': '1.89', 'Tz': '6.23', 'Rx': '-53.57', 'Ry': '19.41', 'Rz': '-103.42'}`)
 
 
 ### Edge data

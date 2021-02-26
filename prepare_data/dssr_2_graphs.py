@@ -183,9 +183,9 @@ def annot_2_graph(annot, rbp_annot, pdbid):
     # add RNA-Protein interface data
     for node in G.nodes():
         try:
-            G.nodes[node]['rbp'] = rbp_annot[node]
+            G.nodes[node]['binding_protein'] = rbp_annot[node]
         except KeyError:
-            G.nodes[node]['rbp'] = None
+            G.nodes[node]['binding_protein'] = None
 
     new_labels = {n: ".".join([pdbid, str(d['chain_name']), str(d['nt_resnum'])])\
                     for n,d in G.nodes(data=True)}
