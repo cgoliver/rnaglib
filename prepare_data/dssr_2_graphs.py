@@ -159,6 +159,7 @@ def annot_2_graph(annot, rbp_annot, pdbid):
     # add nucleotides
     G.add_nodes_from(((d['nt_id'], d) for d in nt_annot))
 
+    print(annot['nts'])
     # add backbones
     bbs = get_backbones(annot['nts'])
     G.add_edges_from(((five_p['nt_id'], three_p['nt_id'], {'LW': 'B53', 'backbone': True}) \
@@ -186,8 +187,9 @@ def annot_2_graph(annot, rbp_annot, pdbid):
         except KeyError:
             G.nodes[node]['rbp'] = None
 
-    # relabel nodes to include PDBID
-    new_labels = {n: pdbid+"." + n for n in G.nodes()}
+    new_labels = {n: ".".join([pdbid, str(d['chain_name']), str(d['nt_resnum'])])\
+                    for n,d in G.nodes(data=True)}
+
     G = nx.relabel_nodes(G, new_labels)
 
     # import matplotlib.pyplot as plt
@@ -207,7 +209,7 @@ def build_one(cif):
     pdbid = os.path.basename(cif).split(".")[0]
     G = annot_2_graph(annot, rbp_annot, pdbid)
     G_data = nx.readwrite.json_graph.node_link_data(G)
-    with open("1aju.json", "w") as out:
+    with open("../examples/1aju.json", "w") as out:
         json.dump(G_data, out)
     pass
 
