@@ -31,11 +31,14 @@ def write_graph(g, json_file):
 
     return
 
-def annotate_graph(g, annots, labels):
+def annotate_graph(g, annots):
     """
     Add node annotations to graph from annots
     nodes without a value recieve None type
     """
+
+    labels = {'binding_ion': 'ion',
+            'binding_small-molecule': 'ligand'}
 
     for node in g.nodes():
         for label, typ in labels.items():
@@ -47,6 +50,19 @@ def annotate_graph(g, annots, labels):
 
     return g
 
+def parse_interfaces(interfaces,
+                    types=['ion', 'ligand']):
+    """
+    parse output from get_interfaces into a dictionary
+    """
+    annotations = defaultdict(dict)
+
+    for pbid, _, chain, typ, target, PDB_pos in interfaces:
+        if types:
+            if typ not in types: continue
+        annotations[pbid + '.' + chain + '.' + PDB_pos][typ] = target
+
+    return annotations
 
 
 def load_csv_annot(csv_file, pbids=None, types=None):
@@ -74,14 +90,12 @@ def annotate_graphs(graph_dir, csv_file, output_dir,
     """
     add annotations from csv_file to all graphs in graph_dir
     """
-    labels = {'binding_ion': 'ion',
-            'binding_small-molecule': 'ligand'}
     annotations = load_csv_annot(csv_file)
 
     for graph in os.listdir(graph_dir):
         path = os.path.join(graph_dir, graph)
         g, pbid = load_graph(path)
-        h = annotate_graph(g, annotations, labels)
+        h = annotate_graph(g, annotations)
         write_graph(h, os.path.join(output_dir, graph))
 
 def main():

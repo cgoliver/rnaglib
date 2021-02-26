@@ -208,10 +208,12 @@ def build_one(cif):
     # print(annot['pairs'][0])
     pdbid = os.path.basename(cif).split(".")[0]
     G = annot_2_graph(annot, rbp_annot, pdbid)
-    G_data = nx.readwrite.json_graph.node_link_data(G)
-    with open("../examples/1aju.json", "w") as out:
-        json.dump(G_data, out)
-    pass
+
+    return G
+    # G_data = nx.readwrite.json_graph.node_link_data(G)
+    # with open("../examples/1aju.json", "w") as out:
+        # json.dump(G_data, out)
+    # pass
 
 def build_all():
     pass
