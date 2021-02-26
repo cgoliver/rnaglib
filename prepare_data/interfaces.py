@@ -103,7 +103,8 @@ def get_offset_pos(res):
         else:
             return res.id[1] + 1
 
-def get_interfaces(cif_path, ligands,
+def get_interfaces(cif_path,
+                    ligands = os.path.join(script_dir, 'ligand_list.txt'),
                     redundancy_filter=None,
                     pbid_filter = None,
                     cutoff=10,
@@ -133,8 +134,10 @@ def get_interfaces(cif_path, ligands,
         raise Exception
     except:
         print(f'ERROR: file {cif_path} not found, trying to download from pdb...')
+        if not os.path.exist('.cache'):
+            os.mkdir('.cache')
         pdbl = PDBList()
-        struct_path = os.path.join(script_dir, '..', 'data', 'structures', '.downloads')
+        struct_path = '.cache'
         pdbl.retrieve_pdb_file(structure_id, struct_path)
         cif_path = os.path.join(struct_path, structure_id + '.cif')
         try:
@@ -215,7 +218,7 @@ def get_interfaces(cif_path, ligands,
             interface_residues.append((structure_id, r2_position, c2, 'ion',
                                         r1, r2_pbid_position))
         elif 'H' in res_2.id[0] and ' ' in res_1.id[0]:
-            interface_residues.append((structure_id, r1_position, c2, 'ion',
+            interface_residues.append((structure_id, r1_position, c1, 'ion',
                                         r2, r1_pbid_position))
         elif  'H' in res_2.id[0] and 'H' in res_1.id[0]:
             continue
