@@ -2,7 +2,7 @@
 Prepare graphs from PDB cif files using DSSR annotation software.
 Ligand and Ion annotations are manually annotated by neighbor search on PDB structures.
 Write graphs in JSON format to output directory
-
+Run with -u to update the PDB atleast once a week
 EXTERNAL PACKAGES:
     rcsbsearch : `pip install rcsbsearch`
 """
@@ -87,8 +87,8 @@ def main():
                         help='update the structures dir')
     args = parser.parse_args()
 
-    args.structures_dir = '/Users/jonbroad/OneDrive - McGill University/School/McGill/Honours Project/data/structures/test_structures'
-    args.output_dir = '../examples'
+    # args.structures_dir = '/Users/jonbroad/OneDrive - McGill University/School/McGill/Honours Project/data/structures/test_structures'
+    # args.output_dir = '../examples'
 
     # Update PDB
     if args.update: update_RNApdb(args.structures_dir)
