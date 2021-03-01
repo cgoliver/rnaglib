@@ -12,6 +12,7 @@ import sys
 import argparse
 from Bio.PDB.PDBList import PDBList
 from rcsbsearch import TextQuery, rcsb_attributes
+import json
 
 script_dir = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(os.path.join(script_dir, '..'))
@@ -70,7 +71,7 @@ def update_RNApdb(pdir):
             if cif[-8:-4].upper() in set(obsolete):
                 os.rename(os.path.join(pdir, cif), os.path.join(obsolete_dir, cif))
 
-    return
+    return new_rna
 
 
 def main():
@@ -87,14 +88,17 @@ def main():
                         help='update the structures dir')
     args = parser.parse_args()
 
-    # args.structures_dir = '/Users/jonbroad/OneDrive - McGill University/School/McGill/Honours Project/data/structures/test_structures'
-    # args.output_dir = '../examples'
+    args.structures_dir = '/Users/jonbroad/OneDrive - McGill University/School/McGill/Honours Project/data/structures/test_structures'
+    # args.structures_dir = '../data/structures'
+    args.output_dir = '../examples'
 
     # Update PDB
-    if args.update: update_RNApdb(args.structures_dir)
+    if args.update:
+        new_rna = update_RNApdb(args.structures_dir)
 
     cifs = listdir_fullpath(args.structures_dir)
-    todo = ((cif, args.output_dir) for cif in cifs)
+    todo = ((cif, args.output_dir) for cif in cifs)#\
+            #if cif[-8:-4].upper() in new_rna)
 
     pool = mp.Pool(args.num_workers)
 
