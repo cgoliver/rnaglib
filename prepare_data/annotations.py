@@ -1,12 +1,46 @@
+"""
+Package installs:
+conda install -c salilab dssp
+"""
+
 import json
 import networkx as nx
 import sys
 import os
 import csv
 from collections import defaultdict
+from Bio.PDB.DSSP import DSSP
+from Bio.PDB import MMCIFParser
+
+from time import perf_counter
 
 script_dir = os.path.join(os.path.realpath(__file__), '..')
 sys.path.append(os.path.join(script_dir, '..'))
+
+def annotate_proteinSSE(g, structure, pdb_file):
+    """
+    Annotate protein_binding node attributes with the relative SSE
+    if available from DSSP
+
+    :param g: (nx graph)
+    :param structure: (PDB structure)
+    :return g: (nx graph)
+    """
+
+    model = structure[0]
+    tic = perf_counter()
+    dssp = DSSP(model, pdb_file, dssp='mkdssp', file_type='DSSP')
+    toc = perf_counter()
+
+    print(dssp.keys())
+
+    a_key = list(dssp.keys())[2]
+
+    print(dssp[a_key])
+
+    print(f'runtime = {tic-toc:0.7f} seconds')
+
+    return g
 
 
 def load_graph(json_file):
@@ -60,7 +94,7 @@ def parse_interfaces(interfaces,
     for pbid, _, chain, typ, target, PDB_pos in interfaces:
         if types:
             if typ not in types: continue
-        annotations[pbid + '.' + chain + '.' + PDB_pos][typ] = target
+        annotations[str(pbid) + '.' + str(chain) + '.' + str(PDB_pos)][typ] = target
 
     return annotations
 
@@ -99,9 +133,18 @@ def annotate_graphs(graph_dir, csv_file, output_dir,
         write_graph(h, os.path.join(output_dir, graph))
 
 def main():
-    annotate_graphs('../examples/',
-                    '../data/interface_list_1aju.csv',
-                    '../data/graphs/DSSR/annotated')
+    # annotate_graphs('../examples/',
+                    # '../data/interface_list_1aju.csv',
+                    # '../data/graphs/DSSR/annotated')
+    g = load_graph('../examples/4gkk.json')
+    pdb_file = '../data/structures/4gkk.cif'
+    parser = MMCIFParser()
+    structure = parser.get_structure('4GKK', pdb_file)
+
+
+    annotate_proteinSSE(g, structure, '../data/structures/4gkk.dssp')
+
+    return
 
 if __name__ == '__main__':
     main()
