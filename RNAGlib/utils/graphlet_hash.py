@@ -29,8 +29,8 @@ from networkx.algorithms import core_number
 from struct import *
 # from tools.drawing import rna_draw, rna_draw_pair
 from utils.graph_utils import bfs_expand
-# from tools.rna_ged import ged
 from utils.rna_ged_nx import ged
+from utils.graph_io import load_json, dump_json
 
 iso_matrix = pickle.load(open(os.path.join(script_dir, '../data/iso_mat.p'), 'rb'))
 sub_matrix = np.ones_like(iso_matrix) - iso_matrix
@@ -50,15 +50,17 @@ labels.add('B53')
 
 class Hasher:
     def __init__(self, method='WL',
-            string_hash_size=8,
-            graphlet_hash_size=16,
-            symmetric_edges=True,
-            wl_hops=2):
+                 string_hash_size=8,
+                 graphlet_hash_size=16,
+                 symmetric_edges=True,
+                 wl_hops=2,
+                 label='LW'):
         self.method = method
         self.string_hash_size = string_hash_size
         self.graphlet_hash_size = graphlet_hash_size
         self.symmetric_edges = symmetric_edges
         self.wl_hops = wl_hops
+        self.label = label
 
     def hash(self, G):
         """
@@ -66,22 +68,22 @@ class Hasher:
 
         >>> import networkx as nx
         >>> G1 = nx.Graph()
-        >>> G1.add_edges_from([(('4v6m_76.nx', ('B8', 627)), ('4v6m_76.nx', ('B8', 626)), {'label': 'B53'}),\
-                               (('4v6m_76.nx', ('B8', 627)), ('4v6m_76.nx', ('B8', 628)), {'label': 'B53'})])
+        >>> G1.add_edges_from([(('4v6m_76.nx', ('B8', 627)), ('4v6m_76.nx', ('B8', 626)), {'LW': 'B53'}),\
+                               (('4v6m_76.nx', ('B8', 627)), ('4v6m_76.nx', ('B8', 628)), {'LW': 'B53'})])
         >>> G2 = nx.Graph()
-        >>> G2.add_edges_from([(('4v6m_76.nx', ('B8', 654)), ('4v6m_76.nx', ('B8', 655)), {'label': 'B53'}),\
-                               (('4v6m_76.nx', ('B8', 655)), ('4v6m_76.nx', ('B8', 656)), {'label': 'B53'})])
+        >>> G2.add_edges_from([(('4v6m_76.nx', ('B8', 654)), ('4v6m_76.nx', ('B8', 655)), {'LW': 'B53'}),\
+                               (('4v6m_76.nx', ('B8', 655)), ('4v6m_76.nx', ('B8', 656)), {'LW': 'B53'})])
 
         >>> hasher = Hasher()
         >>> hasher.hash(G1) == hasher.hash(G2)
         True
         """
         if self.symmetric_edges:
-            for u,v in G.edges():
-                label = G[u][v]['label']
+            for u, v in G.edges():
+                label = G[u][v][self.label]
                 if label != 'B53':
-                    prefix, suffix = label[0],label[1:]
-                    G[u][v]['label'] = prefix + "".join(sorted(suffix))
+                    prefix, suffix = label[0], label[1:]
+                    G[u][v][self.label] = prefix + "".join(sorted(suffix))
         items = []
         node_labels = {n: '' for n in G.nodes()}
         for k in range(self.wl_hops):
@@ -100,20 +102,22 @@ class Hasher:
         h.update(str(tuple(items)).encode('ascii'))
         return h.hexdigest()
 
-def nei_agg(G, n):
-    x = tuple(sorted([G.nodes()[n]['label']] + [G.nodes()[n]['label'] for n in G.neighbors(n)]))
+
+def nei_agg(G, n, label='LW'):
+    x = tuple(sorted([G.nodes()[n][label]] + [G.nodes()[n][label] for n in G.neighbors(n)]))
     return x
 
-def nei_agg_edges(G, n, node_labels):
+
+def nei_agg_edges(G, n, node_labels, edge_labels='LW'):
     x = [node_labels[n]]
     for nei in G.neighbors(n):
-        x.append(G[n][nei]['label'] + node_labels[nei])
+        x.append(G[n][nei][edge_labels] + node_labels[nei])
     return ''.join(sorted(x))
 
 
-def WL_step(G):
+def WL_step(G, label='LW'):
     new_labels = {n: nei_agg(G, n) for n in G.nodes()}
-    nx.set_node_attributes(G, new_labels, 'label')
+    nx.set_node_attributes(G, new_labels, label)
     pass
 
 
@@ -126,8 +130,9 @@ def WL_step_edges(G, labels):
         new_labels[n] = nei_agg_edges(G, n, labels)
     return new_labels
 
-def extract_graphlet(G, n, size=1):
-    return G.subgraph(bfs_expand(G, [n], depth=size)).copy()
+
+def extract_graphlet(G, n, size=1, label='LW'):
+    return G.subgraph(bfs_expand(G, [n], depth=size, label=label)).copy()
     pass
 
 
@@ -135,7 +140,7 @@ def build_hash_table(graph_dir, hasher, graphlets=True,
                      max_graphs=0,
                      graphlet_size=1,
                      mode='count',
-                     annot=False):
+                     label='LW'):
     hash_table = {}
     graphlist = os.listdir(graph_dir)
     if max_graphs:
@@ -144,14 +149,9 @@ def build_hash_table(graph_dir, hasher, graphlets=True,
     random.shuffle(graphlist)
     start = time.time()
     for g in tqdm(graphlist):
-        if annot:
-            G = pickle.load(open(os.path.join(graph_dir, g), 'rb'))['graph']
-        else:
-            G = pickle.load(open(os.path.join(graph_dir, g), 'rb'))
-
-
+        G = load_json(os.path.join(graph_dir, g))
         if graphlets:
-            todo = (extract_graphlet(G, n, size=graphlet_size) for n in G.nodes())
+            todo = (extract_graphlet(G, n, size=graphlet_size, label=label) for n in G.nodes())
         else:
             todo = [G]
         for n in todo:
@@ -194,11 +194,10 @@ def GED_hashtable_hashed(h_G, h_H, GED_table, graphlet_table, normed=True,
     G = graphlet_table[h_G]['graph']
     H = graphlet_table[h_H]['graph']
 
-
-    distance = ged(G,H, timeout=timeout)
+    distance = ged(G, H, timeout=timeout)
     # d = ged(G, H, sub_matrix=sub_matrix,
-            # edge_map=edge_map,
-            # indel=indel_vector)
+    # edge_map=edge_map,
+    # indel=indel_vector)
     # distance = d.cost
 
     # This is added by vincent, to use to be closer from the rest of the framework riso
@@ -215,7 +214,6 @@ def GED_hashtable_hashed(h_G, h_H, GED_table, graphlet_table, normed=True,
     # estimated_value=[0, d])
     GED_table[h_G][h_H] = distance
     return distance
-
 
 
 def hash_analyze(annot_dir):
@@ -292,12 +290,13 @@ def graphlet_distribution(hash_table):
 
 if __name__ == "__main__":
     import doctest
+
     doctest.testmod()
     table = build_hash_table("../data/annotated/whole_v3", Hasher(), mode='append', max_graphs=10)
-    #check hashtable visually
+    # check hashtable visually
     from tools.drawing import rna_draw
-    for h,data in table.items():
+
+    for h, data in table.items():
         print(h)
         for g in data['graphs']:
             rna_draw(g, show=True)
-

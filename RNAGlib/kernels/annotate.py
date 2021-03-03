@@ -20,7 +20,7 @@ from utils.graphlet_hash import extract_graphlet, build_hash_table, Hasher
 from utils.graph_io import load_json, dump_json
 
 
-def node_2_unordered_rings(G, v, depth=5, hasher=None, label='label'):
+def node_2_unordered_rings(G, v, depth=5, hasher=None, label='LW'):
     """
     Return rings centered at `v` up to depth `depth`.
 
@@ -36,10 +36,10 @@ def node_2_unordered_rings(G, v, depth=5, hasher=None, label='label'):
 
     >>> import networkx as nx
     >>> G = nx.Graph()
-    >>> G.add_edges_from([(1,2, {'label': 'A'}),\
-                          (1, 3, {'label': 'B'}),\
-                          (2, 3, {'label': 'C'}),\
-                          (3, 4, {'label': 'A'})])
+    >>> G.add_edges_from([(1,2, {'LW': 'A'}),\
+                          (1, 3, {'LW': 'B'}),\
+                          (2, 3, {'LW': 'C'}),\
+                          (3, 4, {'LW': 'A'})])
     >>> rings = node_2_unordered_rings(G, 1, depth=2)
     >>> rings['edge']
     [[None], ['A', 'B'], ['C', 'A']]
@@ -92,7 +92,7 @@ def node_2_unordered_rings(G, v, depth=5, hasher=None, label='label'):
     return {'node_annots': node_rings, 'edge_annots': edge_rings, 'graphlet_annots': graphlet_rings}
 
 
-def build_ring_tree_from_graph(graph, depth=5, hasher=None, label='label'):
+def build_ring_tree_from_graph(graph, depth=5, hasher=None, label='LW'):
     """
     :param graph: nx
     :return: dict (ring_level: node: ring)
@@ -156,7 +156,8 @@ def annotate_all(dump_path='../data/annotated/sample_v2',
                  parallel=True,
                  ablation="",
                  do_hash=False,
-                 re_annotate=False):
+                 re_annotate=False,
+                 label='LW'):
     """
     Routine for all files in a folder
     :param dump_path:
@@ -174,7 +175,7 @@ def annotate_all(dump_path='../data/annotated/sample_v2',
     if do_hash:
         print(">>> hashing graphlets.")
         hasher = Hasher(wl_hops=3)
-        hash_table = build_hash_table(graph_path, hasher, annot=re_annotate, graphlet_size=2)
+        hash_table = build_hash_table(graph_path, hasher, label=label, graphlet_size=2)
         print(f">>> found {len(hash_table)} graphlets.")
         name = os.path.basename(dump_path)
         pickle.dump((hasher.__dict__, hash_table),
@@ -245,4 +246,4 @@ if __name__ == '__main__':
     # args = cline()
     # caller(**vars(args))
 
-    caller()
+    caller(do_hash=True)

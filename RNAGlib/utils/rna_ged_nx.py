@@ -34,15 +34,15 @@ edge_map = {'B53': 0, 'CHH': 1, 'CHS': 2, 'CHW': 3, 'CSH': 2, 'CSS': 4, 'CSW': 5
 indel_vector = [1 if e == 'B53' else 2 if e == 'CWW' else 3 for e in sorted(edge_map.keys())]
 
 
-def e_sub(e1_attr, e2_attr):
-    return sub_matrix[edge_map[e1_attr['label']]][edge_map[e2_attr['label']]]
+def e_sub(e1_attr, e2_attr, label='label'):
+    return sub_matrix[edge_map[e1_attr[label]]][edge_map[e2_attr[label]]]
 
-def e_ins(e_attr):
-    return indel_vector[edge_map[e_attr['label']]]
+def e_ins(e_attr, label='label'):
+    return indel_vector[edge_map[e_attr[label]]]
     pass
 
-def e_del(e_attr):
-    return indel_vector[edge_map[e_attr['label']]]
+def e_del(e_attr, label='label'):
+    return indel_vector[edge_map[e_attr[label]]]
     pass
 
 def n_ins(arg):
