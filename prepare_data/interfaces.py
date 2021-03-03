@@ -11,26 +11,6 @@ sys.path.append(os.path.join(script_dir, '..'))
 
 from prepare_data.retrieve_structures import load_csv
 
-def get_nonRedundantChains(NR_csv_file):
-    """
-    Parse NR BGSU csv file for a list of non-redundant RNA chains
-    list can be downloaded from:
-        http://rna.bgsu.edu/rna3dhub/nrlist
-    :param repr_set: Set of representative RNAs output (see load_csv())
-    :return: set of non-redundant RNA chains (tuples of (structure, model, chain))
-    """
-
-    nonRedundantStrings = load_csv(NR_csv_file)
-    nonRedundantChains = []
-
-    # split into each IFE (Integrated Functional Element)
-    for representative in nonRedundantStrings:
-        items = representative.split('+')
-        for entry in items:
-            pbid, model, chain = entry.split('|')
-            nonRedundantChains.append((pbid, model, chain))
-
-    return set(nonRedundantChains)
 
 def find_ligand_annotations(cif_path, ligands):
     """

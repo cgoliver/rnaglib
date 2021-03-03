@@ -159,7 +159,7 @@ def annot_2_graph(annot, rbp_annot, pdbid):
     # add nucleotides
     G.add_nodes_from(((d['nt_id'], d) for d in nt_annot))
 
-    print(annot['nts'])
+    # print(annot['nts'])
     # add backbones
     bbs = get_backbones(annot['nts'])
     G.add_edges_from(((five_p['nt_id'], three_p['nt_id'], {'LW': 'B53', 'backbone': True}) \
