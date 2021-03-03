@@ -3,7 +3,7 @@ import time
 import pickle
 
 import numpy as np
-import networkx as nx
+
 # import seaborn as sns
 # import matplotlib.pyplot as plt
 
@@ -11,7 +11,7 @@ script_dir = os.path.dirname(os.path.realpath(__file__))
 if __name__ == "__main__":
     sys.path.append(os.path.join(script_dir, '..'))
 
-from utils.ged_nx import graph_edit_distance, optimize_graph_edit_distance
+from ged.ged_nx import graph_edit_distance, optimize_graph_edit_distance
 
 iso_matrix = pickle.load(open(os.path.join(script_dir, '../data/iso_mat.p'), 'rb'))
 sub_matrix = np.ones_like(iso_matrix) - iso_matrix
