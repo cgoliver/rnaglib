@@ -18,6 +18,7 @@ from tqdm import tqdm
 import multiprocessing as mlt
 from utils.graphlet_hash import extract_graphlet, build_hash_table, Hasher
 from utils.graph_io import load_json, dump_json
+from drawing.drawing import rna_draw
 
 
 def node_2_unordered_rings(G, v, depth=5, hasher=None, label='LW'):
@@ -50,9 +51,11 @@ def node_2_unordered_rings(G, v, depth=5, hasher=None, label='LW'):
     do_hash = not hasher is None
 
     if do_hash:
-        graphlet_rings = [[hasher.hash(extract_graphlet(G, v))]]
+        graphlet_rings = [[hasher.get_node_hash(G, v)]]
     else:
         graphlet_rings = None
+
+    print(f'Hashing for node {v}:', hasher.get_node_hash(G, v))
 
     node_rings = [[v]]
     edge_rings = [[None]]
@@ -75,7 +78,7 @@ def node_2_unordered_rings(G, v, depth=5, hasher=None, label='LW'):
                 e_set = frozenset([node, nei])
                 if e_set not in visited_edges:
                     if do_hash:
-                        children_graphlet.append(hasher.hash(extract_graphlet(G, nei)))
+                        children_graphlet.append(hasher.get_node_hash(G, nei))
                     e_labels.append(G[node][nei][label])
                     visited_edges.add(e_set)
             ring_k.extend(children)
@@ -98,7 +101,8 @@ def build_ring_tree_from_graph(graph, depth=5, hasher=None, label='LW'):
     :return: dict (ring_level: node: ring)
     """
     dict_ring = defaultdict(dict)
-    for node in sorted(graph.nodes()):
+    rna_draw(graph, show=True)
+    for node in graph.nodes():
         rings = node_2_unordered_rings(graph, node, depth=depth, hasher=hasher, label=label)
         dict_ring['node'][node] = rings['node_annots']
         dict_ring['edge'][node] = rings['edge_annots']
@@ -114,15 +118,12 @@ def annotate_one(g, graph_path, dump_path, hasher, re_annotate, label='LW'):
     :return:
     """
 
-    dump_name = os.path.basename(g).split('.')[0] + "_annot.p"
+    dump_name = os.path.basename(g).split('.')[0] + "_annot.json"
     dump_full = os.path.join(dump_path, dump_name)
-    for processed in os.listdir(dump_path):
-        if processed.startswith(dump_name):
+    if not re_annotate:
+        if dump_full in os.listdir(dump_path):
             return 0, 0
-    if re_annotate:
-        graph = pickle.load(open(os.path.join(graph_path, g), 'rb'))['graph']
-    else:
-        graph = load_json(os.path.join(graph_path, g))
+    graph = load_json(os.path.join(graph_path, g))
     rings = build_ring_tree_from_graph(graph, depth=5, hasher=hasher, label=label)
 
     if dump_path:
@@ -151,7 +152,7 @@ def annotate_one(g, graph_path, dump_path, hasher, re_annotate, label='LW'):
 
 
 def annotate_all(dump_path='../data/annotated/sample_v2',
-                 graph_path='../data/chunks_nx',
+                 graph_path='../data/examples',
                  parallel=True,
                  ablation="",
                  do_hash=False,
@@ -173,12 +174,14 @@ def annotate_all(dump_path='../data/annotated/sample_v2',
 
     if do_hash:
         print(">>> hashing graphlets.")
-        hasher = Hasher(wl_hops=3)
-        hash_table = build_hash_table(graph_path, hasher, label=label, graphlet_size=2)
-        print(f">>> found {len(hash_table)} graphlets.")
+        hasher = Hasher(wl_hops=3, label=label)
+        hasher.get_hash_table(graph_path)
+        print(f">>> found {len(hasher.hash_table)} graphlets.")
+
+        # print(hash_table['e5871b44ef6a0d3bdce96faf05591de2'])
+
         name = os.path.basename(dump_path)
-        pickle.dump((hasher.__dict__, hash_table),
-                    open(os.path.join(script_dir, '..', 'data', 'hashing', name + ".p"), 'wb'))
+        pickle.dump(hasher, open(os.path.join(script_dir, '..', 'data', 'hashing', name + ".p"), 'wb'))
     else:
         hasher = None
 
@@ -201,6 +204,8 @@ def annotate_all(dump_path='../data/annotated/sample_v2',
             temp_graph = load_json(os.path.join(graph_path, graph))
             if len(list(temp_graph.nodes())) > 100:
                 continue
+            # TODO : DEBUG : we don't get the same hashes for the same node on this line
+            #  and on the hashtable creation line
             res = annotate_one(graph, graph_path, dump_path, hasher, re_annotate)
             if res[0]:
                 failed += 1
@@ -210,6 +215,8 @@ def annotate_all(dump_path='../data/annotated/sample_v2',
 
 if __name__ == '__main__':
     import doctest
+
+
     # doctest.testmod()
 
     def cline():

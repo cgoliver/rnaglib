@@ -82,8 +82,7 @@ class SimFunctionNode:
             self.GED_table = defaultdict(dict)
             init_path = os.path.join(script_dir, '..', 'data', 'hashing', hash_init + '.p')
             print(f">>> loading hash table from {init_path}")
-            self.hasher, self.hash_table = \
-                pickle.load(open(init_path, 'rb'))
+            self.hasher = pickle.load(open(init_path, 'rb'))
 
         if idf:
             global IDF
@@ -502,11 +501,12 @@ class SimFunctionNode:
         if pos:
             g_1, p_1 = node1
             g_2, p_2 = node2
-            ged = GED_hashtable_hashed(g_1, g_2, self.GED_table, self.hash_table, normed=True, similarity=similarity)
+            ged = GED_hashtable_hashed(g_1, g_2, self.GED_table, self.hasher.hash_table, normed=True,
+                                       similarity=similarity)
             delta = SimFunctionNode.delta_indices_sim(p_1, p_2, distance=not similarity)
             return ged + delta
         else:
-            return GED_hashtable_hashed(node1, node2, self.GED_table, self.hash_table, normed=True,
+            return GED_hashtable_hashed(node1, node2, self.GED_table, self.hasher.hash_table, normed=True,
                                         similarity=similarity)
 
 
@@ -584,10 +584,9 @@ def simfunc_time(simfuncs, graph_path, batches=1, batch_size=5,
     graphlist = os.listdir(graph_path)
     for ind, simfunc in enumerate(simfuncs):
         print(f">>> DOING KERNEL {simfunc.method}")
-        rings_type = 'graphlet_annots' if simfunc.method == 'graphlet' else 'edge_annots'
+        rings_type = 'graphlet_annots' if simfunc.method in ['R_ged', 'graphlet', 'R_graphlets'] else 'edge_annots'
         batch_times = []
         for b in range(batches):
-            shuffle(graphlist)
             loading_times = []
             ringlist = []
             print(f">>> batch {b}")
@@ -655,18 +654,19 @@ if __name__ == "__main__":
     graph1 = load_json(os.path.join(graph_path, graphs[0]))
     graph2 = load_json(os.path.join(graph_path, graphs[0]))
     simfunc_r1 = SimFunctionNode('R_1', 2)
-    simfunc_hung = SimFunctionNode('hungarian', 2, hash_init='whole_v3')
-    simfunc_iso = SimFunctionNode('R_iso', 2, hash_init='whole_v3', idf=True)
+    simfunc_hung = SimFunctionNode('hungarian', 2, hash_init='samples')
+    simfunc_iso = SimFunctionNode('R_iso', 2, hash_init='samples', idf=True)
     simfunc_graphlet = SimFunctionNode('R_graphlets', 2, hash_init='samples')
 
-    # for node1, nodedata1 in graph1.nodes(data=True):
-    #     for node2, nodedata2 in graph2.nodes(data=True):
-    #         print(nodedata1)
-    #         a = simfunc_graphlet.compare(nodedata1['graphlet_annots'], nodedata2['graphlet_annots'])
+    for node1, nodedata1 in graph1.nodes(data=True):
+        for node2, nodedata2 in graph2.nodes(data=True):
+            # print(node1)
+            print(nodedata1)
+            a = simfunc_graphlet.compare(nodedata1['graphlet_annots'], nodedata2['graphlet_annots'])
             # print(a)
 
     # ring1 = list(rings1.values())[0]
     # print(simfunc_iso.compare(ring1, ring1))
 
     # simfunc_time([simfunc_graphlet], graph_path, batches=100)
-    simfunc_time([simfunc_r1, simfunc_graphlet, simfunc_iso, simfunc_hung], graph_path, batches=2, batch_size=2)
+    # simfunc_time([simfunc_r1, simfunc_graphlet, simfunc_iso, simfunc_hung], graph_path, batches=2, batch_size=2)

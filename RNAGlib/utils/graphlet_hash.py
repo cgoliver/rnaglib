@@ -13,24 +13,18 @@ if __name__ == "__main__":
     sys.path.append(os.path.join(script_dir, '..'))
 
 import pickle
-import time
-import random
 from itertools import product
-from collections import Counter, OrderedDict, defaultdict
-from itertools import combinations
+from collections import Counter
 from tqdm import tqdm
 from hashlib import blake2b
 
 import networkx as nx
 import numpy as np
-from networkx.algorithms import betweenness_centrality
-from networkx.algorithms import core_number
 
-from struct import *
-# from tools.drawing import rna_draw, rna_draw_pair
+from drawing.drawing import rna_draw, rna_draw_pair
 from utils.graph_utils import bfs_expand
-from utils.rna_ged_nx import ged
-from utils.graph_io import load_json, dump_json
+from ged.rna_ged_nx import ged
+from utils.graph_io import load_json
 
 iso_matrix = pickle.load(open(os.path.join(script_dir, '../data/iso_mat.p'), 'rb'))
 sub_matrix = np.ones_like(iso_matrix) - iso_matrix
@@ -49,7 +43,8 @@ labels.add('B53')
 
 
 class Hasher:
-    def __init__(self, method='WL',
+    def __init__(self,
+                 method='WL',
                  string_hash_size=8,
                  graphlet_hash_size=16,
                  symmetric_edges=True,
@@ -61,6 +56,7 @@ class Hasher:
         self.symmetric_edges = symmetric_edges
         self.wl_hops = wl_hops
         self.label = label
+        self.hash_table = None
 
     def hash(self, G):
         """
@@ -102,6 +98,25 @@ class Hasher:
         h.update(str(tuple(items)).encode('ascii'))
         return h.hexdigest()
 
+    def get_hash_table(self,
+                       graph_dir,
+                       max_graphs=0):
+        self.hash_table = build_hash_table(graph_dir,
+                                           hasher=self,
+                                           max_graphs=max_graphs,
+                                           graphlet_size=self.wl_hops,
+                                           mode='count',
+                                           label=self.label)
+
+    def get_node_hash(self, G, n):
+        """
+        Get the correct node hashing from a node and a graph
+        :param G:
+        :param n:
+        :return:
+        """
+        return self.hash(extract_graphlet(G, n, size=self.wl_hops, label=self.label))
+
 
 def nei_agg(G, n, label='LW'):
     x = tuple(sorted([G.nodes()[n][label]] + [G.nodes()[n][label] for n in G.neighbors(n)]))
@@ -133,28 +148,47 @@ def WL_step_edges(G, labels):
 
 def extract_graphlet(G, n, size=1, label='LW'):
     return G.subgraph(bfs_expand(G, [n], depth=size, label=label)).copy()
-    pass
 
 
-def build_hash_table(graph_dir, hasher, graphlets=True,
+def build_hash_table(graph_dir,
+                     hasher,
+                     graphlets=True,
                      max_graphs=0,
                      graphlet_size=1,
                      mode='count',
                      label='LW'):
+    """
+
+    Iterates over nodes of the graphs in graph dir and fill a hash table with their graphlets hashes
+
+    :param graph_dir:
+    :param hasher:
+    :param graphlets:
+    :param max_graphs:
+    :param graphlet_size:
+    :param mode:
+    :param label:
+    :return:
+    """
     hash_table = {}
     graphlist = os.listdir(graph_dir)
     if max_graphs:
         graphlist = graphlist[:max_graphs]
-    random.seed(0)
-    random.shuffle(graphlist)
-    start = time.time()
     for g in tqdm(graphlist):
+        print(f'getting hashes : doing graph {g}')
         G = load_json(os.path.join(graph_dir, g))
+        rna_draw(G, show=True)
         if graphlets:
-            todo = (extract_graphlet(G, n, size=graphlet_size, label=label) for n in G.nodes())
+            todo = [extract_graphlet(G, n, size=graphlet_size, label=label) for n in G.nodes()]
+            for n in G.nodes():
+                print(f'Hashing for node {n}:', hasher.get_node_hash(G, n))
+            # if g == '5e3h.json':
+            #     print(todo)
+            #     index = list(G.nodes()).index('5e3h.B.1')
+            #     print('index', index)
         else:
             todo = [G]
-        for n in todo:
+        for i, n in enumerate(todo):
             h = hasher.hash(n)
             if h not in hash_table:
                 if mode == 'append':
@@ -170,7 +204,11 @@ def build_hash_table(graph_dir, hasher, graphlets=True,
     return hash_table
 
 
-def GED_hashtable_hashed(h_G, h_H, GED_table, graphlet_table, normed=True,
+def GED_hashtable_hashed(h_G,
+                         h_H,
+                         GED_table,
+                         graphlet_table,
+                         normed=True,
                          max_edges=7,
                          beta=.50,
                          timeout=60,
@@ -200,7 +238,6 @@ def GED_hashtable_hashed(h_G, h_H, GED_table, graphlet_table, normed=True,
     # indel=indel_vector)
     # distance = d.cost
 
-    # This is added by vincent, to use to be closer from the rest of the framework riso
     if similarity:
         similarity = np.exp(-beta * distance)
         GED_table[h_G][h_H] = similarity
@@ -216,6 +253,7 @@ def GED_hashtable_hashed(h_G, h_H, GED_table, graphlet_table, normed=True,
     return distance
 
 
+'''
 def hash_analyze(annot_dir):
     from itertools import product
     import pandas as pd
@@ -248,13 +286,13 @@ def hash_analyze(annot_dir):
     pass
 
 
+
 def graphlet_distribution(hash_table):
     """
         Plot counts for graphlets.
         Hash table should have a counts attribute.
     """
     import matplotlib.pyplot as plt
-    import seaborn as sns
     import numpy as np
 
     # flat = flatten_table(hash_table)
@@ -286,7 +324,7 @@ def graphlet_distribution(hash_table):
     rna_draw(table_sort[-2]['graph'], show=True)
 
     pass
-
+'''
 
 if __name__ == "__main__":
     import doctest
@@ -294,7 +332,7 @@ if __name__ == "__main__":
     doctest.testmod()
     table = build_hash_table("../data/annotated/whole_v3", Hasher(), mode='append', max_graphs=10)
     # check hashtable visually
-    from tools.drawing import rna_draw
+    from drawing import rna_draw
 
     for h, data in table.items():
         print(h)
