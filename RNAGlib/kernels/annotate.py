@@ -125,7 +125,6 @@ def annotate_one(g, graph_path, dump_path, hasher, re_annotate, label='LW'):
         graph = load_json(os.path.join(graph_path, g))
     rings = build_ring_tree_from_graph(graph, depth=5, hasher=hasher, label=label)
 
-
     if dump_path:
         dump_json(dump_full, graph)
     return 0, g
@@ -198,7 +197,7 @@ def annotate_all(dump_path='../data/annotated/sample_v2',
         return failed
     else:
         for graph in tqdm(graphs, total=len(graphs)):
-            # TODO : remove when fixed
+            # TODO : remove when fixed. This is because it's too long
             temp_graph = load_json(os.path.join(graph_path, graph))
             if len(list(temp_graph.nodes())) > 100:
                 continue
@@ -211,8 +210,6 @@ def annotate_all(dump_path='../data/annotated/sample_v2',
 
 if __name__ == '__main__':
     import doctest
-
-
     # doctest.testmod()
 
     def cline():
