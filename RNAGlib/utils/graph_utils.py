@@ -175,7 +175,7 @@ def incident_nodes(G, nodes):
     return hits
 
 
-def get_edge_map(graphs_dir):
+def get_edge_map(graphs_dir, label='labels'):
     edge_labels = set()
     print("Collecting edge labels.")
     for g in tqdm(os.listdir(graphs_dir)):
@@ -184,7 +184,7 @@ def get_edge_map(graphs_dir):
         except:
             print(f"failed on {g}")
             continue
-        edges = {e_dict['label'] for _, _, e_dict in graph.edges(data=True)}
+        edges = {e_dict[label] for _, _, e_dict in graph.edges(data=True)}
         edge_labels = edge_labels.union(edges)
 
     return {label: i for i, label in enumerate(sorted(edge_labels))}
@@ -252,7 +252,7 @@ def reindex_nodes_raw(graph_dir, dump=None):
     return graphs
 
 
-def nx_to_dgl(graph, edge_map, embed_dim):
+def nx_to_dgl(graph, edge_map, embed_dim, label='label'):
     """
         Networkx graph to DGL.
     """
@@ -261,9 +261,9 @@ def nx_to_dgl(graph, edge_map, embed_dim):
     import dgl
 
     graph, _, ring = pickle.load(open(graph, 'rb'))
-    one_hot = {edge: edge_map[label] for edge, label in (nx.get_edge_attributes(graph, 'label')).items()}
+    one_hot = {edge: edge_map[lab] for edge, lab in (nx.get_edge_attributes(graph, label)).items()}
     nx.set_edge_attributes(graph, name='one_hot', values=one_hot)
-    one_hot = {edge: torch.tensor(edge_map[label]) for edge, label in (nx.get_edge_attributes(graph, 'label')).items()}
+    one_hot = {edge: torch.tensor(edge_map[lab]) for edge, lab in (nx.get_edge_attributes(graph, label)).items()}
     g_dgl = dgl.DGLGraph()
     g_dgl.from_networkx(nx_graph=graph, edge_attrs=['one_hot'])
     n_nodes = len(g_dgl.nodes())
@@ -272,17 +272,15 @@ def nx_to_dgl(graph, edge_map, embed_dim):
     return g_dgl
 
 
-def dgl_to_nx(graph, edge_map):
-    # find better way to do this..want to be able to launch without torch installed
-    import torch
+def dgl_to_nx(graph, edge_map, label='label'):
     import dgl
     g = dgl.to_networkx(graph, edge_attrs=['one_hot'])
     edge_map_r = {v: k for k, v in edge_map.items()}
-    nx.set_edge_attributes(g, {(n1, n2): edge_map_r[d['one_hot'].item()] for n1, n2, d in g.edges(data=True)}, 'label')
+    nx.set_edge_attributes(g, {(n1, n2): edge_map_r[d['one_hot'].item()] for n1, n2, d in g.edges(data=True)}, label)
     return g
 
 
-def bfs_expand(G, initial_nodes, nc_block=False, depth=2):
+def bfs_expand(G, initial_nodes, nc_block=False, depth=2, label='label'):
     """
         Extend motif graph starting with motif_nodes.
         Returns list of nodes.
@@ -295,7 +293,7 @@ def bfs_expand(G, initial_nodes, nc_block=False, depth=2):
         for n in total_nodes[d]:
             for nei in G.neighbors(n):
                 depth_ring.append(nei)
-                e_labels.add(G[n][nei]['label'])
+                e_labels.add(G[n][nei][label])
         if e_labels.issubset({'CWW', 'B53', ''}) and nc_block:
             break
         else:
@@ -327,10 +325,10 @@ def remove_self_loops(G):
     G.remove_edges_from([(n, n) for n in G.nodes()])
 
 
-def remove_non_standard_edges(G):
+def remove_non_standard_edges(G, label='label'):
     remove = []
     for n1, n2, d in G.edges(data=True):
-        if d['label'] not in valid_edges:
+        if d[label] not in valid_edges:
             remove.append((n1, n2))
     G.remove_edges_from(remove)
 
@@ -346,12 +344,12 @@ def to_orig_all(graph_dir, dump_dir):
         nx.write_gpickle(H, os.path.join(dump_dir, g))
 
 
-def to_orig(G):
+def to_orig(G, label='label'):
     H = nx.Graph()
     for n1, n2, d in G.edges(data=True):
-        if d['label'] in valid_edges:
-            assert d['label'] != 'B35'
-            H.add_edge(n1, n2, label=d['label'])
+        if d[label] in valid_edges:
+            assert d[label] != 'B35'
+            H.add_edge(n1, n2, label=d[label])
 
     for attrib in ['mg', 'lig', 'lig_id', 'chemically_modified',
                    'pdb_pos', 'bgsu', 'carnaval', 'chain']:
@@ -372,9 +370,9 @@ def find_node(graph, chain, pos):
     return None
 
 
-def has_NC(G):
+def has_NC(G, label='label'):
     for n1, n2, d in G.edges(data=True):
-        if d['label'] not in ['CWW', 'B53']:
+        if d[label] not in ['CWW', 'B53']:
             # print(d['label'])
             return True
     return False
@@ -388,25 +386,6 @@ def has_NC_bfs(graph, node_id, depth=2):
     subg = list(bfs_expand(graph, [node_id], depth=depth)) + [node_id]
     sG = graph.subgraph(subg).copy()
     return has_NC(sG)
-
-
-def gap_fill(G, subG):
-    """
-        Get rid of all degree 1 nodes.
-    """
-    # while True:
-    new_nodes = list(subG.nodes())
-    # has_dang = False
-    for n in subG.nodes():
-        if subG.degree(n) == 1:
-            new_nodes.append(subG.neighbors(n))
-            # has_dang = True
-    # if has_dang:
-    # subG = G.subgraph(new_nodes).copy()
-    # has_dang = False
-    # else:
-    # break
-    return subG
 
 
 def floaters(G):
