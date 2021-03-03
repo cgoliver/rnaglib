@@ -184,6 +184,7 @@ def annot_2_graph(annot, rbp_annot, pdbid):
     for node in G.nodes():
         try:
             G.nodes[node]['binding_protein'] = rbp_annot[node]
+            print(node)
         except KeyError:
             G.nodes[node]['binding_protein'] = None
 
