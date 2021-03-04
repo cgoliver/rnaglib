@@ -25,11 +25,11 @@ iso_matrix = iso_matrix[1:, 1:]
 
 # edge_map = {'B53': 0, 'CHH': 1, 'CHS': 2, 'CHW': 3, 'CSH': 4, 'CSS': 5, 'CSW': 6, 'CWH': 7, 'CWS': 8, 'CWW': 9,
 #             'THH': 10, 'THS': 11, 'THW': 12, 'TSH': 13, 'TSS': 14, 'TSW': 15, 'TWH': 16, 'TWS': 17, 'TWW': 18}
-EDGE_MAP = {'B53': 0, 'CHH': 1, 'CHS': 2, 'CHW': 3, 'CSH': 2, 'CSS': 4, 'CSW': 5, 'CWH': 3, 'CWS': 5, 'CWW': 6,
-            'THH': 7, 'THS': 8, 'THW': 9, 'TSH': 8, 'TSS': 10, 'TSW': 11, 'TWH': 9, 'TWS': 11, 'TWW': 12}
+EDGE_MAP = {'B53': 0, 'cHH': 1, 'cHS': 2, 'cHW': 3, 'cSH': 2, 'cSS': 4, 'cSW': 5, 'cWH': 3, 'cWS': 5, 'cWW': 6,
+            'tHH': 7, 'tHS': 8, 'tHW': 9, 'tSH': 8, 'tSS': 10, 'tSW': 11, 'tWH': 9, 'tWS': 11, 'tWW': 12}
 
 IDF = {'TSS': 1.3508944643423815, 'TWW': 2.2521850545837103, 'CWW': 0.7302387734487946, 'B53': 0.6931471805599453,
-       'CSS': 1.3562625353981017, 'TSH': 1.0617196804844624, 'THS': 1.0617196804844624, 'CSH': 1.6543492684466312,
+       'CSS': 1.3562625353981017, 'tSH': 1.0617196804844624, 'THS': 1.0617196804844624, 'CSH': 1.6543492684466312,
        'CHS': 1.6543492684466312, 'THW': 1.3619066730630602, 'TWH': 1.3619066730630602, 'THH': 2.3624726636947186,
        'CWH': 2.220046456989285, 'CHW': 2.220046456989285, 'TSW': 2.3588208814802263, 'TWS': 2.3588208814802263,
        'CWS': 2.0236918714028707, 'CHH': 4.627784875752877, 'CSW': 2.0236918714028707}
@@ -550,15 +550,12 @@ def k_block_list(rings, node_sim):
     """
     Defines the block creation using a list of rings at the graph level (should also ultimately include trees)
     Creates a SIMILARITY matrix.
-    :param rings: a list of rings, dictionnaries {node : (nodelist, edgelist)}
+    :param rings: a list of tuples : (node, ring)
     :param node_sim: the pairwise node comparison function
     :return:
     """
-
-    rings_values = [list(ring.values()) for ring in rings]
-    nodes = list(itertools.chain.from_iterable(rings_values))
+    nodes = [ring_values for node, ring_values in rings]
     block = np.zeros((len(nodes), len(nodes)))
-    b = node_sim.compare(nodes[0], nodes[0])
     assert node_sim.compare(nodes[0], nodes[0]) > 0.99, "Identical rings giving non 1 similarity."
     sims = [node_sim.compare(n1, n2)
             for i, (n1, n2) in enumerate(itertools.combinations(nodes, 2))]
@@ -658,10 +655,11 @@ if __name__ == "__main__":
     simfunc_iso = SimFunctionNode('R_iso', 2, hash_init='samples', idf=True)
     simfunc_graphlet = SimFunctionNode('R_graphlets', 2, hash_init='samples')
 
+
     for node1, nodedata1 in graph1.nodes(data=True):
         for node2, nodedata2 in graph2.nodes(data=True):
-            # print(node1)
-            # print(nodedata1)
+            print(node1)
+            print(nodedata1)
             a = simfunc_graphlet.compare(nodedata1['graphlet_annots'], nodedata2['graphlet_annots'])
             # print(a)
 
