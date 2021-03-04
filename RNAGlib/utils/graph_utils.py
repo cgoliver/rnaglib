@@ -285,7 +285,6 @@ def bfs_expand(G, initial_nodes, nc_block=False, depth=2, label='label'):
         Extend motif graph starting with motif_nodes.
         Returns list of nodes.
     """
-
     total_nodes = [list(initial_nodes)]
     for d in range(depth):
         depth_ring = []
@@ -298,7 +297,6 @@ def bfs_expand(G, initial_nodes, nc_block=False, depth=2, label='label'):
             break
         else:
             total_nodes.append(depth_ring)
-        # total_nodes.append(depth_ring)
     return set(itertools.chain(*total_nodes))
 
 
@@ -307,7 +305,6 @@ def bfs(G, initial_node, depth=2):
         Generator for bfs given graph and initial node.
         Yields nodes at next hop at each call.
     """
-
     total_nodes = [[initial_node]]
     visited = []
     for d in range(depth):

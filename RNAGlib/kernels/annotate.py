@@ -12,11 +12,11 @@ if __name__ == "__main__":
 import networkx as nx
 import pickle
 import time
-from collections import defaultdict, Counter, OrderedDict
+from collections import defaultdict
 from tqdm import tqdm
 
 import multiprocessing as mlt
-from utils.graphlet_hash import extract_graphlet, build_hash_table, Hasher
+from utils.graphlet_hash import Hasher
 from utils.graph_io import load_json, dump_json
 from drawing.drawing import rna_draw
 
@@ -46,16 +46,12 @@ def node_2_unordered_rings(G, v, depth=5, hasher=None, label='LW'):
     [[None], ['A', 'B'], ['C', 'A']]
 
     """
-    G = G.to_undirected()
-
     do_hash = not hasher is None
 
     if do_hash:
         graphlet_rings = [[hasher.get_node_hash(G, v)]]
     else:
         graphlet_rings = None
-
-    print(f'Hashing for node {v}:', hasher.get_node_hash(G, v))
 
     node_rings = [[v]]
     edge_rings = [[None]]
@@ -101,7 +97,6 @@ def build_ring_tree_from_graph(graph, depth=5, hasher=None, label='LW'):
     :return: dict (ring_level: node: ring)
     """
     dict_ring = defaultdict(dict)
-    rna_draw(graph, show=True)
     for node in graph.nodes():
         rings = node_2_unordered_rings(graph, node, depth=depth, hasher=hasher, label=label)
         dict_ring['node'][node] = rings['node_annots']
@@ -111,7 +106,7 @@ def build_ring_tree_from_graph(graph, depth=5, hasher=None, label='LW'):
     return dict_ring
 
 
-def annotate_one(g, graph_path, dump_path, hasher, re_annotate, label='LW'):
+def annotate_one(g, graph_path, dump_path, hasher, re_annotate, directed=True, label='LW'):
     """
     To be called by map
     :param args: ( g (name of the graph),
@@ -124,6 +119,8 @@ def annotate_one(g, graph_path, dump_path, hasher, re_annotate, label='LW'):
         if dump_full in os.listdir(dump_path):
             return 0, 0
     graph = load_json(os.path.join(graph_path, g))
+    if not directed:
+        graph = graph.to_undirected()
     rings = build_ring_tree_from_graph(graph, depth=5, hasher=hasher, label=label)
 
     if dump_path:
@@ -154,6 +151,7 @@ def annotate_one(g, graph_path, dump_path, hasher, re_annotate, label='LW'):
 def annotate_all(dump_path='../data/annotated/sample_v2',
                  graph_path='../data/examples',
                  parallel=True,
+                 directed=True,
                  ablation="",
                  do_hash=False,
                  re_annotate=False,
@@ -174,7 +172,7 @@ def annotate_all(dump_path='../data/annotated/sample_v2',
 
     if do_hash:
         print(">>> hashing graphlets.")
-        hasher = Hasher(wl_hops=3, label=label)
+        hasher = Hasher(wl_hops=3, label=label, directed=directed)
         hasher.get_hash_table(graph_path)
         print(f">>> found {len(hasher.hash_table)} graphlets.")
 
@@ -191,7 +189,7 @@ def annotate_all(dump_path='../data/annotated/sample_v2',
     pool = mlt.Pool()
     if parallel:
         print(">>> going parallel")
-        arguments = [(g, graph_path, dump_path, hasher, re_annotate) for g in graphs]
+        arguments = [(g, graph_path, dump_path, hasher, re_annotate, directed) for g in graphs]
         for res in tqdm(pool.starmap(annotate_one, arguments), total=len(graphs)):
             if res[0]:
                 failed += 1
@@ -206,7 +204,7 @@ def annotate_all(dump_path='../data/annotated/sample_v2',
                 continue
             # TODO : DEBUG : we don't get the same hashes for the same node on this line
             #  and on the hashtable creation line
-            res = annotate_one(graph, graph_path, dump_path, hasher, re_annotate)
+            res = annotate_one(graph, graph_path, dump_path, hasher, re_annotate, directed=directed)
             if res[0]:
                 failed += 1
                 print(f'failed on {graph}, this is the {failed}-th one on {len(graphs)}')
@@ -243,7 +241,8 @@ if __name__ == '__main__':
                      dump_path=os.path.join(os.path.join(script_dir, '..', 'data', 'annotated', annot_id)),
                      do_hash=do_hash,
                      parallel=parallel,
-                     re_annotate=re_annotate)
+                     re_annotate=re_annotate,
+                     directed=False)
         pass
 
 

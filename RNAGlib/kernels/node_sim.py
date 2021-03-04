@@ -661,7 +661,7 @@ if __name__ == "__main__":
     for node1, nodedata1 in graph1.nodes(data=True):
         for node2, nodedata2 in graph2.nodes(data=True):
             # print(node1)
-            print(nodedata1)
+            # print(nodedata1)
             a = simfunc_graphlet.compare(nodedata1['graphlet_annots'], nodedata2['graphlet_annots'])
             # print(a)
 

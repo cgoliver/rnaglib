@@ -49,7 +49,8 @@ class Hasher:
                  graphlet_hash_size=16,
                  symmetric_edges=True,
                  wl_hops=2,
-                 label='LW'):
+                 label='LW',
+                 directed=True):
         self.method = method
         self.string_hash_size = string_hash_size
         self.graphlet_hash_size = graphlet_hash_size
@@ -57,6 +58,7 @@ class Hasher:
         self.wl_hops = wl_hops
         self.label = label
         self.hash_table = None
+        self.directed = directed
 
     def hash(self, G):
         """
@@ -106,7 +108,8 @@ class Hasher:
                                            max_graphs=max_graphs,
                                            graphlet_size=self.wl_hops,
                                            mode='count',
-                                           label=self.label)
+                                           label=self.label,
+                                           directed=self.directed)
 
     def get_node_hash(self, G, n):
         """
@@ -147,8 +150,9 @@ def WL_step_edges(G, labels):
 
 
 def extract_graphlet(G, n, size=1, label='LW'):
-    return G.subgraph(bfs_expand(G, [n], depth=size, label=label)).copy()
+    graphlet =  G.subgraph(bfs_expand(G, [n], depth=size, label=label)).copy()
 
+    return graphlet
 
 def build_hash_table(graph_dir,
                      hasher,
@@ -156,7 +160,8 @@ def build_hash_table(graph_dir,
                      max_graphs=0,
                      graphlet_size=1,
                      mode='count',
-                     label='LW'):
+                     label='LW',
+                     directed=True):
     """
 
     Iterates over nodes of the graphs in graph dir and fill a hash table with their graphlets hashes
@@ -177,15 +182,10 @@ def build_hash_table(graph_dir,
     for g in tqdm(graphlist):
         print(f'getting hashes : doing graph {g}')
         G = load_json(os.path.join(graph_dir, g))
-        rna_draw(G, show=True)
+        if not directed:
+            G = G.to_undirected()
         if graphlets:
             todo = [extract_graphlet(G, n, size=graphlet_size, label=label) for n in G.nodes()]
-            for n in G.nodes():
-                print(f'Hashing for node {n}:', hasher.get_node_hash(G, n))
-            # if g == '5e3h.json':
-            #     print(todo)
-            #     index = list(G.nodes()).index('5e3h.B.1')
-            #     print('index', index)
         else:
             todo = [G]
         for i, n in enumerate(todo):
