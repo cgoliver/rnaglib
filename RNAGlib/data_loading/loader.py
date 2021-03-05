@@ -27,8 +27,24 @@ class GraphDataset(Dataset):
                  debug=False,
                  shuffled=False,
                  directed=True,
+                 force_directed=False,
                  label='LW'
                  ):
+        """
+
+        :param edge_map: Necessary to build the one hot mapping from edge labels to an id
+        :param node_simfunc: Similarity function defined in kernels/node_sim
+        :param annotated_path: The path of the data. If node_sim is not None, this data should be annotated
+        (if not, it will annotate the data which is a long process)
+                        TODO : do this annotate if not, probably with input confirmation
+        :param debug:
+        :param shuffled:
+        :param directed: Whether we want to use directed graphs
+        :param force_directed: If we ask for directed graphs from undirected graphs, this will raise an Error as
+        we should rather be using directed annotations that are more rich (for instance we get the BB direction)
+        :param label: The label to use
+        """
+
 
         self.path = annotated_path
         self.all_graphs = sorted(os.listdir(annotated_path))
@@ -64,17 +80,22 @@ class GraphDataset(Dataset):
         if not self.directed:
             graph = nx.to_undirected(graph)
 
-        # print(nx.is_directed(graph))
-        # print(g_path)
-        # print(nx.get_edge_attributes(graph, self.label).values())
+        # This is a weird call but necessary for DGL as it only deals
+        #   with undirected graphs that have both directed edges
+        # The error raised above ensures that we don't have a discrepancy *
+        #   between the attribute directed and the graphs :
+        #   One should not explicitly ask to make the graphs directed in the learning as it is done by default but when
+        #   directed graphs are what we want, we should use the directed annotation rather than the undirected.
+        graph = nx.to_directed(graph)
         one_hot = {edge: torch.tensor(self.edge_map[label]) for edge, label in
                    (nx.get_edge_attributes(graph, self.label)).items()}
         nx.set_edge_attributes(graph, name='one_hot', values=one_hot)
 
+        # Careful ! When doing this, the graph nodes get sorted.
         g_dgl = dgl.from_networkx(nx_graph=graph, edge_attrs=['one_hot'])
 
         if self.node_simfunc is not None:
-            ring = list(graph.nodes(data=self.level))
+            ring = list(sorted(graph.nodes(data=self.level)))
             return g_dgl, ring
         else:
             return g_dgl, 0
@@ -245,10 +266,10 @@ if __name__ == '__main__':
     loader = Loader(annotated_path=annotated_path,
                     num_workers=0,
                     split=False,
-                    directed=True,
+                    directed=False,
                     node_simfunc=simfunc_r1)
     train_loader = loader.get_data()
     for graph, K, lengths in train_loader:
         print('graph :', graph)
-        print('K :', K)
-        print('length :', lengths)
+        # print('K :', K)
+        # print('length :', lengths)
