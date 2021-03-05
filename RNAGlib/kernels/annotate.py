@@ -242,7 +242,7 @@ if __name__ == '__main__':
                      do_hash=do_hash,
                      parallel=parallel,
                      re_annotate=re_annotate,
-                     directed=True)
+                     directed=False)
         pass
 
 
