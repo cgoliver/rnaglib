@@ -53,7 +53,7 @@ def load_graph(json_file):
 
     g = nx.readwrite.json_graph.node_link_graph(d)
 
-    return g, pbid
+    return g
 
 def write_graph(g, json_file):
     """
