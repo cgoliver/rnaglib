@@ -8,6 +8,7 @@ import os
 import json
 import multiprocessing as mp
 from subprocess import check_output
+from collections import defaultdict
 
 import networkx as nx
 
@@ -62,28 +63,18 @@ def snap_parse(snap_out):
 
     lines = iter(snap_out.split("\n"))
 
-    # skip to nucleotide amino acid section (i know this is ugly)
-    while True:
-        l = next(lines)
-        print(l)
-        if re.match("List of [0-9]+ nucleotide/amino-acid", l):
-            break
-        else:
-            next(lines)
+    # sometimes header is missing so we have to do this
+    header = ["id","nt-aa","nt","aa","Tdst","Rdst","Tx","Ty","Tz","Rx","Ry","Rz"]
 
+    # regex for base-amino acid interaction
+    base_aa = re.compile("[AUCG]{1}-[a-z]{3}\s")
     interface_nts = dict()
     for i,l in enumerate(lines):
-        if i == 0:
-            header = l.split()[1:]
-            continue
-        if l.startswith("*"):
-            break
-        if not l:
-            break
         # get rid of first two columns
-        l = l.split()[2:]
-        nt_id = l[1]
-        interface_nts[nt_id] = dict(zip(header, l))
+        if base_aa.search(l):
+            l = l.split()[2:]
+            nt_id = l[1]
+            interface_nts[nt_id] = dict(zip(header, l))
 
     return interface_nts
 
@@ -140,6 +131,23 @@ def add_sses(g, annot):
                     sse_annots[nt] = {'sse': f'{sse[:-1]}_{elem["index"]}'}
     return sse_annots
 
+def get_graph_data(annots):
+    """ For now only return the dot-bracket notation."""
+
+    def recursive_dd():
+        return defaultdict(recursive_dd)
+
+    g_data = {}
+    g_data['dbn'] = recursive_dd()
+
+    for chain, info in annots['dbn'].items():
+        if chain == 'all_chains':
+            g_data['dbn']['all_chains'] = info
+        else:
+            g_data['dbn']['single_chains'][chain] = info
+        pass
+    return g_data
+
 def annot_2_graph(annot, rbp_annot, pdbid):
     """
     DSSR Annotation JSON Keys:
@@ -154,6 +162,11 @@ def annot_2_graph(annot, rbp_annot, pdbid):
 
     G = nx.DiGraph()
 
+    g_annot = get_graph_data(annot)
+    for k,v in g_annot.items():
+        print(k,v)
+        G.graph[k] = v
+    print(G.graph)
     nt_annot = rna_only_nts(annot)
 
     # add nucleotides
@@ -206,15 +219,10 @@ def build_one(cif):
         rbp_annot = snap_parse(rbp_out)
     except:
         rbp_annot = {}
-    # print(annot['pairs'][0])
     pdbid = os.path.basename(cif).split(".")[0]
     G = annot_2_graph(annot, rbp_annot, pdbid)
 
     return G
-    # G_data = nx.readwrite.json_graph.node_link_data(G)
-    # with open("../examples/1aju.json", "w") as out:
-        # json.dump(G_data, out)
-    # pass
 
 def build_all():
     pass
