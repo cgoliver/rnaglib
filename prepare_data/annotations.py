@@ -17,6 +17,12 @@ from time import perf_counter
 script_dir = os.path.join(os.path.realpath(__file__), '..')
 sys.path.append(os.path.join(script_dir, '..'))
 
+def reorder_nodes(g):
+    nx.relabel_nodes(g,\
+            {new: old for new, old in sorted( zip(g.nodes(),g.nodes()) )})
+
+    return g
+
 def annotate_proteinSSE(g, structure, pdb_file):
     """
     Annotate protein_binding node attributes with the relative SSE
@@ -136,13 +142,19 @@ def main():
     # annotate_graphs('../examples/',
                     # '../data/interface_list_1aju.csv',
                     # '../data/graphs/DSSR/annotated')
-    g = load_graph('../examples/4gkk.json')
-    pdb_file = '../data/structures/4gkk.cif'
-    parser = MMCIFParser()
-    structure = parser.get_structure('4GKK', pdb_file)
+    g = load_graph('../examples/2du5.json')
+    # pdb_file = '../data/structures/4gkk.cif'
+    # parser = MMCIFParser()
+    # structure = parser.get_structure('4GKK', pdb_file)
 
 
-    annotate_proteinSSE(g, structure, '../data/structures/4gkk.dssp')
+    # annotate_proteinSSE(g, structure, '../data/structures/4gkk.dssp')
+
+    print(g.nodes)
+
+    g = reorder_nodes(g)
+
+    print(g.nodes)
 
     return
 
