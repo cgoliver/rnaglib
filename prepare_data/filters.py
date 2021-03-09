@@ -5,6 +5,7 @@ import networkx as nx
 import csv
 import pandas as pd
 from collections import defaultdict
+from rcsbsearch import TextQuery, rcsb_attributes
 
 script_dir = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(os.path.join(script_dir, '..'))
@@ -82,7 +83,9 @@ def filter_graph(g, fltr):
     NR_nodes = []
     for node in g.nodes():
         pbid, chain, pos = node.split('.')
-        if chain in fltr[pbid]: NR_nodes.append(node)
+        if (chain in fltr[pbid]) \
+                or fltr[pbid] == 'all':
+            NR_nodes.append(node)
 
     if len(NR_nodes) == 0:
         return None
@@ -104,47 +107,116 @@ def get_NRchains(resolution):
     NRlist = get_NRlist(resolution)
     return parse_NRlist(NR_list)
 
+def update_RNApdb(pdir):
+    """
+    Download a list of RNA containing structures from the PDB
+    overwrite exising files
+    """
+    print('Updating PDB...')
+    # Get a list of PDBs containing RNA
+    query = rcsb_attributes.rcsb_entry_info.polymer_entity_count_RNA >= 1
+    rna = set(query())
+
+    pl = PDBList()
+
+    # If not fully downloaded before, download all structures
+    if len(os.listdir(pdir)) < 500:
+        pl.download_pdb_files(rna, pdir=pdir, overwrite=True)
+    else:
+        added, mod, obsolete = pl.get_recent_changes()
+        # Download new and modded entries
+        new_rna = rna.intersection(set(added).union(set(mod)))
+        pl.download_pdb_files(new_rna, pdir=pdir, overwrite=True)
+
+        # Remove Obsolete entries
+        obsolete_dir = os.path.join(pdir, 'obsolete')
+        if not os.path.exists(obsolete_dir):
+            os.mkdir(obsolete_dir)
+        for cif in os.listdir(pdir):
+            if cif[-8:-4].upper() in set(obsolete):
+                os.rename(os.path.join(pdir, cif), os.path.join(obsolete_dir, cif))
+
+    return new_rna
+
 def get_Ribochains():
     """
-    TODO:
-        - use RCSBsearch to get a list of pdbs with ribosomes
-        - return dictionary with full chains
+    Get a list of all PDB structures containing RNA and have the text 'ribosome'
+
+    :return: (dictionary) keys=pbid, value='all'
     """
+    q1 = rcsb_attributes.rcsb_entry_info.polymer_entity_count_RNA >= 1
+    q2 = TextQuery("ribosome")
+
+    query = q1 & q2
+
+    results = set(query())
+
+    # print("textquery len: ", len(set(q2())))
+    # print("RNA query len: ", len(set(q1())))
+    # print("intersection len: ", len(results))
+
+    fltr = {}
+    for pbid in results:
+        fltr[pbid.lower()] = 'all'
+
+    return fltr
+
+def get_NonRibochains():
+    """
+    Get a list of all PDB structures containing RNA
+    and do not have the text 'ribosome'
+
+    :return: (dictionary) keys=pbid, value='all'
+    """
+    q1 = rcsb_attributes.rcsb_entry_info.polymer_entity_count_RNA >= 1
+    q2 = TextQuery("ribosome")
 
 
-    return
+    results = set(q1()).difference(set(q2()))
 
-def get_NonRibochains();
-    return
+    # print("textquery len: ", len(set(q2())))
+    # print("RNA query len: ", len(set(q1())))
+    # print("intersection len: ", len(results))
+
+    fltr = {}
+    for pbid in results:
+        fltr[pbid.lower()] = 'all'
+
+    return fltr
 
 
 def get_fltr(fltr):
 
-    if fltr = 'NR':
+    if fltr == 'NR':
         return get_NRchains('4.0A')
 
-    if fltr = 'Ribo':
+    if fltr == 'Ribo':
         return get_Ribochains()
 
-    if fltr = 'NonRibo':
+    if fltr == 'NonRibo':
         return get_NonRibochains()
 
 def main():
-    NR_list = get_NRlist("4.0A")
-    NRchains = parse_NRlist(NR_list)
 
-    print(NRchains)
 
-    g = load_graph('../examples/5e3h.json')
 
-    print(g.nodes)
+    get_NonRibochains()
 
-    print(NRchains['5e3h'])
+    # NR_list = get_NRlist("4.0A")
+    # NRchains = parse_NRlist(NR_list)
 
-    h = NR_filter(g, NRchains)
-    print(h.nodes)
+    # print(NRchains)
 
-    print(h)
+    # g = load_graph('../examples/5e3h.json')
+
+    # print(g.nodes)
+
+    # print(NRchains['5e3h'])
+
+    # h = NR_filter(g, NRchains)
+    # print(h.nodes)
+
+    # print(h)
 
 if __name__ == '__main__':
     main()
