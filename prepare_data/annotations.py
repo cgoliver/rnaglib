@@ -18,10 +18,20 @@ script_dir = os.path.join(os.path.realpath(__file__), '..')
 sys.path.append(os.path.join(script_dir, '..'))
 
 def reorder_nodes(g):
-    nx.relabel_nodes(g,\
-            {new: old for new, old in sorted( zip(g.nodes(),g.nodes()) )})
+    """
+    Reorder nodes in graph
 
-    return g
+    :param g: (nx DiGraph)
+    :return h: (nx DiGraph)
+    """
+
+    h = nx.DiGraph()
+    h.add_nodes_from(sorted(g.nodes.data()))
+    h.add_edges_from(g.edges.data())
+    for key, value in g.graph.items():
+        h.graph[key] = value
+
+    return h
 
 def annotate_proteinSSE(g, structure, pdb_file):
     """
@@ -150,11 +160,14 @@ def main():
 
     # annotate_proteinSSE(g, structure, '../data/structures/4gkk.dssp')
 
-    print(g.nodes)
 
-    g = reorder_nodes(g)
+    h = reorder_nodes(g)
 
-    print(g.nodes)
+
+    print('after reordered:\n', '\n'.join(h.nodes()))
+    print(h.nodes.data())
+
+
 
     return
 
