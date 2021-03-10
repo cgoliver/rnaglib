@@ -19,8 +19,8 @@ sys.path.append(os.path.join(script_dir, '..'))
 
 from prepare_data.dssr_2_graphs import build_one
 from prepare_data.interfaces import get_interfaces
-from prepare_data.annotations import parse_interfaces, annotate_graph, write_graph
-from prepare_data.filter.py import get_NRchains, filter_graph
+from prepare_data.annotations import *
+from prepare_data.filters import get_NRchains, filter_graph
 
 def listdir_fullpath(d):
         return [os.path.join(d, f) for f in os.listdir(d)]
@@ -36,14 +36,17 @@ def do_one(cif, output_dir, fltr=None):
     # Find ligand and ion annotations from the PDB cif
     interfaces, _ = get_interfaces(cif)
     annotations = parse_interfaces(interfaces)
-    h = annotate_graph(g, annotations)
+    g = annotate_graph(g, annotations)
 
     # Filter graph
     if fltr:
-        h = filter_graph(h, fltr)
+        g = filter_graph(g, fltr)
+
+    # Order the nodes
+    g = reorder_nodes(g)
 
     # Write graph to outputdir in JSON format
-    write_graph(h, os.path.join(output_dir, pbid+'.json'))
+    write_graph(g, os.path.join(output_dir, pbid+'.json'))
 
     return
 
@@ -100,7 +103,7 @@ def main():
                                 "Ribo" : Ribosome structures only')
     args = parser.parse_args()
 
-    args.structures_dir = '/Users/jonbroad/OneDrive - McGill University/School/McGill/Honours Project/data/structures/test_structures'
+    # args.structures_dir = '/Users/jonbroad/OneDrive - McGill University/School/McGill/Honours Project/data/structures/test_structures'
     # args.structures_dir = '../data/structures'
     args.output_dir = '../data/output'
     cifs = listdir_fullpath(args.structures_dir)
@@ -112,7 +115,7 @@ def main():
     # Update PDB
     if args.update:
         new_rna = update_RNApdb(args.structures_dir)
-        todo = ((cif, args.output_dir, fltr) for cif in cifs)\
+        todo = ((cif, args.output_dir, fltr) for cif in cifs\
                 if cif[-8:-4].upper() in new_rna)
     else:
         todo = ((cif, args.output_dir, fltr) for cif in cifs)
