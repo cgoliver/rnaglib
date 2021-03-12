@@ -164,9 +164,9 @@ def annot_2_graph(annot, rbp_annot, pdbid):
 
     g_annot = get_graph_data(annot)
     for k,v in g_annot.items():
-        print(k,v)
+        # print(k,v)
         G.graph[k] = v
-    print(G.graph)
+    # print(G.graph)
     nt_annot = rna_only_nts(annot)
 
     # add nucleotides
@@ -179,7 +179,12 @@ def annot_2_graph(annot, rbp_annot, pdbid):
                       for five_p, three_p in bbs))
 
     # add base pairs
-    rna_pairs = rna_only_pairs(annot)
+    try:
+        rna_pairs = rna_only_pairs(annot)
+    except Exception as e:
+        print(e)
+        print(f"No base pairs found for {pdbid}")
+        return
     G.add_edges_from(((pair['nt1'], pair['nt2'], pair)\
                       for pair in rna_pairs))
     G.add_edges_from(((pair['nt2'], pair['nt1'], pair)\
@@ -197,10 +202,16 @@ def annot_2_graph(annot, rbp_annot, pdbid):
     for node in G.nodes():
         try:
             G.nodes[node]['binding_protein'] = rbp_annot[node]
-            print(node)
+            # print(node)
         except KeyError:
             G.nodes[node]['binding_protein'] = None
 
+    for node, data in G.nodes(data=True):
+        if 'chain_name' not in data.keys():
+            print(node, data)
+    for node, data in G.nodes(data=True):
+        if 'chain_name' in data.keys():
+            print(node, data)
     new_labels = {n: ".".join([pdbid, str(d['chain_name']), str(d['nt_resnum'])])\
                     for n,d in G.nodes(data=True)}
 
@@ -214,6 +225,7 @@ def annot_2_graph(annot, rbp_annot, pdbid):
 
 def build_one(cif):
     exit_code, annot = dssr_exec(cif)
+    # print(annot.keys())
     rbp_exit_code, rbp_out = snap_exec(cif)
     try:
         rbp_annot = snap_parse(rbp_out)
@@ -228,7 +240,8 @@ def build_all():
     pass
 
 if __name__ == "__main__":
+    pass
     # doc example with multiloop
-    build_one("../data/1aju.cif")
+    # build_one("../data/1aju.cif")
     # multi chain
     # build_one("../data/4q0b.cif")
