@@ -129,7 +129,6 @@ def add_sses(g, annot):
             continue
         for elem in elements:
             for nt in elem['nts_long'].split(','):
-                print(nt)
                 if nt in g.nodes():
                     sse_annots[nt] = {'sse': f'{sse[:-1]}_{elem["index"]}'}
     return sse_annots
