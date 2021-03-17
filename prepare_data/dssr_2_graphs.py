@@ -111,6 +111,8 @@ def get_backbones(nts):
         five_p = nts[i-1]
         if five_p['chain_name'] != three_p['chain_name']:
             continue
+        if three_p['nt_type'] != 'RNA' or five_p['nt_type'] != 'RNA':
+            continue
         if 'break' not in three_p['summary']:
             bb.append((five_p, three_p))
     return bb
@@ -127,6 +129,7 @@ def add_sses(g, annot):
             continue
         for elem in elements:
             for nt in elem['nts_long'].split(','):
+                print(nt)
                 if nt in g.nodes():
                     sse_annots[nt] = {'sse': f'{sse[:-1]}_{elem["index"]}'}
     return sse_annots
@@ -206,12 +209,12 @@ def annot_2_graph(annot, rbp_annot, pdbid):
         except KeyError:
             G.nodes[node]['binding_protein'] = None
 
-    for node, data in G.nodes(data=True):
-        if 'chain_name' not in data.keys():
-            print(node, data)
-    for node, data in G.nodes(data=True):
-        if 'chain_name' in data.keys():
-            print(node, data)
+    # for node, data in G.nodes(data=True):
+        # if 'chain_name' not in data.keys():
+            # print(node, data)
+    # for node, data in G.nodes(data=True):
+        # if 'chain_name' in data.keys():
+            # print(node, data)
     new_labels = {n: ".".join([pdbid, str(d['chain_name']), str(d['nt_resnum'])])\
                     for n,d in G.nodes(data=True)}
 
