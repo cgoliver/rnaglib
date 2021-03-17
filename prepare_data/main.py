@@ -13,6 +13,7 @@ import argparse
 from Bio.PDB.PDBList import PDBList
 from rcsbsearch import TextQuery, rcsb_attributes
 import json
+from collections import defaultdict
 
 script_dir = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(os.path.join(script_dir, '..'))
@@ -24,31 +25,6 @@ from prepare_data.filters import get_NRchains, filter_graph
 
 def listdir_fullpath(d):
         return [os.path.join(d, f) for f in os.listdir(d)]
-
-def do_one(cif, output_dir, fltr=None):
-
-    if '.cif' not in cif: return
-    pbid = cif[-8:-4]
-
-    # Build graph with DSSR
-    g = build_one(cif)
-
-    # Find ligand and ion annotations from the PDB cif
-    interfaces, _ = get_interfaces(cif)
-    annotations = parse_interfaces(interfaces)
-    g = annotate_graph(g, annotations)
-
-    # Filter graph
-    if fltr:
-        g = filter_graph(g, fltr)
-
-    # Order the nodes
-    g = reorder_nodes(g)
-
-    # Write graph to outputdir in JSON format
-    write_graph(g, os.path.join(output_dir, pbid+'.json'))
-
-    return
 
 def update_RNApdb(pdir):
     """
@@ -63,8 +39,9 @@ def update_RNApdb(pdir):
     pl = PDBList()
 
     # If not fully downloaded before, download all structures
-    if len(os.listdir(pdir)) < 500:
+    if len(os.listdir(pdir)) < 2000:
         pl.download_pdb_files(rna, pdir=pdir, overwrite=True)
+        return rna
     else:
         added, mod, obsolete = pl.get_recent_changes()
         # Download new and modded entries
@@ -81,6 +58,48 @@ def update_RNApdb(pdir):
 
     return new_rna
 
+def do_one(cif, output_dir,
+        fltr=None,
+        ):
+
+    if '.cif' not in cif: return
+    pbid = cif[-8:-4]
+
+    # Build graph with DSSR
+    print('Computing Graph for ', pbid)
+    try:
+        g = build_one(cif)
+    except Exception as e:
+        print("ERROR: Could not construct DSSR graph for ", pbid)
+        print(e)
+        return pbid, 'DSSR_error'
+    if g is None:
+        print(f'Excluding {pbid} from output')
+        return pbid, 'noBasePairs'
+    if len(g.nodes()) < 20:
+        print(f'Excluding {pbid} from output, less than 20 nodes')
+        return pbid, 'tooSmall'
+
+    # Find ligand and ion annotations from the PDB cif
+    try:
+        interfaces, _ = get_interfaces(cif)
+        annotations = parse_interfaces(interfaces)
+        g = annotate_graph(g, annotations)
+    except Exception as e:
+        print('ERROR: Could not compute interfaces for ', pbid)
+        print(e)
+        return pbid, 'interfaces_error'
+
+    # Filter graph
+    if fltr:
+        g = filter_graph(g, fltr)
+
+    # Order the nodes
+    g = reorder_nodes(g)
+
+    # Write graph to outputdir in JSON format
+    write_graph(g, os.path.join(output_dir, pbid+'.json'))
+    print('SUCCESS: graph written: ', pbid)
 
 def main():
     parser = argparse.ArgumentParser()
@@ -103,9 +122,8 @@ def main():
                                 "Ribo" : Ribosome structures only')
     args = parser.parse_args()
 
-    # args.structures_dir = '/Users/jonbroad/OneDrive - McGill University/School/McGill/Honours Project/data/structures/test_structures'
-    # args.structures_dir = '../data/structures'
-    args.output_dir = '../data/output'
+    args.structures_dir = '/Users/jonbroad/OneDrive - McGill University/School/McGill/Honours Project/data/structures/test_structures'
+    args.output_dir = '/Users/jonbroad/OneDrive - McGill University/School/McGill/Honours Project/data/test_graphs/'
     cifs = listdir_fullpath(args.structures_dir)
 
     fltr = None
@@ -118,12 +136,25 @@ def main():
         todo = ((cif, args.output_dir, fltr) for cif in cifs\
                 if cif[-8:-4].upper() in new_rna)
     else:
-        todo = ((cif, args.output_dir, fltr) for cif in cifs)
-
+        todo = ((cif, args.output_dir, fltr) for cif in cifs\
+                if cif[-8:-4].lower() in interface_err)
 
     pool = mp.Pool(args.num_workers)
+    errors = pool.starmap(do_one, todo)
 
-    pool.starmap(do_one, todo)
+
+    # Error Logging
+    if len(errors) == 0:
+        print("DONE\nNo Errors found")
+        return
+
+    errors_dict = defaultdict(list)
+    for pbid, err in errors: errors_dict[err].append(pbid)
+    with open('log.json', 'w') as f:
+        json.dump(errors_dict, f, indent=2)
+
+    print("DONE\nErrors found: (recorded in log.json)")
+    print(errors_dict)
 
     return
 
