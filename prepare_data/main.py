@@ -136,8 +136,7 @@ def main():
         todo = ((cif, args.output_dir, fltr) for cif in cifs\
                 if cif[-8:-4].upper() in new_rna)
     else:
-        todo = ((cif, args.output_dir, fltr) for cif in cifs\
-                if cif[-8:-4].lower() in interface_err)
+        todo = ((cif, args.output_dir, fltr) for cif in cifs)
 
     pool = mp.Pool(args.num_workers)
     errors = pool.starmap(do_one, todo)
