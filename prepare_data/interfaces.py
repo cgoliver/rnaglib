@@ -107,24 +107,24 @@ def get_interfaces(cif_path,
     parser = MMCIFParser(QUIET=True)
     structure_id = cif_path[-8:-4]
     print(f'Parsing structure {structure_id}...')
-    try:
-        structure = parser.get_structure(structure_id, cif_path)
-    except KeyboardInterrupt:
-        print('Execution stopped')
-        raise Exception
-    except:
-        print(f'ERROR: file {cif_path} not found, trying to download from pdb...')
-        if not os.path.exist('.cache'):
-            os.mkdir('.cache')
-        pdbl = PDBList()
-        struct_path = '.cache'
-        pdbl.retrieve_pdb_file(structure_id, struct_path)
-        cif_path = os.path.join(struct_path, structure_id + '.cif')
-        try:
-            structure = parser.get_structure(structure_id, cif_path)
-        except ValueError:
-            print('Could not parse new downloaded file either')
-            return None
+    # try:
+    structure = parser.get_structure(structure_id, cif_path)
+    # except KeyboardInterrupt:
+        # print('Execution stopped')
+        # raise Exception
+    # except:
+        # print(f'ERROR: file {cif_path} not found, trying to download from pdb...')
+        # if not os.path.exists('.cache'):
+            # os.mkdir('.cache')
+        # pdbl = PDBList()
+        # struct_path = '.cache'
+        # pdbl.retrieve_pdb_file(structure_id, struct_path)
+        # cif_path = os.path.join(struct_path, structure_id + '.cif')
+        # try:
+            # structure = parser.get_structure(structure_id, cif_path)
+        # except ValueError:
+            # print('Could not parse new downloaded file either')
+            # return None
 
     if redundancy_filter:
         representative_set = get_nonRedundantChains(redundancy_filter)
