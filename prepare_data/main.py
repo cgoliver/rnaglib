@@ -101,6 +101,8 @@ def do_one(cif, output_dir,
     write_graph(g, os.path.join(output_dir, pbid+'.json'))
     print('SUCCESS: graph written: ', pbid)
 
+    return
+
 def main():
     parser = argparse.ArgumentParser()
     # Input/Output Directories
@@ -143,6 +145,7 @@ def main():
 
 
     # Error Logging
+    errors = [e for e in errors if e is not None]
     if len(errors) == 0:
         print("DONE\nNo Errors found")
         return
