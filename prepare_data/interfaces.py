@@ -84,7 +84,7 @@ def get_offset_pos(res):
             return res.id[1] + 1
 
 def get_interfaces(cif_path,
-                    ligands = os.path.join(script_dir, 'ligand_list.txt'),
+                    ligands_file = os.path.join(script_dir, 'ligand_list.txt'),
                     redundancy_filter=None,
                     pbid_filter = None,
                     cutoff=10,
@@ -104,106 +104,50 @@ def get_interfaces(cif_path,
                                 interaction type, interacting residue, pbid_position
         `Structure`: BioPython Structure object
     """
+    # Parse Ligands
+    ligands = set()
+    with open(ligands_file, 'r') as f:
+        for line in f.readlines(): ligands.add(line.strip())
+
+    # Parse Structure
     parser = MMCIFParser(QUIET=True)
     structure_id = cif_path[-8:-4]
     print(f'Parsing structure {structure_id}...')
-    # try:
     structure = parser.get_structure(structure_id, cif_path)
-    # except KeyboardInterrupt:
-        # print('Execution stopped')
-        # raise Exception
-    # except:
-        # print(f'ERROR: file {cif_path} not found, trying to download from pdb...')
-        # if not os.path.exists('.cache'):
-            # os.mkdir('.cache')
-        # pdbl = PDBList()
-        # struct_path = '.cache'
-        # pdbl.retrieve_pdb_file(structure_id, struct_path)
-        # cif_path = os.path.join(struct_path, structure_id + '.cif')
-        # try:
-            # structure = parser.get_structure(structure_id, cif_path)
-        # except ValueError:
-            # print('Could not parse new downloaded file either')
-            # return None
-
-    if redundancy_filter:
-        representative_set = get_nonRedundantChains(redundancy_filter)
-
 
     # print(f'Finding RNA interfaces for structure: {structure_id}')
     #3-D KD tree
     atom_list = Selection.unfold_entities(structure, 'A')
     neighbors = NeighborSearch(atom_list)
-    close_residues = neighbors.search_all(cutoff, level='R')
     interface_residues = []
-    for res_1, res_2 in close_residues:
 
-       # skip interactions with water
-        if skipWater:
-            if res_1.id[0] == 'W' or res_2.id[0] == 'W': continue
 
-        # skip protein-protein pairs
-        if is_aa(res_1) and is_aa(res_2): continue
+    for model in structure:
+        for res_1 in model.get_residues():
 
-        # skip interactions with DNA
-        if is_dna(res_1) or is_dna(res_2): continue
-
-        # skip interaction between different the same chain
-        if res_1.get_parent() == res_2.get_parent(): continue
-
-        # get position offset
-        r1_position = get_offset_pos(res_1)
-        r2_position = get_offset_pos(res_2)
-        r1_pbid_position = res_1.id[1]
-        r2_pbid_position = res_2.id[1]
-
-        # get chain names and res names
-        c1 = res_1.get_parent().id.strip()
-        c2 = res_2.get_parent().id.strip()
-        r1 = res_1.get_resname().strip()
-        r2 = res_2.get_resname().strip()
-
-        # Filter for redundancy
-        if redundancy_filter:
-            model1 = res_1.get_full_id()[1]
-            full_id1 = (structure_id.upper(), str(model1 + 1), c1.upper())
-            model2 = res_2.get_full_id()[1]
-            full_id2 = (structure_id.upper(), str(model2 + 1), c2.upper())
-            if full_id1 not in representative_set and full_id2 not in representative_set:
+            if is_aa(res_1) or is_dna(res_1) or 'H' in res_1.id[0]:
                 continue
 
-        # Determine interaction type and append to corresponding dataset
-        # RNA-Protein 
-        if is_aa(res_1):
-            interface_residues.append((structure_id, r2_position, c2, 'protein',
-                                        'True', r2_pbid_position))
-        elif is_aa(res_2):
-            interface_residues.append((structure_id, r1_position, c1, 'protein',
-                                        'True', r1_pbid_position))
-        # RNA-RNA 
-        elif res_1.id[0] == ' ' and res_2.id[0] == ' ':
-            interface_residues.append((structure_id, r1_position, c1, 'rna',
-                                        'True', r1_pbid_position))
-            interface_residues.append((structure_id, r2_position, c2, 'rna',
-                                        'True', r2_pbid_position))
-        # RNA-smallMolecule
-        elif  r1 in ligands and 'H' in res_1.id[0] and ' ' in res_2.id[0]:
-            interface_residues.append((structure_id, r2_position, c2, 'ligand',
-                                        r1, r2_pbid_position))
-        elif  r2 in ligands and 'H' in res_2.id[0] and ' ' in res_1.id[0]:
-            interface_residues.append((structure_id, r1_position, c1, 'ligand',
-                                        r2, r1_pbid_position))
-        # RNA-Ion
-        elif 'H' in res_1.id[0] and ' ' in res_2.id[0]:
-            interface_residues.append((structure_id, r2_position, c2, 'ion',
-                                        r1, r2_pbid_position))
-        elif 'H' in res_2.id[0] and ' ' in res_1.id[0]:
-            interface_residues.append((structure_id, r1_position, c1, 'ion',
-                                        r2, r1_pbid_position))
-        elif  'H' in res_2.id[0] and 'H' in res_1.id[0]:
-            continue
-        else:
-            print('warning unmatched residue pair \t res_1.id:', res_1.id, 'res_2.id:', res_2.id)
+            for atom in res_1:
+                for res_2 in neighbors.search(atom.get_coord(), cutoff, level='R'):
+                    # skip interaction between different the same chain
+                    if res_1.get_parent() == res_2.get_parent(): continue
+
+                    # Select for interactions with heteroatoms
+                    if 'H' not in res_2.id[0]:
+                        continue
+
+                    # get attrs
+                    r1_pbid_position = res_1.id[1]
+                    c1 = res_1.get_parent().id.strip()
+                    r2 = res_2.get_resname().strip()
+                    if r2 in ligands:
+                        typ = 'ligand'
+                    else:
+                        typ = 'ion'
+
+                    interface_residues.append((structure_id, c1, typ,
+                                                r2, r1_pbid_position))
 
     # remove duplicates and sort by seqid
     interface_residues = list(set(interface_residues))

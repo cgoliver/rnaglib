@@ -107,7 +107,7 @@ def parse_interfaces(interfaces,
     """
     annotations = defaultdict(dict)
 
-    for pbid, _, chain, typ, target, PDB_pos in interfaces:
+    for pbid, chain, typ, target, PDB_pos in interfaces:
         if types:
             if typ not in types: continue
         annotations[str(pbid) + '.' + str(chain) + '.' + str(PDB_pos)][typ] = target
