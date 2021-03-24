@@ -58,6 +58,7 @@ def node_2_unordered_rings(G, v, depth=5, hasher=None, label='LW'):
     visited = set()
     visited.add(v)
     visited_edges = set()
+    # a = time.perf_counter()
     for k in range(depth):
         ring_k = []
         edge_ring_k = []
@@ -85,6 +86,9 @@ def node_2_unordered_rings(G, v, depth=5, hasher=None, label='LW'):
         edge_rings.append(edge_ring_k)
         if do_hash:
             graphlet_rings.append(ring_k_graphlet)
+        # print(f'time for depth {k} : {time.perf_counter()-a}')
+        # a = time.perf_counter()
+
     # uncomment to draw root node
     # from tools.drawing import rna_draw
     # rna_draw(G, node_colors=['blue' if n == v else 'grey' for n in G.nodes()], show=True)
@@ -97,7 +101,7 @@ def build_ring_tree_from_graph(graph, depth=5, hasher=None, label='LW'):
     :return: dict (ring_level: node: ring)
     """
     dict_ring = defaultdict(dict)
-    for node in graph.nodes():
+    for node in tqdm(graph.nodes()):
         rings = node_2_unordered_rings(graph, node, depth=depth, hasher=hasher, label=label)
         dict_ring['node'][node] = rings['node_annots']
         dict_ring['edge'][node] = rings['edge_annots']
@@ -171,15 +175,19 @@ def annotate_all(dump_path='../data/annotated/sample_v2',
         pass
 
     if do_hash:
-        print(">>> hashing graphlets.")
-        hasher = Hasher(wl_hops=3, label=label, directed=directed)
-        hasher.get_hash_table(graph_path)
+        name = os.path.basename(dump_path)
+        hash_dump_path = os.path.join(script_dir, '..', 'data', 'hashing', name + ".p")
+        if os.path.exists(hash_dump_path):
+            hasher = pickle.load(open(dump_path, 'rb'))
+        else:
+            print(">>> hashing graphlets.")
+            hasher = Hasher(wl_hops=3, label=label, directed=directed)
+            hasher.get_hash_table(graph_path)
+            pickle.dump(hasher, open(dump_path, 'wb'))
         print(f">>> found {len(hasher.hash_table)} graphlets.")
 
         # print(hash_table['e5871b44ef6a0d3bdce96faf05591de2'])
 
-        name = os.path.basename(dump_path)
-        pickle.dump(hasher, open(os.path.join(script_dir, '..', 'data', 'hashing', name + ".p"), 'wb'))
     else:
         hasher = None
 
@@ -194,16 +202,14 @@ def annotate_all(dump_path='../data/annotated/sample_v2',
             if res[0]:
                 failed += 1
                 print(f'failed on {res[1]}, this is the {failed}-th one on {len(graphs)}')
-        print(f'failed on {(failed)} on {len(graphs)}')
+        print(f'failed on {failed} on {len(graphs)}')
         return failed
     else:
+        print(">>> going serial, parallel annotation helps speed up the process")
         for graph in tqdm(graphs, total=len(graphs)):
-            # TODO : remove when fixed. This is because it's too long
-            temp_graph = load_json(os.path.join(graph_path, graph))
-            if len(list(temp_graph.nodes())) > 100:
-                continue
-            # TODO : DEBUG : we don't get the same hashes for the same node on this line
-            #  and on the hashtable creation line
+            # temp_graph = load_json(os.path.join(graph_path, graph))
+            # if len(list(temp_graph.nodes())) > 100:
+            #     continue
             res = annotate_one(graph, graph_path, dump_path, hasher, re_annotate, directed=directed)
             if res[0]:
                 failed += 1
@@ -219,6 +225,7 @@ if __name__ == '__main__':
 
     def cline():
         """
+        python annotate.py -g ../data/graphs -a directed -ha -p
         annotate_all(graph_path="../data/ref_graph", dump_path='../data/annotated/ref_graph', do_hash=True, parallel=False)
         """
         parser = argparse.ArgumentParser()
@@ -242,7 +249,7 @@ if __name__ == '__main__':
                      do_hash=do_hash,
                      parallel=parallel,
                      re_annotate=re_annotate,
-                     directed=False)
+                     directed=True)
         pass
 
 
