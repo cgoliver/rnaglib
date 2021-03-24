@@ -110,7 +110,7 @@ def build_ring_tree_from_graph(graph, depth=5, hasher=None, label='LW'):
     return dict_ring
 
 
-def annotate_one(g, graph_path, dump_path, hasher, re_annotate, directed=True, label='LW'):
+def annotate_one(g, graph_path, dump_path, re_annotate, directed=True, label='LW'):
     """
     To be called by map
     :param args: ( g (name of the graph),
@@ -125,7 +125,8 @@ def annotate_one(g, graph_path, dump_path, hasher, re_annotate, directed=True, l
     graph = load_json(os.path.join(graph_path, g))
     if not directed:
         graph = graph.to_undirected()
-    rings = build_ring_tree_from_graph(graph, depth=5, hasher=hasher, label=label)
+
+    rings = build_ring_tree_from_graph(graph, depth=5, hasher=global_hasher, label=label)
 
     if dump_path:
         dump_json(dump_full, graph)
@@ -150,6 +151,9 @@ def annotate_one(g, graph_path, dump_path, hasher, re_annotate, directed=True, l
     # except Exception as e:
     #     print(e)
     #     return 1, g
+
+
+global_hasher = None
 
 
 def annotate_all(dump_path='../data/annotated/sample_v2',
@@ -178,12 +182,12 @@ def annotate_all(dump_path='../data/annotated/sample_v2',
         name = os.path.basename(dump_path)
         hash_dump_path = os.path.join(script_dir, '..', 'data', 'hashing', name + ".p")
         if os.path.exists(hash_dump_path):
-            hasher = pickle.load(open(dump_path, 'rb'))
+            hasher = pickle.load(open(hash_dump_path, 'rb'))
         else:
             print(">>> hashing graphlets.")
             hasher = Hasher(wl_hops=3, label=label, directed=directed)
             hasher.get_hash_table(graph_path)
-            pickle.dump(hasher, open(dump_path, 'wb'))
+            pickle.dump(hasher, open(hash_dump_path, 'wb'))
         print(f">>> found {len(hasher.hash_table)} graphlets.")
 
         # print(hash_table['e5871b44ef6a0d3bdce96faf05591de2'])
@@ -191,14 +195,18 @@ def annotate_all(dump_path='../data/annotated/sample_v2',
     else:
         hasher = None
 
+    global global_hasher
+    global_hasher = hasher
+
     graphs = os.listdir(graph_path)
     failed = 0
     print(">>> annotating all.")
     pool = mlt.Pool()
     if parallel:
         print(">>> going parallel")
-        arguments = [(g, graph_path, dump_path, hasher, re_annotate, directed) for g in graphs]
-        for res in tqdm(pool.starmap(annotate_one, arguments), total=len(graphs)):
+        arguments = [(g, graph_path, dump_path, re_annotate, directed) for g in graphs]
+        for res in pool.starmap(annotate_one, arguments):
+            # for res in tqdm(pool.starmap(annotate_one, arguments), total=len(graphs)):
             if res[0]:
                 failed += 1
                 print(f'failed on {res[1]}, this is the {failed}-th one on {len(graphs)}')
@@ -210,7 +218,7 @@ def annotate_all(dump_path='../data/annotated/sample_v2',
             # temp_graph = load_json(os.path.join(graph_path, graph))
             # if len(list(temp_graph.nodes())) > 100:
             #     continue
-            res = annotate_one(graph, graph_path, dump_path, hasher, re_annotate, directed=directed)
+            res = annotate_one(graph, graph_path, dump_path, re_annotate, directed=directed)
             if res[0]:
                 failed += 1
                 print(f'failed on {graph}, this is the {failed}-th one on {len(graphs)}')
@@ -229,7 +237,7 @@ if __name__ == '__main__':
         annotate_all(graph_path="../data/ref_graph", dump_path='../data/annotated/ref_graph', do_hash=True, parallel=False)
         """
         parser = argparse.ArgumentParser()
-        parser.add_argument("-g", "--graph_path", default=os.path.join(script_dir, '../data/samples_v2_chunks'))
+        parser.add_argument("-g", "--graph_path", default=os.path.join(script_dir, '../data/examples'))
         parser.add_argument("-a", "--annot_id", default='samples', type=str, help="Annotated data ID.")
         parser.add_argument("-ha", "--do_hash", default=False, action='store_true', help="Hash graphlets.")
         parser.add_argument("-p", "--parallel", default=False, action='store_true', help='Multiprocess annotations.')
@@ -253,7 +261,7 @@ if __name__ == '__main__':
         pass
 
 
-    # args = cline()
-    # caller(**vars(args))
+    args = cline()
+    caller(**vars(args))
 
-    caller(do_hash=True)
+    # caller(do_hash=True)
