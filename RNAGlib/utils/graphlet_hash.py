@@ -19,6 +19,7 @@ from tqdm import tqdm
 from hashlib import blake2b
 
 import networkx as nx
+from networkx.algorithms.graph_hashing import weisfeiler_lehman_graph_hash as wl
 import numpy as np
 
 from drawing.drawing import rna_draw, rna_draw_pair
@@ -82,23 +83,7 @@ class Hasher:
                 if label != 'B53':
                     prefix, suffix = label[0], label[1:]
                     G[u][v][self.label] = prefix + "".join(sorted(suffix))
-        items = []
-        node_labels = {n: '' for n in G.nodes()}
-        for k in range(self.wl_hops):
-            node_labels = WL_step_edges(G, node_labels)
-            c = Counter()
-            # count node labels
-            for node, d in node_labels.items():
-                h = blake2b(digest_size=self.string_hash_size)
-                h.update(d.encode('ascii'))
-                c.update([h.hexdigest()])
-            # sort the counter, extend total counts
-            items.extend(sorted(c.items(), key=lambda x: x[0]))
-
-        # hash the final counter
-        h = blake2b(digest_size=self.graphlet_hash_size)
-        h.update(str(tuple(items)).encode('ascii'))
-        return h.hexdigest()
+        return wl(G, edge_attr=self.label, iterations=self.wl_hops)
 
     def get_hash_table(self,
                        graph_dir,
@@ -216,7 +201,7 @@ def GED_hashtable_hashed(h_G,
     """
         Produce a hash table that contains pairwise GEDs between graphs.
         {h_i:{h_j: d(G_i, G_j)}}
-        Collisions are resolved with an extra entry in the hash digest that gives the 
+        Collisions are resolved with an extra entry in the hash digest that gives the
         index of the graph in the bucket.
     """
 
@@ -330,11 +315,11 @@ if __name__ == "__main__":
     import doctest
 
     doctest.testmod()
-    table = build_hash_table("../data/annotated/whole_v3", Hasher(), mode='append', max_graphs=10)
+    # table = build_hash_table("../data/annotated/whole_v3", Hasher(), mode='append', max_graphs=10)
     # check hashtable visually
-    from drawing import rna_draw
+    # from drawing import rna_draw
 
-    for h, data in table.items():
-        print(h)
-        for g in data['graphs']:
-            rna_draw(g, show=True)
+    # for h, data in table.items():
+        # print(h)
+        # for g in data['graphs']:
+            # rna_draw(g, show=True)
