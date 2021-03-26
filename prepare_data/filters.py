@@ -11,6 +11,7 @@ import pandas as pd
 from collections import defaultdict
 from rcsbsearch import TextQuery, Attr
 from tqdm import tqdm
+import shutil
 
 script_dir = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(os.path.join(script_dir, '..'))
@@ -134,12 +135,7 @@ def get_Ribochains():
     # print("textquery len: ", len(set(q2())))
     # print("RNA query len: ", len(set(q1())))
     # print("intersection len: ", len(results))
-
-    fltr = {}
-    for pbid in results:
-        fltr[pbid.lower()] = 'all'
-
-    return fltr
+    return set(query())
 
 def get_NonRibochains():
     """
@@ -152,17 +148,21 @@ def get_NonRibochains():
     q2 = TextQuery("ribosome")
 
 
-    results = set(q1()).difference(set(q2()))
+    return set(q1()).difference(set(q2()))
 
-    # print("textquery len: ", len(set(q2())))
-    # print("RNA query len: ", len(set(q1())))
-    # print("intersection len: ", len(results))
+def get_Custom(text):
+    """
+    Get a list of all PDB structures containing RNA
+    and do not have the text 'ribosome'
 
-    fltr = {}
-    for pbid in results:
-        fltr[pbid.lower()] = 'all'
+    :return: (dictionary) keys=pbid, value='all'
+    """
+    q1 = Attr('rcsb_entry_info.polymer_entity_count_RNA') >= 1
+    q2 = TextQuery(text)
 
-    return fltr
+    query = q1 & q2
+
+    return set(query())
 
 def filter_all(graph_dir, output_dir,
         fltrs = ['NR', 'Ribo', 'NonRibo'],
@@ -178,11 +178,18 @@ def filter_all(graph_dir, output_dir,
             pass
         print(f'Filtering for {fltr}')
         for graph_file in tqdm(listdir_fullpath(graph_dir)):
-            g = load_graph(graph_file)
-            g = filter_graph(g, fltr_set)
-            if g is None: continue
-            if len(g.nodes) < min_nodes: continue
-            write_graph(g, os.path.join(fltr_dir, graph_file[-9:]))
+            output_file = os.path.join(fltr_dir, graph_file[-9:])
+            if fltr == 'NR':
+                g = load_graph(graph_file)
+                g = filter_graph(g, fltr_set)
+                if g is None: continue
+                if len(g.nodes) < min_nodes: continue
+                write_graph(g, output_file)
+            else:
+                pbid = graph_file[-9:-5]
+                if pbid in fltr_set:
+                    shutil.copy(graph_file, output_file)
+
 
 def get_fltr(fltr):
 
@@ -195,9 +202,11 @@ def get_fltr(fltr):
     if fltr == 'NonRibo':
         return get_NonRibochains()
 
+    return get_Custom(fltr)
+
 def main():
 
-    filter_all('data/output', 'data')
+    filter_all('data/output', 'data', fltrs=['ligase'])
 
 
 if __name__ == '__main__':
