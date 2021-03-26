@@ -9,7 +9,7 @@ import networkx as nx
 import csv
 import pandas as pd
 from collections import defaultdict
-# from rcsbsearch import TextQuery, rcsb_attributes
+from rcsbsearch import TextQuery, Attr
 from tqdm import tqdm
 
 script_dir = os.path.dirname(os.path.realpath(__file__))
@@ -90,9 +90,12 @@ def filter_graph(g, fltr):
     NR_nodes = []
     for node in g.nodes():
         pbid, chain, pos = node.split('.')
-        if (chain in fltr[pbid]) \
-                or fltr[pbid] == 'all':
-            NR_nodes.append(node)
+        try:
+            if (chain in fltr[pbid]) \
+                    or fltr[pbid] == 'all':
+                NR_nodes.append(node)
+        except KeyError:
+            continue
 
     if len(NR_nodes) == 0:
         return None
@@ -121,7 +124,7 @@ def get_Ribochains():
 
     :return: (dictionary) keys=pbid, value='all'
     """
-    q1 = rcsb_attributes.rcsb_entry_info.polymer_entity_count_RNA >= 1
+    q1 = Attr('rcsb_entry_info.polymer_entity_count_RNA') >= 1
     q2 = TextQuery("ribosome")
 
     query = q1 & q2
@@ -145,7 +148,7 @@ def get_NonRibochains():
 
     :return: (dictionary) keys=pbid, value='all'
     """
-    q1 = rcsb_attributes.rcsb_entry_info.polymer_entity_count_RNA >= 1
+    q1 = Attr('rcsb_entry_info.polymer_entity_count_RNA') >= 1
     q2 = TextQuery("ribosome")
 
 
@@ -173,6 +176,7 @@ def filter_all(graph_dir, output_dir,
             os.mkdir(fltr_dir)
         except FileExistsError:
             pass
+        print(f'Filtering for {fltr}')
         for graph_file in tqdm(listdir_fullpath(graph_dir)):
             g = load_graph(graph_file)
             g = filter_graph(g, fltr_set)
@@ -193,7 +197,7 @@ def get_fltr(fltr):
 
 def main():
 
-    filter_all('data/graphs', 'data', fltrs=['NR'])
+    filter_all('data/output', 'data')
 
 
 if __name__ == '__main__':
