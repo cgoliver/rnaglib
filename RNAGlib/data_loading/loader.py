@@ -24,10 +24,7 @@ class GraphDataset(Dataset):
                  edge_map,
                  node_simfunc=None,
                  annotated_path='../data/annotated/samples',
-                 debug=False,
-                 shuffled=False,
                  directed=True,
-                 force_directed=False,
                  label='LW'
                  ):
         """
@@ -45,22 +42,12 @@ class GraphDataset(Dataset):
         :param label: The label to use
         """
 
-
         self.path = annotated_path
         self.all_graphs = sorted(os.listdir(annotated_path))
         self.label = label
         self.directed = directed
-        self.node_simfunc = node_simfunc
-
-        if node_simfunc is not None:
-            if self.node_simfunc.method in ['R_graphlets', 'graphlet', 'R_ged']:
-                self.level = 'graphlet_annots'
-            else:
-                self.level = 'edge_annots'
-            self.depth = self.node_simfunc.depth
-        else:
-            self.level = None
-            self.depth = None
+        self.level = None
+        self.node_simfunc, self.level = self.add_node_sim(node_simfunc=node_simfunc)
 
         self.edge_map = edge_map
         # This is len() so we have to add the +1
@@ -69,6 +56,16 @@ class GraphDataset(Dataset):
 
     def __len__(self):
         return len(self.all_graphs)
+
+    def add_node_sim(self, node_simfunc):
+        if node_simfunc is not None:
+            if node_simfunc.method in ['R_graphlets', 'graphlet', 'R_ged']:
+                level = 'graphlet_annots'
+            else:
+                level = 'edge_annots'
+        else:
+            node_simfunc, level = None, None
+        return node_simfunc, level
 
     def __getitem__(self, idx):
         g_path = os.path.join(self.path, self.all_graphs[idx])
@@ -261,7 +258,7 @@ def loader_from_hparams(annotated_path, hparams, list_inference=None):
 
 if __name__ == '__main__':
     pass
-    annotated_path = os.path.join("..", "data", "annotated", "samples")
+    annotated_path = os.path.join(script_dir, "..", "data", "annotated", "samples")
     simfunc_r1 = SimFunctionNode('R_1', 2)
     loader = Loader(annotated_path=annotated_path,
                     num_workers=0,

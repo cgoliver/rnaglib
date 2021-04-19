@@ -103,9 +103,9 @@ def build_ring_tree_from_graph(graph, depth=5, hasher=None, label='LW'):
     dict_ring = defaultdict(dict)
     for node in tqdm(graph.nodes()):
         rings = node_2_unordered_rings(graph, node, depth=depth, hasher=hasher, label=label)
-        dict_ring['node'][node] = rings['node_annots']
-        dict_ring['edge'][node] = rings['edge_annots']
-        dict_ring['graphlet'][node] = rings['graphlet_annots']
+        dict_ring['node_annots'][node] = rings['node_annots']
+        dict_ring['edge_annots'][node] = rings['edge_annots']
+        dict_ring['graphlet_annots'][node] = rings['graphlet_annots']
         graph.nodes[node].update(rings)
     return dict_ring
 
