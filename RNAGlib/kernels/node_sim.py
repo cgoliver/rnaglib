@@ -67,7 +67,7 @@ class SimFunctionNode:
 
     def __init__(self,
                  method,
-                 depth,
+                 depth=2,
                  decay=0.5,
                  idf=False,
                  normalization=None,

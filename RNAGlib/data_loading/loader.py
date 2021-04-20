@@ -79,11 +79,20 @@ class GraphDataset(Dataset):
 
         # This is a weird call but necessary for DGL as it only deals
         #   with undirected graphs that have both directed edges
-        # The error raised above ensures that we don't have a discrepancy *
+        # The error raised above ensures that we don't have a discrepancy
         #   between the attribute directed and the graphs :
         #   One should not explicitly ask to make the graphs directed in the learning as it is done by default but when
         #   directed graphs are what we want, we should use the directed annotation rather than the undirected.
-        graph = nx.to_directed(graph)
+        graph = graph.to_directed()
+
+        # Filter weird edges for now
+        to_remove = list()
+        for start_node, end_node, nodedata in graph.edges(data=True):
+            if nodedata[self.label] not in self.edge_map:
+                to_remove.append((start_node, end_node))
+        for start_node, end_node in to_remove:
+            graph.remove_edge(start_node, end_node)
+
         one_hot = {edge: torch.tensor(self.edge_map[label]) for edge, label in
                    (nx.get_edge_attributes(graph, self.label)).items()}
         nx.set_edge_attributes(graph, name='one_hot', values=one_hot)
@@ -130,13 +139,11 @@ def collate_wrapper(node_simfunc=None):
     return collate_block
 
 
-class Loader():
+class Loader:
     def __init__(self,
                  annotated_path='../data/annotated/samples/',
                  batch_size=5,
                  num_workers=20,
-                 debug=False,
-                 shuffled=False,
                  edge_map=EDGE_MAP,
                  node_simfunc=None,
                  directed=True,
@@ -155,8 +162,6 @@ class Loader():
         self.batch_size = batch_size
         self.num_workers = num_workers
         self.dataset = GraphDataset(annotated_path=annotated_path,
-                                    debug=debug,
-                                    shuffled=shuffled,
                                     node_simfunc=node_simfunc,
                                     edge_map=edge_map,
                                     directed=directed)
