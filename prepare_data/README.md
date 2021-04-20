@@ -98,7 +98,7 @@ These are the keys in the node data dictionary:
 * `'phase_angle'`: (float) 
 * `'puckering'`: (str) (e.g. `"C3'-endo"`)
 * `'sugar_class':` (str) (e.g. `"~C3'-endo"`)
-* `'bin'`: (str) (e.g. `'33t'`)
+* `'bin'`: (str) (e.g. `'33t'`) ( name of the 12 bins based on [ delta (i -1) , delta , gamma ], where delta (i -1) and delta can be either 3 ( for C3 '- endo sugar ) or 2 ( for C2 '- endo ) and gamma can be p/t/ m ( for gauche +/ trans / gauche - conformations , respectively ) (2 x2x3 =12 combinations : 33p , 33 t , ... 22 m); 'inc ' refers to incomplete cases (i .e., with missing torsions ) , and 'trig ' to triages ( i.e., with torsion angle outliers )
 * `'cluster'`: (str) (e.g. `'1c'`),
 * `'suiteness'`: (float) 
 * `'filter_rmsd'`: (float)
