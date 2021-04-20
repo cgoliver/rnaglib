@@ -98,15 +98,18 @@ These are the keys in the node data dictionary:
 * `'phase_angle'`: (float) 
 * `'puckering'`: (str) (e.g. `"C3'-endo"`)
 * `'sugar_class':` (str) (e.g. `"~C3'-endo"`)
-* `'bin'`: (str) (e.g. `'33t'`) ( name of the 12 bins based on [ delta (i -1) , delta , gamma ], where delta (i -1) and delta can be either 3 ( for C3 '- endo sugar ) or 2 ( for C2 '- endo ) and gamma can be p/t/ m ( for gauche +/ trans / gauche - conformations , respectively ) (2 x2x3 =12 combinations : 33p , 33 t , ... 22 m); 'inc ' refers to incomplete cases (i .e., with missing torsions ) , and 'trig ' to triages ( i.e., with torsion angle outliers )
-* `'cluster'`: (str) (e.g. `'1c'`),
-* `'suiteness'`: (float) 
+* `'bin'`: (str) (e.g. `'33t'`) ( name of the 12 bins based on [ delta (i -1) , delta , gamma ], where delta (i -1) and delta can be either 3 ( for C3 '- endo sugar ) or 2 ( for C2 '- endo ) and gamma can be p/t/ m ( for gauche +/ trans / gauche - conformations , respectively ) (2 x2x3 =12 combinations : `33p` , `33t` , ... `22m`); `'inc'` refers to incomplete cases (i .e., with missing torsions ) , and `'trig'` to triages ( i.e., with torsion angle outliers ),\[1\]
+* `'cluster'`: (str) (e.g. `'1c'`) (2-char suite name, for one of 53 reported clusters (46 certain and 7 wannabes ) , `'--'` for incomplete cases , and `'!!'` for outliers),\[1\]
+* `'suiteness'`: (float) (measure of conformer - match quality ( low to high in range 0 to 1) ) \[1\]
 * `'filter_rmsd'`: (float)
 * `'frame':` (dict)  e.g. (`{'rmsd': 0.006, 'origin': [-4.856, 8.564, -1.171], 'x_axis': [0.922, 0.386, -0.006], 'y_axis': [0.098, -0.25, -0.963], 'z_axis': [-0.374, 0.888, -0.269], 'quaternion': [0.592, -0.781, -0.155, 0.122]}`
 * `'sse'`: (dict) Secondary structure info (e.g. residue inside third hairpin `{'sse': 'hairpin-3'}`)
 * `'binding_protein'`: (dict) RNA-Protein interface. If no interface found, `None`. Else, dictionary (e.g. `{'nt-aa': 'C-arg', 'nt': 'A.C37', 'aa': 'A.ARG47', 'Tdst': '6.62', 'Rdst': '-114.00', 'Tx': '-1.15', 'Ty': '1.89', 'Tz': '6.23', 'Rx': '-53.57', 'Ry': '19.41', 'Rz': '-103.42', 'sse': 'a-helix'}`)
 * `binding_ion`: (string) molecule ID of ion if residue is at a binding site (otherwise `None`) (e.g. `'Ca'`)
 * `binding_small-molecule`: (string) molecule ID of small molecule if residue is at a binding site (otherwise `None`) (e.g. `'SAM'`)
+
+#### References
+\[1\] [Richardson et al. (2008): "RNA backbone: consensus all-angle conformers and modular string nomenclature (an RNA Ontology Consortium contribution). RNA, 14(3):465-481](https://rnajournal.cshlp.org/content/14/3/465.short)
 
 
 ### Edge data
