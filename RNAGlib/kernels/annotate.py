@@ -205,12 +205,17 @@ def annotate_all(dump_path='../data/annotated/sample_v2',
     graphs = os.listdir(graph_path)
     failed = 0
     print(">>> annotating all.")
-    pool = mlt.Pool()
+
+    # from guppy import hpy; h=hpy()
+    # print(h.heap())
+    # import sys
+    # sys.exit()
+    pool = mlt.Pool(12)
     if parallel:
         print(">>> going parallel")
         big_ones = list()
         arguments = [(graph, graph_path, dump_path, re_annotate, directed, 2000) for graph in graphs]
-        for res in pool.starmap(annotate_one, arguments):
+        for res in pool.starmap(annotate_one, arguments, chunksize=5):
             # for res in tqdm(pool.starmap(annotate_one, arguments), total=len(graphs)):
             if res[0]:
                 # failed += 1
