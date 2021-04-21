@@ -1,17 +1,25 @@
+"""
+Produce filters of the data set
+"""
 import os
 import sys
 import json
+import argparse
 import networkx as nx
 import csv
 import pandas as pd
 from collections import defaultdict
-from rcsbsearch import TextQuery, rcsb_attributes
+from rcsbsearch import TextQuery, Attr
+from tqdm import tqdm
+import shutil
 
 script_dir = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(os.path.join(script_dir, '..'))
 
-from prepare_data.annotations import load_graph
+from prepare_data.annotations import load_graph, write_graph
 
+def listdir_fullpath(d):
+        return [os.path.join(d, f) for f in os.listdir(d)]
 def get_NRlist(resolution):
     """
     Get non-redudant RNA list from the BGSU website
@@ -83,9 +91,12 @@ def filter_graph(g, fltr):
     NR_nodes = []
     for node in g.nodes():
         pbid, chain, pos = node.split('.')
-        if (chain in fltr[pbid]) \
-                or fltr[pbid] == 'all':
-            NR_nodes.append(node)
+        try:
+            if (chain in fltr[pbid]) \
+                    or fltr[pbid] == 'all':
+                NR_nodes.append(node)
+        except KeyError:
+            continue
 
     if len(NR_nodes) == 0:
         return None
@@ -104,39 +115,9 @@ def get_NRchains(resolution):
     :return NRchains: (Dictionary) keys=PDB IDs, Values=(set) Chain IDs
     """
 
-    NRlist = get_NRlist(resolution)
+    NR_list = get_NRlist(resolution)
     return parse_NRlist(NR_list)
 
-def update_RNApdb(pdir):
-    """
-    Download a list of RNA containing structures from the PDB
-    overwrite exising files
-    """
-    print('Updating PDB...')
-    # Get a list of PDBs containing RNA
-    query = rcsb_attributes.rcsb_entry_info.polymer_entity_count_RNA >= 1
-    rna = set(query())
-
-    pl = PDBList()
-
-    # If not fully downloaded before, download all structures
-    if len(os.listdir(pdir)) < 500:
-        pl.download_pdb_files(rna, pdir=pdir, overwrite=True)
-    else:
-        added, mod, obsolete = pl.get_recent_changes()
-        # Download new and modded entries
-        new_rna = rna.intersection(set(added).union(set(mod)))
-        pl.download_pdb_files(new_rna, pdir=pdir, overwrite=True)
-
-        # Remove Obsolete entries
-        obsolete_dir = os.path.join(pdir, 'obsolete')
-        if not os.path.exists(obsolete_dir):
-            os.mkdir(obsolete_dir)
-        for cif in os.listdir(pdir):
-            if cif[-8:-4].upper() in set(obsolete):
-                os.rename(os.path.join(pdir, cif), os.path.join(obsolete_dir, cif))
-
-    return new_rna
 
 def get_Ribochains():
     """
@@ -144,7 +125,7 @@ def get_Ribochains():
 
     :return: (dictionary) keys=pbid, value='all'
     """
-    q1 = rcsb_attributes.rcsb_entry_info.polymer_entity_count_RNA >= 1
+    q1 = Attr('rcsb_entry_info.polymer_entity_count_RNA') >= 1
     q2 = TextQuery("ribosome")
 
     query = q1 & q2
@@ -154,12 +135,7 @@ def get_Ribochains():
     # print("textquery len: ", len(set(q2())))
     # print("RNA query len: ", len(set(q1())))
     # print("intersection len: ", len(results))
-
-    fltr = {}
-    for pbid in results:
-        fltr[pbid.lower()] = 'all'
-
-    return fltr
+    return set(query())
 
 def get_NonRibochains():
     """
@@ -168,21 +144,51 @@ def get_NonRibochains():
 
     :return: (dictionary) keys=pbid, value='all'
     """
-    q1 = rcsb_attributes.rcsb_entry_info.polymer_entity_count_RNA >= 1
+    q1 = Attr('rcsb_entry_info.polymer_entity_count_RNA') >= 1
     q2 = TextQuery("ribosome")
 
 
-    results = set(q1()).difference(set(q2()))
+    return set(q1()).difference(set(q2()))
 
-    # print("textquery len: ", len(set(q2())))
-    # print("RNA query len: ", len(set(q1())))
-    # print("intersection len: ", len(results))
+def get_Custom(text):
+    """
+    Get a list of all PDB structures containing RNA
+    and do not have the text 'ribosome'
 
-    fltr = {}
-    for pbid in results:
-        fltr[pbid.lower()] = 'all'
+    :return: (dictionary) keys=pbid, value='all'
+    """
+    q1 = Attr('rcsb_entry_info.polymer_entity_count_RNA') >= 1
+    q2 = TextQuery(text)
 
-    return fltr
+    query = q1 & q2
+
+    return set(query())
+
+def filter_all(graph_dir, output_dir,
+        fltrs = ['NR', 'Ribo', 'NonRibo'],
+        min_nodes = 20):
+
+
+    for fltr in fltrs:
+        fltr_set = get_fltr(fltr)
+        fltr_dir = os.path.join(output_dir, fltr + '_graphs')
+        try:
+            os.mkdir(fltr_dir)
+        except FileExistsError:
+            pass
+        print(f'Filtering for {fltr}')
+        for graph_file in tqdm(listdir_fullpath(graph_dir)):
+            output_file = os.path.join(fltr_dir, graph_file[-9:])
+            if fltr == 'NR':
+                g = load_graph(graph_file)
+                g = filter_graph(g, fltr_set)
+                if g is None: continue
+                if len(g.nodes) < min_nodes: continue
+                write_graph(g, output_file)
+            else:
+                pbid = graph_file[-9:-5]
+                if pbid in fltr_set:
+                    shutil.copy(graph_file, output_file)
 
 
 def get_fltr(fltr):
@@ -196,27 +202,12 @@ def get_fltr(fltr):
     if fltr == 'NonRibo':
         return get_NonRibochains()
 
+    return get_Custom(fltr)
+
 def main():
 
+    filter_all('data/output', 'data', fltrs=['ligase'])
 
-
-    get_NonRibochains()
-
-    # NR_list = get_NRlist("4.0A")
-    # NRchains = parse_NRlist(NR_list)
-
-    # print(NRchains)
-
-    # g = load_graph('../examples/5e3h.json')
-
-    # print(g.nodes)
-
-    # print(NRchains['5e3h'])
-
-    # h = NR_filter(g, NRchains)
-    # print(h.nodes)
-
-    # print(h)
 
 if __name__ == '__main__':
     main()
