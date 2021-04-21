@@ -9,6 +9,7 @@ import torch
 
 import os
 import sys
+import random
 
 script_dir = os.path.dirname(os.path.realpath(__file__))
 if __name__ == "__main__":
@@ -17,6 +18,8 @@ if __name__ == "__main__":
 from torch.utils.data import Dataset, DataLoader, Subset
 from kernels.node_sim import SimFunctionNode, k_block_list, simfunc_from_hparams, EDGE_MAP
 from utils import graph_io
+
+import time
 
 
 class GraphDataset(Dataset):
@@ -68,6 +71,7 @@ class GraphDataset(Dataset):
         return node_simfunc, level
 
     def __getitem__(self, idx):
+        time_start = time.perf_counter()
         g_path = os.path.join(self.path, self.all_graphs[idx])
         graph = graph_io.load_json(g_path)
 
@@ -99,6 +103,7 @@ class GraphDataset(Dataset):
 
         # Careful ! When doing this, the graph nodes get sorted.
         g_dgl = dgl.from_networkx(nx_graph=graph, edge_attrs=['one_hot'])
+        print(f' Everything up to dgl graph took : {time.perf_counter() - time_start}')
 
         if self.node_simfunc is not None:
             ring = list(sorted(graph.nodes(data=self.level)))
@@ -107,7 +112,7 @@ class GraphDataset(Dataset):
             return g_dgl, 0
 
 
-def collate_wrapper(node_simfunc=None):
+def collate_wrapper(node_simfunc=None, max_size_kernel=None):
     """
         Wrapper for collate function so we can use different node similarities.
 
@@ -125,9 +130,24 @@ def collate_wrapper(node_simfunc=None):
 
             # Now compute similarities, we need to flatten the list and then use the kernels :
             # The rings is now a list of list of tuples
-            rings = [item for ring in rings for item in ring]
-            K = k_block_list(rings, node_simfunc)
-            return batched_graph, torch.from_numpy(K).detach().float(), len_graphs
+            # If we have a huge graph, we can sample max_size_kernel nodes to avoid huge computations,
+            # We then return the sampled ids
+            flat_rings = list()
+            node_ids = list()
+            for ring in rings:
+                if max_size_kernel is None or len(ring) < max_size_kernel:
+                    # Just take them all
+                    node_ids.extend([1 for _ in ring])
+                    flat_rings.extend(ring)
+                else:
+                    # Take only 'max_size_kernel' elements
+                    graph_node_id = [1 for _ in range(max_size_kernel)] + [0 for _ in
+                                                                           range(len(ring) - max_size_kernel)]
+                    random.shuffle(graph_node_id)
+                    node_ids.extend(graph_node_id)
+                    flat_rings.extend([node for i, node in enumerate(ring) if graph_node_id[i] == 1])
+            K = k_block_list(flat_rings, node_simfunc)
+            return batched_graph, torch.from_numpy(K).detach().float(), len_graphs, node_ids
     else:
         def collate_block(samples):
             # The input `samples` is a list of pairs
@@ -135,7 +155,7 @@ def collate_wrapper(node_simfunc=None):
             graphs, _ = map(list, zip(*samples))
             batched_graph = dgl.batch(graphs)
             len_graphs = [graph.number_of_nodes() for graph in graphs]
-            return batched_graph, [1 for _ in samples], len_graphs
+            return batched_graph, len_graphs
     return collate_block
 
 
@@ -146,6 +166,7 @@ class Loader:
                  num_workers=20,
                  edge_map=EDGE_MAP,
                  node_simfunc=None,
+                 max_size_kernel=None,
                  directed=True,
                  split=True):
         """
@@ -157,6 +178,8 @@ class Loader:
         :param shuffled:
         :param node_simfunc: The node comparison object to use for the embeddings. If None is selected,
         will just return graphs
+        :param max_graphs: If we use K comptutations, we need to subsamble some nodes for the big graphs
+        or else the k computation takes too long
         :param hparams:
         """
         self.batch_size = batch_size
@@ -165,17 +188,15 @@ class Loader:
                                     node_simfunc=node_simfunc,
                                     edge_map=edge_map,
                                     directed=directed)
-
+        self.max_size_kernel = max_size_kernel
         self.directed = directed
         self.node_simfunc = node_simfunc
         self.num_edge_types = self.dataset.num_edge_types
-
         self.split = split
 
     def get_data(self):
+        collate_block = collate_wrapper(self.node_simfunc, max_size_kernel=self.max_size_kernel)
         if not self.split:
-            collate_block = collate_wrapper(self.node_simfunc)
-
             loader = DataLoader(dataset=self.dataset, shuffle=True, batch_size=self.batch_size,
                                 num_workers=self.num_workers, collate_fn=collate_block)
             return loader
@@ -198,9 +219,6 @@ class Loader:
             test_set = Subset(self.dataset, test_indices)
 
             print(f"training items: ", len(train_set))
-
-            collate_block = collate_wrapper(self.node_simfunc)
-
             train_loader = DataLoader(dataset=train_set, shuffle=True, batch_size=self.batch_size,
                                       num_workers=self.num_workers, collate_fn=collate_block)
             valid_loader = DataLoader(dataset=valid_set, shuffle=True, batch_size=self.batch_size,
