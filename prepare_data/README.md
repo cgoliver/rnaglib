@@ -77,7 +77,7 @@ These are the keys in the node data dictionary:
 * `'glyco_bond'`: str (e.g.   `'anti'`
 * `'C5prime_xyz': (list), 5' Carbon xyz coordinates (e.g.  `[-1.343, 8.453, 1.288]`)
 * `'P_xyz'`: (list) Phosphate coordinates.
-* `'form'`: (str) (e.g. `'A'`)
+* `'form'`: (str) (e.g. `'A'`)  classification of a dinucleotide step comprising the bp above the given designation and the bp that follows it. Types include 'A', 'B' or 'Z' for the common A-, B- and Z- form helices, '.' for an unclassified step , and 'x' for a step without a continuous backbone.
 * `'ssZp'`: (float)  (e.g. `4.41`),
 * `'Dp'`: (float) (e.g. `4.404`)
 * `'splay_angle'`: (float)  (e.g. `21.6`),
