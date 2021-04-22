@@ -120,10 +120,6 @@ def main():
                         help='build filtered datasets')
     args = parser.parse_args()
 
-    # DEBUGGING 
-    do_one('data/structures/3p4b.cif', 'junk')
-    return
-
     # Update PDB and get Todo list
     cifs = listdir_fullpath(args.structures_dir)
     if args.update:
