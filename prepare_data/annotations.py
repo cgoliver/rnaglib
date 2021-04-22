@@ -17,6 +17,14 @@ from time import perf_counter
 script_dir = os.path.join(os.path.realpath(__file__), '..')
 sys.path.append(os.path.join(script_dir, '..'))
 
+def dangle_trim(G, backbone_only=False):
+    """
+    Recursively remove dangling nodes from graph.
+    """
+    dangles = lambda G: [n for n in G.nodes() if G.degree(n) < 2]
+    while dangles(G):
+        G.remove_nodes_from(dangles(G))
+
 def reorder_nodes(g):
     """
     Reorder nodes in graph

@@ -58,7 +58,7 @@ def update_RNApdb(pdir):
 
     return new_rna
 
-def do_one(cif, output_dir):
+def do_one(cif, output_dir, min_nodes=20):
 
     if '.cif' not in cif: return
     pbid = cif[-8:-4]
@@ -77,6 +77,9 @@ def do_one(cif, output_dir):
     if len(g.nodes()) < min_nodes:
         print(f'Excluding {pbid} from output, less than 20 nodes')
         return pbid, 'tooSmall'
+    if len(g.edges()) < len(g.nodes()) - 3:
+        print(f'Excluding {pbid} from output, edges < nodes -3')
+        return pbid, 'edges<nodes-3'
 
     # Find ligand and ion annotations from the PDB cif
     try:
@@ -117,9 +120,12 @@ def main():
                         help='build filtered datasets')
     args = parser.parse_args()
 
-    cifs = listdir_fullpath(args.structures_dir)
+    # DEBUGGING 
+    do_one('data/structures/3p4b.cif', 'junk')
+    return
 
     # Update PDB and get Todo list
+    cifs = listdir_fullpath(args.structures_dir)
     if args.update:
         new_rna = update_RNApdb(args.structures_dir)
         todo = ((cif, args.output_dir) for cif in cifs\
