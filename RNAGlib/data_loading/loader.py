@@ -53,15 +53,14 @@ class GraphDataset(Dataset):
         #   from the undirected set.
         #   If directed graphs are what one wants, one should use the directed annotation rather than the undirected.
         sample_path = os.path.join(self.path, self.all_graphs[0])
-        graph = graph_io.load_json(sample_path)
-        self.directed = nx.is_directed(graph)
+        sample_graph = graph_io.load_json(sample_path)
+        self.directed = nx.is_directed(sample_graph)
         self.force_undirected = force_undirected
 
-        self.level = None
         self.node_simfunc, self.level = self.add_node_sim(node_simfunc=node_simfunc)
 
-        self.edge_map = edge_map
         # This is len() so we have to add the +1
+        self.edge_map = edge_map
         self.num_edge_types = max(self.edge_map.values()) + 1
         print(f"Found {self.num_edge_types} relations")
 
@@ -79,7 +78,6 @@ class GraphDataset(Dataset):
         return node_simfunc, level
 
     def __getitem__(self, idx):
-        time_start = time.perf_counter()
         g_path = os.path.join(self.path, self.all_graphs[idx])
         graph = graph_io.load_json(g_path)
 
@@ -105,7 +103,6 @@ class GraphDataset(Dataset):
 
         # Careful ! When doing this, the graph nodes get sorted.
         g_dgl = dgl.from_networkx(nx_graph=graph, edge_attrs=['one_hot'])
-        print(f' Everything up to dgl graph took : {time.perf_counter() - time_start}')
 
         if self.node_simfunc is not None:
             ring = list(sorted(graph.nodes(data=self.level)))
@@ -169,7 +166,7 @@ class Loader:
                  edge_map=EDGE_MAP,
                  node_simfunc=None,
                  max_size_kernel=None,
-                 directed=True,
+                 force_undirected=False,
                  split=True):
         """
 
@@ -189,9 +186,9 @@ class Loader:
         self.dataset = GraphDataset(annotated_path=annotated_path,
                                     node_simfunc=node_simfunc,
                                     edge_map=edge_map,
-                                    directed=directed)
+                                    force_undirected=force_undirected)
         self.max_size_kernel = max_size_kernel
-        self.directed = directed
+        self.directed = self.dataset.directed
         self.node_simfunc = node_simfunc
         self.num_edge_types = self.dataset.num_edge_types
         self.split = split
@@ -237,17 +234,16 @@ class InferenceLoader(Loader):
                  batch_size=5,
                  num_workers=20,
                  edge_map=EDGE_MAP,
-                 directed=True):
+                 force_undirected=False):
         super().__init__(
             annotated_path=annotated_path,
             batch_size=batch_size,
             num_workers=num_workers,
             edge_map=edge_map,
-            directed=directed
+            force_undirected=force_undirected
         )
         self.dataset.all_graphs = list_to_predict
         self.dataset.path = annotated_path
-        print(len(list_to_predict))
 
     def get_data(self):
         collate_block = collate_wrapper(None)
@@ -283,15 +279,28 @@ def loader_from_hparams(annotated_path, hparams, list_inference=None):
 
 if __name__ == '__main__':
     pass
+    # g_path ='2kwg.json'
+    # graph = graph_io.load_json(g_path)
+    # print(len(graph.nodes()))
+    # print(len(graph.edges()))
+    #
+    # g_path ='3p4b.json'
+    # graph = graph_io.load_json(g_path)
+    # print(len(graph.nodes()))
+    # print(len(graph.edges()))
+
     annotated_path = os.path.join(script_dir, "..", "data", "annotated", "samples")
     simfunc_r1 = SimFunctionNode('R_1', 2)
     loader = Loader(annotated_path=annotated_path,
                     num_workers=0,
+                    batch_size=2,
+                    max_size_kernel=100,
                     split=False,
-                    directed=False,
                     node_simfunc=simfunc_r1)
     train_loader = loader.get_data()
-    for graph, K, lengths in train_loader:
+    for i, (graph, K, len_graphs, node_ids) in enumerate(train_loader):
         print('graph :', graph)
-        # print('K :', K)
-        # print('length :', lengths)
+        if i > 3:
+            break
+    print('K :', K)
+    print('length :', len_graphs)
