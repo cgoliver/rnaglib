@@ -27,7 +27,7 @@ class GraphDataset(Dataset):
                  edge_map,
                  node_simfunc=None,
                  annotated_path='../data/annotated/samples',
-                 directed=True,
+                 force_undirected=False,
                  label='LW'
                  ):
         """
@@ -39,16 +39,24 @@ class GraphDataset(Dataset):
                         TODO : do this annotate if not, probably with input confirmation
         :param debug:
         :param shuffled:
-        :param directed: Whether we want to use directed graphs
-        :param force_directed: If we ask for directed graphs from undirected graphs, this will raise an Error as
-        we should rather be using directed annotations that are more rich (for instance we get the BB direction)
+        :param force_directed: Whether we want to force the use of undirected graphs from a directed data set.
+        Otherwise the directed attribute is observed from the data at hands.
         :param label: The label to use
         """
 
         self.path = annotated_path
         self.all_graphs = sorted(os.listdir(annotated_path))
         self.label = label
-        self.directed = directed
+
+        # To ensure that we don't have a discrepancy between the attribute directed and the graphs :
+        #   Since the original data is directed, it does not make sense to ask to build directed graphs
+        #   from the undirected set.
+        #   If directed graphs are what one wants, one should use the directed annotation rather than the undirected.
+        sample_path = os.path.join(self.path, self.all_graphs[0])
+        graph = graph_io.load_json(sample_path)
+        self.directed = nx.is_directed(graph)
+        self.force_undirected = force_undirected
+
         self.level = None
         self.node_simfunc, self.level = self.add_node_sim(node_simfunc=node_simfunc)
 
@@ -76,17 +84,11 @@ class GraphDataset(Dataset):
         graph = graph_io.load_json(g_path)
 
         # We can go from directed to undirected
-        if self.directed and not nx.is_directed(graph):
-            raise ValueError(f"The loader is asked to produce a directed graph from {g_path} that is undirected")
-        if not self.directed:
+        if self.force_undirected:
             graph = nx.to_undirected(graph)
 
         # This is a weird call but necessary for DGL as it only deals
         #   with undirected graphs that have both directed edges
-        # The error raised above ensures that we don't have a discrepancy
-        #   between the attribute directed and the graphs :
-        #   One should not explicitly ask to make the graphs directed in the learning as it is done by default but when
-        #   directed graphs are what we want, we should use the directed annotation rather than the undirected.
         graph = graph.to_directed()
 
         # Filter weird edges for now
