@@ -29,11 +29,17 @@ EDGE_MAP = {'B53': 0, 'cHH': 1, 'cHS': 2, 'cHW': 3, 'cSH': 2, 'cSS': 4, 'cSW': 5
             'tHH': 7, 'tHS': 8, 'tHW': 9, 'tSH': 8, 'tSS': 10, 'tSW': 11, 'tWH': 9, 'tWS': 11, 'tWW': 12}
 #            'cH.':13, 'c.H':14, 'tH.':15, 't.H':16, 'cS.': 17, 'c.S':18, 'tS.':19, 't.S':20, 'cW.':21, 'c.W':22, 'tW.':23, 't.W':24, '--':25}
 
-IDF = {'TSS': 1.3508944643423815, 'TWW': 2.2521850545837103, 'CWW': 0.7302387734487946, 'B53': 0.6931471805599453,
-       'CSS': 1.3562625353981017, 'tSH': 1.0617196804844624, 'THS': 1.0617196804844624, 'CSH': 1.6543492684466312,
-       'CHS': 1.6543492684466312, 'THW': 1.3619066730630602, 'TWH': 1.3619066730630602, 'THH': 2.3624726636947186,
-       'CWH': 2.220046456989285, 'CHW': 2.220046456989285, 'TSW': 2.3588208814802263, 'TWS': 2.3588208814802263,
-       'CWS': 2.0236918714028707, 'CHH': 4.627784875752877, 'CSW': 2.0236918714028707}
+# IDF = {'TSS': 1.3508944643423815, 'TWW': 2.2521850545837103, 'CWW': 0.7302387734487946, 'B53': 0.6931471805599453,
+#        'CSS': 1.3562625353981017, 'tSH': 1.0617196804844624, 'THS': 1.0617196804844624, 'CSH': 1.6543492684466312,
+#        'CHS': 1.6543492684466312, 'THW': 1.3619066730630602, 'TWH': 1.3619066730630602, 'THH': 2.3624726636947186,
+#        'CWH': 2.220046456989285, 'CHW': 2.220046456989285, 'TSW': 2.3588208814802263, 'TWS': 2.3588208814802263,
+#        'CWS': 2.0236918714028707, 'CHH': 4.627784875752877, 'CSW': 2.0236918714028707}
+# IDF_small = {key[0].lower()+key[1:]: value for (key, value) in IDF.items()}
+IDF = {'tSS': 1.3508944643423815, 'tWW': 2.2521850545837103, 'cWW': 0.7302387734487946, 'b53': 0.6931471805599453,
+       'cSS': 1.3562625353981017, 'tSH': 1.0617196804844624, 'tHS': 1.0617196804844624, 'cSH': 1.6543492684466312,
+       'cHS': 1.6543492684466312, 'tHW': 1.3619066730630602, 'tWH': 1.3619066730630602, 'tHH': 2.3624726636947186,
+       'cWH': 2.220046456989285, 'cHW': 2.220046456989285, 'tSW': 2.3588208814802263, 'tWS': 2.3588208814802263,
+       'cWS': 2.0236918714028707, 'cHH': 4.627784875752877, 'cSW': 2.0236918714028707}
 
 indel_vector = [1 if e == 'B53' else 2 if e == 'CWW' else 3 for e in sorted(EDGE_MAP.keys())]
 
@@ -62,7 +68,7 @@ class SimFunctionNode:
 
     def __init__(self,
                  method,
-                 depth,
+                 depth=2,
                  decay=0.5,
                  idf=False,
                  normalization=None,
@@ -647,21 +653,25 @@ if __name__ == "__main__":
 
     # value = hungarian(ring1, ring1, 3)
     # print(value)
-    graph_path = os.path.join("..", "data", "annotated", "samples")
+    # graph_path = os.path.join("..", "data", "annotated", "samples")
+    graph_path = os.path.join("..", "data", "annotated", "no_hash")
     graphs = os.listdir(graph_path)
     graph1 = load_json(os.path.join(graph_path, graphs[0]))
     graph2 = load_json(os.path.join(graph_path, graphs[0]))
     simfunc_r1 = SimFunctionNode('R_1', 2)
-    simfunc_hung = SimFunctionNode('hungarian', 2, hash_init='samples')
-    simfunc_iso = SimFunctionNode('R_iso', 2, hash_init='samples', idf=True)
+    simfunc_iso = SimFunctionNode('R_iso', 2, idf=True)
+    simfunc_hung = SimFunctionNode('hungarian', 2)
     simfunc_graphlet = SimFunctionNode('R_graphlets', 2, hash_init='samples')
-
 
     for node1, nodedata1 in graph1.nodes(data=True):
         for node2, nodedata2 in graph2.nodes(data=True):
-            print(node1)
+            # print(node1)
             print(nodedata1)
-            a = simfunc_graphlet.compare(nodedata1['graphlet_annots'], nodedata2['graphlet_annots'])
+            # a = simfunc_r1.compare(nodedata1['edge_annots'], nodedata2['edge_annots'])
+            # print(a)
+            # a = simfunc_iso.compare(nodedata1['edge_annots'], nodedata2['edge_annots'])
+            # print(a)
+            # a = simfunc_hung.compare(nodedata1['edge_annots'], nodedata2['edge_annots'])
             # print(a)
 
     # ring1 = list(rings1.values())[0]

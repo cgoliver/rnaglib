@@ -103,9 +103,9 @@ def build_ring_tree_from_graph(graph, depth=5, hasher=None, label='LW'):
     dict_ring = defaultdict(dict)
     for node in tqdm(graph.nodes()):
         rings = node_2_unordered_rings(graph, node, depth=depth, hasher=hasher, label=label)
-        dict_ring['node'][node] = rings['node_annots']
-        dict_ring['edge'][node] = rings['edge_annots']
-        dict_ring['graphlet'][node] = rings['graphlet_annots']
+        dict_ring['node_annots'][node] = rings['node_annots']
+        dict_ring['edge_annots'][node] = rings['edge_annots']
+        dict_ring['graphlet_annots'][node] = rings['graphlet_annots']
         graph.nodes[node].update(rings)
     return dict_ring
 
@@ -205,12 +205,17 @@ def annotate_all(dump_path='../data/annotated/sample_v2',
     graphs = os.listdir(graph_path)
     failed = 0
     print(">>> annotating all.")
-    pool = mlt.Pool()
+
+    # from guppy import hpy; h=hpy()
+    # print(h.heap())
+    # import sys
+    # sys.exit()
+    pool = mlt.Pool(12)
     if parallel:
         print(">>> going parallel")
         big_ones = list()
         arguments = [(graph, graph_path, dump_path, re_annotate, directed, 2000) for graph in graphs]
-        for res in pool.starmap(annotate_one, arguments):
+        for res in pool.starmap(annotate_one, arguments, chunksize=5):
             # for res in tqdm(pool.starmap(annotate_one, arguments), total=len(graphs)):
             if res[0]:
                 # failed += 1
