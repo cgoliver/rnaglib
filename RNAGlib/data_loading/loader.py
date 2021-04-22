@@ -18,6 +18,20 @@ from torch.utils.data import Dataset, DataLoader, Subset
 from kernels.node_sim import SimFunctionNode, k_block_list, simfunc_from_hparams, EDGE_MAP
 from utils import graph_io
 
+FEATURE_MAPS ={
+        'nt_code' : {'A':0, 'U':1, 'C':2, 'G':4},
+        'nt_name' : {'A':0, 'U':1, 'C':2, 'G':4},
+        'form' : {'A':0, 'B':1, 'Z':2, '.':3, 'x':4},
+        'dbn' : {'(':0, ')':1, '{':2, '}':3, '<':4, '>':5, '&':6, '.':7},
+        'bb_type' : {'--':0, 'BI':1, 'BII':2},
+        'glyco_bond' : {'--':0, 'anti':1, 'syn':2},
+        'puckering' : {"C3'-endo":0, "C2'-endo":1, "C3'-exo":2, "C2'-exo":3},
+        'sugar_class' : {"~C3'-endo":0, "~C2'-endo":1},
+        'cluster' : {'33t':0, '33p':1, '33m':2, '32t':4, '32p':5, '32m':6,
+                        '23t':7, '23p':8, '23m':9, '22t':10, '22p':11},
+        'bin' : {b:n for b, n in enumerate(['1a', '1m', '1L', '&a', '7a', '3a', '9a', '1g', '7d', '3d', '5d', '1e', '1c', '1f', '6j', '1b', '1{', '3b', '1z', '5z', '7p', '1t', '5q', '1o', '7r', '2a', '4a', '0a', '#a', '4g', '6g', '8d', '4d', '6d', '2h', '4n', '0i', '6n', '6j', '2{', '4b', '0b', '4p', '6p', '4s', '2o', '5n', '5p', '5r', '3g', '2g', '__', '!!'])},
+        'sse' : {s:n for s, n in enumerate(['hairpin_1', 'hairpin_3', 'buldge_1'])}
+        }
 
 class GraphDataset(Dataset):
     def __init__(self,
@@ -28,7 +42,9 @@ class GraphDataset(Dataset):
                  shuffled=False,
                  directed=True,
                  force_directed=False,
-                 label='LW'
+                 label='LW',
+                 node_features=None,
+                 node_target=None
                  ):
         """
 
@@ -43,6 +59,7 @@ class GraphDataset(Dataset):
         :param force_directed: If we ask for directed graphs from undirected graphs, this will raise an Error as
         we should rather be using directed annotations that are more rich (for instance we get the BB direction)
         :param label: The label to use
+        :param node_features: node features to include, stored in one tensor in order given by user
         """
 
 
@@ -51,6 +68,8 @@ class GraphDataset(Dataset):
         self.label = label
         self.directed = directed
         self.node_simfunc = node_simfunc
+        self.node_features = node_features
+        self.node_target = node_target
 
         if node_simfunc is not None:
             if self.node_simfunc.method in ['R_graphlets', 'graphlet', 'R_ged']:
@@ -89,6 +108,10 @@ class GraphDataset(Dataset):
         graph = nx.to_directed(graph)
         one_hot = {edge: torch.tensor(self.edge_map[label]) for edge, label in
                    (nx.get_edge_attributes(graph, self.label)).items()}
+        if self.node_features is not None:
+            nx.set_node_attributes(graph, name='features',values=self.get_node_features(graph))
+        if self.node_target is not None:
+            nx.set_node_attributes(graph, name='target', values=self.get_node_targets(graph))
         nx.set_edge_attributes(graph, name='one_hot', values=one_hot)
 
         # Careful ! When doing this, the graph nodes get sorted.
@@ -100,6 +123,74 @@ class GraphDataset(Dataset):
         else:
             return g_dgl, 0
 
+    def get_node_targets(self, g):
+        """
+        Get targets for graph g
+        for every node get the attribute specified by self.node_target
+        output a mapping of nodes to their targets
+        """
+        targets = {}
+
+        for node, attrs in g.nodes.data():
+            if 'binding' in self.node_target:
+                if attrs[self.node_target] is None:
+                    targets[node] = 0
+                else:
+                    targets[node] = 1
+            else:
+                try:
+                    targets[node] = float(attrs[self.node_target])
+                except ValueError:
+                        try:
+                            feats_flt[i] = FEATURE_MAPS[feature][attrs[feature]]
+                        except KeyError as e:
+                            print(e)
+                            raise Exception('ERROR: Cannot convert specified feature to float')
+
+            if 'cluster' == self.node_target:
+                targets[node] = targets[node] * attrs['suiteness']
+
+            targets[node] = torch.tensor(targets[node], dtype=torch.float32)
+
+        return targets
+
+    def get_node_features(self, g):
+        """
+        Get node attributes from g selected from self.node_features
+        transform into feature tensor
+        enumerate str features with FEATURE_MAPS
+        output mapping of nodes to features tensor
+        """
+        junk_attrs = ['index_chain', 'chain_name', 'nt_resnum', 'nt_id', 'nt_type', 'summary', 'C5prime_xyz', 'P_xyz', 'frame']
+
+        feats = {}
+
+        for node, attrs in g.nodes.data():
+            feats_flt = torch.zeros(len(self.node_features))
+            for i, feature in enumerate(self.node_features):
+                try:
+                    feats_flt[i] = float(attrs[feature])
+                except TypeError:
+                    feats_flt[i] = float('NaN')
+                except ValueError:
+                    if 'binding' in feature:
+                        if attrs[feature] is None:
+                            feats_flt[i] = 0
+                        else:
+                            feats_flt[i] = 1
+                    elif 'cluster' == feature:
+                        feats_flt[i] = FEATURE_MAPS['cluster'][attrs[feature]] \
+                                        * attrs['suiteness']
+                    else:
+                        try:
+                            feats_flt[i] = FEATURE_MAPS[feature][attrs[feature]]
+                        except KeyError as e:
+                            print(e)
+                            raise Exception('ERROR: Cannot convert specified feature to float')
+
+            feats[node] = torch.tensor(feats_flt)
+
+        return feats
 
 def collate_wrapper(node_simfunc=None):
     """
@@ -137,10 +228,13 @@ class Loader():
     def __init__(self,
                  annotated_path='../data/annotated/samples/',
                  batch_size=5,
-                 num_workers=20,
+                 num_workers=1,
                  debug=False,
                  shuffled=False,
                  edge_map=EDGE_MAP,
+                 node_features=None,
+                 node_target=None,
+                 label='LW',
                  node_simfunc=None,
                  directed=True,
                  split=True):
@@ -154,6 +248,8 @@ class Loader():
         :param node_simfunc: The node comparison object to use for the embeddings. If None is selected,
         will just return graphs
         :param hparams:
+        :param node_features: (str list) features to be included in feature tensor
+        :param node_target: (str) target attribute for node classification
         """
         self.batch_size = batch_size
         self.num_workers = num_workers
@@ -161,6 +257,9 @@ class Loader():
                                     debug=debug,
                                     shuffled=shuffled,
                                     node_simfunc=node_simfunc,
+                                    node_features=node_features,
+                                    node_target=node_target,
+                                    label=label,
                                     edge_map=edge_map,
                                     directed=directed)
 
@@ -261,13 +360,15 @@ def loader_from_hparams(annotated_path, hparams, list_inference=None):
 
 if __name__ == '__main__':
     pass
-    annotated_path = os.path.join("..", "data", "annotated", "samples")
+    annotated_path = os.path.join("..", "data", "graphs")
     simfunc_r1 = SimFunctionNode('R_1', 2)
     loader = Loader(annotated_path=annotated_path,
                     num_workers=0,
                     split=False,
-                    directed=False,
-                    node_simfunc=simfunc_r1)
+                    directed=True,
+                    node_simfunc=None,
+                    node_features=['alpha', 'beta'],
+                    node_target='binding_protein')
     train_loader = loader.get_data()
     for graph, K, lengths in train_loader:
         print('graph :', graph)
