@@ -9,6 +9,7 @@ import torch
 
 import os
 import sys
+from collections import defaultdict
 
 script_dir = os.path.dirname(os.path.realpath(__file__))
 if __name__ == "__main__":
@@ -19,19 +20,33 @@ from kernels.node_sim import SimFunctionNode, k_block_list, simfunc_from_hparams
 from utils import graph_io
 
 FEATURE_MAPS ={
-        'nt_code' : {'A':0, 'U':1, 'C':2, 'G':4},
-        'nt_name' : {'A':0, 'U':1, 'C':2, 'G':4},
-        'form' : {'A':0, 'B':1, 'Z':2, '.':3, 'x':4},
-        'dbn' : {'(':0, ')':1, '{':2, '}':3, '<':4, '>':5, '&':6, '.':7},
+        'nt_code' : {k:v for v,k in enumerate(['A','U','C','G','P', 'c', 'a', 'u', 't', 'g'])},
+        'nt_name' : {k:v for v,k in enumerate(['A','U','C','G','PSU', 'ATP', 'UR3', '2MG', '4OC', 'CCC', 'GDP', 'M2G', '5MC','7MG', 'MA6', 'GTP','G46', 'CBV','OMG', 'OMU', '5MU', '6MZ', 'RSP', 'G48', 'OMC', 'A44', '4SU','U36', 'H2U', 'CM0', 'I', 'C43', '1MA', 'A23'])},
+        'form' : {k:v for v,k in enumerate(['A','-','B','Z','.','x'])},
+        'dbn' : {k:v for v,k in enumerate(['(',')','{','}','<','>','&','.','[',']'])},
         'bb_type' : {'--':0, 'BI':1, 'BII':2},
         'glyco_bond' : {'--':0, 'anti':1, 'syn':2},
-        'puckering' : {"C3'-endo":0, "C2'-endo":1, "C3'-exo":2, "C2'-exo":3},
-        'sugar_class' : {"~C3'-endo":0, "~C2'-endo":1},
-        'cluster' : {'33t':0, '33p':1, '33m':2, '32t':4, '32p':5, '32m':6,
-                        '23t':7, '23p':8, '23m':9, '22t':10, '22p':11},
-        'bin' : {b:n for b, n in enumerate(['1a', '1m', '1L', '&a', '7a', '3a', '9a', '1g', '7d', '3d', '5d', '1e', '1c', '1f', '6j', '1b', '1{', '3b', '1z', '5z', '7p', '1t', '5q', '1o', '7r', '2a', '4a', '0a', '#a', '4g', '6g', '8d', '4d', '6d', '2h', '4n', '0i', '6n', '6j', '2{', '4b', '0b', '4p', '6p', '4s', '2o', '5n', '5p', '5r', '3g', '2g', '__', '!!'])},
+        'puckering' : {k:v for v,k in enumerate(["C3'-endo","C2'-endo","C3'-exo","C2'-exo","C4'-exo", "C1'-exo", "04'-exo","O4'-endo", "C1'-endo", "C4'-endo", "O4'-exo"])},
+        'sugar_class' : {"~C3'-endo":0, "~C2'-endo":1, '--':3},
+        'bin' : {k:v for v,k in enumerate(['33t','33p','33m','32t','32p','32m','23t','23p','23m','22t','22p','inc','trig', '22m']) },
+        'cluster' : {b:n for n, b in enumerate(['1a', '1m', '1L', '&a', '7a', '3a', '9a', '1g', '7d', '3d', '5d', '1e', '1c', '1f', '6j', '1b', '1{', '3b', '1z', '5z', '7p', '1t', '5q', '1o', '7r', '2a', '4a', '0a', '#a', '4g', '6g', '8d', '4d', '6d', '2h', '4n', '0i', '6n', '6j', '2{', '4b', '0b', '4p', '6p', '4s', '2o', '5n', '5p', '5r', '3g', '2g', '__', '!!', '1[', '5j', '0k', '2z', '2u', '2['])},
         'sse' : {s:n for s, n in enumerate(['hairpin_1', 'hairpin_3', 'buldge_1'])}
         }
+
+def dict_union(a, b):
+    """
+    performs union operation on two dictionaries of sets
+    """
+    c = {k:a[k].union(b[k]) for k in set(a.keys()).intersection(set(b.keys()))}
+    for k in (set(b.keys()) - set(c.keys())): c[k] = b[k]
+    for k in (set(a.keys()) - set(c.keys())): c[k] = a[k]
+
+    for k,v in c.items():
+        print(f'\nkey: {k}\tset:')
+        print(v)
+
+    print('\nNEXT\n')
+    return c
 
 class GraphDataset(Dataset):
     def __init__(self,
@@ -66,6 +81,7 @@ class GraphDataset(Dataset):
         self.node_features = node_features
         self.node_target = node_target
         self.level = None
+        self.unmapped_values = defaultdict(set)
         self.node_simfunc, self.level = self.add_node_sim(node_simfunc=node_simfunc)
 
         self.edge_map = edge_map
@@ -112,16 +128,22 @@ class GraphDataset(Dataset):
         for start_node, end_node in to_remove:
             graph.remove_edge(start_node, end_node)
 
+        # Get Edge Labels
         one_hot = {edge: torch.tensor(self.edge_map[label]) for edge, label in
                    (nx.get_edge_attributes(graph, self.label)).items()}
-        if self.node_features is not None:
-            nx.set_node_attributes(graph, name='features',values=self.get_node_features(graph))
-        if self.node_target is not None:
-            nx.set_node_attributes(graph, name='target', values=self.get_node_targets(graph))
         nx.set_edge_attributes(graph, name='one_hot', values=one_hot)
 
+        # Get Node labels
+        if self.node_features is not None:
+            feature_vector, unmapped_value = self.get_node_features(graph)
+            # self.unmapped_values = dict_union(unmapped_value, self.unmapped_values)
+            nx.set_node_attributes(graph, name='features',values=feature_vector)
+        if self.node_target is not None:
+            nx.set_node_attributes(graph, name='target', values=self.get_node_targets(graph))
+
         # Careful ! When doing this, the graph nodes get sorted.
-        g_dgl = dgl.from_networkx(nx_graph=graph, edge_attrs=['one_hot'])
+        g_dgl = dgl.from_networkx(nx_graph=graph, edge_attrs=['one_hot'],
+                node_attrs=['features', 'target'])
 
         if self.node_simfunc is not None:
             ring = list(sorted(graph.nodes(data=self.level)))
@@ -150,8 +172,7 @@ class GraphDataset(Dataset):
                         try:
                             feats_flt[i] = FEATURE_MAPS[feature][attrs[feature]]
                         except KeyError as e:
-                            print(e)
-                            raise Exception('ERROR: Cannot convert specified feature to float')
+                            raise Exception('ERROR: Cannot convert node target "{self.node_target}" to float')
 
             if 'cluster' == self.node_target:
                 targets[node] = targets[node] * attrs['suiteness']
@@ -167,36 +188,46 @@ class GraphDataset(Dataset):
         enumerate str features with FEATURE_MAPS
         output mapping of nodes to features tensor
         """
-        junk_attrs = ['index_chain', 'chain_name', 'nt_resnum', 'nt_id', 'nt_type', 'summary', 'C5prime_xyz', 'P_xyz', 'frame']
+        junk_attrs = ['index_chain', 'chain_name', 'nt_resnum', 'nt_id', 'nt_type', 'summary', 'C5prime_xyz', 'P_xyz', 'frame', 'is_modified']
 
         feats = {}
+        unmapped_value = defaultdict(set)
 
         for node, attrs in g.nodes.data():
+            if self.node_features == 'all':
+                self.node_features = list( set(attrs.keys()) - set(junk_attrs) )
             feats_flt = torch.zeros(len(self.node_features))
             for i, feature in enumerate(self.node_features):
                 try:
                     feats_flt[i] = float(attrs[feature])
                 except TypeError:
-                    feats_flt[i] = float('NaN')
+                    # feats_flt[i] = float('NaN')
+                    continue
                 except ValueError:
                     if 'binding' in feature:
                         if attrs[feature] is None:
-                            feats_flt[i] = 0
+                            feats_flt[i] = 0.0
                         else:
-                            feats_flt[i] = 1
-                    elif 'cluster' == feature:
-                        feats_flt[i] = FEATURE_MAPS['cluster'][attrs[feature]] \
-                                        * attrs['suiteness']
+                            feats_flt[i] = 1.0
                     else:
                         try:
                             feats_flt[i] = FEATURE_MAPS[feature][attrs[feature]]
                         except KeyError as e:
-                            print(e)
-                            raise Exception('ERROR: Cannot convert specified feature to float')
+                            # print(e)
+                            # print(FEATURE_MAPS[feature])
+                            FEATURE_MAPS[feature][attrs[feature]] = len(FEATURE_MAPS[feature])
+                            feats_flt[i] = FEATURE_MAPS[feature][attrs[feature]]
+                            unmapped_value[feature].add(attrs[feature])
+                            # raise Exception(f'RNAGlib ERROR: Cannot convert node feature {feature} with value {attrs[feature]} to float')
+            if 'cluster' == feature:
+                feats_flt[i] = feats_flt[i] * attrs['suiteness']
 
-            feats[node] = torch.tensor(feats_flt)
+            # if len(unmapped_value.values()) != 0:
+                # for key, value in unmapped_value.items():
+                    # print(f'key:{key}', f'value: {value}\n')
+            feats[node] = feats_flt
 
-        return feats
+        return feats, unmapped_value
 
 def collate_wrapper(node_simfunc=None):
     """
@@ -361,18 +392,17 @@ def loader_from_hparams(annotated_path, hparams, list_inference=None):
 
 
 if __name__ == '__main__':
-    pass
-    annotated_path = os.path.join(script_dir, "..", "data", "annotated", "samples")
+    annotated_path = os.path.join(script_dir, '../../data/annotated/undirected')
     simfunc_r1 = SimFunctionNode('R_1', 2)
     loader = Loader(annotated_path=annotated_path,
                     num_workers=0,
                     split=False,
-                    directed=True,
-                    node_simfunc=None,
-                    node_features=['alpha', 'beta'],
+                    directed=False,
+                    node_simfunc=simfunc_r1,
+                    node_features='all',
                     node_target='binding_protein')
     train_loader = loader.get_data()
-    for graph, K, lengths in train_loader:
-        print('graph :', graph)
+    # for graph, K, lengths in train_loader:
+        # print('graph :', graph)
         # print('K :', K)
         # print('length :', lengths)
