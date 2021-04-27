@@ -89,6 +89,11 @@ class GraphDataset(Dataset):
 
         self.path = annotated_path
         self.all_graphs = sorted(os.listdir(annotated_path))
+        if '3p4b_annot.json' in self.all_graphs:
+            self.all_graphs.remove('3p4b_annot.json')
+        if '2kwg_annot.json' in self.all_graphs:
+            self.all_graphs.remove('2kwg_annot.json')
+
         self.label = label
         self.node_features = node_features
         self.node_target = node_target
@@ -396,6 +401,38 @@ class InferenceLoader(Loader):
                                   num_workers=self.num_workers,
                                   collate_fn=collate_block)
         return train_loader
+
+
+class UnsupervisedLoader(Loader):
+    """
+    Basically just change the default of the loader based on the usecase
+    """
+
+    def __init__(self,
+                 annotated_path='../data/annotated/directed/',
+                 node_simfunc=SimFunctionNode('R_1', 2),
+                 max_size_kernel=100,
+                 **kwargs):
+        super().__init__(
+            annotated_path=annotated_path,
+            node_simfunc=node_simfunc,
+            max_size_kernel=max_size_kernel,
+            **kwargs
+        )
+
+
+class SupervisedLoader(Loader):
+    """
+    Basically just change the default of the loader based on the usecase
+    """
+
+    def __init__(self,
+                 annotated_path='../data/graphs/',
+                 **kwargs):
+        super().__init__(
+            annotated_path=annotated_path,
+            **kwargs
+        )
 
 
 def loader_from_hparams(annotated_path, hparams, list_inference=None):
