@@ -85,8 +85,7 @@ class GraphDataset(Dataset):
                  node_simfunc=None,
                  node_features=None,
                  node_target=None,
-                 force_undirected=False,
-                 jonathan=False):
+                 force_undirected=False):
         """
 
         :param edge_map: Necessary to build the one hot mapping from edge labels to an id
@@ -138,14 +137,9 @@ class GraphDataset(Dataset):
             self.node_features = [node_features] if isinstance(node_features, str) else node_features
         self.node_target = [node_target] if isinstance(node_target, str) else node_target
 
-        self.jonathan = jonathan
-        if jonathan:
-            self.node_target = node_target
-            self.unmapped_values = defaultdict(set)
         # Then check that the entries asked for as node features exist in our feature maps and get a parser for each
-        else:
-            self.node_features_parser = self.build_feature_parser(self.node_features, sample_node_attrs)
-            self.node_target_parser = self.build_feature_parser(self.node_target, sample_node_attrs)
+        self.node_features_parser = self.build_feature_parser(self.node_features, sample_node_attrs)
+        self.node_target_parser = self.build_feature_parser(self.node_target, sample_node_attrs)
 
     def __len__(self):
         return len(self.all_graphs)
@@ -172,7 +166,8 @@ class GraphDataset(Dataset):
         :param list_of_features:
         :return:
         """
-
+        if list_of_features is None:
+            return None
         # print('computing a new parser')
         # print(list_of_features)
 
@@ -236,81 +231,6 @@ class GraphDataset(Dataset):
             targets[node] = node_features_encoding
         return targets
 
-    def get_node_features(self, g):
-        """
-        Get node attributes from g selected from self.node_features
-        transform into feature tensor
-        enumerate str features with FEATURE_MAPS
-        output mapping of nodes to features tensor
-        """
-
-        feats = {}
-        unmapped_value = defaultdict(set)
-
-        for node, attrs in g.nodes.data():
-            feats_flt = torch.zeros(len(self.node_features))
-            for i, feature in enumerate(self.node_features):
-                try:
-                    feats_flt[i] = float(attrs[feature])
-                except TypeError:
-                    # feats_flt[i] = float('NaN')
-                    continue
-                except ValueError:
-                    if 'binding' in feature:
-                        if attrs[feature] is None:
-                            feats_flt[i] = 0.0
-                        else:
-                            feats_flt[i] = 1.0
-                    else:
-                        try:
-                            feats_flt[i] = FEATURE_MAPS[feature][attrs[feature]]
-                        except KeyError as e:
-                            # print(e)
-                            # print(FEATURE_MAPS[feature])
-                            FEATURE_MAPS[feature][attrs[feature]] = len(FEATURE_MAPS[feature])
-                            feats_flt[i] = FEATURE_MAPS[feature][attrs[feature]]
-                            unmapped_value[feature].add(attrs[feature])
-                            # raise Exception(f'RNAGlib ERROR: Cannot convert node feature {feature}
-                            # with value {attrs[feature]} to float')
-            if 'cluster' == feature:
-                feats_flt[i] = feats_flt[i] * attrs['suiteness']
-
-            # if len(unmapped_value.values()) != 0:
-            # for key, value in unmapped_value.items():
-            # print(f'key:{key}', f'value: {value}\n')
-            feats[node] = feats_flt
-
-        return feats, unmapped_value
-
-    def get_node_targets(self, g):
-        """
-        Get targets for graph g
-        for every node get the attribute specified by self.node_target
-        output a mapping of nodes to their targets
-        """
-        targets = {}
-        for node, attrs in g.nodes.data():
-            if 'binding' in self.node_target:
-                if attrs[self.node_target] is None:
-                    targets[node] = 0
-                else:
-                    targets[node] = 1
-            else:
-                try:
-                    targets[node] = float(attrs[self.node_target])
-                except ValueError:
-                    try:
-                        feats_flt[i] = FEATURE_MAPS[feature][attrs[feature]]
-                    except KeyError as e:
-                        raise Exception('ERROR: Cannot convert node target "{self.node_target}" to float')
-
-            if 'cluster' == self.node_target:
-                targets[node] = targets[node] * attrs['suiteness']
-
-            targets[node] = torch.tensor(targets[node], dtype=torch.float32)
-
-        return targets
-
     def fix_buggy_edges(self, graph, strategy='remove'):
         """
         Sometimes some edges have weird names such as t.W representing a fuzziness.
@@ -353,24 +273,18 @@ class GraphDataset(Dataset):
         nx.set_edge_attributes(graph, name='one_hot', values=one_hot)
 
         # Get Node labels
-        if self.jonathan:
-            if self.node_features is not None:
-                feature_vector, unmapped_value = self.get_node_features(graph)
-                self.unmapped_values = dict_union(unmapped_value, self.unmapped_values)
-                nx.set_node_attributes(graph, name='features', values=feature_vector)
-            if self.node_target is not None:
-                nx.set_node_attributes(graph, name='target', values=self.get_node_targets(graph))
-
+        node_attrs_toadd = list()
         if self.node_features is not None:
             feature_encoding = self.get_node_encoding(graph, encode_feature=True)
             nx.set_node_attributes(graph, name='features', values=feature_encoding)
+            node_attrs_toadd.append('features')
         if self.node_target is not None:
             target_encoding = self.get_node_encoding(graph, encode_feature=False)
             nx.set_node_attributes(graph, name='target', values=target_encoding)
-
+            node_attrs_toadd.append('target')
         # Careful ! When doing this, the graph nodes get sorted.
         g_dgl = dgl.from_networkx(nx_graph=graph, edge_attrs=['one_hot'],
-                                  node_attrs=['features', 'target'])
+                                  node_attrs=node_attrs_toadd)
 
         if self.node_simfunc is not None:
             ring = list(sorted(graph.nodes(data=self.level)))
@@ -611,8 +525,9 @@ if __name__ == '__main__':
                     max_size_kernel=100,
                     split=False,
                     node_simfunc=simfunc_r1,
-                    node_features=['nt_name'],
-                    node_target=['nt_name', 'nt_code', 'binding_protein'])
+                    node_features=None,
+                    node_target=None)
+                    # node_target=['nt_name', 'nt_code', 'binding_protein'])
 
     train_loader = loader.get_data()
 
