@@ -22,7 +22,6 @@ from torch.utils.data import Dataset, DataLoader, Subset
 from kernels.node_sim import SimFunctionNode, k_block_list, simfunc_from_hparams, EDGE_MAP
 from utils import graph_io
 
-
 FEATURE_MAPS = {
     'nt_code': {k: v for v, k in enumerate(['A', 'U', 'C', 'G', 'P', 'c', 'a', 'u', 't', 'g'])},
     'nt_name': {k: v for v, k in enumerate(
@@ -86,7 +85,8 @@ class GraphDataset(Dataset):
                  node_simfunc=None,
                  node_features=None,
                  node_target=None,
-                 force_undirected=False):
+                 force_undirected=False,
+                 jonathan=False):
         """
 
         :param edge_map: Necessary to build the one hot mapping from edge labels to an id
@@ -138,14 +138,14 @@ class GraphDataset(Dataset):
             self.node_features = [node_features] if isinstance(node_features, str) else node_features
         self.node_target = [node_target] if isinstance(node_target, str) else node_target
 
-        # Uncomment for jonathan way
-        # self.node_target = node_target
-        # self.unmapped_values = defaultdict(set)
-
-        # Comment for jonathan way
+        self.jonathan = jonathan
+        if jonathan:
+            self.node_target = node_target
+            self.unmapped_values = defaultdict(set)
         # Then check that the entries asked for as node features exist in our feature maps and get a parser for each
-        self.node_features_parser = self.build_feature_parser(self.node_features, sample_node_attrs)
-        self.node_target_parser = self.build_feature_parser(self.node_target, sample_node_attrs)
+        else:
+            self.node_features_parser = self.build_feature_parser(self.node_features, sample_node_attrs)
+            self.node_target_parser = self.build_feature_parser(self.node_target, sample_node_attrs)
 
     def __len__(self):
         return len(self.all_graphs)
@@ -353,21 +353,20 @@ class GraphDataset(Dataset):
         nx.set_edge_attributes(graph, name='one_hot', values=one_hot)
 
         # Get Node labels
+        if self.jonathan:
+            if self.node_features is not None:
+                feature_vector, unmapped_value = self.get_node_features(graph)
+                self.unmapped_values = dict_union(unmapped_value, self.unmapped_values)
+                nx.set_node_attributes(graph, name='features', values=feature_vector)
+            if self.node_target is not None:
+                nx.set_node_attributes(graph, name='target', values=self.get_node_targets(graph))
+
         if self.node_features is not None:
             feature_encoding = self.get_node_encoding(graph, encode_feature=True)
             nx.set_node_attributes(graph, name='features', values=feature_encoding)
         if self.node_target is not None:
             target_encoding = self.get_node_encoding(graph, encode_feature=False)
             nx.set_node_attributes(graph, name='target', values=target_encoding)
-
-        # Jonathan fetching
-        # Get Node labels
-        # if self.node_features is not None:
-        #     feature_vector, unmapped_value = self.get_node_features(graph)
-        #     self.unmapped_values = dict_union(unmapped_value, self.unmapped_values)
-        # nx.set_node_attributes(graph, name='features', values=feature_vector)
-        # if self.node_target is not None:
-        #     nx.set_node_attributes(graph, name='target', values=self.get_node_targets(graph))
 
         # Careful ! When doing this, the graph nodes get sorted.
         g_dgl = dgl.from_networkx(nx_graph=graph, edge_attrs=['one_hot'],
@@ -584,6 +583,7 @@ def loader_from_hparams(annotated_path, hparams, list_inference=None):
                              num_workers=hparams.get('argparse', 'workers'),
                              edge_map=hparams.get('edges', 'edge_map'))
     return loader
+
 
 if __name__ == '__main__':
     import time
