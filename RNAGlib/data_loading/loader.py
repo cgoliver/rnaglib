@@ -7,8 +7,10 @@ import dgl
 import numpy as np
 import torch
 
+import functools
 import os
 import sys
+import collections
 from collections import defaultdict
 import random
 
@@ -19,6 +21,7 @@ if __name__ == "__main__":
 from torch.utils.data import Dataset, DataLoader, Subset
 from kernels.node_sim import SimFunctionNode, k_block_list, simfunc_from_hparams, EDGE_MAP
 from utils import graph_io
+
 
 FEATURE_MAPS = {
     'nt_code': {k: v for v, k in enumerate(['A', 'U', 'C', 'G', 'P', 'c', 'a', 'u', 't', 'g'])},
@@ -44,6 +47,18 @@ FEATURE_MAPS = {
     'sse': {s: n for s, n in enumerate(['hairpin_1', 'hairpin_3', 'buldge_1'])}
 }
 
+# Make each of those feature maps default to zero
+for feature, feature_map in FEATURE_MAPS.items():
+    default_feature_map = collections.defaultdict(int, feature_map)
+    FEATURE_MAPS[feature] = default_feature_map
+
+# This consists in the keys of the feature map that we consider as not relevant for now.
+JUNK_ATTRS = ['index_chain', 'chain_name', 'nt_resnum', 'nt_id', 'nt_type', 'summary', 'C5prime_xyz', 'P_xyz',
+              'frame', 'is_modified']
+
+# The annotation fields also should not be included as node features
+ANNOTS_ATTRS = ['node_annots', 'edge_annots', 'graphlet_annots']
+
 
 def dict_union(a, b):
     """
@@ -65,26 +80,24 @@ def dict_union(a, b):
 
 class GraphDataset(Dataset):
     def __init__(self,
-                 edge_map,
-                 node_simfunc=None,
                  annotated_path='../data/annotated/samples',
+                 edge_map=EDGE_MAP,
+                 label='LW',
+                 node_simfunc=None,
                  node_features=None,
                  node_target=None,
-                 force_undirected=False,
-                 label='LW'):
+                 force_undirected=False):
         """
 
         :param edge_map: Necessary to build the one hot mapping from edge labels to an id
+        :param label: The label to use
         :param node_simfunc: Similarity function defined in kernels/node_sim
         :param annotated_path: The path of the data. If node_sim is not None, this data should be annotated
-        (if not, it will annotate the data which is a long process)
-                        TODO : do this annotate if not, probably with input confirmation
-        :param debug:
-        :param shuffled:
-        :param force_directed: Whether we want to force the use of undirected graphs from a directed data set.
+        :param force_undirected: Whether we want to force the use of undirected graphs from a directed data set.
         Otherwise the directed attribute is observed from the data at hands.
-        :param label: The label to use
-        :param node_features: node features to include, stored in one tensor in order given by user
+        :param node_features: node features to include, stored in one tensor in order given by user,
+        for example :
+        :param node_features: node targets to include, stored in one tensor in order given by user
         """
 
         self.path = annotated_path
@@ -94,26 +107,45 @@ class GraphDataset(Dataset):
         if '2kwg_annot.json' in self.all_graphs:
             self.all_graphs.remove('2kwg_annot.json')
 
+        # This is len() so we have to add the +1
         self.label = label
-        self.node_features = node_features
-        self.node_target = node_target
-        self.unmapped_values = defaultdict(set)
+        self.edge_map = edge_map
+        self.num_edge_types = max(self.edge_map.values()) + 1
+        print(f"Found {self.num_edge_types} relations")
 
         # To ensure that we don't have a discrepancy between the attribute directed and the graphs :
         #   Since the original data is directed, it does not make sense to ask to build directed graphs
         #   from the undirected set.
         #   If directed graphs are what one wants, one should use the directed annotation rather than the undirected.
+
+        # We also need a sample graph to look at the possible node attributes
         sample_path = os.path.join(self.path, self.all_graphs[0])
         sample_graph = graph_io.load_json(sample_path)
+        sample_node_attrs = dict()
+        for _, sample_node_attrs in sample_graph.nodes.data():
+            break
         self.directed = nx.is_directed(sample_graph)
         self.force_undirected = force_undirected
 
+        # If it is not None, add a node comparison tool
         self.node_simfunc, self.level = self.add_node_sim(node_simfunc=node_simfunc)
 
-        # This is len() so we have to add the +1
-        self.edge_map = edge_map
-        self.num_edge_types = max(self.edge_map.values()) + 1
-        print(f"Found {self.num_edge_types} relations")
+        # If queried, add node features and node targets
+        # By default we put all the node info except what is considered as junk
+        if node_features == 'all':
+            self.node_features = list(set(sample_node_attrs.keys()) - set(JUNK_ATTRS) - set(ANNOTS_ATTRS))
+        else:
+            self.node_features = [node_features] if isinstance(node_features, str) else node_features
+        self.node_target = [node_target] if isinstance(node_target, str) else node_target
+
+        # Uncomment for jonathan way
+        # self.node_target = node_target
+        # self.unmapped_values = defaultdict(set)
+
+        # Comment for jonathan way
+        # Then check that the entries asked for as node features exist in our feature maps and get a parser for each
+        self.node_features_parser = self.build_feature_parser(self.node_features, sample_node_attrs)
+        self.node_target_parser = self.build_feature_parser(self.node_target, sample_node_attrs)
 
     def __len__(self):
         return len(self.all_graphs)
@@ -128,77 +160,80 @@ class GraphDataset(Dataset):
             node_simfunc, level = None, None
         return node_simfunc, level
 
-    def __getitem__(self, idx):
-        g_path = os.path.join(self.path, self.all_graphs[idx])
-        graph = graph_io.load_json(g_path)
+    def build_feature_parser(self, list_of_features, sample_node_attrs):
+        """
+        We build the node feature map from the user input and check that all fields make sense.
+        This then build parsing functions to deal with each possible outputs
 
-        # We can go from directed to undirected
-        if self.force_undirected:
-            graph = nx.to_undirected(graph)
+        This is added as precomputation step so that we get different errors.
+        Here we establish a static feature map based on just one graphs.
+        Failure on other graphs will be deemed as such.
 
-        # This is a weird call but necessary for DGL as it only deals
-        #   with undirected graphs that have both directed edges
-        graph = graph.to_directed()
+        :param list_of_features:
+        :return:
+        """
 
-        # Filter weird edges for now
-        to_remove = list()
-        for start_node, end_node, nodedata in graph.edges(data=True):
-            if nodedata[self.label] not in self.edge_map:
-                to_remove.append((start_node, end_node))
-        for start_node, end_node in to_remove:
-            graph.remove_edge(start_node, end_node)
+        # print('computing a new parser')
+        # print(list_of_features)
 
-        # Get Edge Labels
-        one_hot = {edge: torch.tensor(self.edge_map[label]) for edge, label in
-                   (nx.get_edge_attributes(graph, self.label)).items()}
-        nx.set_edge_attributes(graph, name='one_hot', values=one_hot)
+        def floatit(x):
+            return 0.0 if x is None else float(x)
 
-        # Get Node labels
-        if self.node_features is not None:
-            feature_vector, unmapped_value = self.get_node_features(graph)
-            # self.unmapped_values = dict_union(unmapped_value, self.unmapped_values)
-            nx.set_node_attributes(graph, name='features', values=feature_vector)
-        if self.node_target is not None:
-            nx.set_node_attributes(graph, name='target', values=self.get_node_targets(graph))
+        def bindit(x):
+            return 0.0 if x is None else 1.0
 
-        # Careful ! When doing this, the graph nodes get sorted.
-        g_dgl = dgl.from_networkx(nx_graph=graph, edge_attrs=['one_hot'],
-                                  node_attrs=['features', 'target'])
+        def lookit(x, feature):
+            # print("I'm in lookit and feature is ", feature)
+            return FEATURE_MAPS[feature][x]
 
-        if self.node_simfunc is not None:
-            ring = list(sorted(graph.nodes(data=self.level)))
-            return g_dgl, ring
-        else:
-            return g_dgl, 0
+        for feature in list_of_features:
+            if not feature in sample_node_attrs:
+                raise ValueError(f'{feature} was asked for as a node feature/target'
+                                 f'by user but not found in the graph node attributes')
 
-    def get_node_targets(self, g):
+        feature_parser = dict()
+        for local_feature in list_of_features:
+            feature_value = sample_node_attrs[local_feature]
+
+            # print('new feature :')
+            # print(local_feature)
+            # print(feature_value)
+
+            if isinstance(feature_value, (int, float)):
+                # We have to add None cases, because sometimes missing values are encoded as None
+                feature_parser[local_feature] = floatit
+            elif 'binding' in local_feature:
+                # print("binding", local_feature)
+                feature_parser[local_feature] = bindit
+            elif isinstance(feature_value, str):
+                # print("other", local_feature)
+                feature_parser[local_feature] = functools.partial(lookit, feature=str(local_feature))
+            # print()
+        return feature_parser
+
+    def get_node_encoding(self, g, encode_feature=True):
         """
         Get targets for graph g
         for every node get the attribute specified by self.node_target
         output a mapping of nodes to their targets
         """
         targets = {}
+        node_parser = self.node_features_parser if encode_feature else self.node_target_parser
+
+        # print('using node parser : ', node_parser)
 
         for node, attrs in g.nodes.data():
-            if 'binding' in self.node_target:
-                if attrs[self.node_target] is None:
-                    targets[node] = 0
-                else:
-                    targets[node] = 1
-            else:
-                try:
-                    targets[node] = float(attrs[self.node_target])
-                except ValueError:
-                    try:
-                        feats_flt[i] = FEATURE_MAPS[feature][attrs[feature]]
-                    except KeyError as e:
-                        raise Exception('ERROR: Cannot convert node target "{self.node_target}" to float')
-
-            if 'cluster' == self.node_target:
-                targets[node] = targets[node] * attrs['suiteness']
-
-            targets[node] = torch.tensor(targets[node], dtype=torch.float32)
-
+            node_features_encoding = torch.zeros(len(node_parser))
+            for i, (feature, feature_parser) in enumerate(node_parser.items()):
+                node_feature = attrs[feature]
+                # print('feature = ', feature)
+                # print('node_feature = ', node_feature)
+                # print('feature parser = ', feature_parser)
+                float_encoding = feature_parser(node_feature)
+                # print(float_encoding)
+                # print()
+                node_features_encoding[i] = float_encoding
+            targets[node] = node_features_encoding
         return targets
 
     def get_node_features(self, g):
@@ -208,15 +243,11 @@ class GraphDataset(Dataset):
         enumerate str features with FEATURE_MAPS
         output mapping of nodes to features tensor
         """
-        junk_attrs = ['index_chain', 'chain_name', 'nt_resnum', 'nt_id', 'nt_type', 'summary', 'C5prime_xyz', 'P_xyz',
-                      'frame', 'is_modified']
 
         feats = {}
         unmapped_value = defaultdict(set)
 
         for node, attrs in g.nodes.data():
-            if self.node_features == 'all':
-                self.node_features = list(set(attrs.keys()) - set(junk_attrs))
             feats_flt = torch.zeros(len(self.node_features))
             for i, feature in enumerate(self.node_features):
                 try:
@@ -239,7 +270,8 @@ class GraphDataset(Dataset):
                             FEATURE_MAPS[feature][attrs[feature]] = len(FEATURE_MAPS[feature])
                             feats_flt[i] = FEATURE_MAPS[feature][attrs[feature]]
                             unmapped_value[feature].add(attrs[feature])
-                            # raise Exception(f'RNAGlib ERROR: Cannot convert node feature {feature} with value {attrs[feature]} to float')
+                            # raise Exception(f'RNAGlib ERROR: Cannot convert node feature {feature}
+                            # with value {attrs[feature]} to float')
             if 'cluster' == feature:
                 feats_flt[i] = feats_flt[i] * attrs['suiteness']
 
@@ -249,6 +281,103 @@ class GraphDataset(Dataset):
             feats[node] = feats_flt
 
         return feats, unmapped_value
+
+    def get_node_targets(self, g):
+        """
+        Get targets for graph g
+        for every node get the attribute specified by self.node_target
+        output a mapping of nodes to their targets
+        """
+        targets = {}
+        for node, attrs in g.nodes.data():
+            if 'binding' in self.node_target:
+                if attrs[self.node_target] is None:
+                    targets[node] = 0
+                else:
+                    targets[node] = 1
+            else:
+                try:
+                    targets[node] = float(attrs[self.node_target])
+                except ValueError:
+                    try:
+                        feats_flt[i] = FEATURE_MAPS[feature][attrs[feature]]
+                    except KeyError as e:
+                        raise Exception('ERROR: Cannot convert node target "{self.node_target}" to float')
+
+            if 'cluster' == self.node_target:
+                targets[node] = targets[node] * attrs['suiteness']
+
+            targets[node] = torch.tensor(targets[node], dtype=torch.float32)
+
+        return targets
+
+    def fix_buggy_edges(self, graph, strategy='remove'):
+        """
+        Sometimes some edges have weird names such as t.W representing a fuzziness.
+        We just remove those as they don't deliver a good information
+        :param graph:
+        :param strategy: How to deal with it : for now just remove them.
+        In the future maybe add an edge type in the edge map ?
+        :return:
+        """
+        if strategy == 'remove':
+            # Filter weird edges for now
+            to_remove = list()
+            for start_node, end_node, nodedata in graph.edges(data=True):
+                if nodedata[self.label] not in self.edge_map:
+                    to_remove.append((start_node, end_node))
+            for start_node, end_node in to_remove:
+                graph.remove_edge(start_node, end_node)
+        else:
+            raise ValueError(f'The edge fixing strategy : {strategy} was not implemented yet')
+
+        return graph
+
+    def __getitem__(self, idx):
+        g_path = os.path.join(self.path, self.all_graphs[idx])
+        graph = graph_io.load_json(g_path)
+
+        # We can go from directed to undirected
+        if self.force_undirected:
+            graph = nx.to_undirected(graph)
+
+        # This is a weird call but necessary for DGL as it only deals
+        #   with undirected graphs that have both directed edges
+        graph = graph.to_directed()
+
+        graph = self.fix_buggy_edges(graph=graph)
+
+        # Get Edge Labels
+        one_hot = {edge: torch.tensor(self.edge_map[label]) for edge, label in
+                   (nx.get_edge_attributes(graph, self.label)).items()}
+        nx.set_edge_attributes(graph, name='one_hot', values=one_hot)
+
+        # Get Node labels
+        if self.node_features is not None:
+            feature_encoding = self.get_node_encoding(graph, encode_feature=True)
+            nx.set_node_attributes(graph, name='features', values=feature_encoding)
+        if self.node_target is not None:
+            target_encoding = self.get_node_encoding(graph, encode_feature=False)
+            nx.set_node_attributes(graph, name='target', values=target_encoding)
+
+        # Jonathan fetching
+        # Get Node labels
+        # if self.node_features is not None:
+        #     feature_vector, unmapped_value = self.get_node_features(graph)
+        #     self.unmapped_values = dict_union(unmapped_value, self.unmapped_values)
+        # nx.set_node_attributes(graph, name='features', values=feature_vector)
+        # if self.node_target is not None:
+        #     nx.set_node_attributes(graph, name='target', values=self.get_node_targets(graph))
+
+        # Careful ! When doing this, the graph nodes get sorted.
+        g_dgl = dgl.from_networkx(nx_graph=graph, edge_attrs=['one_hot'],
+                                  node_attrs=['features', 'target'])
+
+        if self.node_simfunc is not None:
+            ring = list(sorted(graph.nodes(data=self.level)))
+            return g_dgl, ring
+        else:
+            return g_dgl, 0
 
 
 def collate_wrapper(node_simfunc=None, max_size_kernel=None):
@@ -456,8 +585,9 @@ def loader_from_hparams(annotated_path, hparams, list_inference=None):
                              edge_map=hparams.get('edges', 'edge_map'))
     return loader
 
-
 if __name__ == '__main__':
+    import time
+
     # annotated_path = os.path.join(script_dir, '../../data/annotated/undirected')
     pass
     # g_path ='2kwg.json'
@@ -470,6 +600,9 @@ if __name__ == '__main__':
     # print(len(graph.nodes()))
     # print(len(graph.edges()))
 
+    np.random.seed(0)
+    torch.manual_seed(0)
+
     annotated_path = os.path.join(script_dir, "..", "data", "annotated", "samples")
     simfunc_r1 = SimFunctionNode('R_1', 2)
     loader = Loader(annotated_path=annotated_path,
@@ -478,12 +611,16 @@ if __name__ == '__main__':
                     max_size_kernel=100,
                     split=False,
                     node_simfunc=simfunc_r1,
-                    node_features='all',
-                    node_target='binding_protein')
+                    node_features=['nt_name'],
+                    node_target=['nt_name', 'nt_code', 'binding_protein'])
+
     train_loader = loader.get_data()
+
+    a = time.time()
     for i, (graph, K, len_graphs, node_ids) in enumerate(train_loader):
-        print('graph :', graph)
-        print('K :', K)
-        print('length :', len_graphs)
+        # print('graph :', graph)
+        # print('K :', K)
+        # print('length :', len_graphs)
         if i > 3:
             break
+    print(time.time() - a)
