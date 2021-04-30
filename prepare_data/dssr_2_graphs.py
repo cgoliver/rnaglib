@@ -242,8 +242,7 @@ def build_all():
     pass
 
 if __name__ == "__main__":
-    pass
     # doc example with multiloop
     # build_one("../data/1aju.cif")
     # multi chain
-    # build_one("../data/4q0b.cif")
+    build_one("../data/4q0b.cif")
