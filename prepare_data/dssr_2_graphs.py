@@ -10,7 +10,19 @@ import multiprocessing as mp
 from subprocess import check_output
 from collections import defaultdict
 
+from Bio.PDB import *
 import networkx as nx
+
+def mmcif_data(cif):
+    mmcif_dict = MMCIF2Dict.MMCIF2Dict(cif)
+    try:
+        resolution_lo = mmcif_dict['_reflns.d_resolution_low']
+        resolution_hi = mmcif_dict['_reflns.d_resolution_high']
+    except KeyError:
+        resolution_lo, resolution_hi = (None, None)
+    return {'resolution_low': resolution_lo,
+            'resolutioin_high': resolution_hi
+            }
 
 def dssr_exec(cif):
     """ Run DSSR on a given MMCIF
@@ -133,7 +145,7 @@ def add_sses(g, annot):
                     sse_annots[nt] = {'sse': f'{sse[:-1]}_{elem["index"]}'}
     return sse_annots
 
-def get_graph_data(annots):
+def get_graph_data(annots, mmcif_data=None):
     """ For now only return the dot-bracket notation."""
 
     def recursive_dd():
@@ -141,6 +153,10 @@ def get_graph_data(annots):
 
     g_data = {}
     g_data['dbn'] = recursive_dd()
+
+    if not mmcif_data is None:
+        for k,v in mmcif_data.items():
+            g_data[k] = v
 
     for chain, info in annots['dbn'].items():
         if chain == 'all_chains':
@@ -150,7 +166,7 @@ def get_graph_data(annots):
         pass
     return g_data
 
-def annot_2_graph(annot, rbp_annot, pdbid):
+def annot_2_graph(annot, rbp_annot, pdbid, mmcif_data=None):
     """
     DSSR Annotation JSON Keys:
 
@@ -164,9 +180,8 @@ def annot_2_graph(annot, rbp_annot, pdbid):
 
     G = nx.DiGraph()
 
-    g_annot = get_graph_data(annot)
+    g_annot = get_graph_data(annot, mmcif_data=mmcif_data)
     for k,v in g_annot.items():
-        # print(k,v)
         G.graph[k] = v
     # print(G.graph)
     nt_annot = rna_only_nts(annot)
@@ -227,14 +242,14 @@ def annot_2_graph(annot, rbp_annot, pdbid):
 
 def build_one(cif):
     exit_code, annot = dssr_exec(cif)
-    # print(annot.keys())
     rbp_exit_code, rbp_out = snap_exec(cif)
+    mmcif_info = mmcif_data(cif)
     try:
         rbp_annot = snap_parse(rbp_out)
     except:
         rbp_annot = {}
     pdbid = os.path.basename(cif).split(".")[0]
-    G = annot_2_graph(annot, rbp_annot, pdbid)
+    G = annot_2_graph(annot, rbp_annot, pdbid, mmcif_data=mmcif_info)
 
     return G
 

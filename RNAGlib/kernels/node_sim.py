@@ -145,7 +145,6 @@ class SimFunctionNode:
         :return: a score in [0,1]
         """
 
-        # print(f'mine, {(unnormalized / length) ** power}, usual {(unnormalized / length)}')
         if self.normalization == 'sqrt':
             power = (1 / (np.sqrt(length) / 5))
             return (unnormalized / length) ** power
@@ -331,13 +330,6 @@ class SimFunctionNode:
 
         else:
             sim_non_bb = compare_smooth(nc_list1, nc_list2)
-        # They do return the same thing :)
-        # print(sim_non_bb - sim_non_bb_nobrute)
-        # print(time_used, time_used1)
-        # global time_res_brute, time_res_smooth
-        # time_res_brute[len(nc_list1), len(nc_list2)] += time_brute
-        # time_res_smooth[len(nc_list1), len(nc_list2)] += time_smooth
-
         return (sim_non_bb + sim_bb) / 2
 
     def R_graphlets(self, list1, list2):
