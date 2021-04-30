@@ -94,7 +94,8 @@ def matrix_dist(a, plus_one=False):
     return torch.norm(a[:, None] - a, dim=2, p=2)
 
 
-def rec_loss(embeddings, target_K, similarity=True, normalize=False, use_graph=False, graph=None, hops=2):
+def rec_loss(embeddings, target_K, similarity=True, normalize=False, use_graph=False, node_ids=None, graph=None,
+             hops=2):
     """
     :param embeddings: The node embeddings
     :param target_K: The similarity matrix
@@ -115,6 +116,13 @@ def rec_loss(embeddings, target_K, similarity=True, normalize=False, use_graph=F
     else:
         K_predict = matrix_dist(embeddings)
         target_K = torch.ones(target_K.shape, device=target_K.device) - target_K
+
+    # Cannot have both for now
+    assert node_ids is None or not use_graph
+    if node_ids is not None:
+        node_ids = np.argwhere(np.array(node_ids) > 0).squeeze()
+        K_predict_1 = K_predict[node_ids]
+        K_predict = K_predict_1[:, node_ids]
 
     if use_graph:
         assert graph is not None
@@ -183,8 +191,7 @@ def pretrain_unsupervised(model,
         model.train()
         running_loss = 0.0
         num_batches = len(train_loader)
-
-        for batch_idx, (graph, K, graph_sizes) in enumerate(train_loader):
+        for batch_idx, (graph, K, graph_sizes, node_ids) in enumerate(train_loader):
             batch_size = len(K)
 
             # Get data on the devices
@@ -197,6 +204,7 @@ def pretrain_unsupervised(model,
             loss = rec_loss(embeddings=out,
                             target_K=K,
                             graph=graph,
+                            node_ids=node_ids,
                             **rec_params)
             # Backward
             loss.backward()
@@ -366,6 +374,8 @@ if __name__ == '__main__':
     data_path = os.path.join(script_dir, '../data/annotated/samples/')
     data_loader = loader.Loader(annotated_path=data_path,
                                 num_workers=0,
+                                batch_size=4,
+                                max_size_kernel=100,
                                 node_simfunc=node_sim_func)
     train_loader, validation_loader, test_loader = data_loader.get_data()
 
