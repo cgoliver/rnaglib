@@ -180,6 +180,8 @@ def annot_2_graph(annot, rbp_annot, pdbid, mmcif_data=None):
 
     G = nx.DiGraph()
 
+    # for v in annot['pairs']:
+        # print(v['nt1'], v['nt2'], v['LW'])
     g_annot = get_graph_data(annot, mmcif_data=mmcif_data)
     for k,v in g_annot.items():
         G.graph[k] = v
@@ -260,4 +262,4 @@ if __name__ == "__main__":
     # doc example with multiloop
     # build_one("../data/1aju.cif")
     # multi chain
-    build_one("../data/4q0b.cif")
+    build_one("../data/structures/1fmn.cif")
