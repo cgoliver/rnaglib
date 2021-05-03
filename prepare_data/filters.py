@@ -105,6 +105,14 @@ def filter_graph(g, fltr):
 
     return h
 
+def filter_dot_edges(graph):
+    """ Remove edges with a '.' in the LW annotation.
+    This happens _in place_.
+    """
+
+    graph.remove_edges_from(((u,v) for u,v,d  in graph.edges(data=True)
+                               if '.' in d['LW']))
+
 def get_NRchains(resolution):
     """
     Get a map of non redundant IFEs (integrated functional elements) from
