@@ -21,7 +21,7 @@ def mmcif_data(cif):
     except KeyError:
         resolution_lo, resolution_hi = (None, None)
     return {'resolution_low': resolution_lo,
-            'resolutioin_high': resolution_hi
+            'resolution_high': resolution_hi
             }
 
 def dssr_exec(cif):
