@@ -144,6 +144,23 @@ def add_sses(g, annot):
                 if nt in g.nodes():
                     sse_annots[nt] = {'sse': f'{sse[:-1]}_{elem["index"]}'}
     return sse_annots
+def base_pair_swap(pairs):
+    """Swap the order of the entries in a pair dict.
+
+    {'index': 18, 'nt1': 'A.U17', 'nt2': 'A.G20', 'bp': 'U+G', 'name': '--', 'Saenger': '--', 'LW': 'tSW', 'DSSR': 'tm+W'}
+
+    For now not swapping 'Saenger' and 'DSSR'.
+    """
+    new_pairs = []
+    for pair in pairs:
+        new_dict = dict(pair)
+        new_dict['nt1'] = pair['nt2']
+        new_dict['nt2'] = pair['nt1']
+        new_dict['bp'] = pair['bp'][2] + pair['bp'][1] + pair['bp'][0]
+        new_dict['LW'] = pair['LW'][0] + pair['LW'][:0:-1]
+        new_pairs.append(new_dict)
+
+    return pairs + new_pairs
 
 def get_graph_data(annots, mmcif_data=None):
     """ For now only return the dot-bracket notation."""
@@ -196,17 +213,19 @@ def annot_2_graph(annot, rbp_annot, pdbid, mmcif_data=None):
     bbs = get_backbones(annot['nts'])
     G.add_edges_from(((five_p['nt_id'], three_p['nt_id'], {'LW': 'B53', 'backbone': True}) \
                       for five_p, three_p in bbs))
+    G.add_edges_from(((three_p['nt_id'], five_p['nt_id'], {'LW': 'B35', 'backbone': True}) \
+                      for five_p, three_p in bbs))
 
     # add base pairs
     try:
         rna_pairs = rna_only_pairs(annot)
+        rna_pairs = base_pair_swap(list(rna_pairs))
     except Exception as e:
         print(e)
         print(f"No base pairs found for {pdbid}")
         return
+
     G.add_edges_from(((pair['nt1'], pair['nt2'], pair)\
-                      for pair in rna_pairs))
-    G.add_edges_from(((pair['nt2'], pair['nt1'], pair)\
                       for pair in rna_pairs))
 
     # add SSE data
