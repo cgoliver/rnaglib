@@ -10,7 +10,19 @@ import multiprocessing as mp
 from subprocess import check_output
 from collections import defaultdict
 
+from Bio.PDB import *
 import networkx as nx
+
+def mmcif_data(cif):
+    mmcif_dict = MMCIF2Dict.MMCIF2Dict(cif)
+    try:
+        resolution_lo = mmcif_dict['_reflns.d_resolution_low']
+        resolution_hi = mmcif_dict['_reflns.d_resolution_high']
+    except KeyError:
+        resolution_lo, resolution_hi = (None, None)
+    return {'resolution_low': resolution_lo,
+            'resolution_high': resolution_hi
+            }
 
 def dssr_exec(cif):
     """ Run DSSR on a given MMCIF
@@ -132,8 +144,25 @@ def add_sses(g, annot):
                 if nt in g.nodes():
                     sse_annots[nt] = {'sse': f'{sse[:-1]}_{elem["index"]}'}
     return sse_annots
+def base_pair_swap(pairs):
+    """Swap the order of the entries in a pair dict.
 
-def get_graph_data(annots):
+    {'index': 18, 'nt1': 'A.U17', 'nt2': 'A.G20', 'bp': 'U+G', 'name': '--', 'Saenger': '--', 'LW': 'tSW', 'DSSR': 'tm+W'}
+
+    For now not swapping 'Saenger' and 'DSSR'.
+    """
+    new_pairs = []
+    for pair in pairs:
+        new_dict = dict(pair)
+        new_dict['nt1'] = pair['nt2']
+        new_dict['nt2'] = pair['nt1']
+        new_dict['bp'] = pair['bp'][2] + pair['bp'][1] + pair['bp'][0]
+        new_dict['LW'] = pair['LW'][0] + pair['LW'][:0:-1]
+        new_pairs.append(new_dict)
+
+    return pairs + new_pairs
+
+def get_graph_data(annots, mmcif_data=None):
     """ For now only return the dot-bracket notation."""
 
     def recursive_dd():
@@ -141,6 +170,10 @@ def get_graph_data(annots):
 
     g_data = {}
     g_data['dbn'] = recursive_dd()
+
+    if not mmcif_data is None:
+        for k,v in mmcif_data.items():
+            g_data[k] = v
 
     for chain, info in annots['dbn'].items():
         if chain == 'all_chains':
@@ -150,7 +183,7 @@ def get_graph_data(annots):
         pass
     return g_data
 
-def annot_2_graph(annot, rbp_annot, pdbid):
+def annot_2_graph(annot, rbp_annot, pdbid, mmcif_data=None):
     """
     DSSR Annotation JSON Keys:
 
@@ -164,9 +197,10 @@ def annot_2_graph(annot, rbp_annot, pdbid):
 
     G = nx.DiGraph()
 
-    g_annot = get_graph_data(annot)
+    # for v in annot['pairs']:
+        # print(v['nt1'], v['nt2'], v['LW'])
+    g_annot = get_graph_data(annot, mmcif_data=mmcif_data)
     for k,v in g_annot.items():
-        # print(k,v)
         G.graph[k] = v
     # print(G.graph)
     nt_annot = rna_only_nts(annot)
@@ -179,17 +213,19 @@ def annot_2_graph(annot, rbp_annot, pdbid):
     bbs = get_backbones(annot['nts'])
     G.add_edges_from(((five_p['nt_id'], three_p['nt_id'], {'LW': 'B53', 'backbone': True}) \
                       for five_p, three_p in bbs))
+    G.add_edges_from(((three_p['nt_id'], five_p['nt_id'], {'LW': 'B35', 'backbone': True}) \
+                      for five_p, three_p in bbs))
 
     # add base pairs
     try:
         rna_pairs = rna_only_pairs(annot)
+        rna_pairs = base_pair_swap(list(rna_pairs))
     except Exception as e:
         print(e)
         print(f"No base pairs found for {pdbid}")
         return
+
     G.add_edges_from(((pair['nt1'], pair['nt2'], pair)\
-                      for pair in rna_pairs))
-    G.add_edges_from(((pair['nt2'], pair['nt1'], pair)\
                       for pair in rna_pairs))
 
     # add SSE data
@@ -227,14 +263,14 @@ def annot_2_graph(annot, rbp_annot, pdbid):
 
 def build_one(cif):
     exit_code, annot = dssr_exec(cif)
-    # print(annot.keys())
     rbp_exit_code, rbp_out = snap_exec(cif)
+    mmcif_info = mmcif_data(cif)
     try:
         rbp_annot = snap_parse(rbp_out)
     except:
         rbp_annot = {}
     pdbid = os.path.basename(cif).split(".")[0]
-    G = annot_2_graph(annot, rbp_annot, pdbid)
+    G = annot_2_graph(annot, rbp_annot, pdbid, mmcif_data=mmcif_info)
 
     return G
 
@@ -242,8 +278,7 @@ def build_all():
     pass
 
 if __name__ == "__main__":
-    pass
     # doc example with multiloop
     # build_one("../data/1aju.cif")
     # multi chain
-    # build_one("../data/4q0b.cif")
+    build_one("../data/structures/1fmn.cif")
