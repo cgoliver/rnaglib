@@ -99,7 +99,7 @@ def main():
     # Get data
     annotated_path = os.path.join(script_dir, '../../data/annotated/undirected')
     simfunc_r1 = SimFunctionNode('R_1', 2)
-    loader = Loader(annotated_path=annotated_path,
+    loader = Loader(data_path=annotated_path,
                     num_workers=0,
                     split=True,
                     directed=False,
