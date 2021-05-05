@@ -34,12 +34,12 @@ def send_graph_to_device(g, device):
     return g
 
 
-def test(model, test_loader):
+def evaluate_model_unsupervised(model, validation_loader):
     model.eval()
     device = model.current_device
-    test_size = len(test_loader)
+    test_size = len(validation_loader)
     recons_loss_tot = 0
-    for batch_idx, (graph, K, inds, graph_sizes) in enumerate(test_loader):
+    for batch_idx, (graph, K, inds, graph_sizes) in enumerate(validation_loader):
         # Get data on the devices
         K = K.to(device)
         graph = send_graph_to_device(graph, device)
@@ -47,11 +47,30 @@ def test(model, test_loader):
         # Do the computations for the forward pass
         with torch.no_grad():
             out = model(graph)
-            reconstruction_loss = model.rec_loss(embeddings=out,
-                                                 target_K=K,
-                                                 graph=graph)
+            reconstruction_loss = rec_loss(embeddings=out,
+                                           target_K=K,
+                                           graph=graph)
             recons_loss_tot += reconstruction_loss
     return recons_loss_tot / test_size
+
+
+def evaluate_model_supervised(model, validation_loader):
+    model.eval()
+    device = model.current_device
+    test_size = len(validation_loader)
+    loss_tot = 0
+    for batch_idx, (graph, graph_sizes) in enumerate(validation_loader):
+        # Get data on the devices
+        K = K.to(device)
+        graph = send_graph_to_device(graph, device)
+
+        # Do the computations for the forward pass
+        with torch.no_grad():
+            out = model(graph)
+            labels = graph.ndata['target']
+            loss = torch.nn.MSELoss()(out, labels)
+            loss_tot += loss.item()
+    return loss_tot / test_size
 
 
 class EarlyStopper:
@@ -177,7 +196,8 @@ def pretrain_unsupervised(model,
                           num_epochs=25,
                           early_stopper=None,
                           writer=None,
-                          rec_params={"similarity": True, "normalize": False, "use_graph": False, "hops": 2}
+                          rec_params={"similarity": True, "normalize": False, "use_graph": False, "hops": 2},
+                          print_each=20
                           ):
     device = model.current_device
     train_loader.dataset.dataset.add_node_sim(node_simfunc=node_sim)
@@ -192,15 +212,12 @@ def pretrain_unsupervised(model,
         running_loss = 0.0
         num_batches = len(train_loader)
         for batch_idx, (graph, K, graph_sizes, node_ids) in enumerate(train_loader):
-            batch_size = len(K)
-
             # Get data on the devices
             K = K.to(device)
             graph = send_graph_to_device(graph, device)
 
             # Do the computations for the forward pass
             out = model(graph)
-
             loss = rec_loss(embeddings=out,
                             target_K=K,
                             graph=graph,
@@ -215,15 +232,13 @@ def pretrain_unsupervised(model,
             loss = loss.item()
             running_loss += loss
 
-            if batch_idx % 20 == 0:
+            if batch_idx % print_each == 0:
                 time_elapsed = time.time() - start_time
-                print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}  Time: {:.2f}'.format(
-                    epoch + 1,
-                    (batch_idx + 1),
-                    num_batches,
-                    100. * (batch_idx + 1) / num_batches,
-                    loss,
-                    time_elapsed))
+
+                print(
+                    f'Train Epoch: {epoch + 1} [{(batch_idx + 1)}/{num_batches} '
+                    f'({100. * (batch_idx + 1) / num_batches:.0f}%)]\t'
+                    f'Loss: {loss:.6f}  Time: {time_elapsed:.2f}')
 
                 # tensorboard logging
                 step = epoch * num_batches + batch_idx
@@ -241,7 +256,7 @@ def pretrain_unsupervised(model,
                 best_loss = running_loss
             continue
         else:
-            test_loss = test(model, test_loader=early_stopper.test_loader)
+            test_loss = evaluate_model_unsupervised(model, validation_loader=early_stopper.test_loader)
 
             if writer is not None:
                 writer.add_scalar("Test loss during training", test_loss, epoch)
@@ -269,23 +284,21 @@ def pretrain_unsupervised(model,
     return best_loss
 
 
-def train_model(model,
-                optimizer,
-                train_loader,
-                test_loader,
-                save_path,
-                writer=None, num_epochs=25):
+def train_supervised(model,
+                     optimizer,
+                     train_loader,
+                     num_epochs=25,
+                     early_stopper=None,
+                     writer=None,
+                     print_each=20):
     """
     Performs the entire training routine.
     :param model: (torch.nn.Module): the model to train
     :param optimizer: the optimizer to use (eg SGD or Adam)
-    :param train_loader: data loader for training
-    :param test_loader: data loader for validation
-    :param save_path: where to save the model
+    :param train_loader: The loader to use for training
     :param writer: a pytorch writer object
     :param num_epochs: int number of epochs
-    :param wall_time: The number of hours you want the model to run
-    :param embed_only: number of epochs before starting attributor training.
+    :param early_stopper: An early stopper object, if we want to also use a validation phase and early stopping
     :return:
     """
     device = model.current_device
@@ -300,16 +313,17 @@ def train_model(model,
         running_loss = 0.0
         num_batches = len(train_loader)
 
-        for batch_idx, (graph, K, graph_sizes) in enumerate(train_loader):
+        for batch_idx, (graph, graph_sizes) in enumerate(train_loader):
             # Get data on the devices
-            K = K.to(device)
             graph = send_graph_to_device(graph, device)
 
             # Do the computations for the forward pass
             out = model(graph)
-            loss = model.rec_loss(embeddings=out,
-                                  target_K=K,
-                                  graph=graph)
+            labels = graph.ndata['target']
+            loss = torch.nn.MSELoss()(out, labels)
+            # preds = (logits > threshold).float()
+            # acc = (preds*labels).float().mean()
+
             # Backward
             loss.backward()
             optimizer.step()
@@ -319,7 +333,7 @@ def train_model(model,
             loss = loss.item()
             running_loss += loss
 
-            if batch_idx % 20 == 0:
+            if batch_idx % print_each == 0:
                 time_elapsed = time.time() - start_time
                 print(
                     f'Train Epoch: {epoch + 1} [{(batch_idx + 1)}/{num_batches} '
@@ -327,60 +341,98 @@ def train_model(model,
                     f'Loss: {loss:.6f}  Time: {time_elapsed:.2f}')
 
                 # tensorboard logging
-                step = epoch * num_batches + batch_idx
-                writer.add_scalar("Training loss", loss, step)
+                if writer is not None:
+                    step = epoch * num_batches + batch_idx
+                    writer.add_scalar("Training loss", loss, step)
 
-        # # Log training metrics
-        train_loss = running_loss / num_batches
-        writer.add_scalar("Training epoch loss", train_loss, epoch)
+        if writer is not None:
+            # # Log training metrics
+            train_loss = running_loss / num_batches
+            writer.add_scalar("Training epoch loss", train_loss, epoch)
 
         # Test phase
-        test_loss = test(model, test_loader)
-
-        writer.add_scalar("Test loss during training", test_loss, epoch)
-        #
-        # Checkpointing
-        if test_loss < best_loss:
-            best_loss = test_loss
-            epochs_from_best = 0
-
-            model.cpu()
-            print(">> saving checkpoint")
-            torch.save({
-                'epoch': epoch,
-                'model_state_dict': model.state_dict(),
-                'optimizer_state_dict': optimizer.state_dict()
-            }, save_path)
-            model.to(device)
-
-        # Early stopping
+        # Test phase
+        if early_stopper is None:
+            if running_loss < best_loss:
+                best_loss = running_loss
+            continue
         else:
-            epochs_from_best += 1
-            if epochs_from_best > early_stop_threshold:
-                print('This model was early stopped')
-                break
+            test_loss = evaluate_model_supervised(model, validation_loader=early_stopper.test_loader)
+
+            if writer is not None:
+                writer.add_scalar("Test loss during training", test_loss, epoch)
+
+            # Checkpointing
+            if test_loss < best_loss:
+                best_loss = test_loss
+                epochs_from_best = 0
+
+                model.cpu()
+                print(">> saving checkpoint")
+                torch.save({
+                    'epoch': epoch,
+                    'model_state_dict': model.state_dict(),
+                    'optimizer_state_dict': optimizer.state_dict()
+                }, early_stopper.save_path)
+                model.to(device)
+
+            # Early stopping
+            else:
+                epochs_from_best += 1
+                if epochs_from_best > early_stopper.early_stop_threshold:
+                    print('This model was early stopped')
+                    break
     return best_loss
 
 
 if __name__ == '__main__':
+    pass
     from learning import models
-    from kernels import node_sim
     from data_loading import loader
 
-    embedder_model = models.Embedder([10, 10])
-    optimizer = torch.optim.Adam(embedder_model.parameters())
-    node_sim_func = node_sim.SimFunctionNode(method='R_1', depth=2)
+    test_unsupervised = False
+    test_supervised = True
+    if test_unsupervised:
+        from kernels import node_sim
 
-    data_path = os.path.join(script_dir, '../data/annotated/samples/')
-    data_loader = loader.Loader(annotated_path=data_path,
-                                num_workers=0,
-                                batch_size=4,
-                                max_size_kernel=100,
-                                node_simfunc=node_sim_func)
-    train_loader, validation_loader, test_loader = data_loader.get_data()
+        embedder_model = models.Embedder([10, 10])
+        optimizer = torch.optim.Adam(embedder_model.parameters())
+        node_sim_func = node_sim.SimFunctionNode(method='R_1', depth=2)
 
-    pretrain_unsupervised(model=embedder_model,
-                          optimizer=optimizer,
-                          node_sim=node_sim_func,
-                          train_loader=train_loader
-                          )
+        data_path = os.path.join(script_dir, '../data/annotated/samples/')
+        data_loader = loader.Loader(data_path=data_path,
+                                    num_workers=0,
+                                    batch_size=4,
+                                    max_size_kernel=100,
+                                    node_simfunc=node_sim_func)
+        train_loader, validation_loader, test_loader = data_loader.get_data()
+
+        pretrain_unsupervised(model=embedder_model,
+                              optimizer=optimizer,
+                              node_sim=node_sim_func,
+                              train_loader=train_loader
+                              )
+
+    if test_supervised:
+        data_path = os.path.join(script_dir, '../data/annotated/samples/')
+
+        annotated_path = "../data/graphs"
+        node_features = ['nt_code']
+        node_target = ['binding_protein']
+
+        # Define model
+        # GET THE DATA GOING
+        loader = loader.SupervisedLoader(data_path=annotated_path,
+                                         node_features=node_features,
+                                         node_target=node_target,
+                                         num_workers=2)
+        train_loader, validation_loader, test_loader = loader.get_data()
+
+        embedder_model = models.Embedder([10, 10], infeatures_dim=1)
+        classifier_model = models.Classifier(embedder=embedder_model, last_dim_embedder=10, classif_dims=[1])
+        optimizer = torch.optim.Adam(classifier_model.parameters(), lr=0.001)
+        data_path = os.path.join(script_dir, '../data/graphs/')
+
+        train_supervised(model=classifier_model,
+                         optimizer=optimizer,
+                         train_loader=train_loader)
