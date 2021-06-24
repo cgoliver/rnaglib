@@ -5,6 +5,7 @@ Requires a x3dna-dssr executable to be in $PATH.
 
 """
 import os
+import traceback
 import json
 import multiprocessing as mp
 from subprocess import check_output
@@ -222,6 +223,7 @@ def annot_2_graph(annot, rbp_annot, pdbid, mmcif_data=None):
         rna_pairs = base_pair_swap(list(rna_pairs))
     except Exception as e:
         print(e)
+        traceback.print_exc()
         print(f"No base pairs found for {pdbid}")
         return
 

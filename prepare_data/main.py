@@ -9,9 +9,10 @@ EXTERNAL PACKAGES:
 import multiprocessing as mp
 import os
 import sys
+import traceback
 import argparse
 from Bio.PDB.PDBList import PDBList
-from rcsbsearch import TextQuery, Attr
+# from rcsbsearch import TextQuery, Attr
 import json
 from collections import defaultdict
 
@@ -61,44 +62,51 @@ def update_RNApdb(pdir):
 def do_one(cif, output_dir, min_nodes=20):
 
     if '.cif' not in cif: return
-    pbid = cif[-8:-4]
+    pdbid = cif[-8:-4]
+    error_type = 'OK'
 
     # Build graph with DSSR
-    print('Computing Graph for ', pbid)
+    print('Computing Graph for ', pdbid)
     try:
         g = build_one(cif)
     except Exception as e:
-        print("ERROR: Could not construct DSSR graph for ", pbid)
-        print(e)
-        return pbid, 'DSSR_error'
-    if g is None:
-        print(f'Excluding {pbid} from output')
-        return pbid, 'noBasePairs'
-    if len(g.nodes()) < min_nodes:
-        print(f'Excluding {pbid} from output, less than 20 nodes')
-        return pbid, 'tooSmall'
-    if len(g.edges()) < len(g.nodes()) - 3:
-        print(f'Excluding {pbid} from output, edges < nodes -3')
-        return pbid, 'edges<nodes-3'
+        print("ERROR: Could not construct DSSR graph for ", pdbid)
+        print(traceback.print_exc())
+        error_type = 'DSSR_error'
+    else:
+        if g is None:
+            print(f'Excluding {pdbid} from output')
+            error_type = 'noBasePairs'
+            return pdbid, error_type
+        if len(g.nodes()) < min_nodes:
+            print(f'Excluding {pdbid} from output, less than 20 nodes')
+            error_type = 'tooSmall'
+            return pdbid, error_type
+        if len(g.edges()) < len(g.nodes()) - 3:
+            print(f'Excluding {pdbid} from output, edges < nodes -3')
+            error_type = 'edges<nodes-3'
+            return pdbid, error_type
 
-    # Find ligand and ion annotations from the PDB cif
-    try:
-        interfaces, _ = get_interfaces(cif, cutoff=5)
-        annotations = parse_interfaces(interfaces)
-        g = annotate_graph(g, annotations)
-    except Exception as e:
-        print('ERROR: Could not compute interfaces for ', pbid)
-        print(e)
-        return pbid, 'interfaces_error'
+        # Find ligand and ion annotations from the PDB cif
+        try:
+            interfaces, _ = get_interfaces(cif, cutoff=5)
+            annotations = parse_interfaces(interfaces)
+            g = annotate_graph(g, annotations)
+        except Exception as e:
+            print('ERROR: Could not compute interfaces for ', pdbid)
+            print(e)
+            print(traceback.print_exc())
+            error_type = 'interfaces_error'
 
-    # Order the nodes
-    g = reorder_nodes(g)
+        if error_type in ['interfaces_error', 'OK']:
+            # Order the nodes
+            g = reorder_nodes(g)
 
-    # Write graph to outputdir in JSON format
-    write_graph(g, os.path.join(output_dir, pbid+'.json'))
-    print('SUCCESS: graph written: ', pbid)
+            # Write graph to outputdir in JSON format
+            write_graph(g, os.path.join(output_dir, pdbid+'.json'))
+            print('>>> SUCCESS: graph written: ', pdbid)
 
-    return
+    return pdbid, error_type
 
 def main():
     parser = argparse.ArgumentParser()

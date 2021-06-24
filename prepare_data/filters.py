@@ -3,13 +3,14 @@ Produce filters of the data set
 """
 import os
 import sys
+import traceback
 import json
 import argparse
 import networkx as nx
 import csv
 import pandas as pd
 from collections import defaultdict
-from rcsbsearch import TextQuery, Attr
+# from rcsbsearch import TextQuery, Attr
 from tqdm import tqdm
 import shutil
 
@@ -87,6 +88,7 @@ def filter_graph(g, fltr):
     :param fltr: Dictionary, keys=PDB IDs, values=(set) Chain IDs
     :return h: subgraph or None if does not exist
     """
+    filter_dot_edges(g)
 
     NR_nodes = []
     for node in g.nodes():
@@ -185,19 +187,28 @@ def filter_all(graph_dir, output_dir,
         except FileExistsError:
             pass
         print(f'Filtering for {fltr}')
+        fails = 0
         for graph_file in tqdm(listdir_fullpath(graph_dir)):
-            output_file = os.path.join(fltr_dir, graph_file[-9:])
-            if fltr == 'NR':
-                g = load_graph(graph_file)
-                g = filter_graph(g, fltr_set)
-                if g is None: continue
-                if len(g.nodes) < min_nodes: continue
-                write_graph(g, output_file)
-            else:
-                pbid = graph_file[-9:-5]
-                if pbid in fltr_set:
-                    shutil.copy(graph_file, output_file)
+            try:
+                output_file = os.path.join(fltr_dir, graph_file[-9:])
+                if fltr == 'NR':
+                    g = load_graph(graph_file)
+                    g = filter_graph(g, fltr_set)
+                    if g is None: continue
+                    if len(g.nodes) < min_nodes: continue
+                    write_graph(g, output_file)
+                else:
+                    pbid = graph_file[-9:-5]
+                    if pbid in fltr_set:
+                        shutil.copy(graph_file, output_file)
 
+            except Exception as e:
+                print(e)
+                traceback.print_exc()
+                fails += 1
+                continue
+
+    print(f"Fails: {fails}")
 
 def get_fltr(fltr):
 
@@ -214,7 +225,7 @@ def get_fltr(fltr):
 
 def main():
 
-    filter_all('data/output', 'data', fltrs=['ligase'])
+    filter_all('data/graphs_vernal', 'data/graphs_vernal_filters')
 
 
 if __name__ == '__main__':
