@@ -156,6 +156,66 @@ def download(url, path=None, overwrite=True, retries=5, verify_ssl=True, log=Tru
     return fname
 
 
+def download_name_factory(download_option):
+    if download_option == 'test':
+        url = 'http://mitra.stanford.edu/kundaje/avanti/rc_data/backup_revcomppaperdata/Gm12878/for_henry/tf_data/Ctcf/foreground.bed.gz'
+        dl_path = os.path.join(script_dir, '../data/downloads/test.zip')
+        data_path = os.path.join(script_dir, '../data/graphs/')
+        dirname = 'test'
+        return url, dl_path, data_path, dirname, None
+    # Get graphs
+    if download_option == 'samples_graphs':
+        url = 'toto'
+        dl_path = os.path.join(script_dir, '../data/downloads/samples.zip')
+        data_path = os.path.join(script_dir, '../data/graphs/')
+        dirname = 'samples'
+
+        return url, dl_path, data_path, dirname, None
+    if download_option == 'nr_graphs':
+        url = 'http://rnaglib.cs.mcgill.ca/static/datasets/glib_nr_graphs.tar.gz'
+        dl_path = os.path.join(script_dir, '../data/downloads/glib_nr_graphs.tar.gz')
+        data_path = os.path.join(script_dir, '../data/graphs/')
+        dirname = 'nr_graphs'
+        return url, dl_path, data_path, dirname, None
+    if download_option == 'graphs':
+        url = 'toto'
+        dl_path = os.path.join(script_dir, '../data/downloads/graphs.zip')
+        data_path = os.path.join(script_dir, '../data/graphs/')
+        dirname = 'graphs'
+        return url, dl_path, data_path, dirname, None
+
+    # Get annotations
+    if download_option == 'samples_annotated':
+        url = 'toto'
+        dl_path = os.path.join(script_dir, '../data/downloads/samples_annotated.zip')
+        data_path = os.path.join(script_dir, '../data/annotated/')
+        dirname = 'samples_annotated'
+        hashing_url = 'toto_hash'
+        hashing_path = os.path.join(script_dir, '../data/hashing/samples_annotated.p')
+        return url, dl_path, data_path, dirname, (hashing_url, hashing_path)
+    if download_option == 'nr_annotated':
+        url = 'http://rnaglib.cs.mcgill.ca/static/datasets/glib_nr_annot.tar.gz'
+        dl_path = os.path.join(script_dir, '../data/downloads/glib_nr_annot.tar.gz')
+        data_path = os.path.join(script_dir, '../data/annotated/')
+        dirname = 'nr_annotated'
+        hashing_url = 'http://rnaglib.cs.mcgill.ca/static/datasets/glib_nr_hashtable.p'
+        hashing_path = os.path.join(script_dir, '../data/hashing/nr_annotated.p')
+        return url, dl_path, data_path, dirname, (hashing_url, hashing_path)
+    if download_option == 'annotated':
+        url = 'toto'
+        dl_path = os.path.join(script_dir, '../data/downloads/annotated.zip')
+        data_path = os.path.join(script_dir, '../data/annotated/')
+        dirname = 'annotated'
+        hashing_url = 'toto_hash'
+        hashing_path = os.path.join(script_dir, '../data/hashing/annotated.p')
+        return url, dl_path, data_path, dirname, (hashing_url, hashing_path)
+    else:
+        raise ValueError(f'The download string command "{download_option}" is not supported. '
+                         f'Options should be among : '
+                         f'"samples_graphs", "nr_graphs", "graphs", '
+                         f'"samples_annotated", "nr_annotated", "annotated"')
+
+
 class GraphDataset(Dataset):
     def __init__(self,
                  data_path='../data/annotated/samples',
@@ -228,27 +288,27 @@ class GraphDataset(Dataset):
         self.node_target_parser = self.build_feature_parser(self.node_target, sample_node_attrs)
 
     def download(self, download_option):
-        if download_option == 'samples':
-            dl_path = os.path.join(script_dir, '../data/downloads/samples.zip')
-            data_path = os.path.join(script_dir, '../data/graphs/samples_test')
-            os.mkdir(data_path)
-            url = 'http://mitra.stanford.edu/kundaje/avanti/rc_data/backup_revcomppaperdata/Gm12878/for_henry/tf_data/Ctcf/foreground.bed.gz'
+        # Get the correct names for the download option and download the correct files
+        url, dl_path, data_path, dirname, hashing = download_name_factory(download_option)
+        if not os.path.exists(dl_path):
+            print('Required dataset not found, launching a download. This should take about a minute')
             download(path=dl_path,
                      url=url)
-            if dl_path.endswith('.zip'):
-                with zipfile.ZipFile(dl_path, 'r') as zip_file:
-                    zip_file.extractall(path=data_path)
-            elif '.tar' in url:
-                with tarfile.open(dl_path) as tar_file:
-                    tar_file.extractall(path=data_path)
-        else:
-            raise ValueError(f'The download string command "{download_option}" is not supported')
-        return data_path
+        if hashing is not None:
+            hashing_url, hashing_path = hashing
+            if not os.path.exists(hashing_path):
+                download(path=hashing_path,
+                         url=hashing_url)
 
-    def has_cache(self):
-        graph_path = os.path.join(self.save_path, self.mode + '_dgl_graph.bin')
-        vocab_path = os.path.join(self.save_path, 'vocab.pkl')
-        return os.path.exists(graph_path) and os.path.exists(vocab_path)
+        # Expand the compressed files at the right location
+        if dl_path.endswith('.zip'):
+            with zipfile.ZipFile(dl_path, 'r') as zip_file:
+                zip_file.extractall(path=data_path)
+        elif '.tar' in url:
+            with tarfile.open(dl_path) as tar_file:
+                tar_file.extractall(path=data_path)
+        full_data_path = os.path.join(data_path, dirname)
+        return full_data_path
 
     def __len__(self):
         return len(self.all_graphs)
@@ -450,25 +510,15 @@ def collate_wrapper(node_simfunc=None, max_size_kernel=None):
 
 class Loader:
     def __init__(self,
-                 data_path='../data/annotated/samples/',
+                 dataset,
                  batch_size=5,
                  num_workers=20,
-                 edge_map=EDGE_MAP,
-                 node_features=None,
-                 node_target=None,
-                 label='LW',
-                 node_simfunc=None,
                  max_size_kernel=None,
-                 force_undirected=False,
                  split=True,
                  verbose=False):
         """
-
-        :param data_path:
         :param batch_size:
         :param num_workers:
-        :param debug:
-        :param shuffled:
         :param node_simfunc: The node comparison object to use for the embeddings. If None is selected,
         will just return graphs
         :param max_graphs: If we use K comptutations, we need to subsamble some nodes for the big graphs
@@ -477,25 +527,15 @@ class Loader:
         :param node_features: (str list) features to be included in feature tensor
         :param node_target: (str) target attribute for node classification
         """
+        self.dataset = dataset
         self.batch_size = batch_size
         self.num_workers = num_workers
-        self.dataset = GraphDataset(data_path=data_path,
-                                    node_simfunc=node_simfunc,
-                                    node_features=node_features,
-                                    node_target=node_target,
-                                    label=label,
-                                    edge_map=edge_map,
-                                    force_undirected=force_undirected,
-                                    verbose=verbose)
         self.max_size_kernel = max_size_kernel
-        self.directed = self.dataset.directed
-        self.node_simfunc = node_simfunc
-        self.num_edge_types = self.dataset.num_edge_types
         self.split = split
         self.verbose = verbose
 
     def get_data(self):
-        collate_block = collate_wrapper(self.node_simfunc, max_size_kernel=self.max_size_kernel)
+        collate_block = collate_wrapper(self.dataset.node_simfunc, max_size_kernel=self.max_size_kernel)
         if not self.split:
             loader = DataLoader(dataset=self.dataset, shuffle=True, batch_size=self.batch_size,
                                 num_workers=self.num_workers, collate_fn=collate_block)
@@ -529,23 +569,19 @@ class Loader:
             return train_loader, valid_loader, test_loader
 
 
-class InferenceLoader(Loader):
+class InferenceLoader:
     def __init__(self,
                  list_to_predict,
                  data_path,
+                 dataset=None,
                  batch_size=5,
-                 num_workers=20,
-                 edge_map=EDGE_MAP,
-                 force_undirected=False):
-        super().__init__(
-            data_path=data_path,
-            batch_size=batch_size,
-            num_workers=num_workers,
-            edge_map=edge_map,
-            force_undirected=force_undirected
-        )
+                 num_workers=20):
+        if dataset is None:
+            dataset = GraphDataset(data_path=data_path)
+        self.dataset = dataset
         self.dataset.all_graphs = list_to_predict
-        self.dataset.path = data_path
+        self.batch_size = batch_size
+        self.num_workers = num_workers
 
     def get_data(self):
         collate_block = collate_wrapper(None)
@@ -563,14 +599,13 @@ class UnsupervisedLoader(Loader):
     """
 
     def __init__(self,
-                 data_path='../data/annotated/directed/',
-                 node_simfunc=SimFunctionNode('R_1', 2),
-                 max_size_kernel=100,
+                 dataset=None,
                  **kwargs):
+        if dataset is None:
+            dataset = GraphDataset(node_simfunc=SimFunctionNode('R_1', 2),
+                                   download='nr_annotated')
         super().__init__(
-            data_path=data_path,
-            node_simfunc=node_simfunc,
-            max_size_kernel=max_size_kernel,
+            dataset=dataset,
             **kwargs
         )
 
@@ -581,10 +616,13 @@ class SupervisedLoader(Loader):
     """
 
     def __init__(self,
-                 data_path='../data/graphs/',
+                 dataset=None,
                  **kwargs):
+        if dataset is None:
+            dataset = GraphDataset(node_target=('binding_protein'),
+                                   download='nr_graphs')
         super().__init__(
-            data_path=data_path,
+            dataset=dataset,
             **kwargs
         )
 
@@ -596,18 +634,20 @@ def loader_from_hparams(data_path, hparams, list_inference=None):
     """
     if list_inference is None:
         node_simfunc = simfunc_from_hparams(hparams)
-        loader = Loader(data_path=data_path,
+        edge_map = hparams.get('edges', 'edge_map')
+        dataset = GraphDataset(edge_map=edge_map,
+                               node_simfunc=node_simfunc,
+                               data_path=data_path)
+        loader = Loader(dataset=dataset,
                         batch_size=hparams.get('argparse', 'batch_size'),
                         num_workers=hparams.get('argparse', 'workers'),
-                        edge_map=hparams.get('edges', 'edge_map'),
-                        node_simfunc=node_simfunc)
+                        )
         return loader
-
+    dataset = GraphDataset(data_path=data_path, edge_map=hparams.get('edges', 'edge_map'))
     loader = InferenceLoader(list_to_predict=list_inference,
-                             data_path=data_path,
+                             dataset=dataset,
                              batch_size=hparams.get('argparse', 'batch_size'),
-                             num_workers=hparams.get('argparse', 'workers'),
-                             edge_map=hparams.get('edges', 'edge_map'))
+                             num_workers=hparams.get('argparse', 'workers'), )
     return loader
 
 
@@ -652,4 +692,6 @@ if __name__ == '__main__':
     #         break
     # print(time.time() - a)
 
-    dataset = GraphDataset(download='samples')
+    # dataset = GraphDataset(download='test')
+    loader = SupervisedLoader()
+    # loader = UnsupervisedLoader()

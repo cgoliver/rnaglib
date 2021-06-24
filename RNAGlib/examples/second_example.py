@@ -20,12 +20,11 @@ We also add a pretraining phase based on the R_1 kernel
 ###### Unsupervised phase : ######
 
 # Choose the data and kernel to use for pretraining
-data_path = os.path.join(script_dir, '../data/annotated/samples/')
 node_sim_func = node_sim.SimFunctionNode(method='R_1', depth=2)
-data_loader = loader.Loader(data_path=data_path,
-                            batch_size=4,
-                            max_size_kernel=100,
-                            node_simfunc=node_sim_func)
+dataset = loader.GraphDataset(node_simfunc=node_sim_func)
+data_loader = loader.UnsupervisedLoader(dataset=dataset,
+                                        batch_size=4,
+                                        max_size_kernel=100)
 train_loader, _, _ = data_loader.get_data()
 
 # Then choose the embedder model and pre_train it
@@ -42,15 +41,13 @@ print('We have finished pretraining the network, let us fine tune it')
 ###### Now the supervised phase : ######
 
 # Choose the data, features and targets to use
-data_path = os.path.join(script_dir, "../data/graphs")
 node_features = ['nt_code']
 node_target = ['binding_protein']
 infeatures_dim = len(node_features)
 target_dim = len(node_target)
 
 # GET THE DATA GOING
-loader = loader.SupervisedLoader(data_path=data_path,
-                                 node_features=node_features,
+loader = loader.SupervisedLoader(node_features=node_features,
                                  node_target=node_target)
 train_loader, validation_loader, test_loader = loader.get_data()
 
