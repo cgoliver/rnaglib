@@ -13,6 +13,10 @@ import sys
 import collections
 from collections import defaultdict
 import random
+import requests
+import warnings
+import tarfile
+import zipfile
 
 script_dir = os.path.dirname(os.path.realpath(__file__))
 if __name__ == "__main__":
@@ -77,6 +81,81 @@ def dict_union(a, b):
     return c
 
 
+def download(url, path=None, overwrite=True, retries=5, verify_ssl=True, log=True):
+    """Download a given URL.
+
+    Codes borrowed from mxnet/gluon/utils.py
+
+    Parameters
+    ----------
+    url : str
+        URL to download.
+    path : str, optional
+        Destination path to store downloaded file. By default stores to the
+        current directory with the same name as in url.
+    overwrite : bool, optional
+        Whether to overwrite the destination file if it already exists.
+        By default always overwrites the downloaded file.
+    retries : integer, default 5
+        The number of times to attempt downloading in case of failure or non 200 return codes.
+    verify_ssl : bool, default True
+        Verify SSL certificates.
+    log : bool, default True
+        Whether to print the progress for download
+
+    Returns
+    -------
+    str
+        The file path of the downloaded file.
+    """
+    if path is None:
+        fname = url.split('/')[-1]
+        # Empty filenames are invalid
+        assert fname, 'Can\'t construct file-name from this URL. ' \
+                      'Please set the `path` option manually.'
+    else:
+        path = os.path.expanduser(path)
+        if os.path.isdir(path):
+            fname = os.path.join(path, url.split('/')[-1])
+        else:
+            fname = path
+    assert retries >= 0, "Number of retries should be at least 0"
+
+    if not verify_ssl:
+        warnings.warn(
+            'Unverified HTTPS request is being made (verify_ssl=False). '
+            'Adding certificate verification is strongly advised.')
+
+    if overwrite or not os.path.exists(fname):
+        dirname = os.path.dirname(os.path.abspath(os.path.expanduser(fname)))
+        if not os.path.exists(dirname):
+            os.makedirs(dirname)
+        while retries + 1 > 0:
+            # Disable pyling too broad Exception
+            # pylint: disable=W0703
+            try:
+                if log:
+                    print('Downloading %s from %s...' % (fname, url))
+                r = requests.get(url, stream=True, verify=verify_ssl)
+                if r.status_code != 200:
+                    raise RuntimeError("Failed downloading url %s" % url)
+                with open(fname, 'wb') as f:
+                    for chunk in r.iter_content(chunk_size=1024):
+                        if chunk:  # filter out keep-alive new chunks
+                            f.write(chunk)
+                break
+            except Exception as e:
+                retries -= 1
+                if retries <= 0:
+                    raise e
+                else:
+                    if log:
+                        print("download failed, retrying, {} attempt{} left"
+                              .format(retries, 's' if retries > 1 else ''))
+
+    return fname
+
+
 class GraphDataset(Dataset):
     def __init__(self,
                  data_path='../data/annotated/samples',
@@ -86,7 +165,8 @@ class GraphDataset(Dataset):
                  node_features=None,
                  node_target=None,
                  force_undirected=False,
-                 verbose=False):
+                 verbose=False,
+                 download=None):
         """
 
         :param edge_map: Necessary to build the one hot mapping from edge labels to an id
@@ -99,7 +179,11 @@ class GraphDataset(Dataset):
         for example :
         :param node_features: node targets to include, stored in one tensor in order given by user
         """
-
+        if download is not None:
+            data_path = self.download(download)
+        else:
+            if data_path is None:
+                raise ValueError('One should provide either a download string command or a data_path')
         self.path = data_path
         self.all_graphs = sorted(os.listdir(data_path))
         if '3p4b_annot.json' in self.all_graphs:
@@ -142,6 +226,29 @@ class GraphDataset(Dataset):
         # Then check that the entries asked for as node features exist in our feature maps and get a parser for each
         self.node_features_parser = self.build_feature_parser(self.node_features, sample_node_attrs)
         self.node_target_parser = self.build_feature_parser(self.node_target, sample_node_attrs)
+
+    def download(self, download_option):
+        if download_option == 'samples':
+            dl_path = os.path.join(script_dir, '../data/downloads/samples.zip')
+            data_path = os.path.join(script_dir, '../data/graphs/samples_test')
+            os.mkdir(data_path)
+            url = 'http://mitra.stanford.edu/kundaje/avanti/rc_data/backup_revcomppaperdata/Gm12878/for_henry/tf_data/Ctcf/foreground.bed.gz'
+            download(path=dl_path,
+                     url=url)
+            if dl_path.endswith('.zip'):
+                with zipfile.ZipFile(dl_path, 'r') as zip_file:
+                    zip_file.extractall(path=data_path)
+            elif '.tar' in url:
+                with tarfile.open(dl_path) as tar_file:
+                    tar_file.extractall(path=data_path)
+        else:
+            raise ValueError(f'The download string command "{download_option}" is not supported')
+        return data_path
+
+    def has_cache(self):
+        graph_path = os.path.join(self.save_path, self.mode + '_dgl_graph.bin')
+        vocab_path = os.path.join(self.save_path, 'vocab.pkl')
+        return os.path.exists(graph_path) and os.path.exists(vocab_path)
 
     def __len__(self):
         return len(self.all_graphs)
@@ -519,28 +626,30 @@ if __name__ == '__main__':
     # print(len(graph.nodes()))
     # print(len(graph.edges()))
 
-    np.random.seed(0)
-    torch.manual_seed(0)
+    # np.random.seed(0)
+    # torch.manual_seed(0)
+    #
+    # annotated_path = os.path.join(script_dir, "..", "data", "annotated", "samples")
+    # simfunc_r1 = SimFunctionNode('R_1', 2)
+    # loader = Loader(data_path=annotated_path,
+    #                 num_workers=2,
+    #                 batch_size=1,
+    #                 max_size_kernel=100,
+    #                 split=False,
+    #                 node_simfunc=simfunc_r1,
+    #                 node_features=None,
+    #                 node_target=None)
+    # # node_target=['nt_name', 'nt_code', 'binding_protein'])
+    #
+    # train_loader = loader.get_data()
+    #
+    # a = time.time()
+    # for i, (graph, K, len_graphs, node_ids) in enumerate(train_loader):
+    #     # print('graph :', graph)
+    #     # print('K :', K)
+    #     # print('length :', len_graphs)
+    #     if i > 3:
+    #         break
+    # print(time.time() - a)
 
-    annotated_path = os.path.join(script_dir, "..", "data", "annotated", "samples")
-    simfunc_r1 = SimFunctionNode('R_1', 2)
-    loader = Loader(data_path=annotated_path,
-                    num_workers=2,
-                    batch_size=1,
-                    max_size_kernel=100,
-                    split=False,
-                    node_simfunc=simfunc_r1,
-                    node_features=None,
-                    node_target=None)
-    # node_target=['nt_name', 'nt_code', 'binding_protein'])
-
-    train_loader = loader.get_data()
-
-    a = time.time()
-    for i, (graph, K, len_graphs, node_ids) in enumerate(train_loader):
-        # print('graph :', graph)
-        # print('K :', K)
-        # print('length :', len_graphs)
-        if i > 3:
-            break
-    print(time.time() - a)
+    dataset = GraphDataset(download='samples')
