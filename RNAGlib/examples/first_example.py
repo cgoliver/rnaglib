@@ -39,3 +39,7 @@ optimizer = torch.optim.Adam(classifier_model.parameters(), lr=0.001)
 learn.train_supervised(model=classifier_model,
                        optimizer=optimizer,
                        train_loader=train_loader)
+
+
+from dgl.data import SST
+sst = SST()
