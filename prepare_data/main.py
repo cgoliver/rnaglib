@@ -23,6 +23,10 @@ from prepare_data.dssr_2_graphs import build_one
 from prepare_data.interfaces import get_interfaces
 from prepare_data.annotations import *
 from prepare_data.filters import filter_all
+from prepare_data.chopper import chop_all
+from prepare_data.khop_annotate import annotate_all
+
+FILTERS = ['NR']
 
 def listdir_fullpath(d):
         return [os.path.join(d, f) for f in os.listdir(d)]
@@ -69,6 +73,7 @@ def do_one(cif, output_dir, min_nodes=20):
     print('Computing Graph for ', pdbid)
     try:
         g = build_one(cif)
+
     except Exception as e:
         print("ERROR: Could not construct DSSR graph for ", pdbid)
         print(traceback.print_exc())
@@ -103,7 +108,7 @@ def do_one(cif, output_dir, min_nodes=20):
             g = reorder_nodes(g)
 
             # Write graph to outputdir in JSON format
-            write_graph(g, os.path.join(output_dir, pdbid+'.json'))
+            write_graph(g, os.path.join(output_dir, 'all_graphs', pdbid+'.json'))
             print('>>> SUCCESS: graph written: ', pdbid)
 
     return pdbid, error_type
@@ -128,6 +133,12 @@ def main():
                         help='build filtered datasets')
     args = parser.parse_args()
 
+    try:
+        os.mkdir(os.path.join(args.output_dir))
+        os.mkdir(os.path.join(args.output_dir, 'all_graphs'))
+    except FileExistsError:
+        pass
+
     # Update PDB and get Todo list
     cifs = listdir_fullpath(args.structures_dir)
     if args.update:
@@ -147,7 +158,25 @@ def main():
 
     # Filters
     if args.filter:
-        filter_all(args.output_dir, os.path.join(args.output_dir, '..'))
+        filter_all(os.path.join(args.output_dir, 'all_graphs'),
+                   args.output_dir,
+                   filters=FILTERS
+                   )
+
+
+    for filter in FILTERS + ['all_graphs']:
+        filter_dest = os.path.join(args.output_dir, filter)
+        chop_all(graph_path=filter_dest,
+                 pdb_path=args.structures_dir,
+                 dest=filter_dest + "_chops"
+                 )
+
+        print('Done producing graphs')
+
+        annotate_all(graph_path=filter_dest+"_chops", dump_path=filter_dest + "_annot")
+
+        print('Done annotating graphs')
+
 
     # Error Logging
     errors = [e for e in errors if e is not None]
