@@ -112,8 +112,8 @@ def filter_dot_edges(graph):
     This happens _in place_.
     """
 
-    graph.remove_edges_from(((u,v) for u,v,d  in graph.edges(data=True)
-                               if '.' in d['LW']))
+    graph.remove_edges_from([(u,v) for u,v,d  in graph.edges(data=True)
+                               if '.' in d['LW'] or d['LW'] == '--'])
 
 def get_NRchains(resolution):
     """
@@ -174,14 +174,15 @@ def get_Custom(text):
 
     return set(query())
 
+# fltrs = ['NR', 'Ribo', 'NonRibo'],
 def filter_all(graph_dir, output_dir,
-        fltrs = ['NR', 'Ribo', 'NonRibo'],
+        filters= ['NR'],
         min_nodes = 20):
 
 
-    for fltr in fltrs:
+    for fltr in filters:
         fltr_set = get_fltr(fltr)
-        fltr_dir = os.path.join(output_dir, fltr + '_graphs')
+        fltr_dir = os.path.join(output_dir, fltr)
         try:
             os.mkdir(fltr_dir)
         except FileExistsError:
