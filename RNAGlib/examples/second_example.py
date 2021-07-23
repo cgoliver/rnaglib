@@ -11,7 +11,7 @@ from data_loading import loader
 from kernels import node_sim
 
 """
-This script shows a second more complicated example : learn binding protein preferences as well as 
+This script shows a second more complicated example : learn binding protein preferences as well as
 small molecules binding from the nucleotide types and the graph structure
 We also add a pretraining phase based on the R_1 kernel
 
@@ -21,7 +21,8 @@ We also add a pretraining phase based on the R_1 kernel
 
 # Choose the data and kernel to use for pretraining
 node_sim_func = node_sim.SimFunctionNode(method='R_1', depth=2)
-dataset = loader.GraphDataset(node_simfunc=node_sim_func)
+dataset = loader.GraphDataset(node_simfunc=node_sim_func, node_features='all')
+print(dataset[0][0].to_networkx().edges(data=True))
 data_loader = loader.UnsupervisedLoader(dataset=dataset,
                                         batch_size=4,
                                         max_size_kernel=100)
