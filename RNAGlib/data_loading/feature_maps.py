@@ -12,7 +12,7 @@ class FeatureMap():
         :param possible_values (list, optional): list of possible values feature
                                                 can take.
         """
-        self.values_list = values_list
+        self.values_list_raw, self.values_list  = (values_list, values_list)
         self.clean_values()
 
         self.min_val = min_val
@@ -21,6 +21,7 @@ class FeatureMap():
         if not values_list is None:
             self.dims = len(values_list)
             self.values_enum = {v:k for k,v in enumerate(self.values_list)}
+            self.values_enum_r = dict(enumerate(self.values_list))
         else:
             self.dims = 1
         pass
@@ -40,12 +41,14 @@ class NTCode(FeatureMap):
         """ Assign encoding of `value` according to known possible
         values.
         """
-        assert type(value) is str, "Wrong input type"
+        assert value in self.values_list_raw, f"Not a valid value: {value}, must be {self.values_list}"
         x = torch.zeros(self.dims)
         ind = self.values_enum[value.upper()]
         x[ind] = 1.
         return x
 
+    def decode(self, one_hot):
+        return self.values_enum_r[torch.where(one_hot)[0].item()]
 
 """
 TESTING
@@ -54,3 +57,4 @@ TESTING
 nt = NTCode(values_list=['A', 'U', 'C', 'G', 'P', 'c', 'a', 'u', 't', 'g'])
 print(nt.encode('g'))
 print(nt.encode('G'))
+assert nt.decode(nt.encode('G')) == 'G'
