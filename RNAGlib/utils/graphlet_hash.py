@@ -22,7 +22,6 @@ import networkx as nx
 from networkx.algorithms.graph_hashing import weisfeiler_lehman_graph_hash as wl
 import numpy as np
 
-from drawing.drawing import rna_draw, rna_draw_pair
 from utils.graph_utils import bfs_expand
 from ged.rna_ged_nx import ged
 from utils.graph_io import load_json
@@ -232,7 +231,6 @@ def GED_hashtable_hashed(h_G,
         # d /= (max(sub_matrix) +  max(indel_vector) * (max_edges - 1))
         distance = 1 - np.exp(-beta * distance)
 
-    # rna_draw_pair([G, H],
     # estimated_value=[0, d])
     GED_table[h_G][h_H] = distance
     return distance
