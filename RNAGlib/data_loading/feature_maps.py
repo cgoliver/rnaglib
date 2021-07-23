@@ -20,6 +20,7 @@ class FeatureMap():
 
         if not values_list is None:
             self.dims = len(values_list)
+            self.values_enum = {v:k for k,v in enumerate(self.values_list)}
         else:
             self.dims = 1
         pass
@@ -33,8 +34,7 @@ class FeatureMap():
 class NTCode(FeatureMap):
 
     def clean_values(self):
-        return sorted(list(set(map(str.upper, self.values_list))))
-        pass
+        self.values_list = sorted(list(set(map(str.upper, self.values_list))))
 
     def encode(self, value):
         """ Assign encoding of `value` according to known possible
@@ -42,7 +42,7 @@ class NTCode(FeatureMap):
         """
         assert type(value) is str, "Wrong input type"
         x = torch.zeros(self.dims)
-        ind = self.values_list.index(value.upper())
+        ind = self.values_enum[value.upper()]
         x[ind] = 1.
         return x
 
