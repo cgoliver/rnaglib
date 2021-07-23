@@ -19,7 +19,7 @@ class FeatureMap():
         self.max_val = max_val
 
         if not values_list is None:
-            self.dims = len(values_list)
+            self.dims = len(self.values_list)
             self.values_enum = {v:k for k,v in enumerate(self.values_list)}
             self.values_enum_r = dict(enumerate(self.values_list))
         else:
