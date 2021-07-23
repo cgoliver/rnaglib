@@ -33,6 +33,9 @@ class FeatureMap():
         pass
 
 class NTCode(FeatureMap):
+    """ This feature represents the standard nucleotide type (A,U,C,G,..).
+    We one-hot encode this feature.
+    """
 
     def clean_values(self):
         self.values_list = sorted(list(set(map(str.upper, self.values_list))))
