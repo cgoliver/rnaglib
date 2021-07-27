@@ -99,87 +99,86 @@ assert nt.decode(nt.encode('G')) == 'G'
 
 # import json
 # dict_feat = json.load(open('all_annots.json','r'))
-# ': None, '.join([string.lstrip('node_').lstrip('_edge') for string in list(dict_feat.keys())])
+# ': None, '.join([string[5:] for string in list(dict_feat.keys())])
 
 FEATURE_MAP = {
-    'index': None,
-    'index_chain': None,
-    'chain_name': None,
-    'nt_resnum': None,
-    "nt_name": None,
+    'index': None,       #    Not a feature
+    'index_chain': None,       #     Not a feature
+    'chain_name': None,       #     Not a feature
+    'nt_resnum': None,       #     Not a feature
+    "nt_name": None,  # This looks crappy to me but maybe there are some that are canonical and a lot of modified ones ?
     'nt_code': OneHotEncoder(mapping={'A': 0, 'U': 1, 'C': 2, 'G': 3, 'a': 0, 'u': 1, 'c': 2, 'g': 3}, num_values=4),
-    "nt_id": None,
-    "nt_type": None,
-    "dbn": None,
-    "summary": None,
-    "alpha": None,
-    "beta": None,
-    "gamma": None,
-    "delta": None,
-    "epsilon": None,
-    "zeta": None,
-    "epsilon_zeta": None,
-    "bb_type": None,
-    "chi": None,
-    "glyco_bond": None,
-    "C5prime_xyz": None,
-    "P_xyz": None,
-    "form": None,
-    "ssZp": None,
-    "Dp": None,
-    "splay_angle": None,
-    "splay_distance": None,
-    "splay_ratio": None,
-    "eta": None,
-    "theta": None,
-    "eta_prime": None,
-    "theta_prime": None,
-    "eta_base": None,
-    "theta_base": None,
-    "v0": None,
-    "v1": None,
-    "v2": None,
-    "v3": None,
-    "v4": None,
-    "amplitude": None,
-    "phase_angle": None,
-    "puckering": None,
-    "sugar_class": None,
-    "bin": None,
-    "cluster": None,
-    "suiteness": None,
-    "filter_rmsd": None,
-    "frame_rmsd": None,
-    "frame_origin": None,
-    "frame_x_axis": None,
-    "frame_y_axis": None,
-    "frame_z_axis": None,
-    "frame_quaternion": None,
-    "sse_sse": None,
-    "binding_protein": None,
-    "binding_ion": None,
-    "binding_small-molecule": None,
-    "LW": None,
-    "backbone": None,
-    "nt1": None,
-    "nt2": None,
-    "bp": None,
-    "name": None,
-    "Saenger": None,
-    "DSSR": None,
-    "binding_protein_id": None,
-    "binding_protein_nt-aa": None,
-    "binding_protein_nt": None,
-    "binding_protein_aa": None,
-    "binding_protein_Tdst": None,
-    "binding_protein_Rdst": None,
-    "binding_protein_Tx": None,
-    "binding_protein_Ty": None,
-    "binding_protein_Tz": None,
-    "binding_protein_Rx": None,
-    "binding_protein_Ry": None,
-    "binding_protein_Rz": None,
-    "is_modified": None,
-    "is_broken": None
-
+    "nt_id": None,       #     TODO onehot
+    "nt_type": None,       #   Constant = RNA
+    "dbn": None,       #     TODO onehot
+    "summary": None,       # TODO onehot
+    "alpha": None,       # TODO :  float
+    "beta": None,       # TODO : float
+    "gamma": None,       # TODO : float
+    "delta": None,       # TODO : float
+    "epsilon": None,       # TODO : float
+    "zeta": None,       # TODO : float
+    "epsilon_zeta": None,       # TODO : float
+    "bb_type":  None,       # TODO : onehot
+    "chi":  None,       # TODO :  TODO : float
+    "glyco_bond":  None,       # TODO : onehot
+    "C5prime_xyz":  None,       # TODO : list
+    "P_xyz":  None,       # TODO : list
+    "form":  None,       # TODO : onehot
+    "ssZp":  None,       # TODO : float
+    "Dp":  None,       # TODO : float
+    "splay_angle":  None,       # TODO : float
+    "splay_distance":  None,       # TODO : float
+    "splay_ratio":  None,       # TODO : float
+    "eta":  None,       # TODO : float
+    "theta":  None,       # TODO : float
+    "eta_prime":  None,       # TODO : float
+    "theta_prime":  None,       # TODO : float
+    "eta_base":  None,       # TODO : float
+    "theta_base":  None,       # TODO : float
+    "v0":  None,       # TODO : float
+    "v1":  None,       # TODO : float
+    "v2":  None,       # TODO : float
+    "v3":  None,       # TODO : float
+    "v4":  None,       # TODO : float
+    "amplitude":  None,       # TODO : float
+    "phase_angle":  None,       # TODO : float
+    "puckering":  None,       # TODO : onehot
+    "sugar_class":  None,       # TODO : onehot
+    "bin":  None,       # TODO : onehot
+    "cluster":  None,       # TODO : onehot
+    "suiteness":  None,       # TODO : float
+    "filter_rmsd":  None,       # TODO : float
+    "frame_rmsd":  None,       # TODO : float
+    "frame_origin":  None,       # TODO : list
+    "frame_x_axis":  None,       # TODO : list
+    "frame_y_axis":  None,       # TODO : list
+    "frame_z_axis":  None,       # TODO : list
+    "frame_quaternion":  None,       # TODO : list
+    "sse_sse":  None,       # TODO : ?onehot?
+    "binding_protein":  None,       # TODO : constant None ?
+    "binding_ion":  None,       # TODO : ? onehot ?
+    "binding_small-molecule":  None,       # TODO : ? onehot ?
+    "LW":  None,       # TODO : onehot
+    "backbone":  None,       # TODO : bool Constant True
+    "nt1":  None,       # TODO : trash
+    "nt2":  None,       # TODO : trash
+    "bp":  None,       # TODO : trash
+    "name":  None,       # TODO : trash
+    "Saenger":  None,       # TODO : trash
+    "DSSR":  None,       # TODO : trash
+    "binding_protein_id":  None,       # TODO : trash
+    "binding_protein_nt-aa":  None,       # TODO : trash
+    "binding_protein_nt":  None,       # TODO : trash
+    "binding_protein_aa":  None,       # TODO : trash
+    "binding_protein_Tdst":  None,       # TODO : float
+    "binding_protein_Rdst":  None,       # TODO : float
+    "binding_protein_Tx":  None,       # TODO : float
+    "binding_protein_Ty":  None,       # TODO : float
+    "binding_protein_Tz":  None,       # TODO : float
+    "binding_protein_Rx":  None,       # TODO : float
+    "binding_protein_Ry":  None,       # TODO : float
+    "binding_protein_Rz":  None,       # TODO : float
+    "is_modified":  None,       # TODO : bool Constant True
+    "is_broken": None,       # TODO : bool Constant True
 }
