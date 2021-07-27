@@ -77,7 +77,7 @@ def get_all_annots(graph_dir):
         graph_dict = dict_one(graph)
         for key, value in graph_dict.items():
             dict_all[key] = dict_all[key].union(value)
-        if i > 3: break
+        # if i > 3: break
     dict_all = {key: list(value) for key, value in dict_all.items()}
     json.dump(dict_all, open('all_annots.json', 'w'))
 
