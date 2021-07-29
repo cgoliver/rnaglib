@@ -25,35 +25,36 @@ if __name__ == "__main__":
 from torch.utils.data import Dataset, DataLoader, Subset
 from kernels.node_sim import SimFunctionNode, k_block_list, simfunc_from_hparams, EDGE_MAP
 from utils import graph_io
+from data_loading.feature_maps import build_node_feature_parser
 
-FEATURE_MAPS = {
-    'nt_code': {k: v for v, k in enumerate(['A', 'U', 'C', 'G', 'P', 'c', 'a', 'u', 't', 'g'])},
-    'nt_name': {k: v for v, k in enumerate(
-        ['A', 'U', 'C', 'G', 'PSU', 'ATP', 'UR3', '2MG', '4OC', 'CCC', 'GDP', 'M2G', '5MC', '7MG', 'MA6', 'GTP', 'G46',
-         'CBV', 'OMG', 'OMU', '5MU', '6MZ', 'RSP', 'G48', 'OMC', 'A44', '4SU', 'U36', 'H2U', 'CM0', 'I', 'C43', '1MA',
-         'A23'])},
-    'form': {k: v for v, k in enumerate(['A', '-', 'B', 'Z', '.', 'x'])},
-    'dbn': {k: v for v, k in enumerate(['(', ')', '{', '}', '<', '>', '&', '.', '[', ']'])},
-    'bb_type': {'--': 0, 'BI': 1, 'BII': 2},
-    'glyco_bond': {'--': 0, 'anti': 1, 'syn': 2},
-    'puckering': {k: v for v, k in enumerate(
-        ["C3'-endo", "C2'-endo", "C3'-exo", "C2'-exo", "C4'-exo", "C1'-exo", "04'-exo", "O4'-endo", "C1'-endo",
-         "C4'-endo", "O4'-exo"])},
-    'sugar_class': {"~C3'-endo": 0, "~C2'-endo": 1, '--': 3},
-    'bin': {k: v for v, k in enumerate(
-        ['33t', '33p', '33m', '32t', '32p', '32m', '23t', '23p', '23m', '22t', '22p', 'inc', 'trig', '22m'])},
-    'cluster': {b: n for n, b in enumerate(
-        ['1a', '1m', '1L', '&a', '7a', '3a', '9a', '1g', '7d', '3d', '5d', '1e', '1c', '1f', '6j', '1b', '1{', '3b',
-         '1z', '5z', '7p', '1t', '5q', '1o', '7r', '2a', '4a', '0a', '#a', '4g', '6g', '8d', '4d', '6d', '2h', '4n',
-         '0i', '6n', '6j', '2{', '4b', '0b', '4p', '6p', '4s', '2o', '5n', '5p', '5r', '3g', '2g', '__', '!!', '1[',
-         '5j', '0k', '2z', '2u', '2['])},
-    'sse': {s: n for s, n in enumerate(['hairpin_1', 'hairpin_3', 'buldge_1'])}
-}
+# FEATURE_MAPS = {
+#     'nt_code': {k: v for v, k in enumerate(['A', 'U', 'C', 'G', 'P', 'c', 'a', 'u', 't', 'g'])},
+#     'nt_name': {k: v for v, k in enumerate(
+#         ['A', 'U', 'C', 'G', 'PSU', 'ATP', 'UR3', '2MG', '4OC', 'CCC', 'GDP', 'M2G', '5MC', '7MG', 'MA6', 'GTP', 'G46',
+#          'CBV', 'OMG', 'OMU', '5MU', '6MZ', 'RSP', 'G48', 'OMC', 'A44', '4SU', 'U36', 'H2U', 'CM0', 'I', 'C43', '1MA',
+#          'A23'])},
+#     'form': {k: v for v, k in enumerate(['A', '-', 'B', 'Z', '.', 'x'])},
+#     'dbn': {k: v for v, k in enumerate(['(', ')', '{', '}', '<', '>', '&', '.', '[', ']'])},
+#     'bb_type': {'--': 0, 'BI': 1, 'BII': 2},
+#     'glyco_bond': {'--': 0, 'anti': 1, 'syn': 2},
+#     'puckering': {k: v for v, k in enumerate(
+#         ["C3'-endo", "C2'-endo", "C3'-exo", "C2'-exo", "C4'-exo", "C1'-exo", "04'-exo", "O4'-endo", "C1'-endo",
+#          "C4'-endo", "O4'-exo"])},
+#     'sugar_class': {"~C3'-endo": 0, "~C2'-endo": 1, '--': 3},
+#     'bin': {k: v for v, k in enumerate(
+#         ['33t', '33p', '33m', '32t', '32p', '32m', '23t', '23p', '23m', '22t', '22p', 'inc', 'trig', '22m'])},
+#     'cluster': {b: n for n, b in enumerate(
+#         ['1a', '1m', '1L', '&a', '7a', '3a', '9a', '1g', '7d', '3d', '5d', '1e', '1c', '1f', '6j', '1b', '1{', '3b',
+#          '1z', '5z', '7p', '1t', '5q', '1o', '7r', '2a', '4a', '0a', '#a', '4g', '6g', '8d', '4d', '6d', '2h', '4n',
+#          '0i', '6n', '6j', '2{', '4b', '0b', '4p', '6p', '4s', '2o', '5n', '5p', '5r', '3g', '2g', '__', '!!', '1[',
+#          '5j', '0k', '2z', '2u', '2['])},
+#     'sse': {s: n for s, n in enumerate(['hairpin_1', 'hairpin_3', 'buldge_1'])}
+# }
 
 # Make each of those feature maps default to zero
-for feature, feature_map in FEATURE_MAPS.items():
-    default_feature_map = collections.defaultdict(int, feature_map)
-    FEATURE_MAPS[feature] = default_feature_map
+# for feature, feature_map in FEATURE_MAPS.items():
+#     default_feature_map = collections.defaultdict(int, feature_map)
+#     FEATURE_MAPS[feature] = default_feature_map
 
 # This consists in the keys of the feature map that we consider as not relevant for now.
 JUNK_ATTRS = ['index_chain', 'chain_name', 'nt_resnum', 'nt_id', 'nt_type', 'summary', 'C5prime_xyz', 'P_xyz',
@@ -264,13 +265,13 @@ class GraphDataset(Dataset):
         #   If directed graphs are what one wants, one should use the directed annotation rather than the undirected.
 
         # We also need a sample graph to look at the possible node attributes
-        sample_path = os.path.join(self.path, self.all_graphs[0])
-        sample_graph = graph_io.load_json(sample_path)
-        sample_node_attrs = dict()
-        for _, sample_node_attrs in sample_graph.nodes.data():
-            break
-        self.directed = nx.is_directed(sample_graph)
-        self.force_undirected = force_undirected
+        # sample_path = os.path.join(self.path, self.all_graphs[0])
+        # sample_graph = graph_io.load_json(sample_path)
+        # sample_node_attrs = dict()
+        # for _, sample_node_attrs in sample_graph.nodes.data():
+        #     break
+        # self.directed = nx.is_directed(sample_graph)
+        # self.force_undirected = force_undirected
 
         # If it is not None, add a node comparison tool
         self.node_simfunc, self.level = self.add_node_sim(node_simfunc=node_simfunc)
@@ -278,14 +279,19 @@ class GraphDataset(Dataset):
         # If queried, add node features and node targets
         # By default we put all the node info except what is considered as junk
         if node_features == 'all':
-            self.node_features = list(set(sample_node_attrs.keys()) - set(JUNK_ATTRS) - set(ANNOTS_ATTRS))
+            # self.node_features = list(set(sample_node_attrs.keys()) - set(JUNK_ATTRS) - set(ANNOTS_ATTRS))
+            self.node_features = None
+            self.node_features = ['nt_code']
         else:
             self.node_features = [node_features] if isinstance(node_features, str) else node_features
         self.node_target = [node_target] if isinstance(node_target, str) else node_target
 
         # Then check that the entries asked for as node features exist in our feature maps and get a parser for each
-        self.node_features_parser = self.build_feature_parser(self.node_features, sample_node_attrs)
-        self.node_target_parser = self.build_feature_parser(self.node_target, sample_node_attrs)
+        # self.node_features_parser = self.build_feature_parser(self.node_features, sample_node_attrs)
+        # self.node_target_parser = self.build_feature_parser(self.node_target, sample_node_attrs)
+
+        self.node_features_parser = build_node_feature_parser(self.node_features)
+        self.node_target_parser = build_node_feature_parser(self.node_target)
 
     def download(self, download_option):
         # Get the correct names for the download option and download the correct files
@@ -323,58 +329,58 @@ class GraphDataset(Dataset):
             node_simfunc, level = None, None
         return node_simfunc, level
 
-    def build_feature_parser(self, list_of_features, sample_node_attrs):
-        """
-        We build the node feature map from the user input and check that all fields make sense.
-        This then build parsing functions to deal with each possible outputs
-
-        This is added as precomputation step so that we get different errors.
-        Here we establish a static feature map based on just one graphs.
-        Failure on other graphs will be deemed as such.
-
-        :param list_of_features:
-        :return:
-        """
-        if list_of_features is None:
-            return None
-
-        # print('computing a new parser')
-        # print(list_of_features)
-
-        def floatit(x):
-            return 0.0 if x is None else float(x)
-
-        def bindit(x):
-            return 0.0 if x is None else 1.0
-
-        def lookit(x, feature):
-            # print("I'm in lookit and feature is ", feature)
-            return FEATURE_MAPS[feature][x]
-
-        for feature in list_of_features:
-            if not feature in sample_node_attrs:
-                raise ValueError(f'{feature} was asked for as a node feature/target'
-                                 f'by user but not found in the graph node attributes')
-
-        feature_parser = dict()
-        for local_feature in list_of_features:
-            feature_value = sample_node_attrs[local_feature]
-
-            # print('new feature :')
-            # print(local_feature)
-            # print(feature_value)
-
-            if isinstance(feature_value, (int, float)):
-                # We have to add None cases, because sometimes missing values are encoded as None
-                feature_parser[local_feature] = floatit
-            elif 'binding' in local_feature:
-                # print("binding", local_feature)
-                feature_parser[local_feature] = bindit
-            elif isinstance(feature_value, str):
-                # print("other", local_feature)
-                feature_parser[local_feature] = functools.partial(lookit, feature=str(local_feature))
-            # print()
-        return feature_parser
+    # def build_feature_parser(self, list_of_features, sample_node_attrs):
+    #     """
+    #     We build the node feature map from the user input and check that all fields make sense.
+    #     This then build parsing functions to deal with each possible outputs
+    #
+    #     This is added as precomputation step so that we get different errors.
+    #     Here we establish a static feature map based on just one graphs.
+    #     Failure on other graphs will be deemed as such.
+    #
+    #     :param list_of_features:
+    #     :return:
+    #     """
+    #     if list_of_features is None:
+    #         return None
+    #
+    #     # print('computing a new parser')
+    #     # print(list_of_features)
+    #
+    #     def floatit(x):
+    #         return 0.0 if x is None else float(x)
+    #
+    #     def bindit(x):
+    #         return 0.0 if x is None else 1.0
+    #
+    #     def lookit(x, feature):
+    #         # print("I'm in lookit and feature is ", feature)
+    #         return FEATURE_MAPS[feature][x]
+    #
+    #     for feature in list_of_features:
+    #         if not feature in sample_node_attrs:
+    #             raise ValueError(f'{feature} was asked for as a node feature/target'
+    #                              f'by user but not found in the graph node attributes')
+    #
+    #     feature_parser = dict()
+    #     for local_feature in list_of_features:
+    #         feature_value = sample_node_attrs[local_feature]
+    #
+    #         # print('new feature :')
+    #         # print(local_feature)
+    #         # print(feature_value)
+    #
+    #         if isinstance(feature_value, (int, float)):
+    #             # We have to add None cases, because sometimes missing values are encoded as None
+    #             feature_parser[local_feature] = floatit
+    #         elif 'binding' in local_feature:
+    #             # print("binding", local_feature)
+    #             feature_parser[local_feature] = bindit
+    #         elif isinstance(feature_value, str):
+    #             # print("other", local_feature)
+    #             feature_parser[local_feature] = functools.partial(lookit, feature=str(local_feature))
+    #         # print()
+    #     return feature_parser
 
     def get_node_encoding(self, g, encode_feature=True):
         """
@@ -385,20 +391,20 @@ class GraphDataset(Dataset):
         targets = {}
         node_parser = self.node_features_parser if encode_feature else self.node_target_parser
 
-        # print('using node parser : ', node_parser)
+        if len(node_parser) == 0:
+            return None
 
+        # print('using node parser : ', node_parser)
         for node, attrs in g.nodes.data():
-            node_features_encoding = torch.zeros(len(node_parser))
-            for i, (feature, feature_parser) in enumerate(node_parser.items()):
-                node_feature = attrs[feature]
-                # print('feature = ', feature)
-                # print('node_feature = ', node_feature)
-                # print('feature parser = ', feature_parser)
-                float_encoding = feature_parser(node_feature)
-                # print(float_encoding)
-                # print()
-                node_features_encoding[i] = float_encoding
-            targets[node] = node_features_encoding
+            all_node_feature_encoding = list()
+            for i, (feature, feature_encoder) in enumerate(node_parser.items()):
+                try:
+                    node_feature = attrs[feature]
+                    node_feature_encoding = feature_encoder.encode(node_feature)
+                except KeyError:
+                    node_feature_encoding = feature_encoder.encode_default()
+                all_node_feature_encoding.append(node_feature_encoding)
+            targets[node] = torch.cat(all_node_feature_encoding)
         return targets
 
     def fix_buggy_edges(self, graph, strategy='remove'):
@@ -426,13 +432,13 @@ class GraphDataset(Dataset):
         g_path = os.path.join(self.path, self.all_graphs[idx])
         graph = graph_io.load_json(g_path)
 
-        # We can go from directed to undirected
-        if self.force_undirected:
-            graph = nx.to_undirected(graph)
-
-        # This is a weird call but necessary for DGL as it only deals
-        #   with undirected graphs that have both directed edges
-        graph = graph.to_directed()
+        # # We can go from directed to undirected
+        # if self.force_undirected:
+        #     graph = nx.to_undirected(graph)
+        #
+        # # This is a weird call but necessary for DGL as it only deals
+        # #   with undirected graphs that have both directed edges
+        # graph = graph.to_directed()
 
         graph = self.fix_buggy_edges(graph=graph)
 
@@ -443,11 +449,12 @@ class GraphDataset(Dataset):
 
         # Get Node labels
         node_attrs_toadd = list()
-        if self.node_features is not None:
+        # if self.node_features is not None:
+        if len(self.node_features_parser) > 0:
             feature_encoding = self.get_node_encoding(graph, encode_feature=True)
             nx.set_node_attributes(graph, name='features', values=feature_encoding)
             node_attrs_toadd.append('features')
-        if self.node_target is not None:
+        if len(self.node_target_parser) > 0:
             target_encoding = self.get_node_encoding(graph, encode_feature=False)
             nx.set_node_attributes(graph, name='target', values=target_encoding)
             node_attrs_toadd.append('target')
@@ -619,7 +626,7 @@ class SupervisedLoader(Loader):
                  dataset=None,
                  **kwargs):
         if dataset is None:
-            dataset = GraphDataset(node_target=('binding_protein'),
+            dataset = GraphDataset(node_target='binding_protein',
                                    download='nr_graphs')
         super().__init__(
             dataset=dataset,
@@ -654,8 +661,9 @@ def loader_from_hparams(data_path, hparams, list_inference=None):
 if __name__ == '__main__':
     import time
 
-    # annotated_path = os.path.join(script_dir, '../../data/annotated/undirected')
     pass
+
+    # annotated_path = os.path.join(script_dir, '../../data/annotated/undirected')
     # g_path ='2kwg.json'
     # graph = graph_io.load_json(g_path)
     # print(len(graph.nodes()))
@@ -691,7 +699,25 @@ if __name__ == '__main__':
     #     if i > 3:
     #         break
     # print(time.time() - a)
+    node_features = ['nt_code', "alpha", "C5prime_xyz", "is_modified"]
+    node_target = ['binding_ion']
 
-    # dataset = GraphDataset(download='test')
-    loader = SupervisedLoader()
+    # GET THE DATA GOING
+    dataset = GraphDataset(node_features=node_features,
+                           node_target=node_target,
+                           data_path='data/graphs/all_graphs')
+    train_loader, validation_loader, test_loader = SupervisedLoader(dataset=dataset, batch_size=1,
+                                                                    num_workers=6).get_data()
+    print(len(train_loader))
+    import time
+
+    time.sleep(2)
+    for i, item in enumerate(train_loader):
+        # print(item)
+        # if i > 100:
+        #     break
+        if not i % 20: print(i)
+        pass
+
+    # loader = SupervisedLoader()
     # loader = UnsupervisedLoader()
