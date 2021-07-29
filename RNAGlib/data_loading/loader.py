@@ -240,11 +240,12 @@ class GraphDataset(Dataset):
         for example :
         :param node_features: node targets to include, stored in one tensor in order given by user
         """
-        if download is not None:
-            data_path = self.download(download)
-        else:
-            if data_path is None:
+        if data_path is None:
+            if download is not None:
+                data_path = self.download(download)
+            else:
                 raise ValueError('One should provide either a download string command or a data_path')
+
         self.path = data_path
         self.all_graphs = sorted(os.listdir(data_path))
         if '3p4b_annot.json' in self.all_graphs:
@@ -292,6 +293,9 @@ class GraphDataset(Dataset):
 
         self.node_features_parser = build_node_feature_parser(self.node_features)
         self.node_target_parser = build_node_feature_parser(self.node_target)
+
+        self.input_dim = self.compute_dim(self.node_features_parser)
+        self.output_dim = self.compute_dim(self.node_target_parser)
 
     def download(self, download_option):
         # Get the correct names for the download option and download the correct files
@@ -407,6 +411,20 @@ class GraphDataset(Dataset):
             targets[node] = torch.cat(all_node_feature_encoding)
         return targets
 
+    def compute_dim(self, node_parser):
+        """
+        Based on the encoding scheme, we can compute the shapes of the in and out tensors
+        :return:
+        """
+        if len(node_parser) == 0:
+            return 0
+        all_node_feature_encoding = list()
+        for i, (feature, feature_encoder) in enumerate(node_parser.items()):
+            node_feature_encoding = feature_encoder.encode_default()
+            all_node_feature_encoding.append(node_feature_encoding)
+        all_node_feature_encoding = torch.cat(all_node_feature_encoding)
+        return len(all_node_feature_encoding)
+
     def fix_buggy_edges(self, graph, strategy='remove'):
         """
         Sometimes some edges have weird names such as t.W representing a fuzziness.
@@ -443,9 +461,9 @@ class GraphDataset(Dataset):
         graph = self.fix_buggy_edges(graph=graph)
 
         # Get Edge Labels
-        one_hot = {edge: torch.tensor(self.edge_map[label]) for edge, label in
-                   (nx.get_edge_attributes(graph, self.label)).items()}
-        nx.set_edge_attributes(graph, name='one_hot', values=one_hot)
+        edge_type = {edge: torch.tensor(self.edge_map[label]) for edge, label in
+                     (nx.get_edge_attributes(graph, self.label)).items()}
+        nx.set_edge_attributes(graph, name='edge_type', values=edge_type)
 
         # Get Node labels
         node_attrs_toadd = list()
@@ -459,7 +477,8 @@ class GraphDataset(Dataset):
             nx.set_node_attributes(graph, name='target', values=target_encoding)
             node_attrs_toadd.append('target')
         # Careful ! When doing this, the graph nodes get sorted.
-        g_dgl = dgl.from_networkx(nx_graph=graph, edge_attrs=['one_hot'],
+        g_dgl = dgl.from_networkx(nx_graph=graph,
+                                  edge_attrs=['edge_type'],
                                   node_attrs=node_attrs_toadd)
 
         if self.node_simfunc is not None:
@@ -467,6 +486,38 @@ class GraphDataset(Dataset):
             return g_dgl, ring
         else:
             return g_dgl, 0
+
+
+class UnsupervisedDataset(GraphDataset):
+    """
+    Basically just change the default of the loader based on the usecase
+    """
+
+    def __init__(self,
+                 node_simfunc=SimFunctionNode('R_1', 2),
+                 download='nr_annotated',
+                 **kwargs):
+        super().__init__(
+            node_simfunc=node_simfunc,
+            download=download,
+            **kwargs
+        )
+
+
+class SupervisedDataset(GraphDataset):
+    """
+    Basically just change the default of the loader based on the usecase
+    """
+
+    def __init__(self,
+                 node_target='binding_protein',
+                 download='nr_graphs',
+                 **kwargs):
+        super().__init__(
+            node_target=node_target,
+            download=download,
+            **kwargs
+        )
 
 
 def collate_wrapper(node_simfunc=None, max_size_kernel=None):
@@ -600,40 +651,6 @@ class InferenceLoader:
         return train_loader
 
 
-class UnsupervisedLoader(Loader):
-    """
-    Basically just change the default of the loader based on the usecase
-    """
-
-    def __init__(self,
-                 dataset=None,
-                 **kwargs):
-        if dataset is None:
-            dataset = GraphDataset(node_simfunc=SimFunctionNode('R_1', 2),
-                                   download='nr_annotated')
-        super().__init__(
-            dataset=dataset,
-            **kwargs
-        )
-
-
-class SupervisedLoader(Loader):
-    """
-    Basically just change the default of the loader based on the usecase
-    """
-
-    def __init__(self,
-                 dataset=None,
-                 **kwargs):
-        if dataset is None:
-            dataset = GraphDataset(node_target='binding_protein',
-                                   download='nr_graphs')
-        super().__init__(
-            dataset=dataset,
-            **kwargs
-        )
-
-
 def loader_from_hparams(data_path, hparams, list_inference=None):
     """
         :params
@@ -706,18 +723,22 @@ if __name__ == '__main__':
     dataset = GraphDataset(node_features=node_features,
                            node_target=node_target,
                            data_path='data/graphs/all_graphs')
-    train_loader, validation_loader, test_loader = SupervisedLoader(dataset=dataset, batch_size=1,
-                                                                    num_workers=6).get_data()
-    print(len(train_loader))
-    import time
+    train_loader, validation_loader, test_loader = Loader(dataset=dataset,
+                                                          batch_size=1,
+                                                          num_workers=6).get_data()
 
-    time.sleep(2)
+    supervised = SupervisedDataset(data_path='data/graphs/all_graphs',
+                                   node_features=node_features,
+                                   node_target=None)
+    train_loader, validation_loader, test_loader = Loader(dataset=supervised,
+                                                          batch_size=1,
+                                                          num_workers=6).get_data()
+
     for i, item in enumerate(train_loader):
-        # print(item)
-        # if i > 100:
-        #     break
+        print(item)
+        if i > 10:
+            break
         if not i % 20: print(i)
         pass
 
-    # loader = SupervisedLoader()
     # loader = UnsupervisedLoader()

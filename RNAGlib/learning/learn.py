@@ -146,13 +146,13 @@ def rec_loss(embeddings, target_K, similarity=True, normalize=False, use_graph=F
     if use_graph:
         assert graph is not None
         import networkx as nx
-        nx_graph = graph.to_networkx(edge_attrs=['one_hot'])
+        nx_graph = graph.to_networkx(edge_attrs=['edge_type'])
         nx_graph = nx.to_undirected(nx_graph)
         ordered = sorted(nx_graph.nodes())
         adj_matrix_full = nx.to_scipy_sparse_matrix(nx_graph, nodelist=ordered)
 
         # copy the matrix with only the non canonical
-        extracted_edges = [(u, v) for u, v, e in nx_graph.edges.data('one_hot', default='0')
+        extracted_edges = [(u, v) for u, v, e in nx_graph.edges.data('edge_type', default='0')
                            if e not in [0, 6]]
         extracted_graph = nx.Graph()
         extracted_graph.add_nodes_from(ordered)
