@@ -23,38 +23,10 @@ if __name__ == "__main__":
     sys.path.append(os.path.join(script_dir, '..'))
 
 from torch.utils.data import Dataset, DataLoader, Subset
-from kernels.node_sim import SimFunctionNode, k_block_list, simfunc_from_hparams, EDGE_MAP
+from kernels.node_sim import SimFunctionNode, k_block_list, simfunc_from_hparams
 from utils import graph_io
 from data_loading.feature_maps import build_node_feature_parser
-
-# FEATURE_MAPS = {
-#     'nt_code': {k: v for v, k in enumerate(['A', 'U', 'C', 'G', 'P', 'c', 'a', 'u', 't', 'g'])},
-#     'nt_name': {k: v for v, k in enumerate(
-#         ['A', 'U', 'C', 'G', 'PSU', 'ATP', 'UR3', '2MG', '4OC', 'CCC', 'GDP', 'M2G', '5MC', '7MG', 'MA6', 'GTP', 'G46',
-#          'CBV', 'OMG', 'OMU', '5MU', '6MZ', 'RSP', 'G48', 'OMC', 'A44', '4SU', 'U36', 'H2U', 'CM0', 'I', 'C43', '1MA',
-#          'A23'])},
-#     'form': {k: v for v, k in enumerate(['A', '-', 'B', 'Z', '.', 'x'])},
-#     'dbn': {k: v for v, k in enumerate(['(', ')', '{', '}', '<', '>', '&', '.', '[', ']'])},
-#     'bb_type': {'--': 0, 'BI': 1, 'BII': 2},
-#     'glyco_bond': {'--': 0, 'anti': 1, 'syn': 2},
-#     'puckering': {k: v for v, k in enumerate(
-#         ["C3'-endo", "C2'-endo", "C3'-exo", "C2'-exo", "C4'-exo", "C1'-exo", "04'-exo", "O4'-endo", "C1'-endo",
-#          "C4'-endo", "O4'-exo"])},
-#     'sugar_class': {"~C3'-endo": 0, "~C2'-endo": 1, '--': 3},
-#     'bin': {k: v for v, k in enumerate(
-#         ['33t', '33p', '33m', '32t', '32p', '32m', '23t', '23p', '23m', '22t', '22p', 'inc', 'trig', '22m'])},
-#     'cluster': {b: n for n, b in enumerate(
-#         ['1a', '1m', '1L', '&a', '7a', '3a', '9a', '1g', '7d', '3d', '5d', '1e', '1c', '1f', '6j', '1b', '1{', '3b',
-#          '1z', '5z', '7p', '1t', '5q', '1o', '7r', '2a', '4a', '0a', '#a', '4g', '6g', '8d', '4d', '6d', '2h', '4n',
-#          '0i', '6n', '6j', '2{', '4b', '0b', '4p', '6p', '4s', '2o', '5n', '5p', '5r', '3g', '2g', '__', '!!', '1[',
-#          '5j', '0k', '2z', '2u', '2['])},
-#     'sse': {s: n for s, n in enumerate(['hairpin_1', 'hairpin_3', 'buldge_1'])}
-# }
-
-# Make each of those feature maps default to zero
-# for feature, feature_map in FEATURE_MAPS.items():
-#     default_feature_map = collections.defaultdict(int, feature_map)
-#     FEATURE_MAPS[feature] = default_feature_map
+from config.graph_keys import GRAPH_KEYS, TOOL
 
 # This consists in the keys of the feature map that we consider as not relevant for now.
 JUNK_ATTRS = ['index_chain', 'chain_name', 'nt_resnum', 'nt_id', 'nt_type', 'summary', 'C5prime_xyz', 'P_xyz',
@@ -220,7 +192,7 @@ def download_name_factory(download_option):
 class GraphDataset(Dataset):
     def __init__(self,
                  data_path='../data/annotated/samples',
-                 edge_map=EDGE_MAP,
+                 edge_map=GRAPH_KEYS['edge_map'][TOOL],
                  label='LW',
                  node_simfunc=None,
                  node_features=None,
@@ -540,19 +512,17 @@ def collate_wrapper(node_simfunc=None, max_size_kernel=None):
             # If we have a huge graph, we can sample max_size_kernel nodes to avoid huge computations,
             # We then return the sampled ids
             flat_rings = list()
-            node_ids = list()
             for ring in rings:
-                if max_size_kernel is None or len(ring) < max_size_kernel:
-                    # Just take them all
-                    node_ids.extend([1 for _ in ring])
-                    flat_rings.extend(ring)
-                else:
-                    # Take only 'max_size_kernel' elements
-                    graph_node_id = [1 for _ in range(max_size_kernel)] + [0 for _ in
-                                                                           range(len(ring) - max_size_kernel)]
-                    random.shuffle(graph_node_id)
-                    node_ids.extend(graph_node_id)
-                    flat_rings.extend([node for i, node in enumerate(ring) if graph_node_id[i] == 1])
+                flat_rings.extend(ring)
+            if max_size_kernel is None or len(flat_rings) < max_size_kernel:
+                # Just take them all
+                node_ids = [1 for _ in flat_rings]
+            else:
+                # Take only 'max_size_kernel' elements
+                node_ids = [1 for _ in range(max_size_kernel)] + \
+                           [0 for _ in range(len(flat_rings) - max_size_kernel)]
+                random.shuffle(node_ids)
+                flat_rings = [node for i, node in enumerate(flat_rings) if node_ids[i] == 1]
             K = k_block_list(flat_rings, node_simfunc)
             return batched_graph, torch.from_numpy(K).detach().float(), len_graphs, node_ids
     else:
