@@ -37,6 +37,7 @@ learn.pretrain_unsupervised(model=embedder_model,
                             optimizer=optimizer,
                             node_sim=node_sim_func,
                             train_loader=train_loader,
+                            rec_params={"similarity": True, "normalize": False, "use_graph": True, "hops": 2},
                             num_epochs=2)
 print()
 print('We have finished pretraining the network, let us fine tune it')

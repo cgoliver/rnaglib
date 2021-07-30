@@ -20,15 +20,6 @@ if __name__ == "__main__":
     sys.path.append(os.path.join(script_dir, '..'))
 
 
-def graph_from_node(node_id,
-                    annot_dir=os.path.join(script_dir, '../data/annotated/whole_v4/')):
-    """
-        Fetch graph from a node id.
-    """
-    graph_path = os.path.join(annot_dir, node_id[0].replace('.nx', '_annot.p'))
-    return pickle.load(open(graph_path, 'rb'))['graph'].to_undirected()
-
-
 def whole_graph_from_node(node_id, annot_dir=os.path.join(script_dir, graph_dir)):
     """
         Fetch whole graph from a node id.

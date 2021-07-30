@@ -11,6 +11,8 @@ if __name__ == "__main__":
     script_dir = os.path.dirname(os.path.realpath(__file__))
     sys.path.append(os.path.join(script_dir, '..'))
 
+from config.graph_keys import GRAPH_KEYS, TOOL
+
 
 def send_graph_to_device(g, device):
     """
@@ -122,6 +124,8 @@ def rec_loss(embeddings, target_K, similarity=True, normalize=False, use_graph=F
     :param target_K: If we use a similarity, we can choose to normalize (cosine) or to just take a dot product
     :param use_graph: This is to put extra focus on the parts of the graph that contain non canonical edges.
      We can input the graph too and adapt the reconstruction loss
+    :param node_ids: The node ids are given as a one hot vector that represents the presence or absence of
+     a non-canonical around a given node
     :param graph: we need to give graph as input in case we want to use use_graph
     :param hops : In case we use a graph, how many hops will be used around the given edge
     :return:
@@ -137,13 +141,17 @@ def rec_loss(embeddings, target_K, similarity=True, normalize=False, use_graph=F
         target_K = torch.ones(target_K.shape, device=target_K.device) - target_K
 
     # Cannot have both for now
-    assert node_ids is None or not use_graph
+    # assert node_ids is None or not use_graph
     if node_ids is not None:
-        node_ids = np.argwhere(np.array(node_ids) > 0).squeeze()
-        K_predict_1 = K_predict[node_ids]
-        K_predict = K_predict_1[:, node_ids]
+        node_indices = np.argwhere(np.array(node_ids) > 0).squeeze()
+        K_predict_1 = K_predict[node_indices]
+        K_predict = K_predict_1[:, node_indices]
 
-    if use_graph:
+    if not use_graph:
+        reconstruction_loss = torch.nn.MSELoss()(K_predict, target_K)
+        return reconstruction_loss
+
+    else:
         assert graph is not None
         import networkx as nx
         nx_graph = graph.to_networkx(edge_attrs=['edge_type'])
@@ -151,9 +159,12 @@ def rec_loss(embeddings, target_K, similarity=True, normalize=False, use_graph=F
         ordered = sorted(nx_graph.nodes())
         adj_matrix_full = nx.to_scipy_sparse_matrix(nx_graph, nodelist=ordered)
 
+        edge_map = GRAPH_KEYS['edge_map'][TOOL]
+        canonicals = {edge_map[key] for key in ['B53', 'B35', 'cWW', 'CWW']
+                      if key in edge_map.keys()}
         # copy the matrix with only the non canonical
         extracted_edges = [(u, v) for u, v, e in nx_graph.edges.data('edge_type', default='0')
-                           if e not in [0, 6]]
+                           if e not in canonicals]
         extracted_graph = nx.Graph()
         extracted_graph.add_nodes_from(ordered)
         extracted_graph.add_edges_from(extracted_edges)
@@ -183,10 +194,12 @@ def rec_loss(embeddings, target_K, similarity=True, normalize=False, use_graph=F
         weight = np.outer(enhanced, enhanced)
         weight /= np.mean(weight)
         weight = torch.from_numpy(weight)
-        return weighted_MSE(K_predict, target_K, weight)
 
-    reconstruction_loss = torch.nn.MSELoss()(K_predict, target_K)
-    return reconstruction_loss
+        if node_ids is not None:
+            node_indices = np.argwhere(np.array(node_ids) > 0).squeeze()
+            weight_1 = weight[node_indices]
+            weight = weight_1[:, node_indices]
+        return weighted_MSE(K_predict, target_K, weight)
 
 
 def pretrain_unsupervised(model,
