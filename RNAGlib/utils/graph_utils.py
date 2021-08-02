@@ -20,15 +20,6 @@ if __name__ == "__main__":
     sys.path.append(os.path.join(script_dir, '..'))
 
 
-def graph_from_node(node_id,
-                    annot_dir=os.path.join(script_dir, '../data/annotated/whole_v4/')):
-    """
-        Fetch graph from a node id.
-    """
-    graph_path = os.path.join(annot_dir, node_id[0].replace('.nx', '_annot.p'))
-    return pickle.load(open(graph_path, 'rb'))['graph'].to_undirected()
-
-
 def whole_graph_from_node(node_id, annot_dir=os.path.join(script_dir, graph_dir)):
     """
         Fetch whole graph from a node id.
@@ -261,11 +252,11 @@ def nx_to_dgl(graph, edge_map, embed_dim, label='label'):
     import dgl
 
     graph, _, ring = pickle.load(open(graph, 'rb'))
-    one_hot = {edge: edge_map[lab] for edge, lab in (nx.get_edge_attributes(graph, label)).items()}
-    nx.set_edge_attributes(graph, name='one_hot', values=one_hot)
-    one_hot = {edge: torch.tensor(edge_map[lab]) for edge, lab in (nx.get_edge_attributes(graph, label)).items()}
+    edge_type = {edge: edge_map[lab] for edge, lab in (nx.get_edge_attributes(graph, label)).items()}
+    nx.set_edge_attributes(graph, name='edge_type', values=edge_type)
+    edge_type = {edge: torch.tensor(edge_map[lab]) for edge, lab in (nx.get_edge_attributes(graph, label)).items()}
     g_dgl = dgl.DGLGraph()
-    g_dgl.from_networkx(nx_graph=graph, edge_attrs=['one_hot'])
+    g_dgl.from_networkx(nx_graph=graph, edge_attrs=['edge_type'])
     n_nodes = len(g_dgl.nodes())
     g_dgl.ndata['h'] = torch.ones((n_nodes, embed_dim))
 
@@ -274,9 +265,9 @@ def nx_to_dgl(graph, edge_map, embed_dim, label='label'):
 
 def dgl_to_nx(graph, edge_map, label='label'):
     import dgl
-    g = dgl.to_networkx(graph, edge_attrs=['one_hot'])
+    g = dgl.to_networkx(graph, edge_attrs=['edge_type'])
     edge_map_r = {v: k for k, v in edge_map.items()}
-    nx.set_edge_attributes(g, {(n1, n2): edge_map_r[d['one_hot'].item()] for n1, n2, d in g.edges(data=True)}, label)
+    nx.set_edge_attributes(g, {(n1, n2): edge_map_r[d['edge_type'].item()] for n1, n2, d in g.edges(data=True)}, label)
     return g
 
 

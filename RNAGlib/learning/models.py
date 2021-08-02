@@ -92,7 +92,7 @@ class Embedder(nn.Module):
             if not self.conv_output and (i == len(self.layers) - 1):
                 h = layer(h)
             else:
-                h = layer(g, h, g.edata['one_hot'])
+                h = layer(g, h, g.edata['edge_type'])
         g.ndata['h'] = h
         return g.ndata['h']
 
@@ -159,7 +159,6 @@ class Classifier(nn.Module):
             last_hidden, last = self.classif_dims[-2:]
             short = self.classif_dims[:-1]
             for dim_in, dim_out in zip(short, short[1:]):
-                # print('in',dim_in, dim_out)
                 h2h = RelGraphConv(in_feat=dim_in,
                                    out_feat=dim_out,
                                    num_rels=self.num_rels,
@@ -199,7 +198,7 @@ class Classifier(nn.Module):
                 h = layer(h)
             # Convolution layer
             else:
-                h = layer(g, h, g.edata['one_hot'])
+                h = layer(g, h, g.edata['edge_type'])
 
         # This is necessary due to the dgl bug
         if len(h.shape) == 1:

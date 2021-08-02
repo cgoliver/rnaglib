@@ -28,8 +28,10 @@ def get_NRlist(resolution):
 
     base_url = 'http://rna.bgsu.edu/rna3dhub/nrlist/download'
     release = 'current' # can be replaced with a specific release id, e.g. 0.70
+    release = '3.186'
     url = '/'.join([base_url, release, resolution])
 
+    print(url)
     df = pd.read_csv(url, header=None)
 
     repr_set = []
@@ -106,6 +108,12 @@ def filter_graph(g, fltr):
     h = g.subgraph(NR_nodes).copy()
 
     return h
+
+def has_no_dots(graph):
+    for _,_,d in graph.edges(data=True):
+        if '.' in d['LW'] or d['LW'] == '--':
+            return False
+    return True
 
 def filter_dot_edges(graph):
     """ Remove edges with a '.' in the LW annotation.
