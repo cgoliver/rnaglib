@@ -17,3 +17,5 @@ GRAPH_KEYS = {'nt_position': {'RGLIB': 'nt_resnum', 'FR3D': 'pdb_pos'},
               'edge_map': {'RGLIB': EDGE_MAP_RGLIB, 'FR3D': EDGE_MAP_FR3D},
               'idf': {'RGLIB': IDF_RGLIB, 'FR3D': IDF},
               }
+
+TOOL = 'RGLIB'
