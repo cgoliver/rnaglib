@@ -192,6 +192,7 @@ def download_name_factory(download_option):
 class GraphDataset(Dataset):
     def __init__(self,
                  data_path='../data/annotated/samples',
+                 all_graphs=None,
                  edge_map=GRAPH_KEYS['edge_map'][TOOL],
                  label='LW',
                  node_simfunc=None,
@@ -219,11 +220,15 @@ class GraphDataset(Dataset):
                 raise ValueError('One should provide either a download string command or a data_path')
 
         self.path = data_path
-        self.all_graphs = sorted(os.listdir(data_path))
-        if '3p4b_annot.json' in self.all_graphs:
-            self.all_graphs.remove('3p4b_annot.json')
-        if '2kwg_annot.json' in self.all_graphs:
-            self.all_graphs.remove('2kwg_annot.json')
+
+        if all_graphs is not None:
+            self.all_graphs = all_graphs
+        else:
+            self.all_graphs = sorted(os.listdir(data_path))
+            if '3p4b_annot.json' in self.all_graphs:  # TODO sort these out or remove them.
+                self.all_graphs.remove('3p4b_annot.json')
+            if '2kwg_annot.json' in self.all_graphs:
+                self.all_graphs.remove('2kwg_annot.json')
 
         # This is len() so we have to add the +1
         self.label = label
