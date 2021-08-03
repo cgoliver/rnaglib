@@ -43,7 +43,7 @@ def process_axis(axis,
                  node_ids=False,
                  label='LW'):
     pos = circular_layout(g)
-    # pos = nx.spring_layout(g)
+    # pos = nx.random_layout(g)
 
     if not node_color is None:
         nodes = nx.draw_networkx_nodes(g, pos, node_size=150, node_color=node_color, linewidths=2, ax=axis)
@@ -210,5 +210,7 @@ def rna_draw_grid(graphs, subtitles=None, highlight_edges=None, node_colors=None
 if __name__ == "__main__":
     G = load_json("data/examples/4nlf.json")
     # rna_draw(G, show=True)
-    rna_draw(G, save="draw.pdf", format="pdf")
+    for f in os.listdir("data/all_graphs_chops"):
+        G = nx.read_gpickle(os.path.join("data/all_graphs_chops", f))
+        rna_draw(G, show=True, format="pdf")
     pass
