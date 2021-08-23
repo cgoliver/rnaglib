@@ -11,11 +11,15 @@ IDF = {'TSS': 1.3508944643423815, 'TWW': 2.2521850545837103, 'CWW': 0.7302387734
        'CWS': 2.0236918714028707, 'CHH': 4.627784875752877, 'CSW': 2.0236918714028707}
 IDF_RGLIB = {key[0].lower() + key[1:]: value for key, value in IDF.items()}
 
+INDEL_VECTOR_FR3D = [1 if e[0] == 'B' else 2 if e == 'CWW' else 3 for e in sorted(EDGE_MAP_FR3D.keys())]
+INDEL_VECTOR_RGLIB = [1 if e[0] == 'B' else 2 if e == 'cWW' else 3 for e in sorted(EDGE_MAP_RGLIB.keys())]
+
 GRAPH_KEYS = {'nt_position': {'RGLIB': 'nt_resnum', 'FR3D': 'pdb_pos'},
               'chain': {'RGLIB': 'chain_name', 'FR3D': 'chain'},
               'bp_type': {'RGLIB': 'LW', 'FR3D': 'label'},
               'edge_map': {'RGLIB': EDGE_MAP_RGLIB, 'FR3D': EDGE_MAP_FR3D},
+              'indel_vector': {'RGLIB': INDEL_VECTOR_RGLIB, 'FR3D': INDEL_VECTOR_FR3D},
+              'valid_edges': {'RGLIB': EDGE_MAP_RGLIB.keys(), 'FR3D': EDGE_MAP_FR3D.keys()},
               'idf': {'RGLIB': IDF_RGLIB, 'FR3D': IDF},
               }
-
 TOOL = 'RGLIB'
