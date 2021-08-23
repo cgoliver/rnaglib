@@ -13,16 +13,16 @@ class Embedder(nn.Module):
 
     def __init__(self,
                  dims,
-                 infeatures_dim=-1,
-                 num_rels=19,
-                 num_bases=-1,
+                 infeatures_dim=0,
+                 num_rels=20,
+                 num_bases=None,
                  conv_output=True,
                  self_loop=True,
                  verbose=False):
         super(Embedder, self).__init__()
         self.dims = dims
-        self.use_node_features = (infeatures_dim != -1)
-        self.in_dim = 1 if infeatures_dim == -1 else infeatures_dim
+        self.use_node_features = (infeatures_dim != 0)
+        self.in_dim = 1 if infeatures_dim == 0 else infeatures_dim
         self.conv_output = conv_output
         self.num_rels = num_rels
         self.num_bases = num_bases
@@ -92,7 +92,7 @@ class Embedder(nn.Module):
             if not self.conv_output and (i == len(self.layers) - 1):
                 h = layer(h)
             else:
-                h = layer(g, h, g.edata['edge_type'])
+                h = layer(g=g, feat=h, etypes=g.edata['edge_type'])
         g.ndata['h'] = h
         return g.ndata['h']
 
@@ -101,10 +101,9 @@ class Classifier(nn.Module):
 
     def __init__(self,
                  embedder,
-                 last_dim_embedder,
                  classif_dims=None,
-                 num_rels=19,
-                 num_bases=-1,
+                 num_rels=20,
+                 num_bases=None,
                  conv_output=True,
                  self_loop=True,
                  verbose=False):
@@ -115,7 +114,7 @@ class Classifier(nn.Module):
         self.conv_output = conv_output
 
         self.embedder = embedder
-        self.last_dim_embedder = last_dim_embedder
+        self.last_dim_embedder = embedder.dims[-1]
         self.classif_dims = classif_dims
 
         self.classif_layers = self.build_model()

@@ -26,7 +26,7 @@ train_loader, validation_loader, test_loader = loader.Loader(dataset=supervised_
 # Define a model and train it, we first embed our data in 10 dimensions, and then add one classification
 input_dim, target_dim = supervised_dataset.input_dim, supervised_dataset.output_dim
 embedder_model = models.Embedder(dims=[10, 10], infeatures_dim=input_dim)
-classifier_model = models.Classifier(embedder=embedder_model, last_dim_embedder=10, classif_dims=[target_dim])
+classifier_model = models.Classifier(embedder=embedder_model, classif_dims=[target_dim])
 
 # Finally get the training going
 optimizer = torch.optim.Adam(classifier_model.parameters(), lr=0.001)
