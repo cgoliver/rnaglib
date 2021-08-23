@@ -277,24 +277,24 @@ class GraphDataset(Dataset):
     def download(self, download_option):
         # Get the correct names for the download option and download the correct files
         url, dl_path, data_path, dirname, hashing = download_name_factory(download_option)
-        if not os.path.exists(dl_path):
-            print('Required dataset not found, launching a download. This should take about a minute')
-            download(path=dl_path,
-                     url=url)
+        full_data_path = os.path.join(data_path, dirname)
+        if not os.path.exists(full_data_path):
+            if not os.path.exists(dl_path):
+                print('Required dataset not found, launching a download. This should take about a minute')
+                download(path=dl_path,
+                         url=url)
+            # Expand the compressed files at the right location
+            if dl_path.endswith('.zip'):
+                with zipfile.ZipFile(dl_path, 'r') as zip_file:
+                    zip_file.extractall(path=data_path)
+            elif '.tar' in url:
+                with tarfile.open(dl_path) as tar_file:
+                    tar_file.extractall(path=data_path)
         if hashing is not None:
             hashing_url, hashing_path = hashing
             if not os.path.exists(hashing_path):
                 download(path=hashing_path,
                          url=hashing_url)
-
-        # Expand the compressed files at the right location
-        if dl_path.endswith('.zip'):
-            with zipfile.ZipFile(dl_path, 'r') as zip_file:
-                zip_file.extractall(path=data_path)
-        elif '.tar' in url:
-            with tarfile.open(dl_path) as tar_file:
-                tar_file.extractall(path=data_path)
-        full_data_path = os.path.join(data_path, dirname)
         return full_data_path
 
     def __len__(self):
@@ -309,7 +309,6 @@ class GraphDataset(Dataset):
         else:
             node_simfunc, level = None, None
         return node_simfunc, level
-
 
     def get_node_encoding(self, g, encode_feature=True):
         """

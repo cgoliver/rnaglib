@@ -5,13 +5,16 @@ import time
 
 import numpy as np
 import torch
+from torch.utils.data import Subset
 import dgl
+from sklearn.metrics import roc_auc_score
 
 if __name__ == "__main__":
     script_dir = os.path.dirname(os.path.realpath(__file__))
     sys.path.append(os.path.join(script_dir, '..'))
 
 from config.graph_keys import GRAPH_KEYS, TOOL
+from utils import misc
 
 
 def send_graph_to_device(g, device):
@@ -56,22 +59,56 @@ def evaluate_model_unsupervised(model, validation_loader):
     return recons_loss_tot / test_size
 
 
-def evaluate_model_supervised(model, validation_loader):
+def compute_outputs(model, validation_loader):
+    model.eval()
+    device = model.current_device
+    true, predicted = list(), list()
+    for batch_idx, (graph, graph_sizes) in enumerate(validation_loader):
+        # Get data on the devices
+        graph = send_graph_to_device(graph, device)
+
+        # Do the computations for the forward pass
+        with torch.no_grad():
+            labels = graph.ndata['target']
+            out = model(graph)
+
+            true.append(misc.tonumpy(labels))
+            predicted.append(misc.tonumpy(out))
+    true = np.concatenate(true)
+    predicted = np.concatenate(predicted)
+    return true, predicted
+
+
+def evaluate_model_supervised(model, validation_loader, evaluation_function=roc_auc_score):
+    """
+    Make the inference and apply an evalutation function on it
+
+    :param model:
+    :param validation_loader:
+    :param evaluation_function:
+    :return:
+    """
+    true, predicted = compute_outputs(model, validation_loader)
+    score = evaluation_function(true, predicted)
+    return score
+
+
+def evaluate_model_supervised_deprecated(model, validation_loader,
+                                         evaluation_function=lambda x, y: torch.nn.MSELoss(x, y).item()):
     model.eval()
     device = model.current_device
     test_size = len(validation_loader)
     loss_tot = 0
     for batch_idx, (graph, graph_sizes) in enumerate(validation_loader):
         # Get data on the devices
-        K = K.to(device)
         graph = send_graph_to_device(graph, device)
 
         # Do the computations for the forward pass
         with torch.no_grad():
             out = model(graph)
             labels = graph.ndata['target']
-            loss = torch.nn.MSELoss()(out, labels)
-            loss_tot += loss.item()
+            loss = evaluation_function(out, labels)
+            loss_tot += loss
     return loss_tot / test_size
 
 
@@ -213,7 +250,12 @@ def pretrain_unsupervised(model,
                           print_each=20
                           ):
     device = model.current_device
-    train_loader.dataset.dataset.add_node_sim(node_simfunc=node_sim)
+    # We need to access the GraphDataset object, which is accessed differently when using subsets.
+    # This is the recommended fix in https://discuss.pytorch.org/t/how-to-get-a-part-of-datasets/82161/7
+    if isinstance(train_loader, Subset):
+        train_loader.dataset.dataset.add_node_sim(node_simfunc=node_sim)
+    else:
+        train_loader.dataset.add_node_sim(node_simfunc=node_sim)
     if early_stopper is not None:
         early_stopper.dataset.dataset.test_loader.add_node_sim(node_simfunc=node_sim)
     epochs_from_best = 0

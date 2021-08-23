@@ -62,7 +62,7 @@ class SimFunctionNode():
                  decay=0.5,
                  idf=False,
                  normalization=None,
-                 hash_init='whole_v3',
+                 hash_init='NR_annot_hash',
                  cache=True):
 
         POSSIBLE_METHODS = ['R_1', 'R_iso', 'R_graphlets', 'R_ged', 'hungarian', 'graphlet']

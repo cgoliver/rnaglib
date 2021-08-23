@@ -44,19 +44,27 @@ def dict_one(graph, counter=False, possible_supervisions=None):
                     key = f'{prepend}_{key}'
                 if possible_supervisions is not None and key not in possible_supervisions:
                     continue
+                if 'modified' in key:
+                    print(key)
                 if counter:
-                    # Only count interesting strings
-                    if type(value) == str and key not in ['node_nt_id', 'edge_nt1', 'edge_nt2']:
-                        return_dict[key][value] += 1
+                    # Only count interesting strings : if no supervision is provided, we only count specific string
+                    if possible_supervisions is not None:
+                        if value is not None:
+                            if type(value) == dict:
+                                hashable_value = True
+                            else:
+                                hashable_value = value
+                            return_dict[key][hashable_value] += 1
+
+                    else:
+                        if type(value) == str and key not in ['node_nt_id', 'edge_nt1', 'edge_nt2']:
+                            return_dict[key][value] += 1
                 else:
                     if type(value) == list:
                         value = tuple(value)
                         return_dict[key].add(value)
                     if type(value) == dict:
                         # Just one does that : its 'node frame'
-                        # print(type(value))
-                        # print(key)
-                        # print(value)
                         if value is not 'node_frame':
                             pass
                         for inner_key, inner_value in value.items():
@@ -67,7 +75,6 @@ def dict_one(graph, counter=False, possible_supervisions=None):
                         pass
                     else:
                         return_dict[key].add(value)
-
         return return_dict
 
     # Nx returns an Node/Edge view object, a list filled with (node, data)/(source, target, data) tuples
@@ -172,7 +179,6 @@ def get_splits(query_attrs, graph_index=DEFAULT_INDEX, target_fraction=0.2, retu
                 # Maybe there is something to be made here, but usually it's just absent from the encoding
                 # So summing all values in counter makes sense
                 total_counts[graph_attrs_name] += sum(graph_attrs_counter.values())
-
     query_attrs_insplit = defaultdict(int)
     # total_nodes_in_split = 0
     copy_query_attrs = query_attrs.copy()
@@ -188,10 +194,9 @@ def get_splits(query_attrs, graph_index=DEFAULT_INDEX, target_fraction=0.2, retu
                 attrs_fraction = float(query_attrs_insplit[graph_attrs_name]) / total_counts[graph_attrs_name]
                 if attrs_fraction > target_fraction:
                     copy_query_attrs.remove(graph_attrs_name)
-
-    # print(selected_graphs)
-    # print(query_attrs_insplit)
-    # print(total_counts)
+        # If we found everything we needed
+        if len(copy_query_attrs) == 0:
+            break
 
     if not return_train:
         return selected_graphs
@@ -200,7 +205,7 @@ def get_splits(query_attrs, graph_index=DEFAULT_INDEX, target_fraction=0.2, retu
 
 
 if __name__ == '__main__':
-    graph_path = '../data/graphs/all_graphs'
+    graph_path = '../data/iguana/iguana/NR/'
     # get_all_annots(graph_path, counter=True)
     index = get_graph_indexes(graph_path,
                               dumpname='graph_index_NR.json',

@@ -78,6 +78,8 @@ class BoolEncoder:
         """ Assign encoding of `value` according to known possible
         values.
         """
+        if value is None:
+            return self.encode_default()
         # Sometimes we encode other stuff as booleans. Then if it's here return True, else False
         if not isinstance(value, bool):
             x = torch.tensor([True], dtype=torch.float)
