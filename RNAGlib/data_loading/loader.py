@@ -191,7 +191,7 @@ def download_name_factory(download_option):
 
 class GraphDataset(Dataset):
     def __init__(self,
-                 data_path='../data/annotated/samples',
+                 data_path='../data/annotated/samples',  # TODO switch to None when download is fixed.
                  all_graphs=None,
                  edge_map=GRAPH_KEYS['edge_map'][TOOL],
                  label='LW',
@@ -310,58 +310,6 @@ class GraphDataset(Dataset):
             node_simfunc, level = None, None
         return node_simfunc, level
 
-    # def build_feature_parser(self, list_of_features, sample_node_attrs):
-    #     """
-    #     We build the node feature map from the user input and check that all fields make sense.
-    #     This then build parsing functions to deal with each possible outputs
-    #
-    #     This is added as precomputation step so that we get different errors.
-    #     Here we establish a static feature map based on just one graphs.
-    #     Failure on other graphs will be deemed as such.
-    #
-    #     :param list_of_features:
-    #     :return:
-    #     """
-    #     if list_of_features is None:
-    #         return None
-    #
-    #     # print('computing a new parser')
-    #     # print(list_of_features)
-    #
-    #     def floatit(x):
-    #         return 0.0 if x is None else float(x)
-    #
-    #     def bindit(x):
-    #         return 0.0 if x is None else 1.0
-    #
-    #     def lookit(x, feature):
-    #         # print("I'm in lookit and feature is ", feature)
-    #         return FEATURE_MAPS[feature][x]
-    #
-    #     for feature in list_of_features:
-    #         if not feature in sample_node_attrs:
-    #             raise ValueError(f'{feature} was asked for as a node feature/target'
-    #                              f'by user but not found in the graph node attributes')
-    #
-    #     feature_parser = dict()
-    #     for local_feature in list_of_features:
-    #         feature_value = sample_node_attrs[local_feature]
-    #
-    #         # print('new feature :')
-    #         # print(local_feature)
-    #         # print(feature_value)
-    #
-    #         if isinstance(feature_value, (int, float)):
-    #             # We have to add None cases, because sometimes missing values are encoded as None
-    #             feature_parser[local_feature] = floatit
-    #         elif 'binding' in local_feature:
-    #             # print("binding", local_feature)
-    #             feature_parser[local_feature] = bindit
-    #         elif isinstance(feature_value, str):
-    #             # print("other", local_feature)
-    #             feature_parser[local_feature] = functools.partial(lookit, feature=str(local_feature))
-    #         # print()
-    #     return feature_parser
 
     def get_node_encoding(self, g, encode_feature=True):
         """
@@ -425,7 +373,7 @@ class GraphDataset(Dataset):
 
     def __getitem__(self, idx):
         g_path = os.path.join(self.path, self.all_graphs[idx])
-        graph = graph_io.load_json(g_path)
+        graph = graph_io.load_graph(g_path)
 
         # # We can go from directed to undirected
         # if self.force_undirected:
@@ -460,6 +408,7 @@ class GraphDataset(Dataset):
 
         if self.node_simfunc is not None:
             ring = list(sorted(graph.nodes(data=self.level)))
+            # print(ring)
             return g_dgl, ring
         else:
             return g_dgl, 0
@@ -608,9 +557,10 @@ class InferenceLoader:
                  data_path,
                  dataset=None,
                  batch_size=5,
-                 num_workers=20):
+                 num_workers=20,
+                 **kwargs):
         if dataset is None:
-            dataset = GraphDataset(data_path=data_path)
+            dataset = GraphDataset(data_path=data_path, **kwargs)
         self.dataset = dataset
         self.dataset.all_graphs = list_to_predict
         self.batch_size = batch_size
