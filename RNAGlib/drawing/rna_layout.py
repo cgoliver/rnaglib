@@ -114,7 +114,12 @@ def circular_layout(G, scale=1, center=None, dim=2):
         pos = np.column_stack([np.cos(theta), np.sin(theta),
                                np.zeros((len(G), paddims))])
         pos = rescale_layout(pos, scale=scale) + center
-        pos = dict(zip(sorted(G, key=lambda x: (x[0], x[1]), reverse=True), pos))
+        try:
+            sorted_n = sorted(G, key=lambda x: x.split(".")[2], reverse=True)
+        except:
+            sorted_n = sorted(G)
+
+        pos = dict(zip(sorted_n, pos))
 
     return pos
 
