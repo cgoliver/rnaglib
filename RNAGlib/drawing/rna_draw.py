@@ -42,13 +42,13 @@ def process_axis(axis,
                  node_labels=None,
                  node_ids=False,
                  label='LW'):
-    pos = circular_layout(g)
-    # pos = nx.random_layout(g)
+    # pos = circular_layout(g)
+    pos = nx.spring_layout(g)
 
     if not node_color is None:
-        nodes = nx.draw_networkx_nodes(g, pos, node_size=150, node_color=node_color, linewidths=2, ax=axis)
+        nodes = nx.draw_networkx_nodes(g, pos, node_size=50, node_color=node_color, linewidths=1, ax=axis)
     else:
-        nodes = nx.draw_networkx_nodes(g, pos, node_size=150, node_color='grey', linewidths=2, ax=axis)
+        nodes = nx.draw_networkx_nodes(g, pos, node_size=50, node_color='grey', linewidths=1, ax=axis)
 
     if node_ids:
         node_labels = {n: str(n).replace("_", "-") for n in g.nodes()}
@@ -61,7 +61,6 @@ def process_axis(axis,
     for n1, n2, d in g.edges(data=True):
         try:
             symbol = make_label(d[label])
-            print(d[label], symbol)
             edge_labels[(n1, n2)] = symbol
         except:
             if d[label] == 'B53' or d[label] == 'B35':
@@ -71,18 +70,19 @@ def process_axis(axis,
             continue
 
     non_bb_edges = [(n1, n2) for n1, n2, d in g.edges(data=True) if d[label][0] != 'B']
-    bb_edges = [(n1, n2) for n1, n2, d in g.edges(data=True) if d[label][0] == 'B']
+    # bb_edges = [(n1, n2) for n1, n2, d in g.edges(data=True) if d[label][0] == 'B']
+    bb_edges = [(n1, n2) for n1, n2, d in g.edges(data=True) if d[label] == 'B53']
 
     nx.draw_networkx_edges(g, pos, edge_color="red", edgelist=non_bb_edges, ax=axis)
     # nx.draw_networkx_edges(g, pos, edge_color="red", connectionstyle="arc3,rad=0.1", edgelist=non_bb_edges, ax=axis)
-    nx.draw_networkx_edges(g, pos, edgelist=bb_edges, width=2, ax=axis)
+    nx.draw_networkx_edges(g, pos, edgelist=bb_edges, width=1, ax=axis)
 
     if not highlight_edges is None:
         nx.draw_networkx_edges(g, pos, edgelist=highlight_edges, edge_color='y', width=8, alpha=0.5, ax=axis)
 
     nx.draw_networkx_edge_labels(g,
                                  pos,
-                                 font_size=16,
+                                 font_size=10,
                                  edge_labels=edge_labels,
                                  ax=axis)
     axis.set_axis_off()
@@ -212,5 +212,7 @@ if __name__ == "__main__":
     # rna_draw(G, show=True)
     for f in os.listdir("data/all_graphs_chops"):
         G = nx.read_gpickle(os.path.join("data/all_graphs_chops", f))
+        print("HI")
+        print(f)
         rna_draw(G, show=True, format="pdf")
     pass
