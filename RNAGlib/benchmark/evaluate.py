@@ -42,7 +42,6 @@ def get_performance(node_target, model, node_features=None):
     train_split, test_split = get_task_split(node_target=node_target)
     test_dataset = loader.SupervisedDataset(node_features=node_features,
                                             node_target=node_target,
-                                            data_path='../data/iguana/iguana/NR/', # TODO fix with the dl fix
                                             all_graphs=test_split)
     test_loader = loader.Loader(dataset=test_dataset, split=False).get_data()
     loss = learn.evaluate_model_supervised(model=model, validation_loader=test_loader)

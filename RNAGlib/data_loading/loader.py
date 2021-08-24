@@ -129,13 +129,34 @@ def download(url, path=None, overwrite=True, retries=5, verify_ssl=True, log=Tru
     return fname
 
 
-def download_name_factory(download_option):
-    if download_option == 'test':
-        url = 'http://mitra.stanford.edu/kundaje/avanti/rc_data/backup_revcomppaperdata/Gm12878/for_henry/tf_data/Ctcf/foreground.bed.gz'
-        dl_path = os.path.join(script_dir, '../data/downloads/test.zip')
+def download_name_generator(dirname=None,
+                            release='iguana',
+                            redundancy='NR',
+                            chop=False,
+                            annotated=False):
+    # Generic name
+    chop_str = '_chops' if chop else ''
+    annotated_str = '_annot' if annotated else ''
+    tarball_name = f'{redundancy}{chop_str}{annotated_str}'
+
+    # Find remote url and get download link
+    url = f'http://rnaglib.cs.mcgill.ca/static/datasets/{release}/{tarball_name}.tar.gz'
+    dl_path = os.path.join(script_dir, f'../data/downloads/{tarball_name}.tar.gz')
+
+    # Complete dl path depending on annotation and optionally get hashing too
+    if annotated_str == '':
         data_path = os.path.join(script_dir, '../data/graphs/')
-        dirname = 'test'
-        return url, dl_path, data_path, dirname, None
+        hashing_info = None
+    else:
+        data_path = os.path.join(script_dir, '../data/annotated/')
+        hashing_url = f'http://rnaglib.cs.mcgill.ca/static/datasets/{release}/{redundancy}{chop_str}_hash.p'
+        hashing_path = os.path.join(script_dir, f'../data/hashing/{redundancy}{chop_str}_hash.p')
+        hashing_info = (hashing_url, hashing_path)
+    dirname = tarball_name if dirname is None else dirname
+    return url, dl_path, data_path, dirname, hashing_info
+
+
+def download_name_factory_deprecated(download_option):
     # Get graphs
     if download_option == 'samples_graphs':
         url = 'toto'
@@ -191,44 +212,48 @@ def download_name_factory(download_option):
 
 class GraphDataset(Dataset):
     def __init__(self,
-                 data_path='../data/annotated/samples',  # TODO switch to None when download is fixed.
+                 data_path=None,
+                 redundancy='NR',
+                 chop=False,
+                 annotated=False,
                  all_graphs=None,
+                 hashing_path=None,
                  edge_map=GRAPH_KEYS['edge_map'][TOOL],
                  label='LW',
                  node_simfunc=None,
-                 node_features=None,
+                 node_features='nt_code',
                  node_target=None,
-                 force_undirected=False,
-                 verbose=False,
-                 download=None):
+                 verbose=False):
         """
-
+        :param data_path: The path of the data. If node_sim is not None, this data should be annotated
+        :param redundancy: To use all graphs or just the non redundant set.
+        :param chop: if we want full graphs or chopped ones for learning on smaller chunks
+        :param annotated: if we want annotated graphs
+        :param all_graphs: In the given directory, one can choose to provide a list of graphs to use
         :param edge_map: Necessary to build the one hot mapping from edge labels to an id
         :param label: The label to use
-        :param node_simfunc: Similarity function defined in kernels/node_sim
-        :param data_path: The path of the data. If node_sim is not None, this data should be annotated
-        :param force_undirected: Whether we want to force the use of undirected graphs from a directed data set.
-        Otherwise the directed attribute is observed from the data at hands.
+        :param node_simfunc: The node comparison object as defined in kernels/node_sim to use for the embeddings.
+         If None is selected, this will just return graphs
         :param node_features: node features to include, stored in one tensor in order given by user,
-        for example :
+        for example : ('nt_code','is_modified')
         :param node_features: node targets to include, stored in one tensor in order given by user
+        for example : ('binding_protein', 'binding_small-molecule')
         """
+        # If we don't input a data path, the right one according to redundancy, chop and annotated is fetched
+        # By default, we set hashing to None and potential node sim should be specified when creating
+        # the node_sim function.
+        # Then if a download occurs and no hashing was provided to the loader, the hashing used is the one
+        # fetched by the downloading process to ensure it matches the data we iterate over.
+        self.hashing_path = hashing_path
         if data_path is None:
-            if download is not None:
-                data_path = self.download(download)
-            else:
-                raise ValueError('One should provide either a download string command or a data_path')
+            data_path = self.download_graphs(redundancy=redundancy, chop=chop, annotated=annotated)
 
-        self.path = data_path
+        self.data_path = data_path
 
         if all_graphs is not None:
             self.all_graphs = all_graphs
         else:
             self.all_graphs = sorted(os.listdir(data_path))
-            if '3p4b_annot.json' in self.all_graphs:  # TODO sort these out or remove them.
-                self.all_graphs.remove('3p4b_annot.json')
-            if '2kwg_annot.json' in self.all_graphs:
-                self.all_graphs.remove('2kwg_annot.json')
 
         # This is len() so we have to add the +1
         self.label = label
@@ -237,36 +262,12 @@ class GraphDataset(Dataset):
         if verbose:
             print(f"Found {self.num_edge_types} relations")
 
-        # To ensure that we don't have a discrepancy between the attribute directed and the graphs :
-        #   Since the original data is directed, it does not make sense to ask to build directed graphs
-        #   from the undirected set.
-        #   If directed graphs are what one wants, one should use the directed annotation rather than the undirected.
-
-        # We also need a sample graph to look at the possible node attributes
-        # sample_path = os.path.join(self.path, self.all_graphs[0])
-        # sample_graph = graph_io.load_json(sample_path)
-        # sample_node_attrs = dict()
-        # for _, sample_node_attrs in sample_graph.nodes.data():
-        #     break
-        # self.directed = nx.is_directed(sample_graph)
-        # self.force_undirected = force_undirected
-
         # If it is not None, add a node comparison tool
         self.node_simfunc, self.level = self.add_node_sim(node_simfunc=node_simfunc)
 
         # If queried, add node features and node targets
-        # By default we put all the node info except what is considered as junk
-        if node_features == 'all':
-            # self.node_features = list(set(sample_node_attrs.keys()) - set(JUNK_ATTRS) - set(ANNOTS_ATTRS))
-            self.node_features = None
-            self.node_features = ['nt_code']
-        else:
-            self.node_features = [node_features] if isinstance(node_features, str) else node_features
+        self.node_features = [node_features] if isinstance(node_features, str) else node_features
         self.node_target = [node_target] if isinstance(node_target, str) else node_target
-
-        # Then check that the entries asked for as node features exist in our feature maps and get a parser for each
-        # self.node_features_parser = self.build_feature_parser(self.node_features, sample_node_attrs)
-        # self.node_target_parser = self.build_feature_parser(self.node_target, sample_node_attrs)
 
         self.node_features_parser = build_node_feature_parser(self.node_features)
         self.node_target_parser = build_node_feature_parser(self.node_target)
@@ -274,12 +275,14 @@ class GraphDataset(Dataset):
         self.input_dim = self.compute_dim(self.node_features_parser)
         self.output_dim = self.compute_dim(self.node_target_parser)
 
-    def download(self, download_option):
+    def download_graphs(self, redundancy='NR', chop=False, annotated=False, overwrite=False):
         # Get the correct names for the download option and download the correct files
-        url, dl_path, data_path, dirname, hashing = download_name_factory(download_option)
+        url, dl_path, data_path, dirname, hashing = download_name_generator(redundancy=redundancy,
+                                                                            chop=chop,
+                                                                            annotated=annotated)
         full_data_path = os.path.join(data_path, dirname)
-        if not os.path.exists(full_data_path):
-            if not os.path.exists(dl_path):
+        if not os.path.exists(full_data_path) or overwrite:
+            if not os.path.exists(dl_path) or overwrite:
                 print('Required dataset not found, launching a download. This should take about a minute')
                 download(path=dl_path,
                          url=url)
@@ -292,9 +295,12 @@ class GraphDataset(Dataset):
                     tar_file.extractall(path=data_path)
         if hashing is not None:
             hashing_url, hashing_path = hashing
-            if not os.path.exists(hashing_path):
+            if not os.path.exists(hashing_path) or overwrite:
                 download(path=hashing_path,
                          url=hashing_url)
+            # Don't overwrite if the user has specifically asked for a given hashing
+            if self.hashing_path is None:
+                self.hashing_path = hashing_path
         return full_data_path
 
     def __len__(self):
@@ -303,12 +309,30 @@ class GraphDataset(Dataset):
     def add_node_sim(self, node_simfunc):
         if node_simfunc is not None:
             if node_simfunc.method in ['R_graphlets', 'graphlet', 'R_ged']:
+                if self.hashing_path is not None:
+                    node_simfunc.add_hashtable(self.hashing_path)
                 level = 'graphlet_annots'
             else:
                 level = 'edge_annots'
         else:
             node_simfunc, level = None, None
         return node_simfunc, level
+
+    def update_node_sim(self, node_simfunc):
+        """
+        This function is useful because the default_behavior is changed compared to above :
+            Here if None is given, we don't remove the previous node_sim function
+        :param node_simfunc:
+        :return:
+        """
+        if node_simfunc is not None:
+            if node_simfunc.method in ['R_graphlets', 'graphlet', 'R_ged']:
+                if self.hashing_path is not None:
+                    node_simfunc.add_hashtable(self.hashing_path)
+                level = 'graphlet_annots'
+            else:
+                level = 'edge_annots'
+            self.node_simfunc, self.level = node_simfunc, level
 
     def get_node_encoding(self, g, encode_feature=True):
         """
@@ -322,7 +346,6 @@ class GraphDataset(Dataset):
         if len(node_parser) == 0:
             return None
 
-        # print('using node parser : ', node_parser)
         for node, attrs in g.nodes.data():
             all_node_feature_encoding = list()
             for i, (feature, feature_encoder) in enumerate(node_parser.items()):
@@ -371,17 +394,8 @@ class GraphDataset(Dataset):
         return graph
 
     def __getitem__(self, idx):
-        g_path = os.path.join(self.path, self.all_graphs[idx])
+        g_path = os.path.join(self.data_path, self.all_graphs[idx])
         graph = graph_io.load_graph(g_path)
-
-        # # We can go from directed to undirected
-        # if self.force_undirected:
-        #     graph = nx.to_undirected(graph)
-        #
-        # # This is a weird call but necessary for DGL as it only deals
-        # #   with undirected graphs that have both directed edges
-        # graph = graph.to_directed()
-
         graph = self.fix_buggy_edges(graph=graph)
 
         # Get Edge Labels
@@ -391,7 +405,6 @@ class GraphDataset(Dataset):
 
         # Get Node labels
         node_attrs_toadd = list()
-        # if self.node_features is not None:
         if len(self.node_features_parser) > 0:
             feature_encoding = self.get_node_encoding(graph, encode_feature=True)
             nx.set_node_attributes(graph, name='features', values=feature_encoding)
@@ -407,11 +420,9 @@ class GraphDataset(Dataset):
 
         if self.node_simfunc is not None:
             ring = list(sorted(graph.nodes(data=self.level)))
-            # print(ring)
             return g_dgl, ring
         else:
             return g_dgl, 0
-
 
 
 class UnsupervisedDataset(GraphDataset):
@@ -421,13 +432,10 @@ class UnsupervisedDataset(GraphDataset):
 
     def __init__(self,
                  node_simfunc=SimFunctionNode('R_1', 2),
-                 download='nr_annotated',
+                 annotated=True,
+                 chop=True,
                  **kwargs):
-        super().__init__(
-            node_simfunc=node_simfunc,
-            download=download,
-            **kwargs
-        )
+        super().__init__(annotated=annotated, chop=chop, node_simfunc=node_simfunc, **kwargs)
 
 
 class SupervisedDataset(GraphDataset):
@@ -437,13 +445,9 @@ class SupervisedDataset(GraphDataset):
 
     def __init__(self,
                  node_target='binding_protein',
-                 download='nr_graphs',
+                 annotated=False,
                  **kwargs):
-        super().__init__(
-            node_target=node_target,
-            download=download,
-            **kwargs
-        )
+        super().__init__(annotated=annotated, node_target=node_target, **kwargs)
 
 
 def collate_wrapper(node_simfunc=None, max_size_kernel=None):
@@ -499,15 +503,13 @@ class Loader:
                  split=True,
                  verbose=False):
         """
+        :param dataset: The dataset to iterate over
         :param batch_size:
         :param num_workers:
-        :param node_simfunc: The node comparison object to use for the embeddings. If None is selected,
-        will just return graphs
-        :param max_graphs: If we use K comptutations, we need to subsamble some nodes for the big graphs
+        :param max_size_kernel: If we use K comptutations, we need to subsamble some nodes for the big graphs
         or else the k computation takes too long
-        :param hparams:
-        :param node_features: (str list) features to be included in feature tensor
-        :param node_target: (str) target attribute for node classification
+        :param split: To return subsets to split the data
+        :param verbose: To print some info about the data
         """
         self.dataset = dataset
         self.batch_size = batch_size
@@ -526,8 +528,6 @@ class Loader:
         else:
             n = len(self.dataset)
             indices = list(range(n))
-            # np.random.shuffle(indices)
-
             np.random.seed(0)
             split_train, split_valid = 0.7, 0.85
             train_index, valid_index = int(split_train * n), int(split_valid * n)
@@ -576,86 +576,18 @@ class InferenceLoader:
         return train_loader
 
 
-def loader_from_hparams(data_path, hparams, list_inference=None):
-    """
-        :params
-        :get_sim_mat: switches off computation of rings and K matrix for faster loading.
-    """
-    if list_inference is None:
-        node_simfunc = simfunc_from_hparams(hparams)
-        edge_map = hparams.get('edges', 'edge_map')
-        dataset = GraphDataset(edge_map=edge_map,
-                               node_simfunc=node_simfunc,
-                               data_path=data_path)
-        loader = Loader(dataset=dataset,
-                        batch_size=hparams.get('argparse', 'batch_size'),
-                        num_workers=hparams.get('argparse', 'workers'),
-                        )
-        return loader
-    dataset = GraphDataset(data_path=data_path, edge_map=hparams.get('edges', 'edge_map'))
-    loader = InferenceLoader(list_to_predict=list_inference,
-                             dataset=dataset,
-                             batch_size=hparams.get('argparse', 'batch_size'),
-                             num_workers=hparams.get('argparse', 'workers'), )
-    return loader
-
-
 if __name__ == '__main__':
+    pass
     import time
 
-    pass
-
-    # annotated_path = os.path.join(script_dir, '../../data/annotated/undirected')
-    # g_path ='2kwg.json'
-    # graph = graph_io.load_json(g_path)
-    # print(len(graph.nodes()))
-    # print(len(graph.edges()))
-    #
-    # g_path ='3p4b.json'
-    # graph = graph_io.load_json(g_path)
-    # print(len(graph.nodes()))
-    # print(len(graph.edges()))
-
-    # np.random.seed(0)
-    # torch.manual_seed(0)
-    #
-    # annotated_path = os.path.join(script_dir, "..", "data", "annotated", "samples")
-    # simfunc_r1 = SimFunctionNode('R_1', 2)
-    # loader = Loader(data_path=annotated_path,
-    #                 num_workers=2,
-    #                 batch_size=1,
-    #                 max_size_kernel=100,
-    #                 split=False,
-    #                 node_simfunc=simfunc_r1,
-    #                 node_features=None,
-    #                 node_target=None)
-    # # node_target=['nt_name', 'nt_code', 'binding_protein'])
-    #
-    # train_loader = loader.get_data()
-    #
-    # a = time.time()
-    # for i, (graph, K, len_graphs, node_ids) in enumerate(train_loader):
-    #     # print('graph :', graph)
-    #     # print('K :', K)
-    #     # print('length :', len_graphs)
-    #     if i > 3:
-    #         break
-    # print(time.time() - a)
     node_features = ['nt_code', "alpha", "C5prime_xyz", "is_modified"]
     node_target = ['binding_ion']
 
     # GET THE DATA GOING
-    dataset = GraphDataset(node_features=node_features,
-                           node_target=node_target,
-                           data_path='data/graphs/all_graphs')
-    train_loader, validation_loader, test_loader = Loader(dataset=dataset,
-                                                          batch_size=1,
-                                                          num_workers=6).get_data()
-
-    supervised = SupervisedDataset(data_path='data/graphs/all_graphs',
-                                   node_features=node_features,
-                                   node_target=None)
-    train_loader, validation_loader, test_loader = Loader(dataset=supervised,
+    toy_dataset = GraphDataset(data_path='data/graphs/all_graphs',
+                               node_features=node_features,
+                               node_target=node_target)
+    train_loader, validation_loader, test_loader = Loader(dataset=toy_dataset,
                                                           batch_size=1,
                                                           num_workers=6).get_data()
 
@@ -663,7 +595,5 @@ if __name__ == '__main__':
         print(item)
         if i > 10:
             break
-        if not i % 20: print(i)
+        # if not i % 20: print(i)
         pass
-
-    # loader = UnsupervisedLoader()

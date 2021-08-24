@@ -14,7 +14,7 @@ from kernels import node_sim
 """
 This script shows a second more complicated example : learn binding protein preferences as well as
 small molecules binding from the nucleotide types and the graph structure
-We also add a pretraining phase based on the R_1 kernel
+We also add a pretraining phase based on the R_graphlets kernel
 """
 
 # Choose the data, features and targets to use
@@ -25,34 +25,30 @@ node_target = ['binding_protein']
 # Choose the data and kernel to use for pretraining
 print('Starting to pretrain the network')
 node_sim_func = node_sim.SimFunctionNode(method='R_graphlets', depth=2)
-# TODO remove and fix dl
-data_path = os.path.join(script_dir, '..', 'data/iguana/iguana/NR_annot/')
-unsupervised_dataset = loader.UnsupervisedDataset(node_simfunc=node_sim_func, node_features=node_features,
-                                                  data_path=data_path)
+unsupervised_dataset = loader.UnsupervisedDataset(node_simfunc=node_sim_func,
+                                                  node_features=node_features)
 train_loader = loader.Loader(dataset=unsupervised_dataset, split=False,
                              num_workers=0, max_size_kernel=100).get_data()
+
 # Then choose the embedder model and pre_train it, we dump a version of this pretrained model
 embedder_model = models.Embedder(infeatures_dim=unsupervised_dataset.input_dim,
                                  dims=[64, 64])
 optimizer = torch.optim.Adam(embedder_model.parameters())
-learn.pretrain_unsupervised(model=embedder_model,
-                            optimizer=optimizer,
-                            node_sim=node_sim_func,
-                            train_loader=train_loader,
-                            learning_routine=learn.LearningRoutine(num_epochs=10),
-                            rec_params={"similarity": True, "normalize": False, "use_graph": True, "hops": 2})
-torch.save(embedder_model.state_dict(), 'pretrained_model.pth')
+# learn.pretrain_unsupervised(model=embedder_model,
+#                             optimizer=optimizer,
+#                             train_loader=train_loader,
+#                             learning_routine=learn.LearningRoutine(num_epochs=10),
+#                             rec_params={"similarity": True, "normalize": False, "use_graph": True, "hops": 2})
+# torch.save(embedder_model.state_dict(), 'pretrained_model.pth')
 print()
 
 ###### Now the supervised phase : ######
 print('We have finished pretraining the network, let us fine tune it')
 # GET THE DATA GOING, we want to use precise data splits to be able to use the benchmark.
-# TODO remove and fix dl
-data_path = os.path.join(script_dir, '..', 'data/iguana/iguana/NR')
 train_split, test_split = evaluate.get_task_split(node_target=node_target)
 supervised_train_dataset = loader.SupervisedDataset(node_features=node_features,
+                                                    redundancy='all_graphs',
                                                     node_target=node_target,
-                                                    data_path=data_path,
                                                     all_graphs=train_split)
 train_loader = loader.Loader(dataset=supervised_train_dataset, split=False).get_data()
 
