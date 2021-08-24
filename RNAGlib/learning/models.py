@@ -1,15 +1,16 @@
-import networkx as nx
-
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-import dgl
-import dgl.function as fn
 from dgl.nn.pytorch.conv import RelGraphConv
 
 
 class Embedder(nn.Module):
+    """
+    This is an exemple RGCN for unsupervised learning, going from one element of "dims" to the other
+
+    It maps the "features" of an input graph to an "h" node attribute and returns the corresponding tensor.
+    """
 
     def __init__(self,
                  dims,
@@ -30,6 +31,7 @@ class Embedder(nn.Module):
         self.verbose = verbose
 
         self.layers = self.build_model()
+
         if self.verbose:
             print(self.layers)
             print("Num rels: ", self.num_rels)
@@ -88,7 +90,6 @@ class Embedder(nn.Module):
             # h = g.in_degrees().view(-1, 1).float().to(self.current_device)
             h = torch.ones(len(g.nodes())).view(-1, 1).to(self.current_device)
         for i, layer in enumerate(self.layers):
-            # layer(g)
             if not self.conv_output and (i == len(self.layers) - 1):
                 h = layer(h)
             else:
@@ -98,6 +99,11 @@ class Embedder(nn.Module):
 
 
 class Classifier(nn.Module):
+    """
+    This is an exemple RGCN for supervised learning, that uses the previous Embedder network
+
+    It maps the "features" of an input graph to an "h" node attribute and returns the corresponding tensor.
+    """
 
     def __init__(self,
                  embedder,
@@ -136,10 +142,9 @@ class Classifier(nn.Module):
                                    out_feat=self.classif_dims[0],
                                    num_rels=self.num_rels,
                                    num_bases=self.num_bases,
-                                   # TODO : a PR was sent to DGL, self loops crash
-                                   #  with the current implementations if outfeat==1
-                                   # self_loop=self.self_loop,
-                                   self_loop=self.self_loop and self.classif_dims[0] > 1,
+                                   self_loop=self.self_loop,
+                                   # Old fix for a bug in dgl<0.6
+                                   # self_loop=self.self_loop and self.classif_dims[0] > 1,
                                    activation=None)
             else:
                 h2o = nn.Linear(self.last_dim_embedder, self.classif_dims[0])
@@ -172,10 +177,7 @@ class Classifier(nn.Module):
                                    out_feat=last,
                                    num_rels=self.num_rels,
                                    num_bases=self.num_bases,
-                                   # TODO : a PR was sent to DGL, self loops crash
-                                   #  with the current implementations if outfeat==1
-                                   # self_loop=self.self_loop,
-                                   self_loop=self.self_loop and last > 1,
+                                   self_loop=self.self_loop,
                                    activation=None)
             else:
                 h2o = nn.Linear(last_hidden, last)
@@ -192,15 +194,11 @@ class Classifier(nn.Module):
     def forward(self, g):
         h = self.embedder(g)
         for i, layer in enumerate(self.classif_layers):
-            # layer(g)
-            if not self.conv_output and (i == len(self.classif_layers) - 1):
+            # if this is the last layer and we want to use a linear layer, the call is different
+            if (i == len(self.classif_layers) - 1) and not self.conv_output:
                 h = layer(h)
             # Convolution layer
             else:
                 h = layer(g, h, g.edata['edge_type'])
-
-        # This is necessary due to the dgl bug
-        if len(h.shape) == 1:
-            h = h[..., None]
         g.ndata['h'] = h
         return g.ndata['h']
