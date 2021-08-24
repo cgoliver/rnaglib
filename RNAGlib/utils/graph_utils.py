@@ -7,20 +7,16 @@ from tqdm import tqdm
 import networkx as nx
 import numpy as np
 
-faces = ['W', 'S', 'H']
-orientations = ['C', 'T']
-valid_edges = ['B53'] + [orient + e1 + e2 for e1, e2 in itertools.product(faces, faces) for orient in orientations]
-
 script_dir = os.path.dirname(os.path.realpath(__file__))
-
-graph_dir = os.path.join("..", "data", "graphs", "rna_graphs_nr")
-annot_dir = os.path.join("..", "data", "annotated", "all_rna_nr")
-
 if __name__ == "__main__":
     sys.path.append(os.path.join(script_dir, '..'))
 
+from config.graph_keys import GRAPH_KEYS, TOOL, DEFAULT_ANNOT_DIR
 
-def whole_graph_from_node(node_id, annot_dir=os.path.join(script_dir, graph_dir)):
+VALID_EDGES = GRAPH_KEYS['edge_map'][TOOL].keys()
+
+
+def whole_graph_from_node(node_id, annot_dir=DEFAULT_ANNOT_DIR):
     """
         Fetch whole graph from a node id.
     """
@@ -196,7 +192,7 @@ def reindex_nodes_annot(graph_dir, dump=None):
             continue
         G = nx.relabel.convert_node_labels_to_integers(G, first_label=offset, label_attribute='id')
         offset += len(G.nodes())
-        if not dump is None:
+        if dump is not None:
             annot['graph'] = G
             pickle.dump(annot, open(os.path.join(dump, g), 'wb'))
 
@@ -316,7 +312,7 @@ def remove_self_loops(G):
 def remove_non_standard_edges(G, label='label'):
     remove = []
     for n1, n2, d in G.edges(data=True):
-        if d[label] not in valid_edges:
+        if d[label] not in VALID_EDGES:
             remove.append((n1, n2))
     G.remove_edges_from(remove)
 
@@ -335,7 +331,7 @@ def to_orig_all(graph_dir, dump_dir):
 def to_orig(G, label='label'):
     H = nx.Graph()
     for n1, n2, d in G.edges(data=True):
-        if d[label] in valid_edges:
+        if d[label] in VALID_EDGES:
             assert d[label] != 'B35'
             H.add_edge(n1, n2, label=d[label])
 
