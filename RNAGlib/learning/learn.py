@@ -303,17 +303,28 @@ def evaluate_model_supervised(model, validation_loader, evaluation_function=roc_
 
 
 def pretrain_unsupervised(model,
-                          node_sim,
                           train_loader,
                           optimizer,
+                          node_sim=None,
                           learning_routine=LearningRoutine(),
                           rec_params={"similarity": True, "normalize": False, "use_graph": False, "hops": 2}
                           ):
+    """
+
+    :param model:
+    :param train_loader:
+    :param optimizer:
+    :param node_sim: If None, we just rely on the node_sim in the data loader.
+    :param learning_routine:
+    :param rec_params: These are parameters useful for the loss computation
+    :return:
+    """
     device = model.current_device
     learning_routine.device = device
-    misc.get_dataset(train_loader).add_node_sim(node_simfunc=node_sim)
+
+    misc.get_dataset(train_loader).update_node_sim(node_simfunc=node_sim)
     if learning_routine.validation_loader is not None:
-        misc.get_dataset(learning_routine.validation_loader).add_node_sim(node_simfunc=node_sim)
+        misc.get_dataset(learning_routine.validation_loader).update_node_sim(node_simfunc=node_sim)
 
     start_time = time.time()
     for epoch in range(learning_routine.num_epochs):
@@ -458,7 +469,7 @@ if __name__ == '__main__':
         optimizer = torch.optim.Adam(embedder_model.parameters())
 
         node_sim_func = node_sim.SimFunctionNode(method='R_1', depth=2)
-        data_path = os.path.join(script_dir, '..', 'data/iguana/iguana/NR_annot/')
+        data_path = os.path.join(script_dir, '..', 'data/annotated/NR_annot/')
         node_features = ['nt_code']
         unsupervised_dataset = loader.UnsupervisedDataset(node_simfunc=node_sim_func,
                                                           node_features=node_features,

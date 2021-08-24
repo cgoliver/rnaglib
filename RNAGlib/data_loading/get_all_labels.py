@@ -203,7 +203,7 @@ def get_splits(query_attrs, graph_index=DEFAULT_INDEX, target_fraction=0.2, retu
 
 
 if __name__ == '__main__':
-    graph_path = '../data/iguana/iguana/NR/'
+    graph_path = '../data/graphs/NR/'
     # get_all_annots(graph_path, counter=True)
     index = get_graph_indexes(graph_path,
                               dumpname='graph_index_NR.json',
