@@ -39,8 +39,8 @@ learn.pretrain_unsupervised(model=embedder_model,
                             optimizer=optimizer,
                             node_sim=node_sim_func,
                             train_loader=train_loader,
-                            rec_params={"similarity": True, "normalize": False, "use_graph": True, "hops": 2},
-                            num_epochs=2)
+                            learning_routine=learn.LearningRoutine(num_epochs=10),
+                            rec_params={"similarity": True, "normalize": False, "use_graph": True, "hops": 2})
 torch.save(embedder_model.state_dict(), 'pretrained_model.pth')
 print()
 
@@ -64,7 +64,7 @@ optimizer = torch.optim.Adam(classifier_model.parameters(), lr=0.001)
 learn.train_supervised(model=classifier_model,
                        optimizer=optimizer,
                        train_loader=train_loader,
-                       num_epochs=2)
+                       learning_routine=learn.LearningRoutine(num_epochs=10))
 torch.save(classifier_model.state_dict(), 'final_model.pth')
 
 # embedder_model = models.Embedder(infeatures_dim=4, dims=[64, 64])
@@ -74,3 +74,4 @@ torch.save(classifier_model.state_dict(), 'final_model.pth')
 # Get a benchmark performance on the official uncontaminated test set :
 metric = evaluate.get_performance(node_target=node_target, node_features=node_features, model=classifier_model)
 print('We get a performance of :', metric)
+print()

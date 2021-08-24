@@ -1,6 +1,5 @@
 import os
 import sys
-
 import torch
 
 script_dir = os.path.dirname(os.path.realpath(__file__))
@@ -23,7 +22,7 @@ supervised_dataset = loader.SupervisedDataset(node_features=node_features,
                                               node_target=node_target)
 train_loader, validation_loader, test_loader = loader.Loader(dataset=supervised_dataset).get_data()
 
-# Define a model and train it, we first embed our data in 10 dimensions, and then add one classification
+# Define a model, we first embed our data in 10 dimensions, and then add one classification
 input_dim, target_dim = supervised_dataset.input_dim, supervised_dataset.output_dim
 embedder_model = models.Embedder(dims=[10, 10], infeatures_dim=input_dim)
 classifier_model = models.Classifier(embedder=embedder_model, classif_dims=[target_dim])
