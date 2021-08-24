@@ -11,15 +11,24 @@ from data_loading import loader, get_all_labels
 from learning import learn
 
 """
-Possible tasks : 
+This script is to be used for reproducible benchmarking : we propose an official train/test split 
+for four possible tasks : 
 - Protein Binding
 - Small-molecule Binding
 - Link Prediction 
 - Chemical Modification
+
+These splits rely on fixed seed random splitting. One can ask to get a multi-task setting to get another relevant split
 """
 
 
 def get_task_split(node_target, seed=0):
+    """
+
+    :param node_target: A subset of {'binding_protein', 'binding_small-molecule', 'is_modified', 'binding_ion'}
+    :param seed:
+    :return:
+    """
     random.seed(seed)
     if isinstance(node_target, str):
         node_target = set(node_target)
