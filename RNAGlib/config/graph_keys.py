@@ -1,3 +1,6 @@
+import os
+script_dir = os.path.dirname(os.path.realpath(__file__))
+
 EDGE_MAP_FR3D = {'B53': 0, 'CHH': 1, 'CHS': 2, 'CHW': 3, 'CSH': 4, 'CSS': 5, 'CSW': 6, 'CWH': 7, 'CWS': 8, 'CWW': 9,
                  'THH': 10, 'THS': 11, 'THW': 12, 'TSH': 13, 'TSS': 14, 'TSW': 15, 'TWH': 16, 'TWS': 17, 'TWW': 18}
 EDGE_MAP_RGLIB = {'B53': 0, 'cHH': 1, 'cHS': 2, 'cHW': 3, 'cSH': 4, 'cSS': 5, 'cSW': 6, 'cWH': 7, 'cWS': 8, 'cWW': 9,
@@ -13,6 +16,9 @@ IDF_RGLIB = {key[0].lower() + key[1:]: value for key, value in IDF.items()}
 
 INDEL_VECTOR_FR3D = [1 if e[0] == 'B' else 2 if e == 'CWW' else 3 for e in sorted(EDGE_MAP_FR3D.keys())]
 INDEL_VECTOR_RGLIB = [1 if e[0] == 'B' else 2 if e == 'cWW' else 3 for e in sorted(EDGE_MAP_RGLIB.keys())]
+
+DEFAULT_GRAPH_DIR = os.path.join(script_dir, "..", "data", "graphs", "rna_graphs_nr")
+DEFAULT_ANNOT_DIR = os.path.join(script_dir, "..", "data", "annotated", "all_rna_nr")
 
 GRAPH_KEYS = {'nt_position': {'RGLIB': 'nt_resnum', 'FR3D': 'pdb_pos'},
               'chain': {'RGLIB': 'chain_name', 'FR3D': 'chain'},

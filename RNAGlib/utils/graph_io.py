@@ -18,6 +18,13 @@ def load_json(filename):
 
 
 def load_graph(filename):
+    """
+    This is a utility function that supports loading from json or pickle
+    Sometimes, the pickle also contains rings in the form of a node dict,
+    in which case the rings are added into the graph
+    :param filename: json or pickle filename
+    :return: networkx DiGraph object
+    """
     if filename.endswith('json'):
         return load_json(filename)
     elif filename.endswith('p'):

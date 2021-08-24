@@ -44,8 +44,6 @@ def dict_one(graph, counter=False, possible_supervisions=None):
                     key = f'{prepend}_{key}'
                 if possible_supervisions is not None and key not in possible_supervisions:
                     continue
-                if 'modified' in key:
-                    print(key)
                 if counter:
                     # Only count interesting strings : if no supervision is provided, we only count specific string
                     if possible_supervisions is not None:
@@ -211,6 +209,6 @@ if __name__ == '__main__':
                               dumpname='graph_index_NR.json',
                               possible_supervisions=
                               {'node_binding_small-molecule', 'node_binding_protein',
-                               'node_binding_ion', "is_modified"})
+                               'node_binding_ion', "node_is_modified"})
     # test_split = get_splits(query_attrs={'node_binding_protein_id', "node_binding_ion",
     #                                      "is_modified", 'node_binding_small-molecule'})
