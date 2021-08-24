@@ -157,19 +157,19 @@ def main():
         todo = ((cif, args.output_dir) for cif in cifs)
 
     # Build Graphs
-    pool = mp.Pool(args.num_workers)
-    errors = pool.starmap(do_one, todo)
+    # pool = mp.Pool(args.num_workers)
+    # errors = pool.starmap(do_one, todo)
 
     # Filters
-    if args.filter:
-        filter_all(os.path.join(args.output_dir, 'all_graphs'),
-                   args.output_dir,
-                   filters=FILTERS
-                   )
+    # if args.filter:
+        # filter_all(os.path.join(args.output_dir, 'all_graphs'),
+                   # args.output_dir,
+                   # filters=FILTERS
+                   # )
 
 
     # for filter in FILTERS + ['all_graphs']:
-    for filter in ['all_graphs']:
+    for filter in ['NR']:
         filter_dest = os.path.join(args.output_dir, filter)
         chop_all(graph_path=filter_dest,
                  pdb_path=args.structures_dir,

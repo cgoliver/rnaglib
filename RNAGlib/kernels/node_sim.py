@@ -62,7 +62,7 @@ class SimFunctionNode():
                  decay=0.5,
                  idf=False,
                  normalization=None,
-                 hash_init='whole_v3',
+                 hash_init_path=os.path.join(script_dir, '..', 'data', 'hashing', 'NR_chops_hash.p'),
                  cache=True):
 
         POSSIBLE_METHODS = ['R_1', 'R_iso', 'R_graphlets', 'R_ged', 'hungarian', 'graphlet']
@@ -74,23 +74,19 @@ class SimFunctionNode():
         self.normalization = normalization
 
         self.cache = cache
+        self.hash_init_path = hash_init_path
 
         edge_map = GRAPH_KEYS['edge_map'][TOOL]
         self.tool = TOOL
         self.edge_map = edge_map
 
+        self.hasher = None
         if self.cache:
             self.GED_table = defaultdict(dict)
             self.hash_table = {}
         else:
             self.GED_table = None
             self.hash_table = None
-
-        if cache and self.method in ['R_ged', 'R_graphlets', 'graphlet']:
-            init_path = os.path.join(script_dir, '..', 'data', 'hashing', hash_init + '.p')
-            print(f">>> loading hash table from {init_path}")
-            self.hasher, self.hash_table = \
-                pickle.load(open(init_path, 'rb'))
 
         if idf:
             self.idf = GRAPH_KEYS['idf'][TOOL]
@@ -104,6 +100,10 @@ class SimFunctionNode():
         else:
             self.norm_factor = 1.0
 
+    def add_hashtable(self, hash_init_path):
+        print(f">>> loading hash table from {hash_init_path}")
+        self.hasher, self.hash_table = pickle.load(open(hash_init_path, 'rb'))
+
     def compare(self, rings1, rings2, debug=False):
         """
             Compares first K rings at each level.
@@ -113,8 +113,9 @@ class SimFunctionNode():
                 when we say depth=3, we want rings[1:4], hence range(1, depth+1)
             Need to take this into account for normalization (see class constructor)
         """
-        # if self.depth < 1 or self.depth > len(rings1):
-        # raise ValueError("depth must be 1 <= depth <= number_of_rings ")
+        # We only load the hashing table when we make a first computation, a lazy optimization
+        if self.cache and self.method in ['R_ged', 'R_graphlets', 'graphlet'] and self.hasher is None:
+            self.add_hashtable(hash_init_path=self.hash_init_path)
 
         if self.method == 'graphlet':
             return self.graphlet(rings1, rings2)

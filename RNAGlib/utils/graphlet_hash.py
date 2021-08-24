@@ -7,11 +7,6 @@
 
 import sys
 import os
-
-script_dir = os.path.dirname(os.path.realpath(__file__))
-if __name__ == "__main__":
-    sys.path.append(os.path.join(script_dir, '..'))
-
 import pickle
 from itertools import product
 from collections import Counter
@@ -22,25 +17,22 @@ import networkx as nx
 from networkx.algorithms.graph_hashing import weisfeiler_lehman_graph_hash as wl
 import numpy as np
 
+script_dir = os.path.dirname(os.path.realpath(__file__))
+if __name__ == "__main__":
+    sys.path.append(os.path.join(script_dir, '..'))
+
 from utils.graph_utils import bfs_expand
-from ged.rna_ged_nx import ged
 from utils.graph_io import load_json
 
-iso_matrix = pickle.load(open(os.path.join(script_dir, '../data/iso_mat.p'), 'rb'))
+from config.build_iso_mat import iso_mat as iso_matrix
+from config.graph_keys import GRAPH_KEYS, TOOL
+
+from ged.rna_ged_nx import ged
+
+e_key = GRAPH_KEYS['bp_type'][TOOL]
+indel_vector = GRAPH_KEYS['indel_vector'][TOOL]
+edge_map = GRAPH_KEYS['edge_map'][TOOL]
 sub_matrix = np.ones_like(iso_matrix) - iso_matrix
-# iso_matrix = iso_matrix[1:, 1:]
-
-
-edge_map = {'B53': 0, 'CHH': 1, 'CHS': 2, 'CHW': 3, 'CSH': 2, 'CSS': 4, 'CSW': 5, 'CWH': 3, 'CWS': 5, 'CWW': 6,
-            'THH': 7, 'THS': 8, 'THW': 9, 'TSH': 8, 'TSS': 10, 'TSW': 11, 'TWH': 9, 'TWS': 11, 'TWW': 12}
-
-indel_vector = [1 if e == 'B53' else 2 if e == 'CWW' else 3 for e in sorted(edge_map.keys())]
-
-faces = ['W', 'S', 'H']
-orientations = ['C', 'T']
-labels = {orient + e1 + e2 for e1, e2 in product(faces, faces) for orient in orientations}
-labels.add('B53')
-
 
 class Hasher:
     def __init__(self,
@@ -134,9 +126,10 @@ def WL_step_edges(G, labels):
 
 
 def extract_graphlet(G, n, size=1, label='LW'):
-    graphlet =  G.subgraph(bfs_expand(G, [n], depth=size, label=label)).copy()
+    graphlet = G.subgraph(bfs_expand(G, [n], depth=size, label=label)).copy()
 
     return graphlet
+
 
 def build_hash_table(graph_dir,
                      hasher,
@@ -318,6 +311,6 @@ if __name__ == "__main__":
     # from drawing import rna_draw
 
     # for h, data in table.items():
-        # print(h)
-        # for g in data['graphs']:
-            # rna_draw(g, show=True)
+    # print(h)
+    # for g in data['graphs']:
+    # rna_draw(g, show=True)

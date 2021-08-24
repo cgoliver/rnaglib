@@ -78,6 +78,8 @@ class BoolEncoder:
         """ Assign encoding of `value` according to known possible
         values.
         """
+        if value is None:
+            return self.encode_default()
         # Sometimes we encode other stuff as booleans. Then if it's here return True, else False
         if not isinstance(value, bool):
             x = torch.tensor([True], dtype=torch.float)
@@ -119,7 +121,7 @@ class ListEncoder:
 
 
 # Interesting Counters :
-# To get those, run 'get all labels with the counter option. This is useful to produce the
+# To get those, run 'get_all_labels with the counter option. This is useful to produce the
 # one hot encoding (by discarding the really scarce ones
 # node dbn : 
 # {'(': 1595273, '.': 2694367, ')': 1596160, '[': 52080, ']': 51598, '{': 9862, '}': 9916, '>': 2076, '<': 2078,
