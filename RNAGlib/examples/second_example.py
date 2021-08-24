@@ -43,9 +43,9 @@ learn.pretrain_unsupervised(model=embedder_model,
                             num_epochs=2)
 torch.save(embedder_model.state_dict(), 'pretrained_model.pth')
 print()
-print('We have finished pretraining the network, let us fine tune it')
 
 ###### Now the supervised phase : ######
+print('We have finished pretraining the network, let us fine tune it')
 # GET THE DATA GOING, we want to use precise data splits to be able to use the benchmark.
 # TODO remove and fix dl
 data_path = os.path.join(script_dir, '..', 'data/iguana/iguana/NR')
