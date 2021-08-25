@@ -9,9 +9,9 @@ import numpy as np
 
 script_dir = os.path.dirname(os.path.realpath(__file__))
 if __name__ == "__main__":
-    sys.path.append(os.path.join(script_dir, '..'))
+    sys.path.append(os.path.join(script_dir, '..', '..'))
 
-from config.graph_keys import GRAPH_KEYS, TOOL, DEFAULT_ANNOT_DIR
+from rnaglib.config.graph_keys import GRAPH_KEYS, TOOL, DEFAULT_ANNOT_DIR
 
 VALID_EDGES = GRAPH_KEYS['edge_map'][TOOL].keys()
 

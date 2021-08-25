@@ -1,32 +1,27 @@
-import pickle
-import sys
 import os
-from tqdm import tqdm
-import networkx as nx
-import dgl
-import numpy as np
-import torch
+import sys
 
-import functools
-import os
-import sys
-import collections
-from collections import defaultdict
+import pickle
+import networkx as nx
+import numpy as np
 import random
 import requests
 import warnings
 import tarfile
 import zipfile
 
+import torch
+import dgl
+from torch.utils.data import Dataset, DataLoader, Subset
+
 script_dir = os.path.dirname(os.path.realpath(__file__))
 if __name__ == "__main__":
-    sys.path.append(os.path.join(script_dir, '..'))
+    sys.path.append(os.path.join(script_dir, '..', '..'))
 
-from torch.utils.data import Dataset, DataLoader, Subset
-from kernels.node_sim import SimFunctionNode, k_block_list, simfunc_from_hparams
-from utils import graph_io
-from data_loading.feature_maps import build_node_feature_parser
-from config.graph_keys import GRAPH_KEYS, TOOL
+from rnaglib.kernels.node_sim import SimFunctionNode, k_block_list, simfunc_from_hparams
+from rnaglib.utils import graph_io
+from rnaglib.data_loading.feature_maps import build_node_feature_parser
+from rnaglib.config.graph_keys import GRAPH_KEYS, TOOL
 
 # This consists in the keys of the feature map that we consider as not relevant for now.
 JUNK_ATTRS = ['index_chain', 'chain_name', 'nt_resnum', 'nt_id', 'nt_type', 'summary', 'C5prime_xyz', 'P_xyz',

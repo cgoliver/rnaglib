@@ -4,12 +4,14 @@ import sys
 import torch
 
 script_dir = os.path.dirname(os.path.realpath(__file__))
-sys.path.append(os.path.join(script_dir, '..'))
 
-from learning import models, learn
-from data_loading import loader
-from benchmark import evaluate
-from kernels import node_sim
+if __name__ == "__main__":
+    sys.path.append(os.path.join(script_dir, '..', '..'))
+    
+from rnaglib.learning import models, learn
+from rnaglib.data_loading import loader
+from rnaglib.benchmark import evaluate
+from rnaglib.kernels import node_sim
 
 """
 This script shows a second more complicated example : learn binding protein preferences as well as
@@ -34,11 +36,11 @@ train_loader = loader.Loader(dataset=unsupervised_dataset, split=False,
 embedder_model = models.Embedder(infeatures_dim=unsupervised_dataset.input_dim,
                                  dims=[64, 64])
 optimizer = torch.optim.Adam(embedder_model.parameters())
-# learn.pretrain_unsupervised(model=embedder_model,
-#                             optimizer=optimizer,
-#                             train_loader=train_loader,
-#                             learning_routine=learn.LearningRoutine(num_epochs=10),
-#                             rec_params={"similarity": True, "normalize": False, "use_graph": True, "hops": 2})
+learn.pretrain_unsupervised(model=embedder_model,
+                            optimizer=optimizer,
+                            train_loader=train_loader,
+                            learning_routine=learn.LearningRoutine(num_epochs=10),
+                            rec_params={"similarity": True, "normalize": False, "use_graph": True, "hops": 2})
 # torch.save(embedder_model.state_dict(), 'pretrained_model.pth')
 print()
 
@@ -61,8 +63,8 @@ learn.train_supervised(model=classifier_model,
                        optimizer=optimizer,
                        train_loader=train_loader,
                        learning_routine=learn.LearningRoutine(num_epochs=10))
-torch.save(classifier_model.state_dict(), 'final_model.pth')
 
+# torch.save(classifier_model.state_dict(), 'final_model.pth')
 # embedder_model = models.Embedder(infeatures_dim=4, dims=[64, 64])
 # classifier_model = models.Classifier(embedder=embedder_model, classif_dims=[1])
 # classifier_model.load_state_dict(torch.load('final_model.pth'))
