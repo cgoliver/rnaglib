@@ -21,7 +21,7 @@ if __name__ == "__main__":
 from rnaglib.kernels.node_sim import SimFunctionNode, k_block_list, simfunc_from_hparams
 from rnaglib.utils import graph_io
 from rnaglib.data_loading.feature_maps import build_node_feature_parser
-from rnaglib.config.graph_keys import GRAPH_KEYS, TOOL
+from rnaglib.config.graph_keys import GRAPH_KEYS, TOOL, EDGE_MAP_RGLIB_REVERSE
 
 # This consists in the keys of the feature map that we consider as not relevant for now.
 JUNK_ATTRS = ['index_chain', 'chain_name', 'nt_resnum', 'nt_id', 'nt_type', 'summary', 'C5prime_xyz', 'P_xyz',
@@ -569,6 +569,60 @@ class InferenceLoader:
                                   num_workers=self.num_workers,
                                   collate_fn=collate_block)
         return train_loader
+
+class BasePairLoader:
+    """ Iteates over batches of base pairs and generates negative samples for each.
+    Negative sampling is just uniform for the moment (eventually we should change it to only sample 
+    edges at a certain backbone distance.
+    """
+    def __init__(self,
+                 dataset=None,
+                 data_path=None,
+                 batch_size=5,
+                 sampler_layers=2,
+                 neg_samples=1,
+                 num_workers=20,
+                 **kwargs):
+        if dataset is None:
+            dataset = GraphDataset(data_path=data_path, **kwargs)
+        self.dataset = dataset
+        self.batch_size = batch_size
+        self.num_workers = num_workers
+        self.neg_samples = neg_samples
+        self.sampler_layers = sampler_layers
+
+
+        self.g_train, self.g_val, self.g_test =  Loader(self.dataset, self.batch_size).get_data()
+
+    def get_data(self):
+        sampler = dgl.dataloading.MultiLayerFullNeighborSampler(
+                                    self.sampler_layers)
+        negative_sampler = dgl.dataloading.negative_sampler.Uniform(self.neg_samples)
+
+        eloader_args = {
+                        'shuffle': False,
+                        'batch_size': 8,
+                        'negative_sampler': negative_sampler
+                        }
+
+
+        train_loader = (dgl.dataloading.pytorch.EdgeDataLoader(g_batched, get_base_pairs(g_batched), sampler, **eloader_args)
+                            for g_batched,_ in self.g_train)
+        val_loader = (dgl.dataloading.pytorch.EdgeDataLoader(g_batched, get_base_pairs(g_batched), sampler, **eloader_args)
+                            for g_batched,_ in self.g_val)
+        test_loader = (dgl.dataloading.pytorch.EdgeDataLoader(g_batched, get_base_pairs(g_batched), sampler, **eloader_args)
+                            for g_batched,_ in self.g_test)
+                                                              
+        return train_loader, val_loader, test_loader 
+
+def get_base_pairs(g):
+    """ Returns edge IDS of edges in a base pair (non-backbone or unpaired).
+    """
+    eids = []
+    for ind, e in enumerate(g.edata['edge_type']):
+        if EDGE_MAP_RGLIB_REVERSE[e.item()][0] != 'B':
+                eids.append(e)
+    return eids
 
 
 if __name__ == '__main__':
