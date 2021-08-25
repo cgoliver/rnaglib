@@ -1,17 +1,15 @@
+#!/usr/bin/env python3
+
 import os
 import sys
 import torch
 
-script_dir = os.path.dirname(os.path.realpath(__file__))
-sys.path.append(os.path.join(script_dir, '..'))
-
-from learning import models, learn
-from data_loading import loader
+from rnaglib.learning import models, learn
+from rnaglib.data_loading import loader
 
 """
 This script just shows a first very basic example : learn binding protein preferences 
 from the nucleotide types and the graph structure
-
 To do so, we choose our data, create a data loader around it, build a RGCN model and train it.
 """
 

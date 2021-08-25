@@ -19,15 +19,13 @@ import numpy as np
 
 script_dir = os.path.dirname(os.path.realpath(__file__))
 if __name__ == "__main__":
-    sys.path.append(os.path.join(script_dir, '..'))
+    sys.path.append(os.path.join(script_dir, '..', '..'))
 
-from utils.graph_utils import bfs_expand
-from utils.graph_io import load_json
-
-from config.build_iso_mat import iso_mat as iso_matrix
-from config.graph_keys import GRAPH_KEYS, TOOL
-
-from ged.rna_ged_nx import ged
+from rnaglib.utils.graph_utils import bfs_expand
+from rnaglib.utils.graph_io import load_json
+from rnaglib.config.build_iso_mat import iso_mat as iso_matrix
+from rnaglib.config.graph_keys import GRAPH_KEYS, TOOL
+from rnaglib.ged.rna_ged_nx import ged
 
 e_key = GRAPH_KEYS['bp_type'][TOOL]
 indel_vector = GRAPH_KEYS['indel_vector'][TOOL]

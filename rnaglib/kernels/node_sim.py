@@ -1,38 +1,24 @@
 """
 Functions for comparing node similarity.
 """
-import os, sys
-import pickle
+import os
+import sys
+
 from collections import defaultdict, Counter, OrderedDict
-from itertools import combinations
-import numpy as np
-import networkx as nx
-import matplotlib.pyplot as plt
-from scipy.optimize import linear_sum_assignment
-import pickle
 import itertools
+import matplotlib.pyplot as plt
+import networkx as nx
+import numpy as np
+import pickle
+from scipy.optimize import linear_sum_assignment
 
 script_dir = os.path.dirname(os.path.realpath(__file__))
 if __name__ == "__main__":
-    sys.path.append(os.path.join(script_dir, '..'))
+    sys.path.append(os.path.join(script_dir, '..', '..'))
 
-# from tools.graph_utils import bfs, bfs_expand
-# from learning.timed_learning import train_model
-# from tools.rna_ged import ged
-# from tools.drawing import rna_draw_pair
-from utils.graphlet_hash import *
-from config.graph_keys import GRAPH_KEYS, TOOL
-from config.build_iso_mat import iso_mat as iso_matrix
-
-
-# GLOBAL VARIABLES
-
-# iso_matrix = pickle.load(open(os.path.join(script_dir, '../data/iso_mat.p'), 'rb'))
-# iso_matrix_ged = iso_matrix
-# iso_matrix = iso_matrix[1:, 1:]
-
-
-# indel_vector = [1 if e == 'B53' else 2 if e == 'CWW' else 3 for e in sorted(EDGE_MAP_FR3D.keys())]
+from rnaglib.utils.graphlet_hash import *
+from rnaglib.config.graph_keys import GRAPH_KEYS, TOOL
+from rnaglib.config.build_iso_mat import iso_mat as iso_matrix
 
 
 def simfunc_from_hparams(hparams):

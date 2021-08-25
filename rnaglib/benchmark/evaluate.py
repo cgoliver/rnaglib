@@ -5,10 +5,10 @@ import random
 
 script_dir = os.path.dirname(os.path.realpath(__file__))
 if __name__ == "__main__":
-    sys.path.append(os.path.join(script_dir, '..'))
+    sys.path.append(os.path.join(script_dir, '..', '..'))
 
-from data_loading import loader, get_all_labels
-from learning import learn
+from rnaglib.data_loading import loader, get_all_labels
+from rnaglib.learning import learn
 
 """
 This script is to be used for reproducible benchmarking : we propose an official train/test split 

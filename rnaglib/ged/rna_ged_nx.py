@@ -1,19 +1,15 @@
 import sys, os
 import time
 import pickle
-
 import numpy as np
-
-# import seaborn as sns
-# import matplotlib.pyplot as plt
 
 script_dir = os.path.dirname(os.path.realpath(__file__))
 if __name__ == "__main__":
-    sys.path.append(os.path.join(script_dir, '..'))
+    sys.path.append(os.path.join(script_dir, '..', '..'))
 
-from ged.ged_nx import graph_edit_distance, optimize_graph_edit_distance
-from config.build_iso_mat import iso_mat as iso_matrix
-from config.graph_keys import GRAPH_KEYS, TOOL
+from rnaglib.ged.ged_nx import graph_edit_distance, optimize_graph_edit_distance
+from rnaglib.config.build_iso_mat import iso_mat as iso_matrix
+from rnaglib.config.graph_keys import GRAPH_KEYS, TOOL
 
 e_key = GRAPH_KEYS['bp_type'][TOOL]
 indel_vector = GRAPH_KEYS['indel_vector'][TOOL]

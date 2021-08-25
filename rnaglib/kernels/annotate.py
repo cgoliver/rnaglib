@@ -3,22 +3,24 @@ Functions to take a nx object and return (nx, dict_tree, dict_rings)
 """
 import sys
 import os
+
 import argparse
-
-script_dir = os.path.dirname(os.path.realpath(__file__))
-if __name__ == "__main__":
-    sys.path.append(os.path.join(script_dir, '..'))
-
+from collections import defaultdict
+import multiprocessing as mlt
 import networkx as nx
 import pickle
 import time
-from collections import defaultdict
 from tqdm import tqdm
 
-import multiprocessing as mlt
-from utils.graphlet_hash import Hasher
-from utils.graph_io import load_json, dump_json
-from drawing.drawing import rna_draw
+script_dir = os.path.dirname(os.path.realpath(__file__))
+if __name__ == "__main__":
+    sys.path.append(os.path.join(script_dir, '..', '..'))
+
+
+
+from rnaglib.utils.graphlet_hash import Hasher
+from rnaglib.utils.graph_io import load_json, dump_json
+from rnaglib.drawing.drawing import rna_draw
 
 
 def node_2_unordered_rings(G, v, depth=5, hasher=None, label='LW'):
