@@ -3,6 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from dgl.nn.pytorch.conv import RelGraphConv
+import dgl.function as fn
 
 
 class Embedder(nn.Module):
@@ -202,3 +203,36 @@ class Classifier(nn.Module):
                 h = layer(g, h, g.edata['edge_type'])
         g.ndata['h'] = h
         return g.ndata['h']
+
+class BasePairPredictor(nn.Module):
+    """ Predict the probability that two nucleotides are base paired.
+    """
+    def __init__(self, encoder, decoder=None):
+        super(BasePairPredictor, self).__init__()
+
+        self.encoder = encoder 
+        if decoder is None:
+            self.decoder = DotPredictor()
+        pass
+
+    def forward(self, g, negative_graph=None):
+        with g.local_scope():
+            h = self.encoder(g)
+            if not negative_graph is None:
+                return self.decoder(negative_graph, h)
+            return self.decoder(g, h)
+
+class DotPredictor(nn.Module):
+    def __init__(self):
+        super(DotPredictor, self).__init__()
+        self.norm = torch.nn.Sigmoid()
+
+    def forward(self, g, h):
+        with g.local_scope():
+            g.ndata['h'] = h
+            # Compute a new edge feature named 'score' by a dot-product between the
+            # source node feature 'h' and destination node feature 'h'.
+            g.apply_edges(fn.u_dot_v('h', 'h', 'score'))
+            g.edata['score'] = self.norm(g.edata['score'])
+            # u_dot_v returns a 1-element vector for each edge so you need to squeeze it.
+            return g.edata['score'][:, 0]

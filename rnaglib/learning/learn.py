@@ -7,6 +7,7 @@ import numpy as np
 from sklearn.metrics import roc_auc_score
 
 import torch
+import torch.nn.functional as F
 import dgl
 
 if __name__ == "__main__":
@@ -454,6 +455,47 @@ def train_supervised(model,
             break
     return learning_routine.best_loss
 
+def train_linkpred(model,
+                   optimizer,
+                   train_loader,
+                   validation_loader
+                   ):
+    for epoch in range(10):
+        count = 0
+        print("EPOCH ", epoch)
+        for g in train_loader:
+            for input_nodes, positive_graph, negative_graph, blocks in g:
+                pos_score = model(positive_graph)
+                neg_score = model(positive_graph, negative_graph=negative_graph)
+
+                score = torch.cat([pos_score, neg_score])
+                label = torch.cat([torch.ones_like(pos_score), torch.zeros_like(neg_score)])
+                loss = F.binary_cross_entropy_with_logits(score, label)
+                optimizer.zero_grad()
+                loss.backward()
+                optimizer.step()
+                print(loss)
+                count += 1
+
+    aucs = []
+    count = 0
+    for i,g in enumerate(validation_loader):
+        print("val graph ", i)
+        for input_nodes, positive_graph, negative_graph, blocks in g:
+            with torch.no_grad():
+                pos_score = model(positive_graph)
+                neg_score = model(positive_graph, negative_graph=negative_graph)
+
+                score = torch.cat([pos_score, neg_score]).detach().numpy()
+                label = torch.cat([torch.ones_like(pos_score), torch.zeros_like(neg_score)])
+                label = label.detach().numpy()
+                print(score, label)
+                aucs.append(roc_auc_score(label, score))
+                count += 1
+
+    print("AUC", np.mean(aucs))
+
+    pass
 
 if __name__ == '__main__':
     pass
