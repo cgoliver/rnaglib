@@ -26,8 +26,8 @@ train_split, test_split = evaluate.get_task_split(node_target=node_target)
 
 train_dataset = loader.GraphDataset(node_features=['nt_code'], all_graphs=train_split)
 test_dataset = loader.GraphDataset(node_features=['nt_code'], all_graphs=test_split)
-train_loader = loader.EdgeLoader(train_dataset).get_edge_loader()
-test_loader = loader.EdgeLoader(test_dataset).get_edge_loader()
+train_loader = loader.EdgeLoaderGenerator(loader.Loader(train_dataset, split=False).get_data())
+test_loader = loader.EdgeLoaderGenerator(loader.Loader(test_dataset, split=False).get_data())
 
 # Choose the data, features and targets to use and GET THE DATA GOING
 embedder_model = models.Embedder(dims=[10, 10], infeatures_dim=train_dataset.input_dim)

@@ -458,13 +458,21 @@ def train_supervised(model,
 
 def train_linkpred(model,
                    optimizer,
-                   train_loader,
-                   validation_loader
+                   train_loader_generator,
+                   validation_loader_generator
                    ):
-    time_start = time.time()
+    """
+
+    :param model:
+    :param optimizer:
+    :param train_loader_generator:
+    :param validation_loader_generator:
+    :return:
+    """
     for epoch in range(10):
         count = 0
-        print("EPOCH ", epoch)
+        time_start = time.time()
+        train_loader = train_loader_generator.get_edge_loader()
         for g in train_loader:
             for step, (input_nodes, positive_graph, negative_graph, blocks) in enumerate(g):
                 pos_score = model(positive_graph)
@@ -479,6 +487,7 @@ def train_linkpred(model,
                 count += len(input_nodes)
                 # if True or not count % 50:
                 #     print(count, loss.item(), time.time() - time_start)
+        print(f"EPOCH  {epoch}, time for the epoch :  {time.time() - time_start:2f}, last loss {loss.item():2f}")
 
     aucs = []
     count = 0
