@@ -389,6 +389,9 @@ class GraphDataset(Dataset):
             raise ValueError(f'The edge fixing strategy : {strategy} was not implemented yet')
         return graph
 
+    def shuffle(self):
+        self.all_graphs = np.random.shuffle(self.all_graphs)
+
     def __getitem__(self, idx):
         g_path = os.path.join(self.data_path, self.all_graphs[idx])
         graph = graph_io.load_graph(g_path)
@@ -499,6 +502,8 @@ class Loader:
                  split=True,
                  verbose=False):
         """
+        Turns a dataset into a dataloader
+
         :param dataset: The dataset to iterate over
         :param batch_size:
         :param num_workers:
@@ -572,10 +577,53 @@ class InferenceLoader:
         return train_loader
 
 
+class EdgeLoaderGenerator:
+    def __init__(self,
+                 graph_loader,
+                 inner_batch_size=50,
+                 sampler_layers=2,
+                 neg_samples=1,
+                 **kwargs):
+        """
+        This turns a graph dataloader or dataset into an edge data loader generator.
+        It needs to be reinitialized every epochs because of the double iteration pattern
+
+        Iterates over batches of base pairs and generates negative samples for each.
+        Negative sampling is just uniform for the moment (eventually we should change it to only sample
+        edges at a certain backbone distance.
+
+        timing :
+        - num workers should be used to load the graphs not in the inner loop
+        - The inner batch size yields huge speedups (probably generating all MFGs is tedious)
+
+        :param graph_loader:
+        :param inner_batch_size:
+        :param sampler_layers:
+        :param neg_samples:
+        :param num_workers:
+        :param kwargs:
+        """
+        self.graph_loader = graph_loader
+        self.neg_samples = neg_samples
+        self.sampler_layers = sampler_layers
+        self.inner_batch_size = inner_batch_size
+        self.sampler = dgl.dataloading.MultiLayerFullNeighborSampler(self.sampler_layers)
+        self.negative_sampler = dgl.dataloading.negative_sampler.Uniform(self.neg_samples)
+        self.eloader_args = {
+            'shuffle': False,
+            'batch_size': self.inner_batch_size,
+            'negative_sampler': self.negative_sampler
+        }
+
+    def get_edge_loader(self):
+        edge_loader = (EdgeDataLoader(g_batched, get_base_pairs(g_batched), self.sampler, **self.eloader_args)
+                       for g_batched, _ in self.graph_loader)
+        return edge_loader
+
+
 class DefaultBasePairLoader:
-    """ Iterates over batches of base pairs and generates negative samples for each.
-    Negative sampling is just uniform for the moment (eventually we should change it to only sample 
-    edges at a certain backbone distance.
+    """ Just a default edge base pair loader.
+    It deals with the splits
     """
 
     def __init__(self,
@@ -588,10 +636,6 @@ class DefaultBasePairLoader:
                  num_workers=4,
                  **kwargs):
         """
-        timing :
-            - num workers should be used to load the graphs not in the inner loop
-            - The inner batch size yields huge speedups (probably generating all MFGs is tedious)
-
         :param dataset:
         :param data_path:
         :param batch_size: This is the number of graphs that
@@ -617,56 +661,17 @@ class DefaultBasePairLoader:
         self.sampler_layers = sampler_layers
 
     def get_data(self):
-        train_loader = EdgeLoader(graph_loader=self.g_train, inner_batch_size=self.inner_batch_size,
-                                  sampler_layers=self.sampler_layers, neg_samples=self.neg_samples).get_edge_loader()
-        val_loader = EdgeLoader(graph_loader=self.g_val, inner_batch_size=self.inner_batch_size,
-                                sampler_layers=self.sampler_layers, neg_samples=self.neg_samples).get_edge_loader()
-        test_loader = EdgeLoader(graph_loader=self.g_test, inner_batch_size=self.inner_batch_size,
-                                 sampler_layers=self.sampler_layers, neg_samples=self.neg_samples).get_edge_loader()
+        train_loader = EdgeLoaderGenerator(graph_loader=self.g_train, inner_batch_size=self.inner_batch_size,
+                                           sampler_layers=self.sampler_layers,
+                                           neg_samples=self.neg_samples).get_edge_loader()
+        val_loader = EdgeLoaderGenerator(graph_loader=self.g_val, inner_batch_size=self.inner_batch_size,
+                                         sampler_layers=self.sampler_layers,
+                                         neg_samples=self.neg_samples).get_edge_loader()
+        test_loader = EdgeLoaderGenerator(graph_loader=self.g_test, inner_batch_size=self.inner_batch_size,
+                                          sampler_layers=self.sampler_layers,
+                                          neg_samples=self.neg_samples).get_edge_loader()
 
         return train_loader, val_loader, test_loader
-
-
-class EdgeLoader:
-    """ Iterates over batches of base pairs and generates negative samples for each.
-    Negative sampling is just uniform for the moment (eventually we should change it to only sample
-    edges at a certain backbone distance.
-    """
-
-    def __init__(self,
-                 graph_loader,
-                 inner_batch_size=50,
-                 sampler_layers=2,
-                 neg_samples=1,
-                 **kwargs):
-        """
-        timing :
-            - num workers should be used to load the graphs not in the inner loop
-            - The inner batch size yields huge speedups (probably generating all MFGs is tedious)
-
-        :param graph_loader:
-        :param inner_batch_size:
-        :param sampler_layers:
-        :param neg_samples:
-        :param num_workers:
-        :param kwargs:
-        """
-        self.graph_loader = graph_loader
-        self.neg_samples = neg_samples
-        self.sampler_layers = sampler_layers
-        self.inner_batch_size = inner_batch_size
-        self.sampler = dgl.dataloading.MultiLayerFullNeighborSampler(self.sampler_layers)
-        self.negative_sampler = dgl.dataloading.negative_sampler.Uniform(self.neg_samples)
-        self.eloader_args = {
-            'shuffle': False,
-            'batch_size': self.inner_batch_size,
-            'negative_sampler': self.negative_sampler
-        }
-
-    def get_edge_loader(self):
-        edge_loader = (EdgeDataLoader(g_batched, get_base_pairs(g_batched), self.sampler, **self.eloader_args)
-                       for g_batched, _ in self.graph_loader)
-        return edge_loader
 
 
 def get_base_pairs(g):
