@@ -469,7 +469,7 @@ def train_linkpred(model,
     :param validation_loader_generator:
     :return:
     """
-    for epoch in range(10):
+    for epoch in range(3):
         count = 0
         time_start = time.time()
         train_loader = train_loader_generator.get_edge_loader()
@@ -492,6 +492,7 @@ def train_linkpred(model,
     aucs = []
     count = 0
     model.eval()
+    validation_loader = validation_loader_generator.get_edge_loader()
     for i, g in enumerate(validation_loader):
         print("val graph ", i)
         for input_nodes, positive_graph, negative_graph, blocks in g:
