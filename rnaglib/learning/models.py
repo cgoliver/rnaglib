@@ -204,23 +204,34 @@ class Classifier(nn.Module):
         g.ndata['h'] = h
         return g.ndata['h']
 
+
 class BasePairPredictor(nn.Module):
-    """ Predict the probability that two nucleotides are base paired.
     """
+    Predict the probability that two nucleotides are base paired.
+    """
+
     def __init__(self, encoder, decoder=None):
         super(BasePairPredictor, self).__init__()
 
-        self.encoder = encoder 
+        self.encoder = encoder
         if decoder is None:
             self.decoder = DotPredictor()
         pass
 
     def forward(self, g, negative_graph=None):
+        """
+        Predicts the probability that each edge exists.
+            If negative graph is not None, we embed the real graph and then predict the negative graph connectivity
+        :param g:
+        :param negative_graph:
+        :return:
+        """
         with g.local_scope():
             h = self.encoder(g)
-            if not negative_graph is None:
+            if negative_graph is not None:
                 return self.decoder(negative_graph, h)
             return self.decoder(g, h)
+
 
 class DotPredictor(nn.Module):
     def __init__(self):

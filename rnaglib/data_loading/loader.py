@@ -11,8 +11,9 @@ import tarfile
 import zipfile
 
 import torch
-import dgl
 from torch.utils.data import Dataset, DataLoader, Subset
+import dgl
+from dgl.dataloading.pytorch import EdgeDataLoader
 
 script_dir = os.path.dirname(os.path.realpath(__file__))
 if __name__ == "__main__":
@@ -570,50 +571,103 @@ class InferenceLoader:
                                   collate_fn=collate_block)
         return train_loader
 
-class BasePairLoader:
-    """ Iteates over batches of base pairs and generates negative samples for each.
+
+class DefaultBasePairLoader:
+    """ Iterates over batches of base pairs and generates negative samples for each.
     Negative sampling is just uniform for the moment (eventually we should change it to only sample 
     edges at a certain backbone distance.
     """
+
     def __init__(self,
                  dataset=None,
                  data_path=None,
                  batch_size=5,
+                 inner_batch_size=50,
                  sampler_layers=2,
                  neg_samples=1,
-                 num_workers=20,
+                 num_workers=4,
                  **kwargs):
+        """
+        timing :
+            - num workers should be used to load the graphs not in the inner loop
+            - The inner batch size yields huge speedups (probably generating all MFGs is tedious)
+
+        :param dataset:
+        :param data_path:
+        :param batch_size: This is the number of graphs that
+        :param inner_batch_size:
+        :param sampler_layers:
+        :param neg_samples:
+        :param num_workers:
+        :param kwargs:
+        """
+        # Create default loaders
         if dataset is None:
             dataset = GraphDataset(data_path=data_path, **kwargs)
         self.dataset = dataset
         self.batch_size = batch_size
         self.num_workers = num_workers
+        self.g_train, self.g_val, self.g_test = Loader(self.dataset,
+                                                       batch_size=self.batch_size,
+                                                       num_workers=self.num_workers).get_data()
+
+        # Get the inner loader parameters
+        self.inner_batch_size = inner_batch_size
         self.neg_samples = neg_samples
         self.sampler_layers = sampler_layers
 
-
-        self.g_train, self.g_val, self.g_test =  Loader(self.dataset, self.batch_size).get_data()
-
     def get_data(self):
-        sampler = dgl.dataloading.MultiLayerFullNeighborSampler(
-                                    self.sampler_layers)
-        negative_sampler = dgl.dataloading.negative_sampler.Uniform(self.neg_samples)
+        train_loader = EdgeLoader(graph_loader=self.g_train, inner_batch_size=self.inner_batch_size,
+                                  sampler_layers=self.sampler_layers, neg_samples=self.neg_samples).get_edge_loader()
+        val_loader = EdgeLoader(graph_loader=self.g_val, inner_batch_size=self.inner_batch_size,
+                                sampler_layers=self.sampler_layers, neg_samples=self.neg_samples).get_edge_loader()
+        test_loader = EdgeLoader(graph_loader=self.g_test, inner_batch_size=self.inner_batch_size,
+                                 sampler_layers=self.sampler_layers, neg_samples=self.neg_samples).get_edge_loader()
 
-        eloader_args = {
-                        'shuffle': False,
-                        'batch_size': 8,
-                        'negative_sampler': negative_sampler
-                        }
+        return train_loader, val_loader, test_loader
 
 
-        train_loader = (dgl.dataloading.pytorch.EdgeDataLoader(g_batched, get_base_pairs(g_batched), sampler, **eloader_args)
-                            for g_batched,_ in self.g_train)
-        val_loader = (dgl.dataloading.pytorch.EdgeDataLoader(g_batched, get_base_pairs(g_batched), sampler, **eloader_args)
-                            for g_batched,_ in self.g_val)
-        test_loader = (dgl.dataloading.pytorch.EdgeDataLoader(g_batched, get_base_pairs(g_batched), sampler, **eloader_args)
-                            for g_batched,_ in self.g_test)
-                                                              
-        return train_loader, val_loader, test_loader 
+class EdgeLoader:
+    """ Iterates over batches of base pairs and generates negative samples for each.
+    Negative sampling is just uniform for the moment (eventually we should change it to only sample
+    edges at a certain backbone distance.
+    """
+
+    def __init__(self,
+                 graph_loader,
+                 inner_batch_size=50,
+                 sampler_layers=2,
+                 neg_samples=1,
+                 **kwargs):
+        """
+        timing :
+            - num workers should be used to load the graphs not in the inner loop
+            - The inner batch size yields huge speedups (probably generating all MFGs is tedious)
+
+        :param graph_loader:
+        :param inner_batch_size:
+        :param sampler_layers:
+        :param neg_samples:
+        :param num_workers:
+        :param kwargs:
+        """
+        self.graph_loader = graph_loader
+        self.neg_samples = neg_samples
+        self.sampler_layers = sampler_layers
+        self.inner_batch_size = inner_batch_size
+        self.sampler = dgl.dataloading.MultiLayerFullNeighborSampler(self.sampler_layers)
+        self.negative_sampler = dgl.dataloading.negative_sampler.Uniform(self.neg_samples)
+        self.eloader_args = {
+            'shuffle': False,
+            'batch_size': self.inner_batch_size,
+            'negative_sampler': self.negative_sampler
+        }
+
+    def get_edge_loader(self):
+        edge_loader = (EdgeDataLoader(g_batched, get_base_pairs(g_batched), self.sampler, **self.eloader_args)
+                       for g_batched, _ in self.graph_loader)
+        return edge_loader
+
 
 def get_base_pairs(g):
     """ Returns edge IDS of edges in a base pair (non-backbone or unpaired).
@@ -621,7 +675,7 @@ def get_base_pairs(g):
     eids = []
     for ind, e in enumerate(g.edata['edge_type']):
         if EDGE_MAP_RGLIB_REVERSE[e.item()][0] != 'B':
-                eids.append(e)
+            eids.append(e)
     return eids
 
 

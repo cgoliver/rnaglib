@@ -455,16 +455,18 @@ def train_supervised(model,
             break
     return learning_routine.best_loss
 
+
 def train_linkpred(model,
                    optimizer,
                    train_loader,
                    validation_loader
                    ):
+    time_start = time.time()
     for epoch in range(10):
         count = 0
         print("EPOCH ", epoch)
         for g in train_loader:
-            for input_nodes, positive_graph, negative_graph, blocks in g:
+            for step, (input_nodes, positive_graph, negative_graph, blocks) in enumerate(g):
                 pos_score = model(positive_graph)
                 neg_score = model(positive_graph, negative_graph=negative_graph)
 
@@ -474,12 +476,14 @@ def train_linkpred(model,
                 optimizer.zero_grad()
                 loss.backward()
                 optimizer.step()
-                print(loss)
-                count += 1
+                count += len(input_nodes)
+                # if True or not count % 50:
+                #     print(count, loss.item(), time.time() - time_start)
 
     aucs = []
     count = 0
-    for i,g in enumerate(validation_loader):
+    model.eval()
+    for i, g in enumerate(validation_loader):
         print("val graph ", i)
         for input_nodes, positive_graph, negative_graph, blocks in g:
             with torch.no_grad():
@@ -489,23 +493,23 @@ def train_linkpred(model,
                 score = torch.cat([pos_score, neg_score]).detach().numpy()
                 label = torch.cat([torch.ones_like(pos_score), torch.zeros_like(neg_score)])
                 label = label.detach().numpy()
-                print(score, label)
+                # print(score, label)
                 aucs.append(roc_auc_score(label, score))
                 count += 1
-
+    print('Time used : ', time.time() - time_start)
     print("AUC", np.mean(aucs))
-
     pass
+
 
 if __name__ == '__main__':
     pass
-    from learning import models
-    from data_loading import loader
+    from rnaglib.learning import models
+    from rnaglib.data_loading import loader
 
     test_unsupervised = False
     test_supervised = True
     if test_unsupervised:
-        from kernels import node_sim
+        from rnaglib.kernels import node_sim
 
         embedder_model = models.Embedder([10, 10])
         optimizer = torch.optim.Adam(embedder_model.parameters())
