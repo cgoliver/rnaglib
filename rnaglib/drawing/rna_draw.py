@@ -1,8 +1,7 @@
-import os, sys
-import pickle
+import os
+import sys
 
 import networkx as nx
-import numpy as np
 import matplotlib
 
 matplotlib.rcParams['text.usetex'] = True
@@ -12,10 +11,10 @@ import seaborn as sns
 script_dir = os.path.dirname(os.path.realpath(__file__))
 
 if __name__ == "__main__":
-    sys.path.append(os.path.join(script_dir, ".."))
+    sys.path.append(os.path.join(script_dir, "..", ".."))
 
-from utils.graph_io import load_json
-from drawing.rna_layout import circular_layout
+from rnaglib.utils.graph_io import load_json
+from rnaglib.drawing.rna_layout import circular_layout
 
 params = {'text.latex.preamble': [r'\usepackage{fdsymbol}\usepackage{xspace}']}
 plt.rc('font', family='serif')
