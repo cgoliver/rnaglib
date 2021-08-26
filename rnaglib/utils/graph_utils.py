@@ -620,5 +620,32 @@ def weisfeiler_lehman_graph_hash(
     return h
 
 
+def gap_fill(G, subG):
+    """
+        Get rid of all degree 1 nodes.
+    """
+    # while True:
+    new_nodes = list(subG.nodes())
+    # has_dang = False
+    for n in subG.nodes():
+        if subG.degree(n) == 1:
+            new_nodes.append(subG.neighbors(n))
+            # has_dang = True
+    # if has_dang:
+    # subG = G.subgraph(new_nodes).copy()
+    # has_dang = False
+    # else:
+    # break
+    return subG
+
+def graph_from_pdbid(pdbid, graph_dir, graph_format='json'):
+    if graph_format == 'nx':
+        graph = nx.read_gpickle(osp.join(graph_dir, pdbid.lower() + '.nx'))
+    elif graph_format == 'json':
+        graph = load_json(osp.join(graph_dir, pdbid.lower() + '.json'))
+    else:
+        raise ValueError(f"Invalid graph format {graph_format}. Use NetworkX or JSON.")
+    return graph
+
 if __name__ == "__main__":
     nc_clean_dir("../data/unchopped_v4_nr", "../data/unchopped_v4_nr_nc")

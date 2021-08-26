@@ -18,10 +18,10 @@ from sklearn.decomposition import PCA
 import networkx as nx
 from Bio.PDB import *
 
-from tools.graph_utils import dangle_trim
-from tools.graph_utils import gap_fill
-from tools.graph_utils import graph_from_pdbid
-from config.graph_keys import GRAPH_KEYS
+from rnaglib.utils.graph_utils import dangle_trim
+from rnaglib.utils.graph_utils import gap_fill
+from rnaglib.utils.graph_utils import graph_from_pdbid
+from rnaglib.config.graph_keys import GRAPH_KEYS
 
 
 MM_of_Elements = {'H': 1.00794, 'He': 4.002602, 'Li': 6.941, 'Be': 9.012182, 'B': 10.811, 'C': 12.0107, 'N': 14.0067,

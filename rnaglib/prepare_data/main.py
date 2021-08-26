@@ -17,16 +17,17 @@ import json
 from collections import defaultdict
 
 script_dir = os.path.dirname(os.path.realpath(__file__))
-sys.path.append(os.path.join(script_dir, '..'))
+if __name__ == "__main__":
+    sys.path.append(os.path.join(script_dir, '..', '..'))
 
-from prepare_data.dssr_2_graphs import build_one
-from prepare_data.interfaces import get_interfaces
-from prepare_data.annotations import *
-from prepare_data.filters import filter_all
-from prepare_data.filters import has_no_dots 
-from prepare_data.filters import filter_dot_edges 
-from prepare_data.chopper import chop_all
-from prepare_data.khop_annotate import annotate_all
+from rnaglib.prepare_data.dssr_2_graphs import build_one
+from rnaglib.prepare_data.interfaces import get_interfaces
+from rnaglib.prepare_data.annotations import *
+from rnaglib.prepare_data.filters import filter_all
+from rnaglib.prepare_data.filters import has_no_dots 
+from rnaglib.prepare_data.filters import filter_dot_edges 
+from rnaglib.prepare_data.chopper import chop_all
+from rnaglib.prepare_data.khop_annotate import annotate_all
 
 FILTERS = ['NR']
 
@@ -157,19 +158,18 @@ def main():
         todo = ((cif, args.output_dir) for cif in cifs)
 
     # Build Graphs
-    # pool = mp.Pool(args.num_workers)
-    # errors = pool.starmap(do_one, todo)
+    pool = mp.Pool(args.num_workers)
+    errors = pool.starmap(do_one, todo)
 
     # Filters
-    # if args.filter:
-        # filter_all(os.path.join(args.output_dir, 'all_graphs'),
-                   # args.output_dir,
-                   # filters=FILTERS
-                   # )
+    if args.filter:
+        filter_all(os.path.join(args.output_dir, 'all_graphs'),
+                   args.output_dir,
+                   filters=FILTERS
+                   )
 
 
-    # for filter in FILTERS + ['all_graphs']:
-    for filter in ['NR']:
+    for filter in FILTERS + ['all_graphs', 'NR']:
         filter_dest = os.path.join(args.output_dir, filter)
         chop_all(graph_path=filter_dest,
                  pdb_path=args.structures_dir,
