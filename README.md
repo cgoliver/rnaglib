@@ -46,7 +46,7 @@ a pre-built database.
 
 We provide a visualization of what the graphs in this database contain :
 
-![Example graph](https://github.com/Jonbroad15/RNAGlib/blob/main/images/Fig1.png)
+![Example graph](https://jwgitlab.cs.mcgill.ca/cgoliver/rnaglib/-/raw/main/images/Fig1.png)
 ## Installation
 
 ### Code
