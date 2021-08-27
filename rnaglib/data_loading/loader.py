@@ -145,8 +145,8 @@ def download_name_generator(dirname=None,
         hashing_info = None
     else:
         data_path = os.path.join(script_dir, '../data/annotated/')
-        hashing_url = f'http://rnaglib.cs.mcgill.ca/static/datasets/{release}/{redundancy}{chop_str}_hash.p'
-        hashing_path = os.path.join(script_dir, f'../data/hashing/{redundancy}{chop_str}_hash.p')
+        hashing_url = f'http://rnaglib.cs.mcgill.ca/static/datasets/{release}/{tarball_name}_hash.p'
+        hashing_path = os.path.join(script_dir, f'../data/hashing/{tarball_name}_hash.p')
         hashing_info = (hashing_url, hashing_path)
     dirname = tarball_name if dirname is None else dirname
     return url, dl_path, data_path, dirname, hashing_info
