@@ -49,7 +49,7 @@ print('We have finished pretraining the network, let us fine tune it')
 # GET THE DATA GOING, we want to use precise data splits to be able to use the benchmark.
 train_split, test_split = evaluate.get_task_split(node_target=node_target)
 supervised_train_dataset = loader.SupervisedDataset(node_features=node_features,
-                                                    redundancy='all_graphs',
+                                                    redundancy='NR',
                                                     node_target=node_target,
                                                     all_graphs=train_split)
 train_loader = loader.Loader(dataset=supervised_train_dataset, split=False).get_data()

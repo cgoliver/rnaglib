@@ -61,7 +61,7 @@ def get_undirected_iso(bpa, bpb):
 
 
 def build_iso():
-    iso_mat = np.zeros(shape=(len(EDGE_MAP_RGLIB), len(EDGE_MAP_RGLIB)))
+    iso_mat = np.zeros(shape=(len(EDGE_MAP_RGLIB), len(EDGE_MAP_RGLIB)), dtype=np.float32)
     value = 0
     for i, bpa in enumerate(EDGE_MAP_RGLIB.keys()):
         for j, bpb in enumerate(EDGE_MAP_RGLIB.keys()):
