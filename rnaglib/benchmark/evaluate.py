@@ -2,6 +2,7 @@ import os
 import sys
 
 import random
+from sklearn.metrics import roc_auc_score
 
 script_dir = os.path.dirname(os.path.realpath(__file__))
 if __name__ == "__main__":
@@ -24,10 +25,14 @@ These splits rely on fixed seed random splitting. One can ask to get a multi-tas
 
 def get_task_split(node_target, seed=0):
     """
+    This function takes a supervised task (possibly multi-task) and generates balanced lists of graphs to load from 
+    the NR set in a deterministic way.
+    
+    Using these splits is a compulsory step of entering the leaderboard
 
     :param node_target: A subset of {'binding_protein', 'binding_small-molecule', 'is_modified', 'binding_ion'}
-    :param seed:
-    :return:
+    :param seed: Should be set to the default zero
+    :return: Lists of graphs that consist in the train and test splits 
     """
     random.seed(seed)
     if isinstance(node_target, str):
@@ -38,13 +43,25 @@ def get_task_split(node_target, seed=0):
     return train_split, test_split
 
 
-def get_performance(node_target, model, node_features=None):
+def get_performance(node_target, model, node_features=None, evaluation_function=roc_auc_score):
+    """
+    Evaluates a model on a given task
+    
+    :param node_target: A subset of {'binding_protein', 'binding_small-molecule', 'is_modified', 'binding_ion'}
+    :param model: A Pytorch model
+    :param node_features: To build the evaluation loader, we need to know which features were used !
+    :param evaluation_function: Function according to which we want to evaluate our model.
+    Takes a predicted and true labels list and returns the value
+    :return:
+    """
     train_split, test_split = get_task_split(node_target=node_target)
     test_dataset = loader.SupervisedDataset(node_features=node_features,
                                             node_target=node_target,
                                             all_graphs=test_split)
     test_loader = loader.Loader(dataset=test_dataset, split=False).get_data()
-    loss = learn.evaluate_model_supervised(model=model, validation_loader=test_loader)
+
+    loss = learn.evaluate_model_supervised(model=model, validation_loader=test_loader,
+                                           evaluation_function=evaluation_function)
     return loss
 
 

@@ -6,11 +6,13 @@ import torch
 
 
 class OneHotEncoder:
-    """
-    To one-hot encode this feature.
-    """
-
     def __init__(self, mapping, num_values=None):
+        """
+        To one-hot encode this feature.
+
+        :param mapping: This is a dictionnary that gives an index for each possible value.
+        :param num_values: If the mapping can be many to one, you should specifiy it here.
+        """
         self.mapping = mapping
         self.reverse_mapping = {value: key for key, value in mapping.items()}
         if num_values is None:
@@ -18,8 +20,9 @@ class OneHotEncoder:
         self.num_values = num_values
 
     def encode(self, value):
-        """ Assign encoding of `value` according to known possible
-        values.
+        """
+        Assign encoding of `value` according to known possible values.
+        :param value: The value to encode. If missing a default vector of full zeroes is produced.
         """
         x = self.encode_default()
         try:
@@ -42,36 +45,37 @@ class OneHotEncoder:
 
 
 class FloatEncoder:
-    """
-    To encode floats
-    """
 
     def __init__(self, default_value=0):
+        """
+            Utility class to encode floats
+        :param default_value: The value to return in case of failure
+        """
         self.default_value = default_value
 
     def encode(self, value):
         """ Assign encoding of `value` according to known possible
         values.
         """
-        if value is None:
+        try:
+            return torch.tensor([value], dtype=torch.float)
+        except:
             return self.encode_default()
-        x = torch.tensor([value], dtype=torch.float)
-        return x
 
     def encode_default(self):
-        x = torch.tensor([self.default_value], dtype=torch.float)
-        return x
+        return torch.tensor([self.default_value], dtype=torch.float)
 
     def decode(self, value):
         return value.item()
 
 
 class BoolEncoder:
-    """
-    To encode bools
-    """
 
     def __init__(self, default_value=False):
+        """
+        To encode bools. A possible encoding is to have no value in which case it defaults to False.
+        :param default_value: To switch the default behavior. This is not recommended because not aligned with the data
+        """
         self.default_value = default_value
 
     def encode(self, value):
@@ -96,11 +100,11 @@ class BoolEncoder:
 
 
 class ListEncoder:
-    """
-    To encode bools
-    """
-
     def __init__(self, list_length):
+        """
+        To encode lists, cast them as tensor if possible, otherwise just return zeroes.
+        :param list_length: We need the lists to be fixed length
+        """
         size = [list_length]
         self.default_value = torch.zeros(size=size, dtype=torch.float)
 
@@ -110,7 +114,11 @@ class ListEncoder:
         """
         if value is None or any([val is None for val in value]):
             return self.encode_default()
-        x = torch.tensor(value, dtype=torch.float)
+        else:
+            try:
+                x = torch.tensor(value, dtype=torch.float)
+            except:
+                return self.encode_default()
         return x
 
     def encode_default(self):
@@ -236,20 +244,29 @@ EDGE_FEATURE_MAP = {
 }
 
 
-def build_node_feature_parser(asked_features=None):
+def build_node_feature_parser(asked_features=None, node_feature_map=NODE_FEATURE_MAP):
+    """
+    This function will load the predefined feature maps available globally.
+    Then for each of the features in 'asked feature', it will return an encoder object for each of the asked features
+    in the form of a dict {asked_feature : EncoderObject}
+
+    If some keys don't exist, will raise an Error. However if some keys are present but problematic,
+    this will just cause a printing of the problematic keys
+    :param asked_features: A list of string keys that are present in the encoder
+    :return: A dict {asked_feature : EncoderObject}
+    """
     if asked_features is None:
         return {}
-    global NODE_FEATURE_MAP
-    if any([feature not in NODE_FEATURE_MAP for feature in asked_features]):
-        problematic_keys = tuple([feature for feature in asked_features if feature not in NODE_FEATURE_MAP])
+    if any([feature not in node_feature_map for feature in asked_features]):
+        problematic_keys = tuple([feature for feature in asked_features if feature not in node_feature_map])
         raise ValueError(f'{problematic_keys} were asked as a feature or target but do not exist')
 
     # filter out the None, we don't know how to encode those...
-    encoding_features = [feature for feature in asked_features if NODE_FEATURE_MAP[feature] is not None]
+    encoding_features = [feature for feature in asked_features if node_feature_map[feature] is not None]
     if len(encoding_features) < len(asked_features):
-        unencodable_keys = [feature for feature in asked_features if NODE_FEATURE_MAP[feature] is None]
+        unencodable_keys = [feature for feature in asked_features if node_feature_map[feature] is None]
         print(f'{unencodable_keys} were asked as a feature or target but do not exist')
-    subset_dict = {k: NODE_FEATURE_MAP[k] for k in encoding_features}
+    subset_dict = {k: node_feature_map[k] for k in encoding_features}
     return subset_dict
 
 
