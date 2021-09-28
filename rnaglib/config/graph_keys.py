@@ -8,8 +8,8 @@ EDGE_MAP_RGLIB = {'B53': 0, 'cHH': 1, 'cHS': 2, 'cHW': 3, 'cSH': 4, 'cSS': 5, 'c
                   'tHH': 10, 'tHS': 11, 'tHW': 12, 'tSH': 13, 'tSS': 14, 'tSW': 15, 'tWH': 16, 'tWS': 17, 'tWW': 18,
                   'B35': 19, }
 
-EDGE_MAP_FR3D_REVERSE = {v:k for k,v in EDGE_MAP_FR3D.items()}
-EDGE_MAP_RGLIB_REVERSE = {v:k for k,v in EDGE_MAP_RGLIB.items()}
+EDGE_MAP_FR3D_REVERSE = {v: k for k, v in EDGE_MAP_FR3D.items()}
+EDGE_MAP_RGLIB_REVERSE = {v: k for k, v in EDGE_MAP_RGLIB.items()}
 
 CANONICALS_FR3D = {'B53', 'B35', 'CWW'}
 CANONICALS_RGLIB = {'B53', 'B35', 'cWW'}
