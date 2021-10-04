@@ -1,10 +1,7 @@
-rnaglib.data\_loading package
+rnaglib.data\_loading
 =============================
 
-Submodules
-----------
-
-rnaglib.data\_loading.feature\_maps module
+Feature Maps
 ------------------------------------------
 
 .. automodule:: rnaglib.data_loading.feature_maps
@@ -12,7 +9,7 @@ rnaglib.data\_loading.feature\_maps module
    :undoc-members:
    :show-inheritance:
 
-rnaglib.data\_loading.get\_all\_labels module
+Get Labels
 ---------------------------------------------
 
 .. automodule:: rnaglib.data_loading.get_all_labels
@@ -20,7 +17,7 @@ rnaglib.data\_loading.get\_all\_labels module
    :undoc-members:
    :show-inheritance:
 
-rnaglib.data\_loading.loader module
+Loader
 -----------------------------------
 
 .. automodule:: rnaglib.data_loading.loader
@@ -28,10 +25,3 @@ rnaglib.data\_loading.loader module
    :undoc-members:
    :show-inheritance:
 
-Module contents
----------------
-
-.. automodule:: rnaglib.data_loading
-   :members:
-   :undoc-members:
-   :show-inheritance:

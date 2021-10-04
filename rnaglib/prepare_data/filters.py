@@ -64,6 +64,7 @@ def parse_NRlist(NRlist):
     Parse NR BGSU csv file for a list of non-redundant RNA chains
     list can be downloaded from:
         http://rna.bgsu.edu/rna3dhub/nrlist
+
     :param NRlist: Set of representative RNAs output (see load_csv())
     :return: set of non-redundant RNA chains (tuples of (structure, model, chain))
     """

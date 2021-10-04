@@ -1,10 +1,7 @@
-rnaglib.utils package
+rnaglib.utils
 =====================
 
-Submodules
-----------
-
-rnaglib.utils.graph\_io module
+Graph IO
 ------------------------------
 
 .. automodule:: rnaglib.utils.graph_io
@@ -12,7 +9,7 @@ rnaglib.utils.graph\_io module
    :undoc-members:
    :show-inheritance:
 
-rnaglib.utils.graph\_utils module
+Graph Utils
 ---------------------------------
 
 .. automodule:: rnaglib.utils.graph_utils
@@ -20,7 +17,7 @@ rnaglib.utils.graph\_utils module
    :undoc-members:
    :show-inheritance:
 
-rnaglib.utils.graphlet\_hash module
+Hash Module
 -----------------------------------
 
 .. automodule:: rnaglib.utils.graphlet_hash
@@ -28,7 +25,7 @@ rnaglib.utils.graphlet\_hash module
    :undoc-members:
    :show-inheritance:
 
-rnaglib.utils.misc module
+Miscellaneous
 -------------------------
 
 .. automodule:: rnaglib.utils.misc
@@ -36,10 +33,3 @@ rnaglib.utils.misc module
    :undoc-members:
    :show-inheritance:
 
-Module contents
----------------
-
-.. automodule:: rnaglib.utils
-   :members:
-   :undoc-members:
-   :show-inheritance:

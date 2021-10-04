@@ -1,21 +1,10 @@
-rnaglib.benchmark package
+rnaglib.benchmark
 =========================
 
-Submodules
-----------
-
-rnaglib.benchmark.evaluate module
----------------------------------
-
+Evaluate Models
+--------------------------------
 .. automodule:: rnaglib.benchmark.evaluate
    :members:
    :undoc-members:
    :show-inheritance:
 
-Module contents
----------------
-
-.. automodule:: rnaglib.benchmark
-   :members:
-   :undoc-members:
-   :show-inheritance:
