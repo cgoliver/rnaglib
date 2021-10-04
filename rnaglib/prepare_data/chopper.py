@@ -172,9 +172,10 @@ def graph_filter(G, max_nodes=10):
 
 def graph_clean(G, subG, thresh=8):
     """
-        Do post-cleanup on graph.
-        Fill in backbones, remove islands, remove dangles.
-        E.g. remove single nodes.
+    Do post-cleanup on graph.
+    Fill in backbones, remove islands, remove dangles.
+    E.g. remove single nodes.
+
     :param G: An nx graph
     :param thresh: The threshold under which to discard small connected components
     """

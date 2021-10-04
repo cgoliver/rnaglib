@@ -20,7 +20,7 @@ if __name__ == "__main__":
 
 from rnaglib.utils.graphlet_hash import Hasher
 from rnaglib.utils.graph_io import load_json, dump_json
-from rnaglib.drawing.drawing import rna_draw
+from rnaglib.drawing import rna_draw
 
 
 def node_2_unordered_rings(G, v, depth=5, hasher=None, label='LW'):

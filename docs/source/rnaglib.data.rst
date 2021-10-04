@@ -1,8 +1,5 @@
-rnaglib.data package
+rnaglib.data
 ====================
-
-Module contents
----------------
 
 .. automodule:: rnaglib.data
    :members:
