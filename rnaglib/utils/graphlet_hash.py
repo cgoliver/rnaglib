@@ -21,7 +21,7 @@ script_dir = os.path.dirname(os.path.realpath(__file__))
 if __name__ == "__main__":
     sys.path.append(os.path.join(script_dir, '..', '..'))
 
-from rnaglib.utils.graph_utils import bfs_expand
+from rnaglib.utils.graph_utils import bfs
 from rnaglib.utils.graph_io import load_json
 from rnaglib.config.build_iso_mat import iso_mat as iso_matrix
 from rnaglib.config.graph_keys import GRAPH_KEYS, TOOL
@@ -32,6 +32,7 @@ indel_vector = GRAPH_KEYS['indel_vector'][TOOL]
 edge_map = GRAPH_KEYS['edge_map'][TOOL]
 sub_matrix = np.ones_like(iso_matrix) - iso_matrix
 
+
 class Hasher:
     def __init__(self,
                  method='WL',
@@ -41,6 +42,17 @@ class Hasher:
                  wl_hops=2,
                  label='LW',
                  directed=True):
+        """
+        The hasher object. Once created, it will hash new graphs and optionnaly, one can run it onto
+        a whole graph dir to create the hashtable once and for all.
+        :param method: for now only WL hashing is supported
+        :param string_hash_size: The length of the hash, longer ones will yields less collision but more processing time
+        :param graphlet_hash_size: Same thing for hashes of graphlets
+        :param symmetric_edges: Whether to use symetric weights for the edges.
+        :param wl_hops: The depth to consider for hashing
+        :param label: How the data for the surrounding edges is encoded in the nodes.
+        :param directed: To use directed graphs instead of undirected ones
+        """
         self.method = method
         self.string_hash_size = string_hash_size
         self.graphlet_hash_size = graphlet_hash_size
@@ -50,9 +62,11 @@ class Hasher:
         self.hash_table = None
         self.directed = directed
 
-    def hash(self, G):
+    def hash(self, graph):
         """
         WL hash of a graph.
+        :param graph: nx graph to hash
+        :return: hash
 
         >>> import networkx as nx
         >>> G1 = nx.Graph()
@@ -67,12 +81,12 @@ class Hasher:
         True
         """
         if self.symmetric_edges:
-            for u, v in G.edges():
-                label = G[u][v][self.label]
+            for u, v in graph.edges():
+                label = graph[u][v][self.label]
                 if label != 'B53':
                     prefix, suffix = label[0], label[1:]
-                    G[u][v][self.label] = prefix + "".join(sorted(suffix))
-        return wl(G, edge_attr=self.label, iterations=self.wl_hops)
+                    graph[u][v][self.label] = prefix + "".join(sorted(suffix))
+        return wl(graph, edge_attr=self.label, iterations=self.wl_hops)
 
     def get_hash_table(self,
                        graph_dir,
@@ -85,31 +99,32 @@ class Hasher:
                                            label=self.label,
                                            directed=self.directed)
 
-    def get_node_hash(self, G, n):
+    def get_node_hash(self, graph, n):
         """
         Get the correct node hashing from a node and a graph
-        :param G:
+        :param graph:
         :param n:
         :return:
         """
-        return self.hash(extract_graphlet(G, n, size=self.wl_hops, label=self.label))
+        return self.hash(extract_graphlet(graph, n, size=self.wl_hops, label=self.label))
 
 
-def nei_agg(G, n, label='LW'):
-    x = tuple(sorted([G.nodes()[n][label]] + [G.nodes()[n][label] for n in G.neighbors(n)]))
+'''
+def nei_agg(graph, node, label='LW'):
+    x = tuple(sorted([graph.nodes()[node][label]] + [graph.nodes()[n][label] for n in graph.neighbors(node)]))
     return x
 
 
-def nei_agg_edges(G, n, node_labels, edge_labels='LW'):
-    x = [node_labels[n]]
-    for nei in G.neighbors(n):
-        x.append(G[n][nei][edge_labels] + node_labels[nei])
+def nei_agg_edges(graph, node, node_labels, edge_labels='LW'):
+    x = [node_labels[node]]
+    for nei in graph.neighbors(node):
+        x.append(graph[node][nei][edge_labels] + node_labels[nei])
     return ''.join(sorted(x))
 
 
-def WL_step(G, label='LW'):
-    new_labels = {n: nei_agg(G, n) for n in G.nodes()}
-    nx.set_node_attributes(G, new_labels, label)
+def WL_step(graph, label='LW'):
+    new_labels = {n: nei_agg(graph, n) for n in graph.nodes()}
+    nx.set_node_attributes(graph, new_labels, label)
     pass
 
 
@@ -121,12 +136,7 @@ def WL_step_edges(G, labels):
     for n in G.nodes():
         new_labels[n] = nei_agg_edges(G, n, labels)
     return new_labels
-
-
-def extract_graphlet(G, n, size=1, label='LW'):
-    graphlet = G.subgraph(bfs_expand(G, [n], depth=size, label=label)).copy()
-
-    return graphlet
+'''
 
 
 def build_hash_table(graph_dir,
@@ -179,20 +189,29 @@ def build_hash_table(graph_dir,
     return hash_table
 
 
-def GED_hashtable_hashed(h_G,
-                         h_H,
-                         GED_table,
-                         graphlet_table,
-                         normed=True,
-                         max_edges=7,
-                         beta=.50,
-                         timeout=60,
-                         similarity=False):
+def get_ged_hashtable(h_G,
+                      h_H,
+                      GED_table,
+                      graphlet_table,
+                      normed=True,
+                      beta=.50,
+                      timeout=60,
+                      similarity=False):
     """
-        Produce a hash table that contains pairwise GEDs between graphs.
-        {h_i:{h_j: d(G_i, G_j)}}
-        Collisions are resolved with an extra entry in the hash digest that gives the
-        index of the graph in the bucket.
+    Get the GED between two hashes.
+
+    Then update a hash table that contains pairwise GEDs between graphs.
+    {h_i:{h_j: d(G_i, G_j)}}
+
+    :param h_G: hash of first graphlet
+    :param h_H:  hash of second graphlet
+    :param GED_table: The resulting object, it is modified in place
+    :param graphlet_table: a map graphlet_hash : graph
+    :param timeout: ged parameter
+    :param similarity: Whether to use a similarity measure instead, by taking exp(-x/beta)
+    :param normed: Whether to normalize the resulting ged. It returns 1 - similarity
+    :param beta: If we normalize or turn into a similarity, the temperature factor to apply to the gaussian
+    :return: The ged value
     """
 
     try:
@@ -208,10 +227,6 @@ def GED_hashtable_hashed(h_G,
     H = graphlet_table[h_H]['graph']
 
     distance = ged(G, H, timeout=timeout)
-    # d = ged(G, H, sub_matrix=sub_matrix,
-    # edge_map=edge_map,
-    # indel=indel_vector)
-    # distance = d.cost
 
     if similarity:
         similarity = np.exp(-beta * distance)

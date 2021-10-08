@@ -398,12 +398,12 @@ class SimFunctionNode():
         if pos:
             g_1, p_1 = node_i
             g_2, p_2 = node_j
-            ged = GED_hashtable_hashed(g_1, g_2, self.GED_table, self.hash_table, normed=True, similarity=similarity)
+            ged = get_ged_hashtable(g_1, g_2, self.GED_table, self.hash_table, normed=True, similarity=similarity)
             delta = SimFunctionNode.delta_indices_sim(p_1, p_2, distance=not similarity)
             return ged + delta
         else:
-            return GED_hashtable_hashed(node_i, node_j, self.GED_table, self.hash_table, normed=True,
-                                        similarity=similarity)
+            return get_ged_hashtable(node_i, node_j, self.GED_table, self.hash_table, normed=True,
+                                     similarity=similarity)
 
     def R_graphlets(self, ring1, ring2):
         """

@@ -18,9 +18,8 @@ from sklearn.decomposition import PCA
 import networkx as nx
 from Bio.PDB import *
 
-from rnaglib.utils.graph_utils import dangle_trim
-from rnaglib.utils.graph_utils import gap_fill
-from rnaglib.utils.graph_utils import graph_from_pdbid
+from rnaglib.utils.graph_utils import dangle_trim, gap_fill
+from rnaglib.utils.graph_io import graph_from_pdbid
 from rnaglib.config.graph_keys import GRAPH_KEYS
 
 MM_of_Elements = {'H': 1.00794, 'He': 4.002602, 'Li': 6.941, 'Be': 9.012182, 'B': 10.811, 'C': 12.0107, 'N': 14.0067,
@@ -211,7 +210,7 @@ def chop_one_rna(args):
     _, graph_format = os.path.splitext(g_path)
     graph_format = graph_format.lstrip('.')
 
-    if not (graph_format in ['nx', 'json']) and rna_graph.startswith('._'):
+    if not (graph_format in ['nx', 'json']):
         return 1
     try:
         pdbid = os.path.basename(g_path).split('.')[0]
