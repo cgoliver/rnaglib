@@ -41,12 +41,18 @@ def process_axis(axis,
                  node_labels=None,
                  node_ids=False,
                  label='LW'):
-    """ Draw on a given axis.
-    :param axis: matplotlib axis to draw on
-    :type axis: Matplotlib.axis
-    :param g: networkx graph to draw
-    :type g: networkx.Graph
+    """
 
+     Draw a graph  on a given axis.
+    :param axis: matplotlib axis to draw on
+    :param g: networkx graph to draw
+    :param subtitle: string to use as a subtitle on this axis
+    :param highlight_edges: A list of edges to highlight on the drawing
+    :param node_color:
+    :param node_labels:
+    :param node_ids:
+    :param label:
+    :return:
     """
     # pos = circular_layout(g)
     pos = nx.spring_layout(g)

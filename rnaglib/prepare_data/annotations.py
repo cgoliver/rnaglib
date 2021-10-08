@@ -17,13 +17,18 @@ from time import perf_counter
 script_dir = os.path.join(os.path.realpath(__file__), '..')
 sys.path.append(os.path.join(script_dir, '..'))
 
-def dangle_trim(G, backbone_only=False):
+
+def dangle_trim(G):
     """
     Recursively remove dangling nodes from graph.
+
+    :param G: Networkx graph
+    :return: Trimmed networkx graph
     """
     dangles = lambda G: [n for n in G.nodes() if G.degree(n) < 2]
     while dangles(G):
         G.remove_nodes_from(dangles(G))
+
 
 def reorder_nodes(g):
     """
@@ -40,6 +45,7 @@ def reorder_nodes(g):
         h.graph[key] = value
 
     return h
+
 
 def annotate_proteinSSE(g, structure, pdb_file):
     """
@@ -62,7 +68,7 @@ def annotate_proteinSSE(g, structure, pdb_file):
 
     print(dssp[a_key])
 
-    print(f'runtime = {tic-toc:0.7f} seconds')
+    print(f'runtime = {tic - toc:0.7f} seconds')
 
     return g
 
@@ -79,6 +85,7 @@ def load_graph(json_file):
 
     return g
 
+
 def write_graph(g, json_file):
     """
     write graph to JSON
@@ -89,14 +96,15 @@ def write_graph(g, json_file):
 
     return
 
+
 def annotate_graph(g, annots):
     """
     Add node annotations to graph from annots
-    nodes without a value recieve None type
+    nodes without a value receive None type
     """
 
     labels = {'binding_ion': 'ion',
-            'binding_small-molecule': 'ligand'}
+              'binding_small-molecule': 'ligand'}
 
     for node in g.nodes():
         for label, typ in labels.items():
@@ -108,8 +116,9 @@ def annotate_graph(g, annots):
 
     return g
 
+
 def parse_interfaces(interfaces,
-                    types=['ion', 'ligand']):
+                     types=['ion', 'ligand']):
     """
     parse output from get_interfaces into a dictionary
     """
@@ -143,6 +152,7 @@ def load_csv_annot(csv_file, pbids=None, types=None):
 
     return annotations
 
+
 def annotate_graphs(graph_dir, csv_file, output_dir,
                     ):
     """
@@ -156,29 +166,25 @@ def annotate_graphs(graph_dir, csv_file, output_dir,
         h = annotate_graph(g, annotations)
         write_graph(h, os.path.join(output_dir, graph))
 
+
 def main():
     # annotate_graphs('../examples/',
-                    # '../data/interface_list_1aju.csv',
-                    # '../data/graphs/DSSR/annotated')
+    # '../data/interface_list_1aju.csv',
+    # '../data/graphs/DSSR/annotated')
     g = load_graph('../examples/2du5.json')
     # pdb_file = '../data/structures/4gkk.cif'
     # parser = MMCIFParser()
     # structure = parser.get_structure('4GKK', pdb_file)
 
-
     # annotate_proteinSSE(g, structure, '../data/structures/4gkk.dssp')
 
-
     h = reorder_nodes(g)
-
 
     print('after reordered:\n', '\n'.join(h.nodes()))
     print(h.nodes.data())
 
-
-
     return
+
 
 if __name__ == '__main__':
     main()
-

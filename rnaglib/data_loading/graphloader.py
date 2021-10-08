@@ -19,63 +19,27 @@ script_dir = os.path.dirname(os.path.realpath(__file__))
 if __name__ == "__main__":
     sys.path.append(os.path.join(script_dir, '..', '..'))
 
-from rnaglib.kernels.node_sim import SimFunctionNode, k_block_list, simfunc_from_hparams
+from rnaglib.kernels.node_sim import SimFunctionNode, k_block_list
 from rnaglib.utils import graph_io
 from rnaglib.data_loading.feature_maps import build_node_feature_parser
 from rnaglib.config.graph_keys import GRAPH_KEYS, TOOL, EDGE_MAP_RGLIB_REVERSE
 
-# This consists in the keys of the feature map that we consider as not relevant for now.
-JUNK_ATTRS = ['index_chain', 'chain_name', 'nt_resnum', 'nt_id', 'nt_type', 'summary', 'C5prime_xyz', 'P_xyz',
-              'frame', 'is_modified']
-
-# The annotation fields also should not be included as node features
-ANNOTS_ATTRS = ['node_annots', 'edge_annots', 'graphlet_annots']
-
-
-def dict_union(a, b):
-    """
-    performs union operation on two dictionaries of sets
-    """
-    c = {k: a[k].union(b[k]) for k in set(a.keys()).intersection(set(b.keys()))}
-    for k in (set(b.keys()) - set(c.keys())):
-        c[k] = b[k]
-    for k in (set(a.keys()) - set(c.keys())):
-        c[k] = a[k]
-
-    for k, v in c.items():
-        print(f'\nkey: {k}\tset:')
-        print(v)
-
-    print('\nNEXT\n')
-    return c
-
 
 def download(url, path=None, overwrite=True, retries=5, verify_ssl=True, log=True):
-    """Download a given URL.
+    """
+    Download a given URL.
 
     Codes borrowed from mxnet/gluon/utils.py
 
-    Parameters
-    ----------
-    url : str
-        URL to download.
-    path : str, optional
-        Destination path to store downloaded file. By default stores to the
-        current directory with the same name as in url.
-    overwrite : bool, optional
-        Whether to overwrite the destination file if it already exists.
+    :param url: URL to download.
+    :param path:  Destination path to store downloaded file. By default stores to the current directory
+     with the same name as in url.
+    :param overwrite: Whether to overwrite the destination file if it already exists.
         By default always overwrites the downloaded file.
-    retries : integer, default 5
-        The number of times to attempt downloading in case of failure or non 200 return codes.
-    verify_ssl : bool, default True
-        Verify SSL certificates.
-    log : bool, default True
-        Whether to print the progress for download
-
-    Returns
-    -------
-    str
-        The file path of the downloaded file.
+    :param retries: The number of times to attempt downloading in case of failure or non 200 return codes.
+    :param verify_ssl: bool, default True. Verify SSL certificates.
+    :param log:  bool, default True Whether to print the progress for download
+    :return: The file path of the downloaded file.
     """
     if path is None:
         fname = url.split('/')[-1]
@@ -130,6 +94,17 @@ def download_name_generator(dirname=None,
                             redundancy='NR',
                             chop=False,
                             annotated=False):
+    """
+    This builds the adress of some data based on its feature
+    :param dirname: For custom data saving
+    :param release: For versionning
+    :param redundancy: Whether we want all RNA structures or just a filtered set
+    :param chop: Whether we want all graphs or fixed size chopped parts of the whole ones
+    :param annotated: Whether to include pre-computed annotation for each node with information
+        to be used by kernel functions
+    :return:  url adress, path of the downloaded file, path for the extracted data, dirname to save it,
+     hashing files if needed (annotated = True)
+    """
     # Generic name
     chop_str = '_chops' if chop else ''
     annotated_str = '_annot' if annotated else ''
@@ -150,60 +125,6 @@ def download_name_generator(dirname=None,
         hashing_info = (hashing_url, hashing_path)
     dirname = tarball_name if dirname is None else dirname
     return url, dl_path, data_path, dirname, hashing_info
-
-
-def download_name_factory_deprecated(download_option):
-    # Get graphs
-    if download_option == 'samples_graphs':
-        url = 'toto'
-        dl_path = os.path.join(script_dir, '../data/downloads/samples.zip')
-        data_path = os.path.join(script_dir, '../data/graphs/')
-        dirname = 'samples'
-
-        return url, dl_path, data_path, dirname, None
-    if download_option == 'nr_graphs':
-        url = 'http://rnaglib.cs.mcgill.ca/static/datasets/glib_nr_graphs.tar.gz'
-        dl_path = os.path.join(script_dir, '../data/downloads/glib_nr_graphs.tar.gz')
-        data_path = os.path.join(script_dir, '../data/graphs/')
-        dirname = 'nr_graphs'
-        return url, dl_path, data_path, dirname, None
-    if download_option == 'graphs':
-        url = 'toto'
-        dl_path = os.path.join(script_dir, '../data/downloads/graphs.zip')
-        data_path = os.path.join(script_dir, '../data/graphs/')
-        dirname = 'graphs'
-        return url, dl_path, data_path, dirname, None
-
-    # Get annotations
-    if download_option == 'samples_annotated':
-        url = 'toto'
-        dl_path = os.path.join(script_dir, '../data/downloads/samples_annotated.zip')
-        data_path = os.path.join(script_dir, '../data/annotated/')
-        dirname = 'samples_annotated'
-        hashing_url = 'toto_hash'
-        hashing_path = os.path.join(script_dir, '../data/hashing/samples_annotated.p')
-        return url, dl_path, data_path, dirname, (hashing_url, hashing_path)
-    if download_option == 'nr_annotated':
-        url = 'http://rnaglib.cs.mcgill.ca/static/datasets/glib_nr_annot.tar.gz'
-        dl_path = os.path.join(script_dir, '../data/downloads/glib_nr_annot.tar.gz')
-        data_path = os.path.join(script_dir, '../data/annotated/')
-        dirname = 'nr_annotated'
-        hashing_url = 'http://rnaglib.cs.mcgill.ca/static/datasets/glib_nr_hashtable.p'
-        hashing_path = os.path.join(script_dir, '../data/hashing/nr_annotated.p')
-        return url, dl_path, data_path, dirname, (hashing_url, hashing_path)
-    if download_option == 'annotated':
-        url = 'toto'
-        dl_path = os.path.join(script_dir, '../data/downloads/annotated.zip')
-        data_path = os.path.join(script_dir, '../data/annotated/')
-        dirname = 'annotated'
-        hashing_url = 'toto_hash'
-        hashing_path = os.path.join(script_dir, '../data/hashing/annotated.p')
-        return url, dl_path, data_path, dirname, (hashing_url, hashing_path)
-    else:
-        raise ValueError(f'The download string command "{download_option}" is not supported. '
-                         f'Options should be among : '
-                         f'"samples_graphs", "nr_graphs", "graphs", '
-                         f'"samples_annotated", "nr_annotated", "annotated"')
 
 
 class GraphDataset(Dataset):
@@ -425,34 +346,37 @@ class GraphDataset(Dataset):
 
 
 class UnsupervisedDataset(GraphDataset):
-    """
-    Basically just change the default of the loader based on the usecase
-    """
-
     def __init__(self,
                  node_simfunc=SimFunctionNode('R_1', 2),
                  annotated=True,
                  chop=True,
                  **kwargs):
+        """
+        Basically just change the default of the loader based on the usecase
+        """
         super().__init__(annotated=annotated, chop=chop, node_simfunc=node_simfunc, **kwargs)
 
 
 class SupervisedDataset(GraphDataset):
-    """
-    Basically just change the default of the loader based on the usecase
-    """
-
     def __init__(self,
                  node_target='binding_protein',
                  annotated=False,
                  **kwargs):
+        """
+        Basically just change the default of the loader based on the usecase
+        """
         super().__init__(annotated=annotated, node_target=node_target, **kwargs)
 
 
 def collate_wrapper(node_simfunc=None, max_size_kernel=None):
     """
-        Wrapper for collate function so we can use different node similarities.
+    Wrapper for collate function so we can use different node similarities.
         We cannot use functools.partial as it is not picklable so incompatible with Pytorch loading
+    :param node_simfunc: A node comparison function as defined in kernels, to optionally return a pairwise comparison
+    of the nodes in the batch
+    :param max_size_kernel: If the node comparison is not None, optionnaly only return a pairwise comparison between
+    a subset of all nodes, of size max_size_kernel
+    :return: a picklable python function that can be called on a batch by Pytorch loaders
     """
     if node_simfunc is not None:
         def collate_block(samples):
@@ -493,7 +417,7 @@ def collate_wrapper(node_simfunc=None, max_size_kernel=None):
     return collate_block
 
 
-class Loader:
+class GraphLoader:
     def __init__(self,
                  dataset,
                  batch_size=5,
@@ -505,8 +429,8 @@ class Loader:
         Turns a dataset into a dataloader
 
         :param dataset: The dataset to iterate over
-        :param batch_size:
-        :param num_workers:
+        :param batch_size: The desired batch size (number of whole graphs)
+        :param num_workers: The number of cores to use for loading
         :param max_size_kernel: If we use K comptutations, we need to subsamble some nodes for the big graphs
         or else the k computation takes too long
         :param split: To return subsets to split the data
@@ -582,8 +506,7 @@ class EdgeLoaderGenerator:
                  graph_loader,
                  inner_batch_size=50,
                  sampler_layers=2,
-                 neg_samples=1,
-                 **kwargs):
+                 neg_samples=1):
         """
         This turns a graph dataloader or dataset into an edge data loader generator.
         It needs to be reinitialized every epochs because of the double iteration pattern
@@ -596,12 +519,11 @@ class EdgeLoaderGenerator:
         - num workers should be used to load the graphs not in the inner loop
         - The inner batch size yields huge speedups (probably generating all MFGs is tedious)
 
-        :param graph_loader:
-        :param inner_batch_size:
-        :param sampler_layers:
-        :param neg_samples:
-        :param num_workers:
-        :param kwargs:
+        :param graph_loader: A GraphLoader or GraphDataset. We will iterate over its graphs and then over its basepairs
+        :param inner_batch_size: The amount of base-pairs to sample in each batch on each graph
+        :param sampler_layers: The size of the neighborhood
+        :param neg_samples: The number of negative sample to use per positive ones
+        :param num_workers: The amount of cores to use for loading
         """
         self.graph_loader = graph_loader
         self.neg_samples = neg_samples
@@ -615,17 +537,31 @@ class EdgeLoaderGenerator:
             'negative_sampler': self.negative_sampler
         }
 
+    @staticmethod
+    def get_base_pairs(g):
+        """
+        Get edge IDS of edges in a base pair (non-backbone or unpaired).
+
+        :param g: networkx graph
+        :return: list of ids
+        """
+        eids = []
+        for ind, e in enumerate(g.edata['edge_type']):
+            if EDGE_MAP_RGLIB_REVERSE[e.item()][0] != 'B':
+                eids.append(e)
+        return eids
+
     def get_edge_loader(self):
-        edge_loader = (EdgeDataLoader(g_batched, get_base_pairs(g_batched), self.sampler, **self.eloader_args)
+        """
+        Simply get the loader for one epoch. This needs to be called at each epoch
+        :return: the edge loader
+        """
+        edge_loader = (EdgeDataLoader(g_batched, self.get_base_pairs(g_batched), self.sampler, **self.eloader_args)
                        for g_batched, _ in self.graph_loader)
         return edge_loader
 
 
 class DefaultBasePairLoader:
-    """ Just a default edge base pair loader.
-    It deals with the splits
-    """
-
     def __init__(self,
                  dataset=None,
                  data_path=None,
@@ -636,14 +572,15 @@ class DefaultBasePairLoader:
                  num_workers=4,
                  **kwargs):
         """
-        :param dataset:
-        :param data_path:
-        :param batch_size: This is the number of graphs that
-        :param inner_batch_size:
-        :param sampler_layers:
-        :param neg_samples:
-        :param num_workers:
-        :param kwargs:
+        Just a default edge base pair loader that deals with the splits
+
+        :param dataset: A GraphDataset we want to loop over for base-pair prediction
+        :param data_path: Optionnaly, we can use a data path to create a default GraphDataset
+        :param batch_size: The desired batch size (number of whole graphs)
+        :param inner_batch_size:The desired inner batch size (number of sampled edge in a batched graph)
+        :param sampler_layers: The size of the neighborhood
+        :param neg_samples: The number of negative sample to use per positive ones
+        :param num_workers: The number of cores to use for loading
         """
         # Create default loaders
         if dataset is None:
@@ -651,9 +588,9 @@ class DefaultBasePairLoader:
         self.dataset = dataset
         self.batch_size = batch_size
         self.num_workers = num_workers
-        self.g_train, self.g_val, self.g_test = Loader(self.dataset,
-                                                       batch_size=self.batch_size,
-                                                       num_workers=self.num_workers).get_data()
+        self.g_train, self.g_val, self.g_test = GraphLoader(self.dataset,
+                                                            batch_size=self.batch_size,
+                                                            num_workers=self.num_workers).get_data()
 
         # Get the inner loader parameters
         self.inner_batch_size = inner_batch_size
@@ -674,16 +611,6 @@ class DefaultBasePairLoader:
         return train_loader, val_loader, test_loader
 
 
-def get_base_pairs(g):
-    """ Returns edge IDS of edges in a base pair (non-backbone or unpaired).
-    """
-    eids = []
-    for ind, e in enumerate(g.edata['edge_type']):
-        if EDGE_MAP_RGLIB_REVERSE[e.item()][0] != 'B':
-            eids.append(e)
-    return eids
-
-
 if __name__ == '__main__':
     pass
     import time
@@ -695,9 +622,9 @@ if __name__ == '__main__':
     toy_dataset = GraphDataset(data_path='data/graphs/all_graphs',
                                node_features=node_features,
                                node_target=node_target)
-    train_loader, validation_loader, test_loader = Loader(dataset=toy_dataset,
-                                                          batch_size=1,
-                                                          num_workers=6).get_data()
+    train_loader, validation_loader, test_loader = GraphLoader(dataset=toy_dataset,
+                                                               batch_size=1,
+                                                               num_workers=6).get_data()
 
     for i, item in enumerate(train_loader):
         print(item)

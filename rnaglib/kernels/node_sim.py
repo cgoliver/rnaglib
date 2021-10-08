@@ -21,26 +21,7 @@ from rnaglib.config.graph_keys import GRAPH_KEYS, TOOL
 from rnaglib.config.build_iso_mat import iso_mat as iso_matrix
 
 
-def simfunc_from_hparams(hparams):
-    """
-
-    :param hparams:
-    :return:
-    """
-    node_simfunc = SimFunctionNode(method=hparams.get('argparse', 'sim_function'),
-                                   depth=hparams.get('argparse', 'kernel_depth'),
-                                   idf=hparams.get('argparse', 'idf'),
-                                   hash_init=hparams.get('argparse', 'annotated_data'),
-                                   decay=hparams.get('argparse', 'decay'),
-                                   normalization=hparams.get('argparse', 'normalization'),
-                                   )
-    return node_simfunc
-
-
 class SimFunctionNode():
-    """
-    Factory object to factor out the method choices from the function calls
-    """
 
     def __init__(self,
                  method,
@@ -48,10 +29,41 @@ class SimFunctionNode():
                  decay=0.5,
                  idf=False,
                  normalization=None,
-                 hash_init_path=os.path.join(script_dir, '..', 'data', 'hashing', 'NR_chops_hash.p'),
-                 cache=True):
+                 hash_init_path=os.path.join(script_dir, '..', 'data', 'hashing', 'NR_chops_hash.p')):
+        """
+        Factory object to to compute all node similarities. These methods take as input an annotated pair of nodes
+         and compare them.
 
-        POSSIBLE_METHODS = ['R_1', 'R_iso', 'R_graphlets', 'R_ged', 'hungarian', 'graphlet']
+        These methods are detailed in the supplemental of the paper, but include five methods. These methods frequently
+        rely on the hungarian algorithm, an algorithm that finds optimal matches according to a cost function.
+
+        Three of them compare the edges :
+        * R_1 compares the histograms of each ring, possibly with an idf weighting (to emphasize differences
+        in rare edges)
+        * R_iso compares each ring with the best matching based on the isostericity values
+        * hungarian compares the whole annotation, with the rings being differentiated with an additional 'depth' field.
+        Then all the nodes are compared based on isostericity and this depth field.
+
+        Two of them compare the graphlets. The underlying idea is that just comparing lists of edges does not
+        constraint the graph structure, while the assembling of graphlet does it more (exceptions can be found but
+        for most graphs, knowing all graphlets at each depth enables recreating the graph) :
+        * R_graphlets works like R_iso except that the isostericity is replaced by the GED
+        * graphlet works like the hungarian except that the isostericity is replaced by the GED
+
+        :param method: a string that identifies which of these method to use
+        :param depth: The depth to use in the annotations rings
+        :param decay: When using rings comparison function, the weight decay of importance based on the depth (the
+        closest rings weigh more as they are central to the comparison)
+        :param idf: Whether to use IDF weighting on the frequency of labels.
+        :param normalization: We experiment with three normalization scheme, the basal one is just a division of the
+        score by the maximum value, 'sqrt' denotes using the square root of the ratio as a power of the raw value and
+        'log' uses the log. The underlying idea is that we want to put more emphasis on the long matches than on just
+        matching a few nodes
+        :param hash_init_path: For the graphlets comparisons, we need to supply a hashing path to be able to store the
+        values of ged and reuse them based on the hash.
+        """
+
+        POSSIBLE_METHODS = {'R_1', 'R_iso', 'hungarian', 'R_graphlets', 'graphlet'}
         assert method in POSSIBLE_METHODS
 
         self.method = method
@@ -59,20 +71,15 @@ class SimFunctionNode():
         self.decay = decay
         self.normalization = normalization
 
-        self.cache = cache
         self.hash_init_path = hash_init_path
 
         edge_map = GRAPH_KEYS['edge_map'][TOOL]
-        self.tool = TOOL
         self.edge_map = edge_map
 
+        # Placeholders for the hashing information. We defer its creation into the call of the object for parallel use.
         self.hasher = None
-        if self.cache:
-            self.GED_table = defaultdict(dict)
-            self.hash_table = {}
-        else:
-            self.GED_table = None
-            self.hash_table = None
+        self.GED_table = defaultdict(dict)
+        self.hash_table = {}
 
         if idf:
             self.idf = GRAPH_KEYS['idf'][TOOL]
@@ -87,20 +94,29 @@ class SimFunctionNode():
             self.norm_factor = 1.0
 
     def add_hashtable(self, hash_init_path):
+        """
+
+        :param hash_init_path: A string with the full path to a pickled hashtable
+        :return: None, modify self.
+        """
         print(f">>> loading hash table from {hash_init_path}")
         self.hasher, self.hash_table = pickle.load(open(hash_init_path, 'rb'))
 
-    def compare(self, rings1, rings2, debug=False):
+    def compare(self, rings1, rings2):
         """
-            Compares first K rings at each level.
-            Takes two ring lists: [[None], [first ring], [second ring],...]
-            or
-            Dealing with 0th hop for 'edge' annotation is ambiguous so we added a None first hop,
-                when we say depth=3, we want rings[1:4], hence range(1, depth+1)
-            Need to take this into account for normalization (see class constructor)
+        Compares two nodes represented as their rings.
+
+        The edge list for the first hop (centered around a node) is None, so it gets skipped, when we say depth=3,
+        we want rings[1:4], hence range(1, depth+1) Need to take this into account for normalization
+
+        (see class constructor)
+         :param rings1: A list of rings at each depth. Rings contain a list of node, edge or graphlet information at a
+         given distance from a central node.
+         :param rings2: Same as above for another node.
+         :return: Normalized comparison score between the nodes
         """
         # We only load the hashing table when we make a first computation, a lazy optimization
-        if self.cache and self.method in ['R_ged', 'R_graphlets', 'graphlet'] and self.hasher is None:
+        if self.method in ['R_ged', 'R_graphlets', 'graphlet'] and self.hasher is None:
             self.add_hashtable(hash_init_path=self.hash_init_path)
 
         if self.method == 'graphlet':
@@ -110,7 +126,6 @@ class SimFunctionNode():
             return self.hungarian(rings1, rings2)
 
         res = 0
-
         if self.method == 'R_graphlets':
             for k in range(0, self.depth):
                 value = self.R_graphlets(rings1[k], rings2[k])
@@ -124,29 +139,26 @@ class SimFunctionNode():
                 res += self.decay ** k * value
         return res / self.norm_factor
 
-    def normalize(self, unnormalized, length):
+    def normalize(self, unnormalized, max_score):
         """
         We want our normalization to be more lenient to longer matches
-        :param unnormalized: a score in [0, length]
-        :param length: the best possible matching score of the sequences we are given
+        :param unnormalized: a score in [0, max_score]
+        :param max_score: the best possible matching score of the sequences we are given
         :return: a score in [0,1]
         """
-
-        # print(f'mine, {(unnormalized / length) ** power}, usual {(unnormalized / length)}')
         if self.normalization == 'sqrt':
-            power = (1 / (np.sqrt(length) / 5))
-            return (unnormalized / length) ** power
+            power = (1 / (np.sqrt(max_score) / 5))
+            return (unnormalized / max_score) ** power
         elif self.normalization == 'log':
-            power = (1 / (np.log(length) + 1))
-            return (unnormalized / length) ** power
-        return unnormalized / length
+            power = (1 / (np.log(max_score) + 1))
+            return (unnormalized / max_score) ** power
+        return unnormalized / max_score
 
     def get_length(self, ring1, ring2, graphlets=False):
         """
-        This is meant to return an adapted 'length' based on the sum of IDF terms if it is used
-        :param ring1:
-        :param ring2:
-        :return:
+        This is meant to return an adapted 'length' that represents the optimal score obtained when matching all the
+        elements in the two rings at hands
+        :return: a float that represents the score of a perfect match
         """
         if self.idf is None or graphlets:
             return max(len(ring1), len(ring2))
@@ -157,8 +169,7 @@ class SimFunctionNode():
     @staticmethod
     def delta_indices_sim(i, j, distance=False):
         """
-        We need a scoring related to matching different nodes
-
+        We need a scoring related to matching different depth nodes.
         Returns a positive score in [0,1]
         :param i:
         :param j:
@@ -173,43 +184,43 @@ class SimFunctionNode():
         Compare two nodes and returns a cost.
 
         Returns a positive number that has to be negated for minimization
-
-        :param iso_matrix:
+        :param node_i : This either just contains a label to be compared with isostericity, or a tuple that also
+        includes distance from the root node
+        :param node_j : Same as above
         :param bb : Check if what is being compared is backbone (no isostericity then)
-        :param pos : Check if this is used within a ring (no indices then)
-        :return:
+        :param pos: if pos is true, nodes are expected to be (edge label, distance from root) else just a edge label.
+        pos is True when used from a comparison between nodes from different rings
+        :return: the cost of matching those two nodes
         """
         global iso_matrix
-        if bb:
-            res = SimFunctionNode.delta_indices_sim(node_i[1], node_j[1])
-            if self.idf is not None:
-                return res * self.idf[node_i[0]] * self.idf[node_j[0]]
-            else:
-                return res
 
-        # If we only have node type information
-        elif pos is False:
-            res = iso_matrix[self.edge_map[node_i] - 1, self.edge_map[node_j] - 1]
-            if self.idf is not None:
-                return res * self.idf[node_i] * self.idf[node_j]
-            else:
-                return res
-
+        score = 0
+        # If we have distance info, extract it and compute a first component of the score.
+        if bb or pos:
+            node_i_type, node_i_depth = node_i
+            node_j_type, node_j_depth = node_j
+            res_distance = SimFunctionNode.delta_indices_sim(node_i_depth, node_j_depth)
+            score += res_distance
         else:
-            res = SimFunctionNode.delta_indices_sim(node_i[1], node_j[1]) + iso_matrix[
-                self.edge_map[node_i[0]] - 1, self.edge_map[node_j[0]] - 1]
-            if self.idf is not None:
-                return res * self.idf[node_i[0]] * self.idf[node_j[0]]
-            else:
-                return res
+            node_i_type = node_i
+            node_j_type = node_j
+
+        # If we are not bb, also use isostericity.
+        if not bb:
+            res_isostericity = iso_matrix[self.edge_map[node_i_type], self.edge_map[node_j_type]]
+            score += res_isostericity
+
+        if self.idf is not None:
+            return score * self.idf[node_i[0]] * self.idf[node_j[0]]
+        else:
+            return score
 
     def R_1(self, ring1, ring2):
         """
-        Compute R function over lists of features:
-        first attempt : count intersect and normalise by the number (Jacard?)
+        Compute R_1 function over lists of features by counting intersect and normalise by the number
         :param ring1: list of features
         :param ring2: ''
-        :return:
+        :return: Score
         """
         feat_1 = Counter(ring1)
         feat_2 = Counter(ring2)
@@ -235,11 +246,14 @@ class SimFunctionNode():
 
     def R_iso(self, list1, list2):
         """
-        Compute R function over lists of features:
-        first attempt : count intersect and normalise by the number (Jacard?)
+        Compute R_iso function over lists of features by matching each ring with
+        the hungarian algorithm on the iso values
+
+        We do a separate computation for backbone.
+
         :param list1: list of features
         :param list2: ''
-        :return:
+        :return: Score
         """
         feat_1 = Counter(list1)
         feat_2 = Counter(list2)
@@ -323,14 +337,80 @@ class SimFunctionNode():
 
         return (sim_non_bb + sim_bb) / 2
 
-    def R_graphlets(self, list1, list2):
-
+    def hungarian(self, rings1, rings2):
         """
-        Compute R function over lists of features:
-        first attempt : count intersect and normalise by the number (Jacard?)
+        Compute hungarian function over lists of features by adding a depth field into each ring (based on its index
+        in rings). Then we try to match all nodes together, to deal with bulges for instances.
+
+        We do a separate computation for backbone.
+
         :param list1: list of features
         :param list2: ''
-        :return:
+        :return: Score
+        """
+
+        def rings_to_lists(rings, depth):
+            can, noncan = [], []
+            for k in range(1, depth + 1):
+                for value in rings[k]:
+                    if value in ['B53', 'B35']:
+                        can.append((value, k))
+                    else:
+                        noncan.append((value, k))
+            return can, noncan
+
+        def compare_lists(ring1, ring2, bb=False, pos=False):
+            if len(ring1) == 0 and len(ring2) == 0:
+                return 1
+            if len(ring1) == 0 or len(ring2) == 0:
+                return 0
+            cm = [[self.get_cost_nodes(node_i, node_j, bb=bb, pos=pos) for node_j in ring2] for node_i in ring1]
+            # Dont forget the minus for minimization
+            cost = -np.array(cm)
+            row_ind, col_ind = linear_sum_assignment(cost)
+            unnormalized = - np.array(cost[row_ind, col_ind]).sum()
+            # If the cost also includes distance information, we need to divide by two
+            factor_two = 2 if bb is False and len(ring1[0]) == 2 else 1
+            length = self.get_length([node[0] for node in ring1], [node[0] for node in ring2])
+            return self.normalize(unnormalized / factor_two, length)
+
+        can1, noncan1 = rings_to_lists(rings1, depth=self.depth)
+        can2, noncan2 = rings_to_lists(rings2, depth=self.depth)
+
+        cost_can = compare_lists(can1, can2, bb=True)
+        cost_noncan = compare_lists(noncan1, noncan2, bb=False, pos=True)
+
+        return (cost_can + cost_noncan) / 2
+
+    def graphlet_cost_nodes(self, node_i, node_j, pos=False, similarity=False):
+        """
+        Returns a node distance between nodes represented as graphlets
+                Compare two nodes and returns a cost.
+
+        Returns a positive number that has to be negated for minimization
+        :param node_i : This either just contains a label to be compared with isostericity, or a tuple that also
+        includes distance from the root node
+        :param node_j : Same as above
+        :param pos: if pos is true, nodes are expected to be (graphlet, distance from root) else just a graphlet.
+        pos is True when used from a comparison between nodes from different rings
+        :return: the cost of matching those two nodes
+        """
+        if pos:
+            g_1, p_1 = node_i
+            g_2, p_2 = node_j
+            ged = GED_hashtable_hashed(g_1, g_2, self.GED_table, self.hash_table, normed=True, similarity=similarity)
+            delta = SimFunctionNode.delta_indices_sim(p_1, p_2, distance=not similarity)
+            return ged + delta
+        else:
+            return GED_hashtable_hashed(node_i, node_j, self.GED_table, self.hash_table, normed=True,
+                                        similarity=similarity)
+
+    def R_graphlets(self, ring1, ring2):
+        """
+        Compute R_graphlets function over lists of features.
+        :param ring1: list of list of graphlets
+        :param ring2: ''
+        :return: Score
         """
 
         def compare_smooth(ring1, ring2):
@@ -382,10 +462,10 @@ class SimFunctionNode():
             return self.normalize(unnormalized, length)
 
         # This was computed empirically, for small rings, brute is faster, but for longer one, we should get smart
-        if len(list1) < 6 and len(list2) < 6:
-            sim_non_bb = compare_brute(list1, list2)
+        if len(ring1) < 6 and len(ring2) < 6:
+            sim_non_bb = compare_brute(ring1, ring2)
         else:
-            sim_non_bb = compare_smooth(list1, list2)
+            sim_non_bb = compare_smooth(ring1, ring2)
         # They do return the same thing :)
         # print(sim_non_bb - sim_non_bb_nobrute)
         # print(time_used, time_used1)
@@ -395,55 +475,15 @@ class SimFunctionNode():
 
         return sim_non_bb
 
-    def hungarian(self, rings1, rings2):
-        """
-        Formulate the kernel as an assignment problem
-        :param rings1: list of lists
-        :param rings2:
-        :return:
-        """
-
-        def rings_to_lists(rings, depth):
-            can, noncan = [], []
-            for k in range(1, depth + 1):
-                for value in rings[k]:
-                    if value in ['B53', 'B35']:
-                        can.append((value, k))
-                    else:
-                        noncan.append((value, k))
-            return can, noncan
-
-        def compare_lists(ring1, ring2, bb=False, pos=False):
-            if len(ring1) == 0 and len(ring2) == 0:
-                return 1
-            if len(ring1) == 0 or len(ring2) == 0:
-                return 0
-            cm = [[self.get_cost_nodes(node_i, node_j, bb=bb, pos=pos) for node_j in ring2] for node_i in ring1]
-            # Dont forget the minus for minimization
-            cost = -np.array(cm)
-            row_ind, col_ind = linear_sum_assignment(cost)
-            unnormalized = - np.array(cost[row_ind, col_ind]).sum()
-            # If the cost also includes distance information, we need to divide by two
-            factor_two = 2 if bb is False and len(ring1[0]) == 2 else 1
-            length = self.get_length([node[0] for node in ring1], [node[0] for node in ring2])
-            return self.normalize(unnormalized / factor_two, length)
-
-        can1, noncan1 = rings_to_lists(rings1, depth=self.depth)
-        can2, noncan2 = rings_to_lists(rings2, depth=self.depth)
-
-        cost_can = compare_lists(can1, can2, bb=True)
-        cost_noncan = compare_lists(noncan1, noncan2, bb=False, pos=True)
-
-        return (cost_can + cost_noncan) / 2
-
     def graphlet(self, rings1, rings2):
         """
-            Compare graphlet rings using GED and memoizing.
+        This function performs an operation similar to the hungarian algorithm using ged between graphlets instead of
+        isostericity.
 
-            1. Get list of graphlets and distances in subgraph: [(sG_hash_1, d_1), ..].
-            2. Build graphlet distance matrix DM with GED
-            3. Match the subgraphs with Hungarian, using DM for cost.
-            4. Return kernel value
+        We also add a distance to root node attribute to each graphlet and then match them optimally
+        :param ring1: list of list of graphlets
+        :param ring2: ''
+        :return: Score
         """
 
         def rings_to_lists_g(rings, depth):
@@ -480,30 +520,15 @@ class SimFunctionNode():
         return normed
         '''
 
-    def graphlet_cost_nodes(self, node1, node2, pos=False, similarity=False):
-        """
-        Returns a node distance between nodes represented as graphlets
-        :param node1:
-        :param node2:
-        :param pos: if pos is true, nodes are expected to be (graphlet, distance from root)
-        :return:
-        """
-        if pos:
-            g_1, p_1 = node1
-            g_2, p_2 = node2
-            ged = GED_hashtable_hashed(g_1, g_2, self.GED_table, self.hash_table, normed=True, similarity=similarity)
-            delta = SimFunctionNode.delta_indices_sim(p_1, p_2, distance=not similarity)
-            return ged + delta
-        else:
-            return GED_hashtable_hashed(node1, node2, self.GED_table, self.hash_table, normed=True,
-                                        similarity=similarity)
 
-
-def graph_edge_freqs(graphs, stop=0):
+def graph_edge_freqs(graphs, stop=False):
     """
         Get IDF for each edge label over whole dataset.
-
-        {'CWW': 110, 'TWW': 23}
+    First get a total frequency dictionnary :{'CWW': 110, 'TWW': 23}
+    Then compute IDF and returns the value.
+    :param graphs: The graphs over which to compute the frequencies, a list of nx graphs
+    :param stop: Set to True for just doing it on a subset
+    :return: A dict with the idf values.
     """
     graph_counts = Counter()
     # get document frequencies
@@ -523,7 +548,7 @@ def pdist_list(rings, node_sim):
     Creates a SIMILARITY matrix.
     :param rings: a list of rings, dictionnaries {node : (nodelist, edgelist)}
     :param node_sim: the pairwise node comparison function
-    :return:
+    :return: the upper triangle of a similarity matrix, in the form of a list
     """
     rings_values = [list(ring.values()) for ring in rings]
     nodes = list(itertools.chain.from_iterable(rings_values))
@@ -541,7 +566,7 @@ def k_block_list(rings, node_sim):
     Creates a SIMILARITY matrix.
     :param rings: a list of rings, dictionnaries {node : (nodelist, edgelist)}
     :param node_sim: the pairwise node comparison function
-    :return:
+    :return: A whole similarity matrix in the form of a numpy array that follows the order of rings 
     """
 
     node_rings = [ring_values for node, ring_values in rings]
@@ -549,15 +574,12 @@ def k_block_list(rings, node_sim):
     # rings_values = [list(ring.values()) for ring in rings]
     # node_rings = list(itertools.chain.from_iterable(rings_values))
     block = np.zeros((len(node_rings), len(node_rings)))
-    b = node_sim.compare(node_rings[0], node_rings[0])
     assert node_sim.compare(node_rings[0], node_rings[0]) > 0.99, "Identical rings giving non 1 similarity."
     sims = [node_sim.compare(n1, n2)
             for i, (n1, n2) in enumerate(itertools.combinations(node_rings, 2))]
     block[np.triu_indices(len(node_rings), 1)] = sims
     block += block.T
-
     block += np.eye(len(node_rings))
-
     return block
 
 
