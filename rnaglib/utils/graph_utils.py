@@ -7,37 +7,27 @@ from tqdm import tqdm
 import networkx as nx
 import numpy as np
 
+import dgl
+
 script_dir = os.path.dirname(os.path.realpath(__file__))
 if __name__ == "__main__":
     sys.path.append(os.path.join(script_dir, '..', '..'))
 
-from rnaglib.config.graph_keys import GRAPH_KEYS, TOOL, DEFAULT_ANNOT_DIR
+from rnaglib.config.graph_keys import GRAPH_KEYS, TOOL
 
+CANONICALS = GRAPH_KEYS['canonical'][TOOL]
 VALID_EDGES = GRAPH_KEYS['edge_map'][TOOL].keys()
 
 
-def whole_graph_from_node(node_id, annot_dir=DEFAULT_ANNOT_DIR):
+def induced_edge_filter(graph, roots, depth=1):
     """
-        Fetch whole graph from a node id.
-    """
-    if '_' in node_id[0]:
-        graph_path = os.path.join(annot_dir, node_id[0].split('_')[0] + '.nx')
-    else:
-        graph_path = os.path.join(annot_dir, node_id[0])
-    return nx.read_gpickle(graph_path)
+    Remove edges in graph introduced by the induced sugraph routine.
+    Only keep edges which fall within a single node's neighbourhood.
 
-
-def induced_edge_filter(G, roots, depth=1):
-    """
-        Remove edges in G introduced by the induced
-        sugraph routine.
-        Only keep edges which fall within a single
-        node's neighbourhood.
-
-        :param G: networkx subgraph
-        :param roots: nodes to use for filtering
-        :param depth: size of neighbourhood to take around each node.
-        :returns clean_g: cleaned graph
+    :param graph: networkx subgraph
+    :param roots: nodes to use for filtering
+    :param depth: size of neighbourhood to take around each node.
+    :returns clean_g: cleaned graph
     """
     # a depth of zero does not make sense for this operation as it would remove all edges
     if depth < 1:
@@ -45,116 +35,78 @@ def induced_edge_filter(G, roots, depth=1):
     neighbourhoods = []
     flat_neighbors = set()
     for root in roots:
-        root_neighbors = bfs_expand(G, [root], depth=depth)
+        root_neighbors = bfs(graph, [root], depth=depth)
         neighbourhoods.append(root_neighbors)
         flat_neighbors = flat_neighbors.union(root_neighbors)
 
     flat_neighbors = list(flat_neighbors)
-    subG = G.subgraph(flat_neighbors)
-    subG = subG.copy()
-    # G_new = G_new.subgraph(flat_neighbors)
+    subgraph = graph.subgraph(flat_neighbors)
+    subgraph = subgraph.copy()
+    # graph_new = graph_new.subgraph(flat_neighbors)
     kill = []
-    for (u, v) in subG.edges():
+    for (u, v) in subgraph.edges():
         for nei in neighbourhoods:
             if u in nei and v in nei:
                 break
         else:
             kill.append((u, v))
 
-    subG.remove_edges_from(kill)
-    return subG
+    subgraph.remove_edges_from(kill)
+    return subgraph
 
 
-def fetch_graph(g_path):
-    if g_path.endswith('.p'):
-        graph = pickle.load(open(g_path, 'rb'))['graph']
-    else:
-        graph = nx.read_gpickle(g_path)
-    return graph
-
-
-def annots_from_node(annot_dir, node_id):
+def get_nc_nodes(graph, depth=4, return_index=False):
     """
-        Fetch annots from a node id.
-    """
-    graph_path = os.path.join(annot_dir, node_id[0].replace('.nx', '_annot.p'))
-    return pickle.load(open(graph_path, 'rb'))
-
-
-def subgraph_clean(G, roots, depth):
-    """
-        Remove edges from G which aren't in the depth-hop
-        neighbourhood of roots.
-    """
-    pass
-
-
-def nc_clean_dir(graph_dir, dump_dir):
-    """
-        Copy graphs from graph_dir to dump_dir but copied graphs are
-        trimmed according to `get_nc_nodes_index`.
-
-        `graph_dir` should contain networkx pickles.
-    """
-
-    for g in tqdm(os.listdir(graph_dir)):
-        G = nx.read_gpickle(os.path.join(graph_dir, g))
-        keep_nodes = get_nc_nodes(G)
-        print(f">>> kept {len(keep_nodes)} nodes of {len(G.nodes())}.")
-        kill_nodes = set(G.nodes()) - keep_nodes
-        G.remove_nodes_from(kill_nodes)
-        dangle_trim(G)
-        if len(G.nodes()) > 4:
-            nx.write_gpickle(G, os.path.join(dump_dir, g))
-    pass
-
-
-def get_nc_nodes_index(graph, depth=3):
-    """
-        Returns indices of nodes in graph list which have a non canonical or
-        looping base in their neighbourhood.
-
-        :returns keep: set of nodes in loops or that have a NC.
+    
+    Returns indices of nodes in graph list which have a non canonical or
+    looping base in their neighbourhood.
+    :param graph: a networkx graph
+    :param depth: The depth up to which we consider nodes neighbors of a NC
+    :param return_index: If True, return the index in the list instead.
+    :return: set of nodes (or their index) in loops or that have a NC.
     """
 
     keep = []
     for i, node in enumerate(sorted(graph.nodes())):
+        to_keep = i if return_index else node
         if graph.degree(node) == 2:
-            keep.append(i)
+            keep.append(to_keep)
         elif has_NC_bfs(graph, node, depth=depth):
-            keep.append(i)
-        else:
-            pass
-    return keep
-
-
-def get_nc_nodes(g, depth=4):
-    """
-        Returns indices of nodes in graph list which have a non canonical or
-        looping base in their neighbourhood.
-
-        :returns keep: set of nodes in loops or that have a NC.
-    """
-
-    keep = []
-    for node in sorted(g.nodes()):
-        if g.degree(node) == 2:
-            keep.append(node)
-        elif has_NC_bfs(g, node, depth=depth):
-            keep.append(node)
+            keep.append(to_keep)
         else:
             pass
     return set(keep)
 
 
-def incident_nodes(G, nodes):
+def nc_clean_dir(graph_dir, dump_dir):
     """
-        Returns set of nodes in $G \ nodes$ incident to nodes.
-        `nodes` is a set
+    Copy graphs from graph_dir to dump_dir but copied graphs are
+        trimmed according to `get_nc_nodes_index`.
+    :param graph_dir: A directory that should contain networkx pickles.
+    :param dump_dir: The directory where to dump the trimmed graphs
+    """
+
+    for g in tqdm(os.listdir(graph_dir)):
+        graph = nx.read_gpickle(os.path.join(graph_dir, g))
+        keep_nodes = get_nc_nodes(graph)
+        print(f">>> kept {len(keep_nodes)} nodes of {len(graph.nodes())}.")
+        kill_nodes = set(graph.nodes()) - keep_nodes
+        graph.remove_nodes_from(kill_nodes)
+        dangle_trim(graph)
+        if len(graph.nodes()) > 4:
+            nx.write_gpickle(graph, os.path.join(dump_dir, g))
+
+
+def incident_nodes(graph, nodes):
+    """
+    Returns set of nodes in $graph \ nodes$ incident to nodes.
+    :param graph: A networkx graph
+    :param nodes: set of nodes in graph
+    :return: set of nodes around the input the set of nodes according to the connectivity of the graph
     """
     core = set(nodes)
     hits = set()
-    for u, v in G.edges():
+    for u, v in graph.edges():
         if u in core and v not in core:
             hits.add(v)
         if u not in core and v in core:
@@ -162,100 +114,16 @@ def incident_nodes(G, nodes):
     return hits
 
 
-def get_edge_map(graphs_dir, label='labels'):
-    edge_labels = set()
-    print("Collecting edge labels.")
-    for g in tqdm(os.listdir(graphs_dir)):
-        try:
-            graph, _, _ = pickle.load(open(os.path.join(graphs_dir, g), 'rb'))
-        except:
-            print(f"failed on {g}")
-            continue
-        edges = {e_dict[label] for _, _, e_dict in graph.edges(data=True)}
-        edge_labels = edge_labels.union(edges)
-
-    return {label: i for i, label in enumerate(sorted(edge_labels))}
-
-
-def reindex_nodes_annot(graph_dir, dump=None):
-    """
-        Assign a unique id to each node in the graph.
-    """
-    graphs = []
-    offset = 0
-    for g in tqdm(sorted(os.listdir(graph_dir))):
-        try:
-            annot = pickle.load(open(os.path.join(graph_dir, g), 'rb'))
-            G = annot['graph']
-        except Exception as e:
-            print(f"failed on {g}, {e}")
-            continue
-        G = nx.relabel.convert_node_labels_to_integers(G, first_label=offset, label_attribute='id')
-        offset += len(G.nodes())
-        if dump is not None:
-            annot['graph'] = G
-            pickle.dump(annot, open(os.path.join(dump, g), 'wb'))
-
-        graphs.append(G)
-    return graphs
-
-
-def relabel_nodes_annot(graph_dir, dump=None):
-    """
-        Assign a unique id to each node in the graph.
-        ID: (graph_id, original_id, sorted_index)
-    """
-    graphs = []
-    for g in tqdm(sorted(os.listdir(graph_dir))):
-        try:
-            G = nx.read_gpickle(os.path.join(graph_dir, g))
-        except Exception as e:
-            print(f"failed on {g}, {e}")
-            continue
-        G = nx.relabel_nodes(G, {n: (g, n) for i, n in enumerate(sorted(G.nodes()))})
-        if not dump is None:
-            nx.write_gpickle(G, os.path.join(graph_dir, g))
-        graphs.append(G)
-    return graphs
-
-
-def reindex_nodes_raw(graph_dir, dump=None):
-    """
-        Assign a unique id to each node in the graph.
-    """
-    graphs = []
-    offset = 0
-    for g in tqdm(sorted(os.listdir(graph_dir))):
-        try:
-            G = nx.read_gpickle(os.path.join(graph_dir, g))
-        except Exception as e:
-            print(f"failed on {g}, {e}")
-            continue
-        G = nx.relabel.convert_node_labels_to_integers(G, first_label=offset, label_attribute='id')
-        offset += len(G.nodes())
-        if not dump is None:
-            nx.write_gpickle(G, os.path.join(dump, g))
-        graphs.append(G)
-    return graphs
-
-
-def nx_to_dgl(graph, edge_map, embed_dim, label='label'):
+def nx_to_dgl(graph, edge_map, label='label'):
     """
         Networkx graph to DGL.
     """
 
-    import torch
-    import dgl
-
     graph, _, ring = pickle.load(open(graph, 'rb'))
     edge_type = {edge: edge_map[lab] for edge, lab in (nx.get_edge_attributes(graph, label)).items()}
     nx.set_edge_attributes(graph, name='edge_type', values=edge_type)
-    edge_type = {edge: torch.tensor(edge_map[lab]) for edge, lab in (nx.get_edge_attributes(graph, label)).items()}
     g_dgl = dgl.DGLGraph()
     g_dgl.from_networkx(nx_graph=graph, edge_attrs=['edge_type'])
-    n_nodes = len(g_dgl.nodes())
-    g_dgl.ndata['h'] = torch.ones((n_nodes, embed_dim))
-
     return g_dgl
 
 
@@ -267,78 +135,111 @@ def dgl_to_nx(graph, edge_map, label='label'):
     return g
 
 
-def bfs_expand(G, initial_nodes, nc_block=False, depth=2, label='label'):
+def bfs_generator(graph, initial_node):
     """
-        Extend motif graph starting with motif_nodes.
-        Returns list of nodes.
+    Generator version of bfs given graph and initial node.
+    Yields nodes at next hop at each call.
+
+    :param graph: Nx graph
+    :param initial_node: single or iterable node
+    :param depth:
+    :return: The successive rings
     """
-    total_nodes = [list(initial_nodes)]
+    if isinstance(initial_node, list) or isinstance(initial_node, set):
+        previous_ring = [list(initial_node)]
+    else:
+        previous_ring = [[initial_node]]
+    visited = set()
+    while len(visited) < len(graph):
+        depth_ring = []
+        for n in previous_ring:
+            visited.add(n)
+            for nei in graph.neighbors(n):
+                if nei not in visited:
+                    depth_ring.add(nei)
+        previous_ring = depth_ring
+        yield depth_ring
+
+
+def bfs(graph, initial_nodes, nc_block=False, depth=2, label='label'):
+    """
+    BFS from seed nodes given graph and initial node.
+
+    :param graph: Nx graph
+    :param initial_nodes: single or iterable node
+    :param depth: The number of hops to conduct from our roots
+    :return: list of nodes
+    """
+    if isinstance(initial_nodes, list) or isinstance(initial_nodes, set):
+        total_nodes = [list(initial_nodes)]
+    else:
+        total_nodes = [[initial_nodes]]
     for d in range(depth):
         depth_ring = []
         e_labels = set()
         for n in total_nodes[d]:
-            for nei in G.neighbors(n):
+            for nei in graph.neighbors(n):
                 depth_ring.append(nei)
-                e_labels.add(G[n][nei][label])
-        if e_labels.issubset({'CWW', 'B53', ''}) and nc_block:
+                e_labels.add(graph[n][nei][label])
+        if nc_block and e_labels.issubset({'CWW', 'B53', ''}):
             break
         else:
             total_nodes.append(depth_ring)
     return set(itertools.chain(*total_nodes))
 
 
-def bfs(G, initial_node, depth=2):
+def extract_graphlet(graph, n, size=1):
     """
-        Generator for bfs given graph and initial node.
-        Yields nodes at next hop at each call.
+    Small util to extract a graphlet around a node
+    :param graph: Nx graph
+    :param n: a node in the graph
+    :param size: The depth to consider
+    :return: The graphlet as a copy
     """
-    total_nodes = [[initial_node]]
-    visited = []
-    for d in range(depth):
-        depth_ring = []
-        for n in total_nodes[d]:
-            visited.append(n)
-            for nei in G.neighbors(n):
-                if nei not in visited:
-                    depth_ring.append(nei)
-        total_nodes.append(depth_ring)
-        yield depth_ring
+    graphlet = graph.subgraph(bfs(graph, [n], depth=size)).copy()
+    return graphlet
 
 
-def remove_self_loops(G):
-    G.remove_edges_from([(n, n) for n in G.nodes()])
+def remove_self_loops(graph):
+    """
+    Remove all self loops connexions by modifying in place
+    :param graph: The graph to trim
+    :return: None
+    """
+    graph.remove_edges_from([(n, n) for n in graph.nodes()])
 
 
-def remove_non_standard_edges(G, label='label'):
+def remove_non_standard_edges(graph, label='LW'):
+    """
+    Remove all edges whose label is not in the VALID EDGE variable
+    :param graph: Nx Graph
+    :param label: The name of the labels to check
+    :return: the pruned graph, modifications are made in place
+    """
     remove = []
-    for n1, n2, d in G.edges(data=True):
+    for n1, n2, d in graph.edges(data=True):
         if d[label] not in VALID_EDGES:
             remove.append((n1, n2))
-    G.remove_edges_from(remove)
+    graph.remove_edges_from(remove)
 
 
-def to_orig_all(graph_dir, dump_dir):
-    for g in tqdm(os.listdir(graph_dir)):
-        try:
-            G = nx.read_gpickle(os.path.join(graph_dir, g))
-        except Exception as e:
-            print(f">>> failed on {g} with exception {e}")
-            continue
-        H = to_orig(G)
-        nx.write_gpickle(H, os.path.join(dump_dir, g))
-
-
-def to_orig(G, label='label'):
+def to_orig(graph, label='LW'):
+    """
+    Deprecated, used to include only the NC
+    :param graph:
+    :param label:
+    :return:
+    """
     H = nx.Graph()
-    for n1, n2, d in G.edges(data=True):
+    for n1, n2, d in graph.edges(data=True):
         if d[label] in VALID_EDGES:
             assert d[label] != 'B35'
             H.add_edge(n1, n2, label=d[label])
 
     for attrib in ['mg', 'lig', 'lig_id', 'chemically_modified',
                    'pdb_pos', 'bgsu', 'carnaval', 'chain']:
-        G_data = G.nodes(data=True)
-        attrib_dict = {n: G_data[n][attrib] for n in H.nodes()}
+        graph_data = graph.nodes(data=True)
+        attrib_dict = {n: graph_data[n][attrib] for n in H.nodes()}
         nx.set_node_attributes(H,
                                attrib_dict,
                                attrib)
@@ -347,17 +248,46 @@ def to_orig(G, label='label'):
     return H
 
 
+def to_orig_all(graph_dir, dump_dir):
+    """
+    Deprecated
+    :param graph_dir:
+    :param dump_dir:
+    :return:
+    """
+    for g in tqdm(os.listdir(graph_dir)):
+        try:
+            graph = nx.read_gpickle(os.path.join(graph_dir, g))
+        except Exception as e:
+            print(f">>> failed on {g} with exception {e}")
+            continue
+        H = to_orig(graph)
+        nx.write_gpickle(H, os.path.join(dump_dir, g))
+
+
 def find_node(graph, chain, pos):
+    """
+    Get a node from its PDB identification
+    :param graph: Nx graph
+    :param chain: The PDB chain
+    :param pos: The PDB 'POS' field
+    :return: The node if it was found, else None
+    """
     for n, d in graph.nodes(data=True):
         if (n[0] == chain) and (d['nucleotide'].pdb_pos == str(pos)):
             return n
     return None
 
 
-def has_NC(G, label='label'):
-    for n1, n2, d in G.edges(data=True):
-        if d[label] not in ['CWW', 'B53']:
-            # print(d['label'])
+def has_NC(graph, label='LW'):
+    """
+    Does the input graph contain non canonical edges ?
+    :param graph: Nx graph
+    :param label: The label to use
+    :return: Boolean
+    """
+    for n1, n2, d in graph.edges(data=True):
+        if d[label] not in CANONICALS:
             return True
     return False
 
@@ -365,70 +295,81 @@ def has_NC(G, label='label'):
 def has_NC_bfs(graph, node_id, depth=2):
     """
         Return True if node has NC in their neighbourhood.
+    :param graph: Nx graph
+    :param node_id: The nodes from which to start our search
+    :param depth: The number of hops to conduct from our roots
+    :return: Boolean
     """
 
-    subg = list(bfs_expand(graph, [node_id], depth=depth)) + [node_id]
+    subg = list(bfs(graph, node_id, depth=depth))
     sG = graph.subgraph(subg).copy()
     return has_NC(sG)
 
 
-def floaters(G):
+def floaters(graph):
     """
     Try to connect floating base pairs. (Single base pair not attached to backbone).
     Otherwise remove.
+    :param graph: Nx graph
+    :return: trimmed graph
     """
     deg_ok = lambda H, u, v, d: (H.degree(u) == d) and (H.degree(v) == d)
     floaters = []
-    for u, v in G.edges():
-        if deg_ok(G, u, v, 1):
+    for u, v in graph.edges():
+        if deg_ok(graph, u, v, 1):
             floaters.append((u, v))
 
-    G.remove_edges_from(floaters)
+    graph.remove_edges_from(floaters)
 
-    return G
+    return graph
 
 
-def dangle_trim(G, backbone_only=False):
+def dangle_trim(graph):
     """
-    Recursively remove dangling nodes from graph.
+    Recursively remove dangling nodes from graph, with in place modification
+    :param graph: Nx graph
+    :return: trimmed graph
     """
-    dangles = lambda G: [n for n in G.nodes() if G.degree(n) < 2]
-    while dangles(G):
-        G.remove_nodes_from(dangles(G))
+    dangles = lambda graph: [n for n in graph.nodes() if graph.degree(n) < 2]
+    while dangles(graph):
+        graph.remove_nodes_from(dangles(graph))
+    return graph
 
 
-def stack_trim(G):
+def stack_trim(graph):
     """
     Remove stacks from graph.
+    :param graph: Nx graph
+    :return: trimmed graph
     """
-    is_ww = lambda n, G: 'CWW' in [info['label'] for node, info in G[n].items()]
-    degree = lambda i, G, nodelist: np.sum(nx.to_numpy_matrix(G, nodelist=nodelist)[i])
-    cur_G = G.copy()
+    is_ww = lambda e, graph: 'CWW' in [info['LW'] for node, info in graph[e].items()]
+    degree = lambda i, graph, nodelist: np.sum(nx.to_numpy_matrix(graph, nodelist=nodelist)[i])
+    cur_graph = graph.copy()
     while True:
         stacks = []
-        for n in cur_G.nodes:
-            if cur_G.degree(n) == 2 and is_ww(n, cur_G):
+        for n in cur_graph.nodes:
+            if cur_graph.degree(n) == 2 and is_ww(n, cur_graph):
                 # potential stack opening
                 partner = None
                 stacker = None
-                for node, info in cur_G[n].items():
+                for node, info in cur_graph[n].items():
                     if info['label'] == 'B53':
                         stacker = node
                     elif info['label'] == 'CWW':
                         partner = node
                     else:
                         pass
-                if cur_G.degree(partner) > 3:
+                if cur_graph.degree(partner) > 3:
                     continue
                 partner_2 = None
                 stacker_2 = None
-                for node, info in cur_G[partner].items():
+                for node, info in cur_graph[partner].items():
                     if info['label'] == 'B53':
                         stacker_2 = node
                     elif info['label'] == 'CWW':
                         partner_2 = node
                 try:
-                    if cur_G[stacker][stacker_2]['label'] == 'CWW':
+                    if cur_graph[stacker][stacker_2]['label'] == 'CWW':
                         stacks.append(n)
                         stacks.append(partner)
                 except KeyError:
@@ -436,23 +377,47 @@ def stack_trim(G):
         if len(stacks) == 0:
             break
         else:
-            cur_G.remove_nodes_from(stacks)
-            cur_G = cur_G.copy()
-    return cur_G
+            cur_graph.remove_nodes_from(stacks)
+            cur_graph = cur_graph.copy()
+    return cur_graph
 
 
-def in_stem(G, u, v):
-    non_bb = lambda G, n: len([info['label'] for node, info in G[n].items() if info['label'] != 'B53'])
-    is_ww = lambda G, u, v: G[u][v]['label'] == 'CWW'
-    if is_ww(G, u, v) and (non_bb(G, u) in (1, 2)) and (non_bb(G, v) in (1, 2)):
+def in_stem(graph, u, v):
+    """
+    Find if two nodes are part of a stem and engage in NC interactions
+    :param graph: Nx graph
+    :param u: one graph node
+    :param v: one graph node
+    :return: Boolean
+    """
+    non_bb = lambda graph, e: len([info['LW'] for node, info in graph[e].items() if info['LW'] not in CANONICALS])
+    is_ww = lambda graph, u, v: graph[u][v]['LW'] not in {'CWW', 'cWW'}
+    if is_ww(graph, u, v) and (non_bb(graph, u) in (1, 2)) and (non_bb(graph, v) in (1, 2)):
         return True
     return False
 
 
+def gap_fill(original_graph, graph_to_expand):
+    """
+    If we subgraphed, get rid of all degree 1 nodes by completing them with one more hop
+    :param original_graph: nx graph
+    :param graph_to_expand: nx graph that needs to be expanded to fix dangles
+    :return: the expanded graph
+    """
+    # while True:
+    new_nodes = list(graph_to_expand.nodes())
+    for n in graph_to_expand.nodes():
+        if graph_to_expand.degree(n) == 1:
+            new_nodes.append(graph_to_expand.neighbors(n))
+    res_graph = original_graph.subgraph(new_nodes).copy()
+    return res_graph
+
+
 def symmetric_elabels(graph):
     """
-        Make edge labels symmetric for a graph.
-        Returns new graph.
+    Make edge labels symmetric for a graph.
+    :param graph: Nx graph
+    :return: Same graph but edges are now symmetric and calling undirected is straightforward.
     """
     H = graph.copy()
     new_e_labels = {}
@@ -472,15 +437,15 @@ def relabel_graphs(graph_dir, dump_path):
         Take graphs in graph_dir and dump symmetrized in dump_path.
     """
     for g in tqdm(os.listdir(graph_dir)):
-        G = nx.read_gpickle(os.path.join(graph_dir, g))
-        G_new = symmetric_elabels(G)
-        nx.write_gpickle(G_new, os.path.join(dump_path, g))
+        graph = nx.read_gpickle(os.path.join(graph_dir, g))
+        graph_new = symmetric_elabels(graph)
+        nx.write_gpickle(graph_new, os.path.join(dump_path, g))
         pass
     pass
 
 
 def weisfeiler_lehman_graph_hash(
-        G,
+        graph,
         edge_attr=None,
         node_attr=None,
         iterations=3,
@@ -503,7 +468,7 @@ def weisfeiler_lehman_graph_hash(
 
     Parameters
     ----------
-    G: graph
+    graph: graph
         The graph to be hashed.
         Can have node and/or edge attributes. Can also have no attributes.
     edge_attr: string
@@ -567,42 +532,42 @@ def weisfeiler_lehman_graph_hash(
     from collections import Counter
     from hashlib import blake2b
 
-    def neighborhood_aggregate(G, node, node_labels, edge_attr=None):
+    def neighborhood_aggregate(graph, node, node_labels, edge_attr=None):
         """
             Compute new labels for given node by aggregating
             the labels of each node's neighbors.
         """
         label_list = [node_labels[node]]
-        for nei in G.neighbors(node):
-            prefix = "" if not edge_attr else G[node][nei][edge_attr]
+        for nei in graph.neighbors(node):
+            prefix = "" if not edge_attr else graph[node][nei][edge_attr]
             label_list.append(prefix + node_labels[nei])
         return ''.join(sorted(label_list))
 
-    def weisfeiler_lehman_step(G, labels, edge_attr=None, node_attr=None):
+    def weisfeiler_lehman_step(graph, labels, edge_attr=None, node_attr=None):
         """
             Apply neighborhood aggregation to each node
             in the graph.
             Computes a dictionary with labels for each node.
         """
         new_labels = dict()
-        for node in G.nodes():
-            new_labels[node] = neighborhood_aggregate(G, node, labels,
+        for node in graph.nodes():
+            new_labels[node] = neighborhood_aggregate(graph, node, labels,
                                                       edge_attr=edge_attr)
         return new_labels
 
     items = []
     node_labels = dict()
     # set initial node labels
-    for node in G.nodes():
+    for node in graph.nodes():
         if (not node_attr) and (not edge_attr):
-            node_labels[node] = str(G.degree(node))
+            node_labels[node] = str(graph.degree(node))
         elif node_attr:
-            node_labels[node] = str(G.nodes[node][node_attr])
+            node_labels[node] = str(graph.nodes[node][node_attr])
         else:
             node_labels[node] = ''
 
     for k in range(iterations):
-        node_labels = weisfeiler_lehman_step(G, node_labels,
+        node_labels = weisfeiler_lehman_step(graph, node_labels,
                                              edge_attr=edge_attr)
         counter = Counter()
         # count node labels
@@ -619,33 +584,6 @@ def weisfeiler_lehman_graph_hash(
     h = h.hexdigest()
     return h
 
-
-def gap_fill(G, subG):
-    """
-        Get rid of all degree 1 nodes.
-    """
-    # while True:
-    new_nodes = list(subG.nodes())
-    # has_dang = False
-    for n in subG.nodes():
-        if subG.degree(n) == 1:
-            new_nodes.append(subG.neighbors(n))
-            # has_dang = True
-    # if has_dang:
-    # subG = G.subgraph(new_nodes).copy()
-    # has_dang = False
-    # else:
-    # break
-    return subG
-
-def graph_from_pdbid(pdbid, graph_dir, graph_format='json'):
-    if graph_format == 'nx':
-        graph = nx.read_gpickle(osp.join(graph_dir, pdbid.lower() + '.nx'))
-    elif graph_format == 'json':
-        graph = load_json(osp.join(graph_dir, pdbid.lower() + '.json'))
-    else:
-        raise ValueError(f"Invalid graph format {graph_format}. Use NetworkX or JSON.")
-    return graph
 
 if __name__ == "__main__":
     nc_clean_dir("../data/unchopped_v4_nr", "../data/unchopped_v4_nr_nc")

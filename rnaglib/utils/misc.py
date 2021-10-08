@@ -2,6 +2,11 @@ from torch.utils.data import Subset
 
 
 def tonumpy(torch_array):
+    """
+    Routine to get any torch tensor back to numpy without cpu or gradient problems
+    :param torch_array: A torch array
+    :return: A numpy array
+    """
     return torch_array.detach().cpu().numpy()
 
 

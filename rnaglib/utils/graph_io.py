@@ -1,3 +1,4 @@
+import os
 import json
 import pickle
 
@@ -6,11 +7,21 @@ import networkx as nx
 
 
 def dump_json(filename, graph):
+    """
+    Just a shortcut to dump a json graph more compactly
+    :param filename: The dump name
+    :param graph: The graph to dump
+    """
     g_json = json_graph.node_link_data(graph)
     json.dump(g_json, open(filename, 'w'), indent=2)
 
 
 def load_json(filename):
+    """
+    Just a shortcut to dump a json graph more compactly
+    :param filename: The dump name
+    :return: The loaded graph
+    """
     with open(filename, 'r') as f:
         js_graph = json.load(f)
     out_graph = json_graph.node_link_graph(js_graph)
@@ -40,13 +51,20 @@ def load_graph(filename):
                 nx.set_node_attributes(G=graph, name=f'{ring_type}_annots', values=noderings)
         else:
             graph = pickled
-        # import sys
-        # sys.exit()
         return graph
 
     else:
         raise NotImplementedError('We have not implemented this data format yet')
 
+def graph_from_pdbid(pdbid, graph_dir, graph_format='json'):
+    if graph_format == 'nx':
+        graph_name = os.path.join(graph_dir, pdbid.lower() + '.nx')
+    elif graph_format == 'json':
+        graph_name = os.path.join(graph_dir, pdbid.lower() + '.json')
+    else:
+        raise ValueError(f"Invalid graph format {graph_format}. Use NetworkX or JSON.")
+    graph = load_graph(graph_name)
+    return graph
 
 if __name__ == '__main__':
     tmp_path = '../../examples/2du5.json'
