@@ -39,7 +39,14 @@ def n_del(arg):
     return 0
 
 
-def ged_approx(g1, g2, roots=None, upper_bound=None):
+def ged_approx(g1, g2, upper_bound=None):
+    """
+    Compute a faster version of the ged on RNA graphs
+    :param g1: A networkx graph to compare
+    :param g2: A networkx graph to compare
+    :param upper_bound: Maximum edit distance to consider.
+    :return: The GED value
+    """
     return optimize_graph_edit_distance(g1, g2,
                                         edge_subst_cost=e_sub,
                                         edge_del_cost=e_del,
@@ -51,6 +58,15 @@ def ged_approx(g1, g2, roots=None, upper_bound=None):
 
 
 def ged(g1, g2, roots=None, upper_bound=None, timeout=None):
+    """
+    Compute the graph edit distance on RNA graphs (default weighting scheme is adapted to RNA)
+    :param g1: A networkx graph to compare
+    :param g2: A networkx graph to compare
+    :param roots: Whether to match rooted subgraphs (forced pairing betweeen these nodes)
+    :param upper_bound: Maximum edit distance to consider.
+    :param timeout: Time after which we want to stop
+    :return: The GED value
+    """
     return graph_edit_distance(g1, g2,
                                edge_subst_cost=e_sub,
                                edge_del_cost=e_del,

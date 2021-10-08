@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import os
 import sys
 import torch
@@ -7,7 +9,7 @@ if __name__ == "__main__":
     sys.path.append(os.path.join(script_dir, '..', '..'))
 
 from rnaglib.learning import models, learn
-from rnaglib.data_loading import loader
+from rnaglib.data_loading import graphloader
 
 """
 This script just shows a first very basic example : learn binding protein preferences 
@@ -19,9 +21,9 @@ To do so, we choose our data, create a data loader around it, build a RGCN model
 # Choose the data, features and targets to use and GET THE DATA GOING
 node_features = ['nt_code']
 node_target = ['binding_protein']
-supervised_dataset = loader.SupervisedDataset(node_features=node_features,
-                                              node_target=node_target)
-train_loader, validation_loader, test_loader = loader.Loader(dataset=supervised_dataset).get_data()
+supervised_dataset = graphloader.SupervisedDataset(node_features=node_features,
+                                                   node_target=node_target)
+train_loader, validation_loader, test_loader = graphloader.GraphLoader(dataset=supervised_dataset).get_data()
 
 # Define a model, we first embed our data in 10 dimensions, and then add one classification
 input_dim, target_dim = supervised_dataset.input_dim, supervised_dataset.output_dim

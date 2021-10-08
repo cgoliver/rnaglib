@@ -23,7 +23,6 @@ from rnaglib.utils.graph_utils import gap_fill
 from rnaglib.utils.graph_utils import graph_from_pdbid
 from rnaglib.config.graph_keys import GRAPH_KEYS
 
-
 MM_of_Elements = {'H': 1.00794, 'He': 4.002602, 'Li': 6.941, 'Be': 9.012182, 'B': 10.811, 'C': 12.0107, 'N': 14.0067,
                   'O': 15.9994, 'F': 18.9984032, 'Ne': 20.1797, 'Na': 22.98976928, 'Mg': 24.305, 'Al': 26.9815386,
                   'Si': 28.0855, 'P': 30.973762, 'S': 32.065, 'Cl': 35.453, 'Ar': 39.948, 'K': 39.0983, 'Ca': 40.078,
@@ -44,11 +43,13 @@ MM_of_Elements = {'H': 1.00794, 'He': 4.002602, 'Li': 6.941, 'Be': 9.012182, 'B'
                   'Ds': 281, 'Rg': 281, 'Cn': 285, 'Nh': 284, 'Fl': 289, 'Mc': 289, 'Lv': 292, 'Ts': 294, 'Og': 294,
                   'ZERO': 0}
 
+
 def residue_from_node(structure, node_id):
-    _,chain, pos = node_id.split(".")
+    _, chain, pos = node_id.split(".")
     for r in structure.get_residues():
         if r.get_parent().id == chain and str(r.id[1]) == pos:
             return r
+
 
 def block_pca(residues):
     """
@@ -133,6 +134,7 @@ def blob_to_graph(residues, graph):
     :param graph: nx graph they were extracted from
     :return: nx subgraph
     """
+
     def find_node(residue):
         """
             Gets node matching PDB residue.
@@ -195,6 +197,7 @@ def graph_clean(G, subG, thresh=8):
 
     return subG
 
+
 def chop_one_rna(args):
     """
     To be used by a map process, chop an rna
@@ -232,11 +235,10 @@ def chop_one_rna(args):
             else:
                 residues.append(resi)
 
-
         # glib node format: 3iab.R.83 <pdbid>.<chain>.<pos>
 
         # residues = [r for r in structure.get_residues() if r.id[0] == ' ' and
-                    # r.get_resname() in RNA]
+        # r.get_resname() in RNA]
 
         chops = chop(residues)
         for j, c in enumerate(chops):
@@ -247,7 +249,7 @@ def chop_one_rna(args):
             else:
                 pass
                 # print(f"Graph {pdbid}_{j} failed graph filter. Had {len(subgraph.nodes())} nodes. " +
-                      # f"{set([d['label'] for _, _, d in subgraph.edges(data=True)])}")
+                # f"{set([d['label'] for _, _, d in subgraph.edges(data=True)])}")
         return 0
     except Exception as e:
         traceback.print_exc()
@@ -297,5 +299,5 @@ if __name__ == "__main__":
     # all_rna_process(graph_path='../data/carnaval', pdb_path='../data/all_rna_pdb', dest="../data/graphs/test",
     # parallel=False)
     chop_all(graph_path='../data/carnaval_2', pdb_path='../data/all_rna_pdb', dest="../data/chunks_nx_2",
-                    parallel=False)
+             parallel=False)
     pass

@@ -7,12 +7,6 @@ import dgl.function as fn
 
 
 class Embedder(nn.Module):
-    """
-    This is an exemple RGCN for unsupervised learning, going from one element of "dims" to the other
-
-    It maps the "features" of an input graph to an "h" node attribute and returns the corresponding tensor.
-    """
-
     def __init__(self,
                  dims,
                  infeatures_dim=0,
@@ -21,6 +15,19 @@ class Embedder(nn.Module):
                  conv_output=True,
                  self_loop=True,
                  verbose=False):
+        """
+        This is an exemple RGCN for unsupervised learning, going from one element of "dims" to the other
+
+        It maps the "features" of an input graph to an "h" node attribute and returns the corresponding tensor.
+
+        :param dims: The succesive dimensions of the embeddings, should be an iterable or an int
+        :param infeatures_dim: The dimension of the input features
+        :param num_rels: The number of relations that are to be found in the graphs. Defaults to the 20 base pair types
+        :param num_bases: This is to use the basis sharing trick used in RGCN in general
+        :param conv_output: Whether to use a convolution at the end of the embedding or simply a linear layer
+        :param self_loop: Whether each node is also connected to itself
+        :param verbose: blah
+        """
         super(Embedder, self).__init__()
         self.dims = dims
         self.use_node_features = (infeatures_dim != 0)
@@ -100,12 +107,6 @@ class Embedder(nn.Module):
 
 
 class Classifier(nn.Module):
-    """
-    This is an exemple RGCN for supervised learning, that uses the previous Embedder network
-
-    It maps the "features" of an input graph to an "h" node attribute and returns the corresponding tensor.
-    """
-
     def __init__(self,
                  embedder,
                  classif_dims=None,
@@ -114,6 +115,17 @@ class Classifier(nn.Module):
                  conv_output=True,
                  self_loop=True,
                  verbose=False):
+        """
+            This is an exemple RGCN for supervised learning, that uses the previous Embedder network
+
+        :param embedder: An embedder network as defined above
+        :param classif_dims: An iterable of the successive embedding dimensions, similarly to the dims of the Embedder
+        :param num_rels: The number of relations that are to be found in the graphs. Defaults to the 20 base pair types
+        :param num_bases: This is to use the basis sharing trick used in RGCN in general
+        :param conv_output: Whether to use a convolution at the end of the embedding or simply a linear layer
+        :param self_loop: Whether each node is also connected to itself
+        :param verbose: blah
+        """
         super(Classifier, self).__init__()
         self.num_rels = num_rels
         self.num_bases = num_bases
@@ -205,36 +217,11 @@ class Classifier(nn.Module):
         return g.ndata['h']
 
 
-class BasePairPredictor(nn.Module):
-    """
-    Predict the probability that two nucleotides are base paired.
-    """
-
-    def __init__(self, encoder, decoder=None):
-        super(BasePairPredictor, self).__init__()
-
-        self.encoder = encoder
-        if decoder is None:
-            self.decoder = DotPredictor()
-        pass
-
-    def forward(self, g, negative_graph=None):
-        """
-        Predicts the probability that each edge exists.
-            If negative graph is not None, we embed the real graph and then predict the negative graph connectivity
-        :param g:
-        :param negative_graph:
-        :return:
-        """
-        with g.local_scope():
-            h = self.encoder(g)
-            if negative_graph is not None:
-                return self.decoder(negative_graph, h)
-            return self.decoder(g, h)
-
-
 class DotPredictor(nn.Module):
     def __init__(self):
+        """
+        Given node embeddings and a connectivity, predict a dot product score for each edge
+        """
         super(DotPredictor, self).__init__()
         self.norm = torch.nn.Sigmoid()
 
@@ -247,3 +234,32 @@ class DotPredictor(nn.Module):
             g.edata['score'] = self.norm(g.edata['score'])
             # u_dot_v returns a 1-element vector for each edge so you need to squeeze it.
             return g.edata['score'][:, 0]
+
+
+class BasePairPredictor(nn.Module):
+
+    def __init__(self, encoder, decoder=DotPredictor()):
+        """
+        This is an exemple RGCN for link prediction, that uses the previous Embedder network
+        Predict the probability that two nucleotides are base paired, based on the dot product of the node embeddings
+
+        :param encoder: An Embedder network as defined above
+        :param decoder: A tool to compute the dot products of a given connectivity.
+        """
+        super(BasePairPredictor, self).__init__()
+        self.encoder = encoder
+        self.decoder = decoder
+
+    def forward(self, g, negative_graph=None):
+        """
+        Predicts the probability that each edge exists.
+            If negative graph is not None, we embed the real graph and then predict the negative graph connectivity
+        :param g: The real graph to compute node embeddings and edge likelihood over
+        :param negative_graph: A decoy connectivity to compute edge likelihood over
+        :return: The score for the edge likelihood
+        """
+        with g.local_scope():
+            h = self.encoder(g)
+            if negative_graph is not None:
+                return self.decoder(negative_graph, h)
+            return self.decoder(g, h)

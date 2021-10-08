@@ -8,7 +8,7 @@ script_dir = os.path.dirname(os.path.realpath(__file__))
 if __name__ == "__main__":
     sys.path.append(os.path.join(script_dir, '..', '..'))
 
-from rnaglib.data_loading import loader, get_all_labels
+from rnaglib.data_loading import graphloader, get_all_labels
 from rnaglib.learning import learn
 
 """
@@ -55,10 +55,10 @@ def get_performance(node_target, model, node_features=None, evaluation_function=
     :return:
     """
     train_split, test_split = get_task_split(node_target=node_target)
-    test_dataset = loader.SupervisedDataset(node_features=node_features,
-                                            node_target=node_target,
-                                            all_graphs=test_split)
-    test_loader = loader.Loader(dataset=test_dataset, split=False).get_data()
+    test_dataset = graphloader.SupervisedDataset(node_features=node_features,
+                                                 node_target=node_target,
+                                                 all_graphs=test_split)
+    test_loader = graphloader.GraphLoader(dataset=test_dataset, split=False).get_data()
 
     loss = learn.evaluate_model_supervised(model=model, validation_loader=test_loader,
                                            evaluation_function=evaluation_function)

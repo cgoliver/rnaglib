@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import os
 import sys
 import torch
@@ -8,7 +10,7 @@ if __name__ == "__main__":
     sys.path.append(os.path.join(script_dir, '..', '..'))
 
 from rnaglib.learning import models, learn
-from rnaglib.data_loading import loader
+from rnaglib.data_loading import graphloader
 from rnaglib.benchmark import evaluate
 
 """
@@ -24,10 +26,10 @@ node_features = ['nt_code']
 node_target = ['binding_protein']
 train_split, test_split = evaluate.get_task_split(node_target=node_target)
 
-train_dataset = loader.GraphDataset(node_features=['nt_code'], all_graphs=train_split)
-test_dataset = loader.GraphDataset(node_features=['nt_code'], all_graphs=test_split)
-train_loader = loader.EdgeLoaderGenerator(loader.Loader(train_dataset, split=False).get_data())
-test_loader = loader.EdgeLoaderGenerator(loader.Loader(test_dataset, split=False).get_data())
+train_dataset = graphloader.GraphDataset(node_features=['nt_code'], all_graphs=train_split)
+test_dataset = graphloader.GraphDataset(node_features=['nt_code'], all_graphs=test_split)
+train_loader = graphloader.EdgeLoaderGenerator(graphloader.GraphLoader(train_dataset, split=False).get_data())
+test_loader = graphloader.EdgeLoaderGenerator(graphloader.GraphLoader(test_dataset, split=False).get_data())
 
 # Choose the data, features and targets to use and GET THE DATA GOING
 embedder_model = models.Embedder(dims=[10, 10], infeatures_dim=train_dataset.input_dim)

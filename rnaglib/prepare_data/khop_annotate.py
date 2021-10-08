@@ -17,72 +17,48 @@ import networkx as nx
 from tqdm import tqdm
 
 from rnaglib.utils.graphlet_hash import extract_graphlet, build_hash_table, Hasher
-from rnaglib.config.graph_keys import GRAPH_KEYS
+from rnaglib.config.graph_keys import GRAPH_KEYS, TOOL
 
-TOOL = 'RGLIB'
 
-def cline():
+def node_2_unordered_rings(G, node, depth=5, hasher=None, hash_table=None):
     """
-    annotate_all(graph_path="../data/ref_graph", dump_path='../data/annotated/ref_graph', do_hash=True, parallel=False)
-    """
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-g", "--graph_path", default=os.path.join(script_dir, '../data/samples_v2_chunks'))
-    parser.add_argument("-a", "--annot_id", default='samples', type=str, help="Annotated data ID.")
-    parser.add_argument("-ha", "--do_hash", default=False, action='store_true', help="Hash graphlets.")
-    parser.add_argument("-p", "--parallel", default=False, action='store_true', help='Multiprocess annotations.')
-    parser.add_argument("-re", "--re_annotate", default=False, action='store_true',
-                        help='Read alreadya annotated graphs.')
-    args, _ = parser.parse_known_args()
-    return args
-
-
-def caller(graph_path=os.path.join(script_dir, '../data/samples_v2'), annot_id='samples', do_hash=False,
-           parallel=False, re_annotate=False):
-    annotate_all(graph_path=graph_path,
-                 dump_path=os.path.join(os.path.join(script_dir, '..', 'data', 'annotated', annot_id)),
-                 do_hash=do_hash, parallel=parallel,
-                 re_annotate=re_annotate)
-    pass
-
-
-def node_2_unordered_rings(G, v, depth=5, hasher=None, hash_table=None):
-    """
-    Return rings centered at `v` up to depth `depth`.
+    Return rings centered at `node` up to depth `depth`.
 
     Return dict of dicts. One dict for each type of ring.
     Each inner dict is keyed by node id and its value is a list of lists.
     A ring is a list of lists with one list per depth ring.
 
-    :param G:
-    :param v:
-    :param depth:
-    :param: include_degrees: Whether to add a list of neighbor degrees to ring.
-    :return:
+    :param G: Networkx graph
+    :param node: A node from G
+    :param depth: The depth or number of hops starting from node to include in the ring annotation
+    :param hasher: A hasher object to use for encoding the graphlets
+    :param hash_table: A hash table to fill with the annotations
+    :return: {'node_annots': list, 'edge_annots': list, 'graphlet_annots': list} each of the list is of length depth
+    and contains lists of the nodes in the ring at each depth.
 
     >>> import networkx as nx
     >>> G = nx.Graph()
-    >>> G.add_edges_from([(1,2, {'label': 'A'}),\
-                          (1, 3, {'label': 'B'}),\
-                          (2, 3, {'label': 'C'}),\
-                          (3, 4, {'label': 'A'})])
+    >>> G.add_edges_from([(1,2, {'LW': 'A'}),\
+                          (1, 3, {'LW': 'B'}),\
+                          (2, 3, {'LW': 'C'}),\
+                          (3, 4, {'LW': 'A'})])
     >>> rings = node_2_unordered_rings(G, 1, depth=2)
     >>> rings['edge']
     [[None], ['A', 'B'], ['C', 'A']]
-
     """
     do_hash = not hasher is None
 
     if do_hash:
-        g_hash = hasher.hash(extract_graphlet(G, v))
+        g_hash = hasher.hash(extract_graphlet(G, node))
         assert g_hash in hash_table
         graphlet_rings = [[g_hash]]
     else:
-        graphlet_rings = [[extract_graphlet(G, v)]]
+        graphlet_rings = [[extract_graphlet(G, node)]]
 
-    node_rings = [[v]]
+    node_rings = [[node]]
     edge_rings = [[None]]
     visited = set()
-    visited.add(v)
+    visited.add(node)
     visited_edges = set()
     for k in range(depth):
         ring_k = []
@@ -122,7 +98,13 @@ def node_2_unordered_rings(G, v, depth=5, hasher=None, hash_table=None):
 
 def build_ring_tree_from_graph(graph, depth=5, hasher=None, hash_table=None):
     """
-    :param graph: nx
+    This function mostly loops over nodes and calls the annotation function.
+    It then puts the annotated data into the graph.
+
+    :param graph: nx graph
+    :param depth: The depth or number of hops starting from node to include in the ring annotation
+    :param hasher: A hasher object to use for encoding the graphlets
+    :param hash_table: A hash table to fill with the annotations
     :return: dict (ring_level: node: ring)
     """
     dict_ring = defaultdict(dict)
@@ -222,6 +204,30 @@ def annotate_all(dump_path='../data/annotated/sample_v2',
         if res[0]:
             failed += 1
             print(f'failed on {graph}, this is the {failed}-th one on {len(graphs)}')
+    pass
+
+
+def cline():
+    """
+    annotate_all(graph_path="../data/ref_graph", dump_path='../data/annotated/ref_graph', do_hash=True, parallel=False)
+    """
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-g", "--graph_path", default=os.path.join(script_dir, '../data/samples_v2_chunks'))
+    parser.add_argument("-a", "--annot_id", default='samples', type=str, help="Annotated data ID.")
+    parser.add_argument("-ha", "--do_hash", default=False, action='store_true', help="Hash graphlets.")
+    parser.add_argument("-p", "--parallel", default=False, action='store_true', help='Multiprocess annotations.')
+    parser.add_argument("-re", "--re_annotate", default=False, action='store_true',
+                        help='Read alreadya annotated graphs.')
+    args, _ = parser.parse_known_args()
+    return args
+
+
+def caller(graph_path=os.path.join(script_dir, '../data/samples_v2'), annot_id='samples', do_hash=False,
+           parallel=False, re_annotate=False):
+    annotate_all(graph_path=graph_path,
+                 dump_path=os.path.join(os.path.join(script_dir, '..', 'data', 'annotated', annot_id)),
+                 do_hash=do_hash, parallel=parallel,
+                 re_annotate=re_annotate)
     pass
 
 

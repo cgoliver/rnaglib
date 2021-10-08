@@ -644,7 +644,6 @@ def optimize_edit_paths(
        https://hal.archives-ouvertes.fr/hal-01168816
 
     """
-    # TODO: support DiGraph
 
     import numpy as np
     from scipy.optimize import linear_sum_assignment
