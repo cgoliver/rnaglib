@@ -52,23 +52,8 @@ def snap_exec(cif):
     return (0, annot.decode("utf-8"))
 
 def snap_parse(snap_out):
-    """ It seems SNAP output is raw text so we have to parse it.
-    For now we just retrieve nucleotide-aa contacts and related info.
-
-    Output has sections that look like this
-
-    ****************************************************************************
-    List of 7 nucleotide/amino-acid interactions
-        id   nt-aa   nt           aa              Tdst    Rdst     Tx      Ty      Tz      Rx      Ry      Rz
-    1  1aju  A-arg  A.A22        A.ARG47          7.27 -144.55   -2.96    6.04    2.75   19.89   63.03 -137.41
-    2  1aju  U-arg  A.U23        A.ARG47         -9.86  159.76    7.92   -5.66    1.55  -12.69   76.33  153.98
-    3  1aju  G-arg  A.G26        A.ARG47          7.04  153.29   -1.62   -6.69   -1.49  -49.89  -49.73  147.15
-    4  1aju  A-arg  A.A27        A.ARG47         -6.60  142.39   -0.97   -4.94   -4.26  -54.29  -28.82  135.95
-    5  1aju  C-arg  A.C37        A.ARG47          6.62 -114.00   -1.15    1.89    6.23  -53.57   19.41 -103.42
-    6  1aju  U-arg  A.U38        A.ARG47          6.41 -139.96   -1.23    5.41    3.20  -61.93   31.00 -130.83
-    7  1aju  C-arg  A.C39        A.ARG47         -7.42 -171.37   -0.96    7.35   -0.33  -67.02   33.23 -169.13
-
-    ****************************************************************************
+    """
+    SNAP output is raw text so we have to parse it.
 
 
     """

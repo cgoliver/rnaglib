@@ -1,10 +1,7 @@
-rnaglib.kernels package
+rnaglib.kernels
 =======================
 
-Submodules
-----------
-
-rnaglib.kernels.annotate module
+Annotate 
 -------------------------------
 
 .. automodule:: rnaglib.kernels.annotate
@@ -12,7 +9,7 @@ rnaglib.kernels.annotate module
    :undoc-members:
    :show-inheritance:
 
-rnaglib.kernels.node\_sim module
+Node Similarity
 --------------------------------
 
 .. automodule:: rnaglib.kernels.node_sim
@@ -20,10 +17,3 @@ rnaglib.kernels.node\_sim module
    :undoc-members:
    :show-inheritance:
 
-Module contents
----------------
-
-.. automodule:: rnaglib.kernels
-   :members:
-   :undoc-members:
-   :show-inheritance:
