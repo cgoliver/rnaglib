@@ -1,10 +1,7 @@
-rnaglib.prepare\_data package
+rnaglib.prepare\_data
 =============================
 
-Submodules
-----------
-
-rnaglib.prepare\_data.annotations module
+Annotations
 ----------------------------------------
 
 .. automodule:: rnaglib.prepare_data.annotations
@@ -12,7 +9,7 @@ rnaglib.prepare\_data.annotations module
    :undoc-members:
    :show-inheritance:
 
-rnaglib.prepare\_data.chopper module
+Chopper
 ------------------------------------
 
 .. automodule:: rnaglib.prepare_data.chopper
@@ -20,7 +17,7 @@ rnaglib.prepare\_data.chopper module
    :undoc-members:
    :show-inheritance:
 
-rnaglib.prepare\_data.describe\_datasets module
+Describe Datasets
 -----------------------------------------------
 
 .. automodule:: rnaglib.prepare_data.describe_datasets
@@ -28,7 +25,7 @@ rnaglib.prepare\_data.describe\_datasets module
    :undoc-members:
    :show-inheritance:
 
-rnaglib.prepare\_data.dssr\_2\_graphs module
+DSSR 2
 --------------------------------------------
 
 .. automodule:: rnaglib.prepare_data.dssr_2_graphs
@@ -36,7 +33,7 @@ rnaglib.prepare\_data.dssr\_2\_graphs module
    :undoc-members:
    :show-inheritance:
 
-rnaglib.prepare\_data.filters module
+Filters
 ------------------------------------
 
 .. automodule:: rnaglib.prepare_data.filters
@@ -44,7 +41,7 @@ rnaglib.prepare\_data.filters module
    :undoc-members:
    :show-inheritance:
 
-rnaglib.prepare\_data.hash\_check module
+Hash Check
 ----------------------------------------
 
 .. automodule:: rnaglib.prepare_data.hash_check
@@ -52,7 +49,7 @@ rnaglib.prepare\_data.hash\_check module
    :undoc-members:
    :show-inheritance:
 
-rnaglib.prepare\_data.interfaces module
+Get Interfaces
 ---------------------------------------
 
 .. automodule:: rnaglib.prepare_data.interfaces
@@ -60,7 +57,7 @@ rnaglib.prepare\_data.interfaces module
    :undoc-members:
    :show-inheritance:
 
-rnaglib.prepare\_data.khop\_annotate module
+Khop Annotations
 -------------------------------------------
 
 .. automodule:: rnaglib.prepare_data.khop_annotate
@@ -68,15 +65,7 @@ rnaglib.prepare\_data.khop\_annotate module
    :undoc-members:
    :show-inheritance:
 
-rnaglib.prepare\_data.main module
----------------------------------
-
-.. automodule:: rnaglib.prepare_data.main
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-rnaglib.prepare\_data.retrieve\_structures module
+Retrieve PDB Structures
 -------------------------------------------------
 
 .. automodule:: rnaglib.prepare_data.retrieve_structures
@@ -84,18 +73,11 @@ rnaglib.prepare\_data.retrieve\_structures module
    :undoc-members:
    :show-inheritance:
 
-rnaglib.prepare\_data.test module
+Build Data
 ---------------------------------
 
-.. automodule:: rnaglib.prepare_data.test
+.. automodule:: rnaglib.prepare_data.main
    :members:
    :undoc-members:
    :show-inheritance:
 
-Module contents
----------------
-
-.. automodule:: rnaglib.prepare_data
-   :members:
-   :undoc-members:
-   :show-inheritance:

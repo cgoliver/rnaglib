@@ -1,10 +1,7 @@
-rnaglib.drawing package
+rnaglib.drawing
 =======================
 
-Submodules
-----------
-
-rnaglib.drawing.rna\_draw module
+Draw RNA
 --------------------------------
 
 .. automodule:: rnaglib.drawing.rna_draw
@@ -12,7 +9,7 @@ rnaglib.drawing.rna\_draw module
    :undoc-members:
    :show-inheritance:
 
-rnaglib.drawing.rna\_layout module
+Draw RNA layout
 ----------------------------------
 
 .. automodule:: rnaglib.drawing.rna_layout
@@ -20,10 +17,3 @@ rnaglib.drawing.rna\_layout module
    :undoc-members:
    :show-inheritance:
 
-Module contents
----------------
-
-.. automodule:: rnaglib.drawing
-   :members:
-   :undoc-members:
-   :show-inheritance:
