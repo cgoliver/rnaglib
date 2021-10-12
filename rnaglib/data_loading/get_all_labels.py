@@ -175,10 +175,9 @@ def get_splits(query_attrs, graph_index=DEFAULT_INDEX, target_fraction=0.2, retu
     """
     This is a very easy version of data splitting.
     Correctly splitting the data for multitasking is hard, 
-    For instance in a triangle situation AB,AC,BC : we can half split along each dimension but not the three 
-        at the same time 
-        
-    We still do a greedy version though, where we first count the amount of nodes for each attrs, 
+    For instance in a triangle situation AB,AC,BC : we can half split along each dimension but not the three
+        at the same time
+    We still do a greedy version though, where we first count the amount of nodes for each attrs,
         and we then fill a test split. 
 
     :param query_attrs: The attributes we want to learn on

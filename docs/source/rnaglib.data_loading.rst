@@ -17,6 +17,7 @@ Get Labels
    :undoc-members:
    :show-inheritance:
 
+.. _data-loader-label:
 Loader
 -----------------------------------
 
