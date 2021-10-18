@@ -1,18 +1,8 @@
-rnaglib.learning package
+rnaglib.learning
 ========================
 
-Submodules
-----------
 
-rnaglib.learning.learn module
------------------------------
-
-.. automodule:: rnaglib.learning.learn
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-rnaglib.learning.models module
+Models
 ------------------------------
 
 .. automodule:: rnaglib.learning.models
@@ -20,10 +10,10 @@ rnaglib.learning.models module
    :undoc-members:
    :show-inheritance:
 
-Module contents
----------------
+Learning
+-----------------------------
 
-.. automodule:: rnaglib.learning
+.. automodule:: rnaglib.learning.learn
    :members:
    :undoc-members:
    :show-inheritance:

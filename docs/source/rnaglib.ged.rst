@@ -1,10 +1,7 @@
-rnaglib.ged package
+rnaglib.ged
 ===================
 
-Submodules
-----------
-
-rnaglib.ged.ged\_nx module
+GED
 --------------------------
 
 .. automodule:: rnaglib.ged.ged_nx
@@ -12,18 +9,10 @@ rnaglib.ged.ged\_nx module
    :undoc-members:
    :show-inheritance:
 
-rnaglib.ged.rna\_ged\_nx module
+RNA GED
 -------------------------------
-
+This submodule is simply a collection of wrapper functions to invoke the above GED functions on our RNA graphs. Refer to the list below for function input parameters.
 .. automodule:: rnaglib.ged.rna_ged_nx
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-Module contents
----------------
-
-.. automodule:: rnaglib.ged
    :members:
    :undoc-members:
    :show-inheritance:
