@@ -21,9 +21,9 @@ if __name__ == "__main__":
     # Choose the data, features and targets to use and GET THE DATA GOING
     node_features = ['nt_code']
     node_target = ['binding_protein']
-    supervised_dataset = loader.SupervisedDataset(node_features=node_features,
+    supervised_dataset = graphloader.SupervisedDataset(node_features=node_features,
                                                   node_target=node_target)
-    train_loader, validation_loader, test_loader = loader.Loader(dataset=supervised_dataset).get_data()
+    train_loader, validation_loader, test_loader = graphloader.Loader(dataset=supervised_dataset).get_data()
 
     # Define a model, we first embed our data in 10 dimensions, and then add one classification
     input_dim, target_dim = supervised_dataset.input_dim, supervised_dataset.output_dim

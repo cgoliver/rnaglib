@@ -28,9 +28,9 @@ if __name__ == "__main__":
     # Choose the data and kernel to use for pretraining
     print('Starting to pretrain the network')
     node_sim_func = node_sim.SimFunctionNode(method='R_graphlets', depth=2)
-    unsupervised_dataset = loader.UnsupervisedDataset(node_simfunc=node_sim_func,
+    unsupervised_dataset = graphloader.UnsupervisedDataset(node_simfunc=node_sim_func,
                                                       node_features=node_features)
-    train_loader = loader.Loader(dataset=unsupervised_dataset, split=False,
+    train_loader = graphloader.Loader(dataset=unsupervised_dataset, split=False,
                                  num_workers=0, max_size_kernel=100).get_data()
 
     # Then choose the embedder model and pre_train it, we dump a version of this pretrained model
@@ -49,11 +49,11 @@ if __name__ == "__main__":
     print('We have finished pretraining the network, let us fine tune it')
     # GET THE DATA GOING, we want to use precise data splits to be able to use the benchmark.
     train_split, test_split = evaluate.get_task_split(node_target=node_target)
-    supervised_train_dataset = loader.SupervisedDataset(node_features=node_features,
+    supervised_train_dataset = graphloader.SupervisedDataset(node_features=node_features,
                                                         redundancy='NR',
                                                         node_target=node_target,
                                                         all_graphs=train_split)
-    train_loader = loader.Loader(dataset=supervised_train_dataset, split=False).get_data()
+    train_loader = graphloader.Loader(dataset=supervised_train_dataset, split=False).get_data()
 
     # Define a model and train it :
     # We first embed our data in 64 dimensions, using the pretrained embedder and then add one classification
