@@ -23,6 +23,7 @@ def dangle_trim(G):
     Recursively remove dangling nodes from graph.
 
     :param G: Networkx graph
+    :type G: Networkx.Graph
     :return: Trimmed networkx graph
     """
     dangles = lambda G: [n for n in G.nodes() if G.degree(n) < 2]
