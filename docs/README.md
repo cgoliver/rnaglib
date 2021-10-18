@@ -6,6 +6,10 @@
 * spinx_rtd_theme
 * myst_parser
 
+## Docstring format
+
+* Use [this guide](https://sphinx-rtd-tutorial.readthedocs.io/en/latest/docstrings.html) for formatting docstrings.
+
 
 ## Build the docs
 
