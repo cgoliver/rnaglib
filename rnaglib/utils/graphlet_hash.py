@@ -21,7 +21,7 @@ script_dir = os.path.dirname(os.path.realpath(__file__))
 if __name__ == "__main__":
     sys.path.append(os.path.join(script_dir, '..', '..'))
 
-from rnaglib.utils.graph_utils import bfs
+from rnaglib.utils.graph_utils import bfs, extract_graphlet
 from rnaglib.utils.graph_io import load_json
 from rnaglib.config.build_iso_mat import iso_mat as iso_matrix
 from rnaglib.config.graph_keys import GRAPH_KEYS, TOOL

@@ -371,7 +371,8 @@ def optimize_graph_edit_distance(
         edge_ins_cost=None,
         upper_bound=None,
 ):
-    """Returns consecutive approximations of GED (graph edit distance)
+    """
+    Returns consecutive approximations of GED (graph edit distance)
     between graphs G1 and G2.
 
     Graph edit distance is a graph similarity measure analogous to
@@ -524,7 +525,8 @@ def optimize_edit_paths(
         roots=None,
         timeout=None
 ):
-    """GED (graph edit distance) calculation: advanced interface.
+    """
+    GED (graph edit distance) calculation: advanced interface.
 
     Graph edit path is a sequence of node and edge edit operations
     transforming graph G1 to graph isomorphic to G2.  Edit operations

@@ -28,6 +28,7 @@ def process_graph_dict(dict_to_flatten, prepend=None, counter=False, possible_su
 
     We optionally prepend a string to the keys or use a counter to get the count for each of those instances.
     We also optionally select certain keys to loop over (skipping the others)
+
     :param dict_to_flatten: The outer dict we want to gather the features of
     :param prepend: An optional prefix to add to the resulting dict. Useful to make the distinction between node
     and edge features
@@ -84,6 +85,7 @@ def graph_to_dict(graph, counter=False, possible_supervisions=None):
 
     This is useful to list and count all possible values for the data associated with the edges and
     nodes of a set of graphs
+
     :param graph: The graph to count over
     :param counter: Boolean. Whether to also return counts
     :param possible_supervisions: A list of keys we want to process. By default, process all
@@ -110,6 +112,7 @@ def get_all_annots(graph_dir, counter=False, dump_name='all_annots.json'):
 
     Loop over all the graphs in the dir, then call the above function that flattens the possible values into dicts
     and group those results into one big dict.
+
     :param graph_dir: The directory containing the set of graphs to loop over
     :param counter: Whether to also return the associated counts
     :param dump_name: Where to dump the results
@@ -150,6 +153,7 @@ def get_graph_indexes(graph_dir, possible_supervisions=None, dump_name='graph_in
     in one object, to avoid having to load all graphs every time
 
     We want to return a dict of dict of dict. {graph_name : {fields : { values of the field :number of occurences }}}
+
     :param graph_dir: The directory containing the graphs we want to loop over
     :param possible_supervisions: The elements or fields we want to include in the resulting dict
     :param dump_name: Where to dump the results

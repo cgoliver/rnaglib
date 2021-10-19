@@ -4,7 +4,8 @@ import matplotlib.pyplot as plt
 
 
 def rescale_layout(pos, scale=1):
-    """Return scaled position array to (-scale, scale) in all axes.
+    """
+    Return scaled position array to (-scale, scale) in all axes.
 
     The function acts on NumPy arrays which hold position information.
     Each position is one row of the array. The dimension of the space
@@ -64,7 +65,8 @@ def _process_params(G, center, dim):
 
 def circular_layout(G, scale=1, center=None, dim=2):
     # dim=2 only
-    """Position nodes on a circle.
+    """
+    Position nodes on a circle.
 
     Parameters
     ----------
