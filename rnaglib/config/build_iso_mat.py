@@ -57,8 +57,11 @@ def get_undirected_iso(bpa, bpb):
     Given two directed edges, get the values from the undirected isostericity matrix
 
     :param bpa: LW edge code
+    :type bpa: str
     :param bpb: LW edge code
-    :return: isostericty value (float)
+    :type bpb: str 
+    :return: isostericty value
+    :rtype float
     """
     bpa = bpa.upper()
     bpb = bpb.upper()
