@@ -5,10 +5,6 @@ import sys
 import os
 import argparse
 
-script_dir = os.path.dirname(os.path.realpath(__file__))
-if __name__ == "__main__":
-    sys.path.append(os.path.join(script_dir, '..'))
-
 import pickle
 from collections import defaultdict, Counter, OrderedDict
 import multiprocessing as mlt
@@ -16,7 +12,13 @@ import multiprocessing as mlt
 import networkx as nx
 from tqdm import tqdm
 
-from rnaglib.utils.graphlet_hash import extract_graphlet, build_hash_table, Hasher
+script_dir = os.path.dirname(os.path.realpath(__file__))
+if __name__ == "__main__":
+    sys.path.append(os.path.join(script_dir, '..'))
+
+
+from rnaglib.utils.graphlet_hash import build_hash_table, Hasher
+from rnaglib.utils.graph_utils import extract_graphlet
 from rnaglib.config.graph_keys import GRAPH_KEYS, TOOL
 
 
@@ -124,6 +126,7 @@ def build_ring_tree_from_graph(graph, depth=5, hasher=None, hash_table=None):
 def annotate_one(args):
     """
     To be called by map
+
     :param args: ( g (name of the graph),
     :return:
     """
@@ -162,6 +165,7 @@ def annotate_all(dump_path='../data/annotated/sample_v2',
                  re_annotate=False):
     """
     Routine for all files in a folder
+
     :param dump_path:
     :param graph_path:
     :param parallel:

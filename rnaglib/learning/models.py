@@ -254,6 +254,7 @@ class BasePairPredictor(nn.Module):
         """
         Predicts the probability that each edge exists.
             If negative graph is not None, we embed the real graph and then predict the negative graph connectivity
+
         :param g: The real graph to compute node embeddings and edge likelihood over
         :param negative_graph: A decoy connectivity to compute edge likelihood over
         :return: The score for the edge likelihood

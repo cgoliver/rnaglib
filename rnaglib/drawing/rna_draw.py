@@ -42,8 +42,8 @@ def process_axis(axis,
                  node_ids=False,
                  label='LW'):
     """
-
      Draw a graph  on a given axis.
+
     :param axis: matplotlib axis to draw on
     :param g: networkx graph to draw
     :param subtitle: string to use as a subtitle on this axis
@@ -121,6 +121,7 @@ def rna_draw(g, title="",
              seed=None):
     """
     Draw an RNA with the edge labels used by Leontis Westhof
+
     :param nx_g:
     :param title:
     :param highlight_edges:
@@ -152,6 +153,7 @@ def rna_draw_pair(graphs, subtitles=None, highlight_edges=None, node_colors=None
                   save=None, show=False, node_ids=False):
     """
     Plot a line of plots of graphs along with a value for each graph. Useful for graph comparison vizualisation
+
     :param graphs: iterable nx graphs
     :param estimated_value: iterable of values of comparison (optional)
     :param highlight_edges:
@@ -183,6 +185,7 @@ def rna_draw_grid(graphs, subtitles=None, highlight_edges=None, node_colors=None
                   save=None, show=False, grid_shape=None):
     """
     Plot a line of plots of graphs along with a value for each graph. Useful for graph comparison vizualisation
+
     :param graphs: list of lists containing nx graphs all lists must have the same dimension along axis 1. To skip a cell, add a None instead of graph.
     :param estimated_value: iterable of values of comparison (optional)
     :param highlight_edges:
