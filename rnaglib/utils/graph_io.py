@@ -9,6 +9,7 @@ import networkx as nx
 def dump_json(filename, graph):
     """
     Just a shortcut to dump a json graph more compactly
+
     :param filename: The dump name
     :param graph: The graph to dump
     """
@@ -19,7 +20,9 @@ def dump_json(filename, graph):
 def load_json(filename):
     """
     Just a shortcut to dump a json graph more compactly
+
     :param filename: The dump name
+
     :return: The loaded graph
     """
     with open(filename, 'r') as f:
@@ -33,7 +36,9 @@ def load_graph(filename):
     This is a utility function that supports loading from json or pickle
     Sometimes, the pickle also contains rings in the form of a node dict,
     in which case the rings are added into the graph
+
     :param filename: json or pickle filename
+
     :return: networkx DiGraph object
     """
     if filename.endswith('json'):
@@ -57,6 +62,12 @@ def load_graph(filename):
         raise NotImplementedError('We have not implemented this data format yet')
 
 def graph_from_pdbid(pdbid, graph_dir, graph_format='json'):
+    """Fetch an annotated graph with a PDBID.
+
+    :param pdbid: PDB id to fetch
+    :param graph_dir: path containing annotated graphs
+    :param graph_format: which format to load (JSON, or networkx)
+    """
     if graph_format == 'nx':
         graph_name = os.path.join(graph_dir, pdbid.lower() + '.nx')
     elif graph_format == 'json':
