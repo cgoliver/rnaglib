@@ -44,6 +44,11 @@ MM_of_Elements = {'H': 1.00794, 'He': 4.002602, 'Li': 6.941, 'Be': 9.012182, 'B'
 
 
 def residue_from_node(structure, node_id):
+    """Fetch a residue with given node id.
+
+    :param structure: Biopython structure
+    :param node_id: id of node to fetch
+    """
     _, chain, pos = node_id.split(".")
     for r in structure.get_residues():
         if r.get_parent().id == chain and str(r.id[1]) == pos:
@@ -52,7 +57,11 @@ def residue_from_node(structure, node_id):
 
 def block_pca(residues):
     """
-        Get PCA of coordinates in block.
+        Get PCA of coordinates in block of residues.
+
+        :param residues: list of biopython residue objects
+
+        :return: PCA coordinates for each residue
     """
 
     def element_name(atom_name):
@@ -101,6 +110,8 @@ def pca_chop(residues):
         All residues with negative first coords are assigned to one
         half of the list. This is not valid for very
         skewed distributions of points
+
+        :param residues: list of biopython residues
     """
     proj = block_pca(residues)
     s1, s2 = [], []
@@ -116,6 +127,10 @@ def pca_chop(residues):
 def chop(residues, max_size=50):
     """
         Perform recursive chopping.
+
+        :param residues: list of Biopython residues
+        :param max_size: stop chopping when `max_size` residues are left in a
+        chop.
     """
     if len(residues) > max_size:
         # do pca on the current residues
@@ -129,6 +144,7 @@ def chop(residues, max_size=50):
 def blob_to_graph(residues, graph):
     """
     Convert a list of residues back to the subgraph they correspond to
+
     :param residues: list of selected residues
     :param graph: nx graph they were extracted from
     :return: nx subgraph
@@ -159,6 +175,7 @@ def blob_to_graph(residues, graph):
 def graph_filter(G, max_nodes=10):
     """
     Check if a graph is valid : Small enough and with at least one non canonical
+
     :param G: An nx graph
     :param max_nodes : The max number of nodes
     :return: boolean
@@ -201,6 +218,7 @@ def graph_clean(G, subG, thresh=8):
 def chop_one_rna(args):
     """
     To be used by a map process, chop an rna
+
     :param args: should contain (rna, pdb_path, graph_path,dest)
     :return:
     """
