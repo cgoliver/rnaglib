@@ -46,6 +46,7 @@ exclude_patterns = []
 
 
 autoclass_content = 'both'
+autodoc_member_order = 'bysource'
 
 # -- Options for HTML output -------------------------------------------------
 
