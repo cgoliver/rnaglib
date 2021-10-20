@@ -34,8 +34,9 @@ def pretrain_unsupervised(model,
     :param train_loader: The loader to use for training, as defined in GraphLoader
     :param node_sim: If None, we just rely on the node_sim in the data loader.
     :param learning_routine: A LearningRoutine object, if we want to also use a validation phase and early stopping
-    :param rec_params: These are parameters useful for the loss computation and further explained in
-    learning_utils.rec_loss
+    :param rec_params: These are parameters useful for the loss computation and
+    further explained in learning_utils.rec_loss
+
     :return: The best loss obtained
     """
     device = model.current_device
@@ -118,6 +119,7 @@ def train_supervised(model,
     :param optimizer: the optimizer to use (eg SGD or Adam)
     :param train_loader: The loader to use for training, as defined in data_loading/GraphLoader
     :param learning_routine: A LearningRoutine object, if we want to also use a validation phase and early stopping
+
     :return: The best loss obtained
     """
     device = model.current_device
@@ -191,6 +193,7 @@ def train_linkpred(model,
     :param optimizer: the optimizer to use (eg SGD or Adam)
     :param train_loader_generator: The edge loader to use for training, as defined in data_loading/GraphLoader
     :param validation_loader_generator: The edge loader to use for training, as defined in data_loading/GraphLoader
+
     :return: The best loss obtained
     """
     for epoch in range(3):

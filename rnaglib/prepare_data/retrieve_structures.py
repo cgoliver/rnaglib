@@ -16,8 +16,10 @@ sys.path.append(os.path.join(script_dir, '..'))
 def load_csv(input_file, quiet=False):
     """
     load a csv of from rna.bgsu.edu of representative set
+
     :param input_file: path to csv file
     :param quiet: set to true to turn off warnings
+
     :return repr_set: list of equivalence class RNAs
     """
     repr_set = []
