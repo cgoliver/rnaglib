@@ -16,8 +16,10 @@ def find_ligand_annotations(cif_path, ligands):
     """
     Returns a list of ligand annotations in from a PDB structures cif file
     if they exist
-    :Param cif_path: path to PDB structure in mmCIF format
-    :Param ligans: list of ligands
+
+    :param cif_path: path to PDB structure in mmCIF format
+    :param ligans: list of ligands
+
     :return known_interfaces: list of tuples of known interfaces
                                 [(pbid, position, chain, type), ...]
     """
@@ -65,7 +67,9 @@ def find_ligand_annotations(cif_path, ligands):
 
 def is_dna(res):
     """
-    returns true if the input residue is a DNA molecule
+    Returns true if the input residue is a DNA molecule
+
+    :param res: biopython residue object
     """
     if res.id[0] != ' ':
         return False
@@ -77,11 +81,15 @@ def is_dna(res):
         return False
 
 def get_offset_pos(res):
-        pos = list(res.get_parent().get_residues())[0].id[1]
-        if pos != 0:
-            return res.id[1] - pos + 1
-        else:
-            return res.id[1] + 1
+    """Get neighboring residues on chain.
+
+    :param res: Biopython residue object.
+    """
+    pos = list(res.get_parent().get_residues())[0].id[1]
+    if pos != 0:
+        return res.id[1] - pos + 1
+    else:
+        return res.id[1] + 1
 
 def get_interfaces(cif_path,
                     ligands_file = os.path.join(script_dir, 'ligand_list.txt'),
@@ -92,17 +100,15 @@ def get_interfaces(cif_path,
     """Obtain RNA interface residues within a single structure of polymers. Uses
     KDTree data structure for vector search, by the biopython NeighborSearch module.
 
-    Args:
-        `cif_path (str)`: Path to structure to analyze (MMCif format)
-        `ligands `: list of molecules to classify as small molecule interactions
-        `redundancy_filter`: List of non redundancy RNA chains. Can be downloaded from
+    :param cif_path: Path to structure to analyze (MMCif format)
+    :param ligands: list of molecules to classify as small molecule interactions
+    :param redundancy_filter: List of non redundancy RNA chains. Can be downloaded from
                         rna.bgsu.edu/rna3dhub/nrlist
-        `cutoff (float, int)`: Number of Angstroms to use as cutoff distance
+    :param cutoff: Number of Angstroms to use as cutoff distance
         for interface calculation.
-    Returns:
-        `interface_residues`: List of tuples of the pbid, position, chain of RNA-RNA,
+    :return interface_residues: List of tuples of the pbid, position, chain of RNA-RNA,
                                 interaction type, interacting residue, pbid_position
-        `Structure`: BioPython Structure object
+    :return: BioPython Structure object
     """
     # Parse Ligands
     ligands = set()

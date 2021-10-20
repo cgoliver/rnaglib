@@ -38,6 +38,7 @@ def reorder_nodes(g):
 
     :param g: Pass a graph for node reordering. 
     :type g: networkx.DiGraph
+
     :return h: (nx DiGraph)
     """
 
@@ -57,6 +58,7 @@ def annotate_proteinSSE(g, structure, pdb_file):
 
     :param g: (nx graph)
     :param structure: (PDB structure)
+
     :return g: (nx graph)
     """
 
@@ -81,6 +83,7 @@ def load_graph(json_file):
     load DSSR graph from JSON
 
     :param json_file: path to json containing DSSR output
+
     :return: graph from parsed json data
     :rtype: networkx.DiGraph
     """
@@ -96,6 +99,7 @@ def load_graph(json_file):
 def write_graph(g, json_file):
     """
     Utility function to write networkx graph to JSON
+
     :param g: graph to dump
     :type g: networkx.Graph
     :param json_file: path to dump json
@@ -138,9 +142,11 @@ def annotate_graph(g, annots):
 def parse_interfaces(interfaces,
                      types=['ion', 'ligand']):
     """
-    parse output from get_interfaces into a dictionary
+    Parse output from get_interfaces into a dictionary
+
     :param interfaces: output from dssr interface annotation
     :param types: which type of molecule to consider in the interface
+
     :return: dictionary containing interface annotations
     """
     annotations = defaultdict(dict)
@@ -163,6 +169,7 @@ def load_csv_annot(csv_file, pbids=None, types=None):
     :type pdbids: list
     :param types: only consider annotations for give molecule types ('ion', 'ligand')
     :type types: list
+
     :return: annotation dictionary
     """
     annotations = defaultdict(dict)
