@@ -32,23 +32,24 @@ class SimFunctionNode():
                  hash_init_path=os.path.join(script_dir, '..', 'data', 'hashing', 'NR_chops_hash.p')):
         """
         Factory object to to compute all node similarities. These methods take as input an annotated pair of nodes
-         and compare them.
+        and compare them.
 
         These methods are detailed in the supplemental of the paper, but include five methods. These methods frequently
         rely on the hungarian algorithm, an algorithm that finds optimal matches according to a cost function.
 
         Three of them compare the edges :
-        * R_1 compares the histograms of each ring, possibly with an idf weighting (to emphasize differences
-        in rare edges)
-        * R_iso compares each ring with the best matching based on the isostericity values
-        * hungarian compares the whole annotation, with the rings being differentiated with an additional 'depth' field.
+        - R_1 compares the histograms of each ring, possibly with an idf weighting (to emphasize differences
+          in rare edges)
+        - R_iso compares each ring with the best matching based on the isostericity values
+        - hungarian compares the whole annotation, with the rings being differentiated with an additional 'depth' field.
+
         Then all the nodes are compared based on isostericity and this depth field.
 
         Two of them compare the graphlets. The underlying idea is that just comparing lists of edges does not
         constraint the graph structure, while the assembling of graphlet does it more (exceptions can be found but
         for most graphs, knowing all graphlets at each depth enables recreating the graph) :
-        * R_graphlets works like R_iso except that the isostericity is replaced by the GED
-        * graphlet works like the hungarian except that the isostericity is replaced by the GED
+        - R_graphlets works like R_iso except that the isostericity is replaced by the GED
+        - graphlet works like the hungarian except that the isostericity is replaced by the GED
 
         :param method: a string that identifies which of these method to use
         :param depth: The depth to use in the annotations rings
@@ -229,7 +230,7 @@ class SimFunctionNode():
         Compute R_1 function over lists of features by counting intersect and normalise by the number
 
         :param ring1: list of features
-        :param ring2: ''
+        :param ring2: Same as above for other node
         :return: Score
         """
         feat_1 = Counter(ring1)
@@ -424,7 +425,7 @@ class SimFunctionNode():
         Compute R_graphlets function over lists of features.
 
         :param ring1: list of list of graphlets
-        :param ring2: ''
+        :param ring2: Same as above for other node
         :return: Score
         """
 
@@ -501,7 +502,7 @@ class SimFunctionNode():
         We also add a distance to root node attribute to each graphlet and then match them optimally
 
         :param ring1: list of list of graphlets
-        :param ring2: ''
+        :param ring2: Same as above for other node
         :return: Score
         """
 
@@ -530,7 +531,7 @@ class SimFunctionNode():
 
 def graph_edge_freqs(graphs, stop=False):
     """
-        Get IDF for each edge label over whole dataset.
+    Get IDF for each edge label over whole dataset.
     First get a total frequency dictionnary :{'CWW': 110, 'TWW': 23}
     Then compute IDF and returns the value.
 
