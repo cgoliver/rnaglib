@@ -60,6 +60,7 @@ def get_nc_nodes(graph, depth=4, return_index=False):
     
     Returns indices of nodes in graph list which have a non canonical or
     looping base in their neighbourhood.
+
     :param graph: a networkx graph
     :param depth: The depth up to which we consider nodes neighbors of a NC
     :param return_index: If True, return the index in the list instead.
@@ -82,6 +83,7 @@ def nc_clean_dir(graph_dir, dump_dir):
     """
     Copy graphs from graph_dir to dump_dir but copied graphs are
         trimmed according to `get_nc_nodes_index`.
+
     :param graph_dir: A directory that should contain networkx pickles.
     :param dump_dir: The directory where to dump the trimmed graphs
     """
@@ -100,8 +102,10 @@ def nc_clean_dir(graph_dir, dump_dir):
 def incident_nodes(graph, nodes):
     """
     Returns set of nodes in $graph \ nodes$ incident to nodes.
+
     :param graph: A networkx graph
     :param nodes: set of nodes in graph
+
     :return: set of nodes around the input the set of nodes according to the connectivity of the graph
     """
     core = set(nodes)
@@ -143,6 +147,7 @@ def bfs_generator(graph, initial_node):
     :param graph: Nx graph
     :param initial_node: single or iterable node
     :param depth:
+
     :return: The successive rings
     """
     if isinstance(initial_node, list) or isinstance(initial_node, set):
@@ -168,6 +173,7 @@ def bfs(graph, initial_nodes, nc_block=False, depth=2, label='label'):
     :param graph: Nx graph
     :param initial_nodes: single or iterable node
     :param depth: The number of hops to conduct from our roots
+
     :return: list of nodes
     """
     if isinstance(initial_nodes, list) or isinstance(initial_nodes, set):
@@ -191,9 +197,11 @@ def bfs(graph, initial_nodes, nc_block=False, depth=2, label='label'):
 def extract_graphlet(graph, n, size=1):
     """
     Small util to extract a graphlet around a node
+
     :param graph: Nx graph
     :param n: a node in the graph
     :param size: The depth to consider
+
     :return: The graphlet as a copy
     """
     graphlet = graph.subgraph(bfs(graph, [n], depth=size)).copy()
@@ -203,7 +211,9 @@ def extract_graphlet(graph, n, size=1):
 def remove_self_loops(graph):
     """
     Remove all self loops connexions by modifying in place
+
     :param graph: The graph to trim
+
     :return: None
     """
     graph.remove_edges_from([(n, n) for n in graph.nodes()])
@@ -212,8 +222,10 @@ def remove_self_loops(graph):
 def remove_non_standard_edges(graph, label='LW'):
     """
     Remove all edges whose label is not in the VALID EDGE variable
+    
     :param graph: Nx Graph
     :param label: The name of the labels to check
+
     :return: the pruned graph, modifications are made in place
     """
     remove = []
@@ -226,8 +238,10 @@ def remove_non_standard_edges(graph, label='LW'):
 def to_orig(graph, label='LW'):
     """
     Deprecated, used to include only the NC
+
     :param graph:
     :param label:
+
     :return:
     """
     H = nx.Graph()
@@ -251,8 +265,10 @@ def to_orig(graph, label='LW'):
 def to_orig_all(graph_dir, dump_dir):
     """
     Deprecated
+
     :param graph_dir:
     :param dump_dir:
+
     :return:
     """
     for g in tqdm(os.listdir(graph_dir)):
@@ -268,9 +284,11 @@ def to_orig_all(graph_dir, dump_dir):
 def find_node(graph, chain, pos):
     """
     Get a node from its PDB identification
+    
     :param graph: Nx graph
     :param chain: The PDB chain
     :param pos: The PDB 'POS' field
+
     :return: The node if it was found, else None
     """
     for n, d in graph.nodes(data=True):
@@ -282,8 +300,10 @@ def find_node(graph, chain, pos):
 def has_NC(graph, label='LW'):
     """
     Does the input graph contain non canonical edges ?
+
     :param graph: Nx graph
     :param label: The label to use
+
     :return: Boolean
     """
     for n1, n2, d in graph.edges(data=True):
@@ -295,9 +315,11 @@ def has_NC(graph, label='LW'):
 def has_NC_bfs(graph, node_id, depth=2):
     """
         Return True if node has NC in their neighbourhood.
+
     :param graph: Nx graph
     :param node_id: The nodes from which to start our search
     :param depth: The number of hops to conduct from our roots
+
     :return: Boolean
     """
 
@@ -310,7 +332,9 @@ def floaters(graph):
     """
     Try to connect floating base pairs. (Single base pair not attached to backbone).
     Otherwise remove.
+
     :param graph: Nx graph
+
     :return: trimmed graph
     """
     deg_ok = lambda H, u, v, d: (H.degree(u) == d) and (H.degree(v) == d)
@@ -327,7 +351,9 @@ def floaters(graph):
 def dangle_trim(graph):
     """
     Recursively remove dangling nodes from graph, with in place modification
+
     :param graph: Nx graph
+
     :return: trimmed graph
     """
     dangles = lambda graph: [n for n in graph.nodes() if graph.degree(n) < 2]
@@ -339,7 +365,9 @@ def dangle_trim(graph):
 def stack_trim(graph):
     """
     Remove stacks from graph.
+
     :param graph: Nx graph
+
     :return: trimmed graph
     """
     is_ww = lambda e, graph: 'CWW' in [info['LW'] for node, info in graph[e].items()]
@@ -385,9 +413,11 @@ def stack_trim(graph):
 def in_stem(graph, u, v):
     """
     Find if two nodes are part of a stem and engage in NC interactions
+
     :param graph: Nx graph
     :param u: one graph node
     :param v: one graph node
+
     :return: Boolean
     """
     non_bb = lambda graph, e: len([info['LW'] for node, info in graph[e].items() if info['LW'] not in CANONICALS])
@@ -400,8 +430,10 @@ def in_stem(graph, u, v):
 def gap_fill(original_graph, graph_to_expand):
     """
     If we subgraphed, get rid of all degree 1 nodes by completing them with one more hop
+    
     :param original_graph: nx graph
     :param graph_to_expand: nx graph that needs to be expanded to fix dangles
+
     :return: the expanded graph
     """
     # while True:
@@ -416,7 +448,9 @@ def gap_fill(original_graph, graph_to_expand):
 def symmetric_elabels(graph):
     """
     Make edge labels symmetric for a graph.
+    
     :param graph: Nx graph
+
     :return: Same graph but edges are now symmetric and calling undirected is straightforward.
     """
     H = graph.copy()
