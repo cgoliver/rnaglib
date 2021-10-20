@@ -15,6 +15,12 @@ from Bio.PDB import *
 import networkx as nx
 
 def mmcif_data(cif):
+    """Parse an mmCIF return some metadata.
+
+    :param cif: path to an mmCIF
+
+    :return: dictionary of mmcif metadata (for now only resolution terms) 
+    """
     mmcif_dict = MMCIF2Dict.MMCIF2Dict(cif)
     try:
         resolution_lo = mmcif_dict['_reflns.d_resolution_low']
@@ -26,15 +32,11 @@ def mmcif_data(cif):
             }
 
 def dssr_exec(cif):
-    """ Run DSSR on a given MMCIF
+    """Execute DSSR on an mmCIF. Requires `x3dna-dssr` binary to be in `PATH`
 
-    Args:
-    ---
-    cif (str): Path to MMCIF for annotation.
+    :param cif: path to mmCIF to analyze
 
-    Returns:
-    ---
-    annot (dict): raw DSSR output dictionary.
+    :return: JSON of x3dna output
     """
     try:
         annot = check_output(["x3dna-dssr", "--json", f"-i={cif}"] )
@@ -44,6 +46,12 @@ def dssr_exec(cif):
     return (0, json.loads(annot))
 
 def snap_exec(cif):
+    """Execute x3dna in SNAP mode to analyze protein interfaces.
+
+    :param cif: path to mmCIF
+    
+    :return: plaintext output
+    """
     try:
         annot = check_output(["x3dna-dssr", "snap", f"-i={cif}"] )
     except Exception as e:
@@ -55,6 +63,9 @@ def snap_parse(snap_out):
     """
     SNAP output is raw text so we have to parse it.
 
+    :param snap_out: raw output from SNAP
+    
+    :return: dictionary of data for each residue in interface
 
     """
     import re
@@ -77,30 +88,39 @@ def snap_parse(snap_out):
     return interface_nts
 
 def find_nt(nt_annot, nt_id):
+    """Find a nucleotide ID in annotation dictionary.
+
+    :param nt_annot: dict of annotated nucleotide objects
+    :param nt_id: nucleotide ID we seek.
+    """
     for nt in nt_annot:
         if nt['nt_id'] == nt_id:
             return nt
 
 def rna_only_nts(annot):
     """ Filter nucleotide annotations to only keep RNA.
+
+    :param: annotation dictionary
+
+    :return: filtered dictionay
     """
     return filter(lambda x: x['nt_type'] == 'RNA', annot['nts'])
 
 def rna_only_pairs(annot):
-    """ Only keep pairs between RNAs."""
+    """ Only keep pairs between RNAs.
+
+    :param annot: annotation dictionary
+    
+    :return: filtered annotation dictionary
+    """
     return filter(lambda x: find_nt(annot['nts'], x['nt1'])['nt_type'] == 'RNA' and \
                             find_nt(annot['nts'], x['nt2'])['nt_type'] == 'RNA', \
                   annot['pairs'])
 
 def get_backbones(nts):
     """ Get backbone pairs.
-    Args:
-    ___
-    nts (dict): DSSR nucleotide info.
-
-    Returns:
-    ---
-    bb (list): list of tuples (5' base, 3' base)
+    :param nts: DSSR nucleotide info.
+    :return: list of tuples (5' base, 3' base)
     """
     bb = []
     for i, three_p in enumerate(nts):
@@ -117,7 +137,13 @@ def get_backbones(nts):
 
 def add_sses(g, annot):
     """ Return dict of nodes that are in an sse as a list of
-    annotations. TODO: add helices and stems """
+    annotations.
+
+    :param g: networkx graph
+    :param annot: annotation dictionary
+
+    :return: dictionary containing annotations with SSE info.
+    """
     sse_annots = dict()
     sse_types = ['hairpins', 'junctions', 'bulges', 'internal']
     for sse in sse_types:
@@ -131,11 +157,11 @@ def add_sses(g, annot):
                     sse_annots[nt] = {'sse': f'{sse[:-1]}_{elem["index"]}'}
     return sse_annots
 def base_pair_swap(pairs):
-    """Swap the order of the entries in a pair dict.
-
-    {'index': 18, 'nt1': 'A.U17', 'nt2': 'A.G20', 'bp': 'U+G', 'name': '--', 'Saenger': '--', 'LW': 'tSW', 'DSSR': 'tm+W'}
+    """Swap the order of the entries in a pair dict for bidirectional edges.
 
     For now not swapping 'Saenger' and 'DSSR'.
+
+    :param pairs: list of pair annotations
     """
     new_pairs = []
     for pair in pairs:
@@ -149,7 +175,11 @@ def base_pair_swap(pairs):
     return pairs + new_pairs
 
 def get_graph_data(annots, mmcif_data=None):
-    """ For now only return the dot-bracket notation."""
+    """ Fetch graph-level data
+
+    :param anots: annotation dictionary
+    :param mmcif_data: data from raw mmCIF
+    """
 
     def recursive_dd():
         return defaultdict(recursive_dd)
@@ -179,6 +209,12 @@ def annot_2_graph(annot, rbp_annot, pdbid, mmcif_data=None):
         'hairpins', 'num_bulges', 'bulges', 'num_splayUnits', 'splayUnits',
         'dbn', 'chains', 'num_nts', 'nts', 'num_hbonds', 'hbonds',
         'refCoords', 'metadata']
+
+    :param annot: annotation dictionary from dssr
+    :param rbp_annt: interface annotation dicitonary
+    :param mmcif_data: data dictionary from mmCIF
+
+    :return: graph containing all annotations
     """
 
     G = nx.DiGraph()
@@ -249,6 +285,12 @@ def annot_2_graph(annot, rbp_annot, pdbid, mmcif_data=None):
     return G
 
 def build_one(cif):
+    """Buid annotation graph for one cif.
+
+    :param cif: path to mmCIF
+
+    :return: annotated graph
+    """
     exit_code, annot = dssr_exec(cif)
     rbp_exit_code, rbp_out = snap_exec(cif)
     mmcif_info = mmcif_data(cif)

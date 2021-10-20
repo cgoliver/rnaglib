@@ -2,6 +2,10 @@ import os
 import sys
 import pickle
 
+"""
+Checks whether annotation folder and hashtable are complete.
+"""
+
 if __name__ == '__main__':
     from tqdm import tqdm
 

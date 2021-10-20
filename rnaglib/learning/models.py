@@ -239,8 +239,7 @@ class DotPredictor(nn.Module):
 class BasePairPredictor(nn.Module):
 
     def __init__(self, encoder, decoder=DotPredictor()):
-        """
-        This is an exemple RGCN for link prediction, that uses the previous Embedder network
+        """This is an exemple RGCN for link prediction, that uses the previous Embedder network
         Predict the probability that two nucleotides are base paired, based on the dot product of the node embeddings
 
         :param encoder: An Embedder network as defined above

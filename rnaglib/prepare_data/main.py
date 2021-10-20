@@ -38,6 +38,8 @@ def update_RNApdb(pdir):
     """
     Download a list of RNA containing structures from the PDB
     overwrite exising files
+
+    :param pdbdir: path containing downloaded PDBs
     """
     print('Updating PDB...')
     # Get a list of PDBs containing RNA
@@ -67,6 +69,12 @@ def update_RNApdb(pdir):
     return new_rna
 
 def do_one(cif, output_dir, min_nodes=20):
+    """Build DDSR graphs for one mmCIF.
+
+    :param cif: path to CIF
+    :param output_dir: where to dump
+    :param min_nodes: smallest RNA (number of residue nodes)
+    """
 
     if '.cif' not in cif: return
     pdbid = cif[-8:-4]
