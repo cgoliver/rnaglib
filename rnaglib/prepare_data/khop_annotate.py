@@ -5,10 +5,6 @@ import sys
 import os
 import argparse
 
-script_dir = os.path.dirname(os.path.realpath(__file__))
-if __name__ == "__main__":
-    sys.path.append(os.path.join(script_dir, '..'))
-
 import pickle
 from collections import defaultdict, Counter, OrderedDict
 import multiprocessing as mlt
@@ -16,7 +12,13 @@ import multiprocessing as mlt
 import networkx as nx
 from tqdm import tqdm
 
-from rnaglib.utils.graphlet_hash import extract_graphlet, build_hash_table, Hasher
+script_dir = os.path.dirname(os.path.realpath(__file__))
+if __name__ == "__main__":
+    sys.path.append(os.path.join(script_dir, '..'))
+
+
+from rnaglib.utils.graphlet_hash import build_hash_table, Hasher
+from rnaglib.utils.graph_utils import extract_graphlet
 from rnaglib.config.graph_keys import GRAPH_KEYS, TOOL
 
 
@@ -33,6 +35,7 @@ def node_2_unordered_rings(G, node, depth=5, hasher=None, hash_table=None):
     :param depth: The depth or number of hops starting from node to include in the ring annotation
     :param hasher: A hasher object to use for encoding the graphlets
     :param hash_table: A hash table to fill with the annotations
+
     :return: {'node_annots': list, 'edge_annots': list, 'graphlet_annots': list} each of the list is of length depth
     and contains lists of the nodes in the ring at each depth.
 
@@ -105,6 +108,7 @@ def build_ring_tree_from_graph(graph, depth=5, hasher=None, hash_table=None):
     :param depth: The depth or number of hops starting from node to include in the ring annotation
     :param hasher: A hasher object to use for encoding the graphlets
     :param hash_table: A hash table to fill with the annotations
+
     :return: dict (ring_level: node: ring)
     """
     dict_ring = defaultdict(dict)
@@ -124,7 +128,9 @@ def build_ring_tree_from_graph(graph, depth=5, hasher=None, hash_table=None):
 def annotate_one(args):
     """
     To be called by map
+
     :param args: ( g (name of the graph),
+
     :return:
     """
     g, graph_path, dump_path, hasher, re_annotate, hash_table = args
@@ -162,9 +168,11 @@ def annotate_all(dump_path='../data/annotated/sample_v2',
                  re_annotate=False):
     """
     Routine for all files in a folder
+
     :param dump_path:
     :param graph_path:
     :param parallel:
+
     :return:
     """
     try:

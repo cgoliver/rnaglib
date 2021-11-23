@@ -96,6 +96,7 @@ def download_name_generator(dirname=None,
                             annotated=False):
     """
     This builds the adress of some data based on its feature
+
     :param dirname: For custom data saving
     :param release: For versionning
     :param redundancy: Whether we want all RNA structures or just a filtered set
@@ -142,6 +143,9 @@ class GraphDataset(Dataset):
                  node_target=None,
                  verbose=False):
         """
+        This class is the main object for graph data loading. One can simply ask for feature and the appropriate data
+        will be fetched.
+
         :param data_path: The path of the data. If node_sim is not None, this data should be annotated
         :param redundancy: To use all graphs or just the non redundant set.
         :param chop: if we want full graphs or chopped ones for learning on smaller chunks
@@ -239,7 +243,8 @@ class GraphDataset(Dataset):
         """
         This function is useful because the default_behavior is changed compared to above :
             Here if None is given, we don't remove the previous node_sim function
-        :param node_simfunc:
+
+        :param node_simfunc: A nodesim.compare function
         :return:
         """
         if node_simfunc is not None:
@@ -253,9 +258,14 @@ class GraphDataset(Dataset):
 
     def get_node_encoding(self, g, encode_feature=True):
         """
+
         Get targets for graph g
         for every node get the attribute specified by self.node_target
         output a mapping of nodes to their targets
+
+        :param g: a nx graph
+        :param encode_feature: A boolean as to whether this should encode the features or targets
+        :return: A dict that maps nodes to encodings
         """
         targets = {}
         node_parser = self.node_features_parser if encode_feature else self.node_target_parser
@@ -278,6 +288,7 @@ class GraphDataset(Dataset):
     def compute_dim(self, node_parser):
         """
         Based on the encoding scheme, we can compute the shapes of the in and out tensors
+
         :return:
         """
         if len(node_parser) == 0:
@@ -293,6 +304,7 @@ class GraphDataset(Dataset):
         """
         Sometimes some edges have weird names such as t.W representing a fuzziness.
         We just remove those as they don't deliver a good information
+
         :param graph:
         :param strategy: How to deal with it : for now just remove them.
         In the future maybe add an edge type in the edge map ?
@@ -372,6 +384,7 @@ def collate_wrapper(node_simfunc=None, max_size_kernel=None):
     """
     Wrapper for collate function so we can use different node similarities.
         We cannot use functools.partial as it is not picklable so incompatible with Pytorch loading
+
     :param node_simfunc: A node comparison function as defined in kernels, to optionally return a pairwise comparison
     of the nodes in the batch
     :param max_size_kernel: If the node comparison is not None, optionnaly only return a pairwise comparison between
@@ -554,6 +567,7 @@ class EdgeLoaderGenerator:
     def get_edge_loader(self):
         """
         Simply get the loader for one epoch. This needs to be called at each epoch
+
         :return: the edge loader
         """
         edge_loader = (EdgeDataLoader(g_batched, self.get_base_pairs(g_batched), self.sampler, **self.eloader_args)

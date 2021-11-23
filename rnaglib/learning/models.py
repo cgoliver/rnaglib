@@ -239,8 +239,7 @@ class DotPredictor(nn.Module):
 class BasePairPredictor(nn.Module):
 
     def __init__(self, encoder, decoder=DotPredictor()):
-        """
-        This is an exemple RGCN for link prediction, that uses the previous Embedder network
+        """This is an exemple RGCN for link prediction, that uses the previous Embedder network
         Predict the probability that two nucleotides are base paired, based on the dot product of the node embeddings
 
         :param encoder: An Embedder network as defined above
@@ -254,6 +253,7 @@ class BasePairPredictor(nn.Module):
         """
         Predicts the probability that each edge exists.
             If negative graph is not None, we embed the real graph and then predict the negative graph connectivity
+
         :param g: The real graph to compute node embeddings and edge likelihood over
         :param negative_graph: A decoy connectivity to compute edge likelihood over
         :return: The score for the edge likelihood

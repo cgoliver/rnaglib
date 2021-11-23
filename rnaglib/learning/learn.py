@@ -28,13 +28,15 @@ def pretrain_unsupervised(model,
                           ):
     """
     Perform the pretraining routine to get embeddings from graph nodes, that correlate with a node kernel.
+
     :param model: The model to train
     :param optimizer: the optimizer to use (eg SGD or Adam)
     :param train_loader: The loader to use for training, as defined in GraphLoader
     :param node_sim: If None, we just rely on the node_sim in the data loader.
     :param learning_routine: A LearningRoutine object, if we want to also use a validation phase and early stopping
-    :param rec_params: These are parameters useful for the loss computation and further explained in
-    learning_utils.rec_loss
+    :param rec_params: These are parameters useful for the loss computation and
+    further explained in learning_utils.rec_loss
+
     :return: The best loss obtained
     """
     device = model.current_device
@@ -111,11 +113,13 @@ def train_supervised(model,
                      train_loader,
                      learning_routine=LearningRoutine()):
     """
-    Performs the entire training routine for a supervised model
+    Performs the entire training routine for a supervised task
+
     :param model: The model to train
     :param optimizer: the optimizer to use (eg SGD or Adam)
-    :param train_loader: The loader to use for training, as defined in GraphLoader
+    :param train_loader: The loader to use for training, as defined in data_loading/GraphLoader
     :param learning_routine: A LearningRoutine object, if we want to also use a validation phase and early stopping
+
     :return: The best loss obtained
     """
     device = model.current_device
@@ -183,12 +187,14 @@ def train_linkpred(model,
                    validation_loader_generator
                    ):
     """
+    Train a link prediction model : given RNA graphs, predict whether nodes are bound
 
-    :param model:
-    :param optimizer:
-    :param train_loader_generator:
-    :param validation_loader_generator:
-    :return:
+    :param model: The model to train
+    :param optimizer: the optimizer to use (eg SGD or Adam)
+    :param train_loader_generator: The edge loader to use for training, as defined in data_loading/GraphLoader
+    :param validation_loader_generator: The edge loader to use for training, as defined in data_loading/GraphLoader
+
+    :return: The best loss obtained
     """
     for epoch in range(3):
         count = 0

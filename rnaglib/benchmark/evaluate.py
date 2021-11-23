@@ -52,7 +52,7 @@ def get_performance(node_target, model, node_features=None, evaluation_function=
     :param node_features: To build the evaluation loader, we need to know which features were used !
     :param evaluation_function: Function according to which we want to evaluate our model.
     Takes a predicted and true labels list and returns the value
-    :return:
+    :return: The loss value
     """
     train_split, test_split = get_task_split(node_target=node_target)
     test_dataset = graphloader.SupervisedDataset(node_features=node_features,

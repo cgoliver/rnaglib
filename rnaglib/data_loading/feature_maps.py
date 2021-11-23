@@ -22,6 +22,7 @@ class OneHotEncoder:
     def encode(self, value):
         """
         Assign encoding of `value` according to known possible values.
+
         :param value: The value to encode. If missing a default vector of full zeroes is produced.
         """
         x = self.encode_default()
@@ -48,14 +49,17 @@ class FloatEncoder:
 
     def __init__(self, default_value=0):
         """
-            Utility class to encode floats
+        Utility class to encode floats
+
         :param default_value: The value to return in case of failure
         """
         self.default_value = default_value
 
     def encode(self, value):
-        """ Assign encoding of `value` according to known possible
-        values.
+        """
+        Assign encoding of `value` according to known possible values.
+
+        :param value: The value to encode. If missing a default value (by default zero) is produced.
         """
         try:
             return torch.tensor([value], dtype=torch.float)
@@ -74,13 +78,16 @@ class BoolEncoder:
     def __init__(self, default_value=False):
         """
         To encode bools. A possible encoding is to have no value in which case it defaults to False.
+
         :param default_value: To switch the default behavior. This is not recommended because not aligned with the data
         """
         self.default_value = default_value
 
     def encode(self, value):
-        """ Assign encoding of `value` according to known possible
-        values.
+        """
+        Assign encoding of `value` according to known possible values.
+
+        :param value: The value to encode. If missing the default value (False by default) is produced.
         """
         if value is None:
             return self.encode_default()
@@ -103,14 +110,18 @@ class ListEncoder:
     def __init__(self, list_length):
         """
         To encode lists, cast them as tensor if possible, otherwise just return zeroes.
+
         :param list_length: We need the lists to be fixed length
         """
         size = [list_length]
         self.default_value = torch.zeros(size=size, dtype=torch.float)
 
     def encode(self, value):
-        """ Assign encoding of `value` according to known possible
-        values.
+
+        """
+        Assign encoding of `value` according to known possible values.
+
+        :param value: The value to encode. If missing the default value (A list of zeros) is produced.
         """
         if value is None or any([val is None for val in value]):
             return self.encode_default()

@@ -55,9 +55,13 @@ key_map = {bp: i for i, bp in enumerate(keys)}
 def get_undirected_iso(bpa, bpb):
     """
     Given two directed edges, get the values from the undirected isostericity matrix
+
     :param bpa: LW edge code
+    :type bpa: str
     :param bpb: LW edge code
-    :return: isostericty value (float)
+    :type bpb: str 
+    :return: isostericty value
+    :rtype float
     """
     bpa = bpa.upper()
     bpb = bpb.upper()
@@ -74,6 +78,7 @@ def build_iso():
     - It has a diagonal of ones : max similarity is self
     - Backbone is set aside, and has a little cost for reversing the direction
     - Different edges types are computed to have the associated undirected isostericity value
+
     :return: A np matrix that yields the isostericity values, ordered as EDGE_MAP
     """
     iso_mat = np.zeros(shape=(len(EDGE_MAP_RGLIB), len(EDGE_MAP_RGLIB)), dtype=np.float32)
