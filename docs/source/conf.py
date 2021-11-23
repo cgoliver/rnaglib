@@ -35,7 +35,11 @@ release = '0.0.1'
 extensions = [
              'sphinx.ext.autodoc',
                 'myst_parser']
-
+myst_enable_extensions = [
+             "substitution",
+             "linkify",
+             ]
+extensions += ['sphinx-prompt', 'sphinx_substitution_extensions']
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
 
@@ -64,3 +68,6 @@ html_theme = 'sphinx_rtd_theme'
 source_suffix = {   '.rst': 'restructuredtext',
                     '.txt': 'markdown',
                     '.md': 'markdown'}
+
+
+
