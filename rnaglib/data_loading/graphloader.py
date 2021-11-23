@@ -434,7 +434,7 @@ class GraphLoader:
     def __init__(self,
                  dataset,
                  batch_size=5,
-                 num_workers=20,
+                 num_workers=0,
                  max_size_kernel=None,
                  split=True,
                  verbose=False):
@@ -443,7 +443,7 @@ class GraphLoader:
 
         :param dataset: The dataset to iterate over
         :param batch_size: The desired batch size (number of whole graphs)
-        :param num_workers: The number of cores to use for loading
+        :param num_workers: The number of cores to use for loading. Defaults to 0 to match the PyTorch default.
         :param max_size_kernel: If we use K comptutations, we need to subsamble some nodes for the big graphs
         or else the k computation takes too long
         :param split: To return subsets to split the data
