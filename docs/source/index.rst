@@ -60,12 +60,9 @@ Package Structure
 Data scheme
 -----------
 
-| A more detailed description of the data is presented in :doc:`rnaglib.prepare_data`. It comes along with instructions
-| on how to produce the data from public databases. However since this
-construction is computationally expensive, we offer
-| a pre-built database.
+| A more detailed description of the data is presented in :doc:`rnaglib.prepare_data`. It comes along with instructions on how to produce the data from public databases. However since this construction is computationally expensive, we offer a pre-built database.
 
-We provide a visualization of what the graphs in this database contain :
+We provide a visualization of what the graphs in this database contain:
 
 |Example graph|
 
