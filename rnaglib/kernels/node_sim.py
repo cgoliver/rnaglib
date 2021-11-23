@@ -38,6 +38,7 @@ class SimFunctionNode():
         rely on the hungarian algorithm, an algorithm that finds optimal matches according to a cost function.
 
         Three of them compare the edges :
+
         - R_1 compares the histograms of each ring, possibly with an idf weighting (to emphasize differences
           in rare edges)
         - R_iso compares each ring with the best matching based on the isostericity values
@@ -48,6 +49,7 @@ class SimFunctionNode():
         Two of them compare the graphlets. The underlying idea is that just comparing lists of edges does not
         constraint the graph structure, while the assembling of graphlet does it more (exceptions can be found but
         for most graphs, knowing all graphlets at each depth enables recreating the graph) :
+
         - R_graphlets works like R_iso except that the isostericity is replaced by the GED
         - graphlet works like the hungarian except that the isostericity is replaced by the GED
 

@@ -4,7 +4,14 @@ import sys
 import networkx as nx
 import matplotlib
 
-matplotlib.rcParams['text.usetex'] = True
+use_tex = False
+try:
+    matplotlib.rcParams['text.usetex'] = True
+    use_tex = True
+except:
+    use_tex = False
+    print("No LaTex installation was found, using a fallback drawing system.")
+
 import matplotlib.pyplot as plt
 import seaborn as sns
 
@@ -16,18 +23,27 @@ if __name__ == "__main__":
 from rnaglib.utils.graph_io import load_json
 from rnaglib.drawing.rna_layout import circular_layout
 
-params = {'text.latex.preamble': [r'\usepackage{fdsymbol}\usepackage{xspace}']}
-plt.rc('font', family='serif')
-plt.rcParams.update(params)
-
-labels = {
-    'cW': r"$\medblackcircle$\xspace",
-    'cS': r"$\medblacktriangleright$\xspace",
-    'cH': r"$\medblacksquare$\xspace",
-    'tW': r"$\medcircle$\xspace",
-    'tS': r"$\medtriangleright$\xspace",
-    'tH': r"$\medsquare$\xspace"
-}
+if use_tex:
+    params = {'text.latex.preamble': r'\usepackage{fdsymbol}\usepackage{xspace}'}
+    plt.rc('font', family='serif')
+    plt.rcParams.update(params)
+    labels = {
+        'cW': r"$\medblackcircle$\xspace",
+        'cS': r"$\medblacktriangleright$\xspace",
+        'cH': r"$\medblacksquare$\xspace",
+        'tW': r"$\medcircle$\xspace",
+        'tS': r"$\medtriangleright$\xspace",
+        'tH': r"$\medsquare$\xspace"
+    }
+else:
+    labels = {
+        'cW': r"$\oplus\ $",
+        'cS': r"$\blacktriangleright\ $",
+        'cH': r"$\blacksquare\ $",
+        'tW': r"$\bigcirc\ $",
+        'tS': r"$\triangleright\ $",
+        'tH': r"$\boxdot\ $",
+    }
 
 make_label = lambda s: labels[s[:2]] + labels[s[0::2]] if len(set(s[1:])) == 2 \
     else labels[s[:2]]
@@ -224,10 +240,10 @@ def rna_draw_grid(graphs, subtitles=None, highlight_edges=None, node_colors=None
 
 if __name__ == "__main__":
     G = load_json("data/examples/4nlf.json")
-    # rna_draw(G, show=True)
-    for f in os.listdir("data/all_graphs_chops"):
-        G = nx.read_gpickle(os.path.join("data/all_graphs_chops", f))
-        print("HI")
-        print(f)
-        rna_draw(G, show=True, format="pdf")
+    rna_draw(G, show=True)
+    # for f in os.listdir("data/all_graphs_chops"):
+    #     G = nx.read_gpickle(os.path.join("data/all_graphs_chops", f))
+    #     print("HI")
+    #     print(f)
+    #     rna_draw(G, show=True, format="pdf")
     pass
