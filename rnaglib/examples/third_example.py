@@ -28,8 +28,8 @@ if __name__ == "__main__":
 
     train_dataset = graphloader.GraphDataset(node_features=['nt_code'], all_graphs=train_split)
     test_dataset = graphloader.GraphDataset(node_features=['nt_code'], all_graphs=test_split)
-    train_loader = graphloader.EdgeLoaderGenerator(graphloader.Loader(train_dataset, split=False).get_data())
-    test_loader = graphloader.EdgeLoaderGenerator(graphloader.Loader(test_dataset, split=False).get_data())
+    train_loader = graphloader.EdgeLoaderGenerator(graphloader.GraphLoader(train_dataset, split=False).get_data())
+    test_loader = graphloader.EdgeLoaderGenerator(graphloader.GraphLoader(test_dataset, split=False).get_data())
 
     # Choose the data, features and targets to use and GET THE DATA GOING
     embedder_model = models.Embedder(dims=[10, 10], infeatures_dim=train_dataset.input_dim)

@@ -29,9 +29,9 @@ if __name__ == "__main__":
     print('Starting to pretrain the network')
     node_sim_func = node_sim.SimFunctionNode(method='R_graphlets', depth=2)
     unsupervised_dataset = graphloader.UnsupervisedDataset(node_simfunc=node_sim_func,
-                                                      node_features=node_features)
-    train_loader = graphloader.Loader(dataset=unsupervised_dataset, split=False,
-                                 num_workers=0, max_size_kernel=100).get_data()
+                                                           node_features=node_features)
+    train_loader = graphloader.GraphLoader(dataset=unsupervised_dataset, split=False,
+                                           num_workers=4, max_size_kernel=100).get_data()
 
     # Then choose the embedder model and pre_train it, we dump a version of this pretrained model
     embedder_model = models.Embedder(infeatures_dim=unsupervised_dataset.input_dim,
@@ -50,10 +50,10 @@ if __name__ == "__main__":
     # GET THE DATA GOING, we want to use precise data splits to be able to use the benchmark.
     train_split, test_split = evaluate.get_task_split(node_target=node_target)
     supervised_train_dataset = graphloader.SupervisedDataset(node_features=node_features,
-                                                        redundancy='NR',
-                                                        node_target=node_target,
-                                                        all_graphs=train_split)
-    train_loader = graphloader.Loader(dataset=supervised_train_dataset, split=False).get_data()
+                                                             redundancy='NR',
+                                                             node_target=node_target,
+                                                             all_graphs=train_split)
+    train_loader = graphloader.GraphLoader(dataset=supervised_train_dataset, split=False).get_data()
 
     # Define a model and train it :
     # We first embed our data in 64 dimensions, using the pretrained embedder and then add one classification
