@@ -21,7 +21,7 @@ script_dir = os.path.dirname(os.path.realpath(__file__))
 if __name__ == "__main__":
     sys.path.append(os.path.join(script_dir, '..', '..'))
 
-from rnaglib.utils.graph_utils import bfs
+from rnaglib.utils.graph_utils import bfs, extract_graphlet
 from rnaglib.utils.graph_io import load_json
 from rnaglib.config.build_iso_mat import iso_mat as iso_matrix
 from rnaglib.config.graph_keys import GRAPH_KEYS, TOOL
@@ -45,6 +45,7 @@ class Hasher:
         """
         The hasher object. Once created, it will hash new graphs and optionnaly, one can run it onto
         a whole graph dir to create the hashtable once and for all.
+
         :param method: for now only WL hashing is supported
         :param string_hash_size: The length of the hash, longer ones will yields less collision but more processing time
         :param graphlet_hash_size: Same thing for hashes of graphlets
@@ -65,6 +66,7 @@ class Hasher:
     def hash(self, graph):
         """
         WL hash of a graph.
+
         :param graph: nx graph to hash
         :return: hash
 
@@ -102,6 +104,7 @@ class Hasher:
     def get_node_hash(self, graph, n):
         """
         Get the correct node hashing from a node and a graph
+
         :param graph:
         :param n:
         :return:
@@ -244,6 +247,10 @@ def get_ged_hashtable(h_G,
 
 '''
 def hash_analyze(annot_dir):
+    """Check hashing properties on given graphs (deprecated).
+
+    :param annot_dir: path containing annotated graphs
+    """
     from itertools import product
     import pandas as pd
 
@@ -280,6 +287,8 @@ def graphlet_distribution(hash_table):
     """
         Plot counts for graphlets.
         Hash table should have a counts attribute.
+
+        :param hash_table: hash table on RNA data
     """
     import matplotlib.pyplot as plt
     import numpy as np

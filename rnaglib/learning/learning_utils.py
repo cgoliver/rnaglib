@@ -21,6 +21,7 @@ from rnaglib.utils import misc
 def weighted_MSE(output, target, weight):
     """
     Small utility function to compute the weighted mean square error loss
+
     :param output: tensor
     :param target: tensor
     :param weight: optional weighting tensor
@@ -34,6 +35,7 @@ def weighted_MSE(output, target, weight):
 def matrix_cosine(a, b, eps=1e-8):
     """
     Similar to pdist for cosine similarity. This is not implemented in Pytorch.
+
     :param a: List of vectors in the form of a tensor
     :param b: List of vectors in the form of a tensor
     :param eps: For numerical stability
@@ -50,6 +52,7 @@ def matrix_dist(a, plus_one=False):
     """
     Pairwise dist of a set of a vector of size b
     returns a matrix of size (a,a). This is a tad less efficient but more convenient than pdist.
+
     :param a : a torch Tensor of size a,b
     :param plus_one: if we want to get positive values
     """
@@ -66,6 +69,7 @@ def get_nc_weight(graph, hops=2):
     following all edges by multiplying by the adjacency matrix.
 
     Finally we perform scaling operations to get a weight with a mean of 1
+
     :param graph: a DiGraph
     :param hops: int, the number of expansion steps we want
     :return: a matrix weight
@@ -162,6 +166,7 @@ def rec_loss(embeddings, target_K, similarity=True, normalize=False,
 def send_graph_to_device(g, device):
     """
     Send dgl graph to device, this is kind of deprecated in new versions of DGL
+
     :param g: a dgl graph
     :param device: a torch device
     :return: the graph on the device
@@ -219,6 +224,7 @@ class LearningRoutine:
     def early_stopping_routine(self, validation_loss, epoch, model, optimizer=None):
         """
         Based on the validation loss, update relevant parameters and optionally early stop the model
+
         :param validation_loss: A loss
         :param epoch: The epoch we are at, for
         :param model: The model to early stop
@@ -251,6 +257,7 @@ class LearningRoutine:
 def compute_embeddings(model, validation_loader):
     """
     Compute the embeddings on a bunch of graphs
+
     :param model: The model to use
     :param validation_loader: A graph loader
     :return: a numpy array with all the embeddings
@@ -273,9 +280,10 @@ def compute_embeddings(model, validation_loader):
 def compute_outputs(model, validation_loader):
     """
     Just do the inference on a bunch of graphs
+
     :param model: The model to use
     :param validation_loader: A graph loader
-    :return: two numpy arrays with all the supervions and all the prediction
+    :return: two numpy arrays with all the supervisions and all the predictions
     """
     model.eval()
     device = model.current_device
@@ -300,6 +308,7 @@ def evaluate_model_unsupervised(model, validation_loader,
                                 rec_params={"similarity": True, "normalize": False, "use_graph": False, "hops": 2}):
     """
     Simply get the score output for unsupervised training.
+
     :param model: The model to use
     :param validation_loader: A graph loader
     :param rec_params: The parameters of the loss
@@ -328,6 +337,7 @@ def evaluate_model_unsupervised(model, validation_loader,
 def evaluate_model_supervised(model, validation_loader, evaluation_function=roc_auc_score):
     """
     Make the inference and apply an evaluation function on it
+
     :param model: The model to use
     :param validation_loader: A graph loader
     :param evaluation_function: A function that takes two np arrays and returns a score

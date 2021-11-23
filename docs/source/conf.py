@@ -49,6 +49,9 @@ templates_path = ['_templates']
 exclude_patterns = []
 
 
+autoclass_content = 'both'
+autodoc_member_order = 'bysource'
+
 # -- Options for HTML output -------------------------------------------------
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
@@ -66,16 +69,5 @@ source_suffix = {   '.rst': 'restructuredtext',
                     '.txt': 'markdown',
                     '.md': 'markdown'}
 
-# Substitute links in the README.md to links in the docs
-myst_substitutions = {
-        # "`/RNAGlib/prepare_data/`": "I'm a **substitution**",
-        "/RNAGlib/prepare_data/": "I'm a **substitution**",
-        "annotation": "I'm a **substitution**"
-
-    }
-rst_prolog = """
-.. |/RNAGlib/prepare_data/| replace:: substitution
-.. |author| replace:: Eleanor
-"""
 
 
