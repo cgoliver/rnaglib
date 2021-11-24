@@ -202,6 +202,22 @@ References
 .. |Example graph| image:: https://jwgitlab.cs.mcgill.ca/cgoliver/rnaglib/-/raw/main/images/Fig1.png
 
 
+Modules
+=======
+.. toctree::
+    Benchmark <rnaglib.benchmark>
+    Config <rnaglib.config>
+    Data Loading <rnaglib.data_loading>
+    Data <rnaglib.data>
+    Drawing <rnaglib.drawing>
+    Examples <rnaglib.examples>
+    Ged <rnaglib.ged>
+    Kernels <rnaglib.kernels>
+    Learning <rnaglib.learning>
+    Prepare Data <rnaglib.prepare_data>
+    Utils <rnaglib.utils>
+
+
 Indices and tables
 ==================
 
