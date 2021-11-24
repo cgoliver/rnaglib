@@ -147,7 +147,7 @@ Building a 2.5D Graph from a local PDB
 -----
 
 If you have an mmCIF containing RNA stored locally and you wish to build a 2.5D graph that can be used in RNAglib you can use the ``prepare_data`` module.
-To do so, you need to have ``x3dna-dssr`` executable in your ``$PATH`` which requires a `license <http://x3dna.org/> `.
+To do so, you need to have ``x3dna-dssr`` executable in your ``$PATH`` which requires a `license <http://x3dna.org/>`.
 
 .. code-block:: python
 
@@ -171,7 +171,7 @@ Visualization
 
 
 Graph Edit Distance (GED)
----
+-------------------------
 
 | GED is the gold standard of graph comparisons. We have put our ged implementation as a part of networkx, and offer in ``rnaglib/ged`` the weighting scheme we propose to compare 2.5D graphs. One can call ``rnaglib.ged.ged()`` on two graphs to compare them. However, due to the exponential complexity of the comparison, the maximum size of the graphs should be around ten nodes, making it more suited for comparing graphlets or
 subgraphs.
@@ -180,6 +180,7 @@ subgraphs.
 
     >>> from rnaglib.ged.ged_nx import graph_edit_distance
     >>> from rnaglib.utils.graph_io import graph_from_pdbid
+    >>> G = graph_from_pdbid("4nlf")
     >>> graph_edit_distance(G, G)
     ... 0.0
 
