@@ -68,8 +68,11 @@ class GraphDataset(Dataset):
         self.data_path = data_path
         self.hashing_path = hashing_path
         if data_path is None:
-            self.data_path, self.hashing_path = graph_io.download_graphs(redundancy=redundancy, chop=chop,
-                                                                         annotated=annotated, download_dir=download_dir)
+            self.data_path, self.hashing_path = graph_io.download_graphs(redundancy=redundancy,
+                                                                         chop=chop,
+                                                                         annotated=annotated,
+                                                                         download_dir=download_dir,
+                                                                         verbose=verbose)
 
         if all_graphs is not None:
             self.all_graphs = all_graphs

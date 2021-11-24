@@ -183,7 +183,7 @@ def download_name_generator(dirname=None,
 
 
 def download_graphs(redundancy='NR', chop=False, annotated=False, overwrite=False,
-                    download_dir=get_default_download_dir()):
+                    download_dir=get_default_download_dir(), verbose=False):
     """
     Based on the options, get the right data from the latest release and put it in download_dir.
     :param redundancy: Whether to include all RNAs or just a non-redundant set as defined by BGSU
@@ -201,6 +201,10 @@ def download_graphs(redundancy='NR', chop=False, annotated=False, overwrite=Fals
                                                                         annotated=annotated,
                                                                         download_dir=download_dir)
     full_data_path = os.path.join(data_path, dirname)
+    if verbose:
+        print(f'Getting dataset : {full_data_path}')
+        if hashing is not None:
+            print(f'Getting hashing : {hashing[1]}')
     if not os.path.exists(full_data_path) or overwrite:
         if not os.path.exists(dl_path) or overwrite:
             print('Required dataset not found, launching a download. This should take about a minute')
@@ -213,11 +217,17 @@ def download_graphs(redundancy='NR', chop=False, annotated=False, overwrite=Fals
         elif '.tar' in url:
             with tarfile.open(dl_path) as tar_file:
                 tar_file.extractall(path=data_path)
+    else:
+        if verbose:
+            print(f'Dataset was found and not overwritten')
     if hashing is not None:
         hashing_url, hashing_path = hashing
         if not os.path.exists(hashing_path) or overwrite:
             download(path=hashing_path,
                      url=hashing_url)
+        else:
+            if verbose:
+                print(f'Hashing was found and not overwritten')
     return full_data_path, hashing_path
 
 
