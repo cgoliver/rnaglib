@@ -37,7 +37,6 @@ extensions = [
                 'myst_parser']
 myst_enable_extensions = [
              "substitution",
-             "linkify",
              ]
 extensions += ['sphinx-prompt', 'sphinx_substitution_extensions']
 # Add any paths that contain templates here, relative to this directory.
