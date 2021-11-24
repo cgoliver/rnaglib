@@ -94,7 +94,7 @@ produce this data are presented in prepare\_data. We
    http://rnaglib.cs.mcgill.ca/static/datasets/iguana.tar.gz
 -  In-code download : if one instantiates a dataloader and the data
    cannot be found, the corresponding data will be automatically downloaded and cached
--  Download script: `rnaglib_download`
+-  Download script: ``$ rnaglib_download``
 
 | Because of this second option, after installing our tool with pip, one can start learning on RNA data without extra steps.
 
