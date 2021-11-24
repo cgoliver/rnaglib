@@ -5,8 +5,6 @@ import pickle
 import networkx as nx
 import numpy as np
 import random
-import requests
-import warnings
 import tarfile
 import zipfile
 
@@ -25,117 +23,15 @@ from rnaglib.data_loading.feature_maps import build_node_feature_parser
 from rnaglib.config.graph_keys import GRAPH_KEYS, TOOL, EDGE_MAP_RGLIB_REVERSE
 
 
-def download(url, path=None, overwrite=True, retries=5, verify_ssl=True, log=True):
-    """
-    Download a given URL.
-
-    Codes borrowed from mxnet/gluon/utils.py
-
-    :param url: URL to download.
-    :param path:  Destination path to store downloaded file. By default stores to the current directory
-     with the same name as in url.
-    :param overwrite: Whether to overwrite the destination file if it already exists.
-        By default always overwrites the downloaded file.
-    :param retries: The number of times to attempt downloading in case of failure or non 200 return codes.
-    :param verify_ssl: bool, default True. Verify SSL certificates.
-    :param log:  bool, default True Whether to print the progress for download
-    :return: The file path of the downloaded file.
-    """
-    if path is None:
-        fname = url.split('/')[-1]
-        # Empty filenames are invalid
-        assert fname, 'Can\'t construct file-name from this URL. ' \
-                      'Please set the `path` option manually.'
-    else:
-        path = os.path.expanduser(path)
-        if os.path.isdir(path):
-            fname = os.path.join(path, url.split('/')[-1])
-        else:
-            fname = path
-    assert retries >= 0, "Number of retries should be at least 0"
-
-    if not verify_ssl:
-        warnings.warn(
-            'Unverified HTTPS request is being made (verify_ssl=False). '
-            'Adding certificate verification is strongly advised.')
-
-    if overwrite or not os.path.exists(fname):
-        dirname = os.path.dirname(os.path.abspath(os.path.expanduser(fname)))
-        if not os.path.exists(dirname):
-            os.makedirs(dirname)
-        while retries + 1 > 0:
-            # Disable pyling too broad Exception
-            # pylint: disable=W0703
-            try:
-                if log:
-                    print('Downloading %s from %s...' % (fname, url))
-                r = requests.get(url, stream=True, verify=verify_ssl)
-                if r.status_code != 200:
-                    raise RuntimeError("Failed downloading url %s" % url)
-                with open(fname, 'wb') as f:
-                    for chunk in r.iter_content(chunk_size=1024):
-                        if chunk:  # filter out keep-alive new chunks
-                            f.write(chunk)
-                break
-            except Exception as e:
-                retries -= 1
-                if retries <= 0:
-                    raise e
-                else:
-                    if log:
-                        print("download failed, retrying, {} attempt{} left"
-                              .format(retries, 's' if retries > 1 else ''))
-
-    return fname
-
-
-def download_name_generator(dirname=None,
-                            release='iguana',
-                            redundancy='NR',
-                            chop=False,
-                            annotated=False):
-    """
-    This builds the adress of some data based on its feature
-
-    :param dirname: For custom data saving
-    :param release: For versionning
-    :param redundancy: Whether we want all RNA structures or just a filtered set
-    :param chop: Whether we want all graphs or fixed size chopped parts of the whole ones
-    :param annotated: Whether to include pre-computed annotation for each node with information
-        to be used by kernel functions
-    :return:  url adress, path of the downloaded file, path for the extracted data, dirname to save it,
-     hashing files if needed (annotated = True)
-    """
-    # Generic name
-    chop_str = '_chops' if chop else ''
-    annotated_str = '_annot' if annotated else ''
-    tarball_name = f'{redundancy}{chop_str}{annotated_str}'
-
-    # Find remote url and get download link
-    url = f'http://rnaglib.cs.mcgill.ca/static/datasets/{release}/{tarball_name}.tar.gz'
-    dl_path = os.path.join(script_dir, f'../data/downloads/{tarball_name}.tar.gz')
-
-    # Complete dl path depending on annotation and optionally get hashing too
-    if annotated_str == '':
-        data_path = os.path.join(script_dir, '../data/graphs/')
-        hashing_info = None
-    else:
-        data_path = os.path.join(script_dir, '../data/annotated/')
-        hashing_url = f'http://rnaglib.cs.mcgill.ca/static/datasets/{release}/{tarball_name}_hash.p'
-        hashing_path = os.path.join(script_dir, f'../data/hashing/{tarball_name}_hash.p')
-        hashing_info = (hashing_url, hashing_path)
-    dirname = tarball_name if dirname is None else dirname
-    return url, dl_path, data_path, dirname, hashing_info
-
-
 class GraphDataset(Dataset):
     def __init__(self,
                  data_path=None,
+                 hashing_path=None,
+                 download_dir=None,
                  redundancy='NR',
                  chop=False,
                  annotated=False,
                  all_graphs=None,
-                 hashing_path=None,
                  edge_map=GRAPH_KEYS['edge_map'][TOOL],
                  label='LW',
                  node_simfunc=None,
@@ -147,6 +43,10 @@ class GraphDataset(Dataset):
         will be fetched.
 
         :param data_path: The path of the data. If node_sim is not None, this data should be annotated
+        :param hashing_path: If node_sim is not None, we need hashing tables. If the path is not automatically created
+        (ie the data was downloaded manually) one should input the path to the hashing.
+        :param download_dir: When one fetches the data, one can choose where to dl it.
+        By default, it will go to ~/.rnaglib/
         :param redundancy: To use all graphs or just the non redundant set.
         :param chop: if we want full graphs or chopped ones for learning on smaller chunks
         :param annotated: if we want annotated graphs
@@ -165,16 +65,16 @@ class GraphDataset(Dataset):
         # the node_sim function.
         # Then if a download occurs and no hashing was provided to the loader, the hashing used is the one
         # fetched by the downloading process to ensure it matches the data we iterate over.
+        self.data_path = data_path
         self.hashing_path = hashing_path
         if data_path is None:
-            data_path = self.download_graphs(redundancy=redundancy, chop=chop, annotated=annotated)
-
-        self.data_path = data_path
+            self.data_path, self.hashing_path = graph_io.download_graphs(redundancy=redundancy, chop=chop,
+                                                                         annotated=annotated, download_dir=download_dir)
 
         if all_graphs is not None:
             self.all_graphs = all_graphs
         else:
-            self.all_graphs = sorted(os.listdir(data_path))
+            self.all_graphs = sorted(os.listdir(self.data_path))
 
         # This is len() so we have to add the +1
         self.label = label
@@ -195,34 +95,6 @@ class GraphDataset(Dataset):
 
         self.input_dim = self.compute_dim(self.node_features_parser)
         self.output_dim = self.compute_dim(self.node_target_parser)
-
-    def download_graphs(self, redundancy='NR', chop=False, annotated=False, overwrite=False):
-        # Get the correct names for the download option and download the correct files
-        url, dl_path, data_path, dirname, hashing = download_name_generator(redundancy=redundancy,
-                                                                            chop=chop,
-                                                                            annotated=annotated)
-        full_data_path = os.path.join(data_path, dirname)
-        if not os.path.exists(full_data_path) or overwrite:
-            if not os.path.exists(dl_path) or overwrite:
-                print('Required dataset not found, launching a download. This should take about a minute')
-                download(path=dl_path,
-                         url=url)
-            # Expand the compressed files at the right location
-            if dl_path.endswith('.zip'):
-                with zipfile.ZipFile(dl_path, 'r') as zip_file:
-                    zip_file.extractall(path=data_path)
-            elif '.tar' in url:
-                with tarfile.open(dl_path) as tar_file:
-                    tar_file.extractall(path=data_path)
-        if hashing is not None:
-            hashing_url, hashing_path = hashing
-            if not os.path.exists(hashing_path) or overwrite:
-                download(path=hashing_path,
-                         url=hashing_url)
-            # Don't overwrite if the user has specifically asked for a given hashing
-            if self.hashing_path is None:
-                self.hashing_path = hashing_path
-        return full_data_path
 
     def __len__(self):
         return len(self.all_graphs)
