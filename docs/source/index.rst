@@ -82,6 +82,10 @@ Then, one just needs to run :
 Then one can start using the packages functionalities by importing them
 in one's python script.
 
+
+Quickstart
+-----------
+
 Data
 ~~~~
 
@@ -99,8 +103,6 @@ produce this data are presented in prepare\_data. We
 | Because of this second option, after installing our tool with pip, one can start learning on RNA data without extra steps.
 
 
-Quickstart
------------
 
 Once the graphs are downloaded we can begin to inspect and visualize the data.
 Graphs can be fetched direclty using their PDBID.
