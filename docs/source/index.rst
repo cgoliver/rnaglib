@@ -125,8 +125,20 @@ Otherwise, after cloning the repository, run :
 first example is a basic supervised model training to predict protein binding nucleotides. The second one starts by an unsupervised phase that pretrains the network and then performs this supervised training in a principled way, suitable for benchmarking its performance. This simple code was used to produce the benchmark values presented in the
 paper.
 
-Utils
+Building a 2.5D Graph from a local PDB
 -----
+
+If you have a PDB containing RNA stored locally and you wish to build a 2.5D graph that can be used in RNAglib you can use the `prepare_data` module.
+To do so, you need to have `x3dna-dssr` executable in your `$PATH` which requires a `license <http://x3dna.org/> `.
+
+.. code-block:: python
+    from rnaglib.prepare_data import do_one
+
+    pdb_path = '../data/1aju.cif'
+    graph = do_one(pdb_path)
+    
+   
+
 
 Visualization
 -------------
