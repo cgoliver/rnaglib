@@ -1,10 +1,4 @@
 #!/usr/bin/env python3
-import os
-import sys
-
-script_dir = os.path.dirname(os.path.realpath(__file__))
-if __name__ == "__main__":
-    sys.path.append(os.path.join(script_dir, '..', '..'))
 
 import argparse
 from rnaglib.utils import graph_io
@@ -24,4 +18,4 @@ parser.add_argument("-dl", "--download_dir", default=None, type=str, help='Where
 args, _ = parser.parse_known_args()
 
 graph_io.download_graphs(redundancy='NR', chop=args.chop, annotated=args.annotated, overwrite=args.overwrite,
-                         download_dir=args.download_dir)
+                         download_dir=args.download_dir, verbose=True)
