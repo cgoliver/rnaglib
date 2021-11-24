@@ -110,16 +110,16 @@ If one has run the pip installation, just run :
 
 ::
 
-    rnaglib_first
-    rnaglib_second
+    $ rnaglib_first
+    $ rnaglib_second
 
 Otherwise, after cloning the repository, run :
 
 ::
 
-    cd examples
-    python first_example.py
-    python second_example.py
+    $ cd examples
+    $ python first_example.py
+    $ python second_example.py
 
 | You should see data getting downloaded and networks being trained. The
 first example is a basic supervised model training to predict protein binding nucleotides. The second one starts by an unsupervised phase that pretrains the network and then performs this supervised training in a principled way, suitable for benchmarking its performance. This simple code was used to produce the benchmark values presented in the
