@@ -11,6 +11,9 @@ import zipfile
 from networkx.readwrite import json_graph
 import networkx as nx
 
+script_dir = os.path.dirname(os.path.realpath(__file__))
+if __name__ == "__main__":
+    sys.path.append(os.path.join(script_dir, '..', '..'))
 
 def dump_json(filename, graph):
     """
@@ -72,7 +75,7 @@ def get_default_download_dir():
     """
     Get the absolute path to the download directory.
     """
-    dirname = os.path.join(os.path.expanduser('~'), '.rnaglib')
+    dirname = os.path.join(os.path.expanduser('~'), '.rnaglib/data/graphs/NR')
     if not os.path.exists(dirname):
         os.makedirs(dirname)
     return dirname
