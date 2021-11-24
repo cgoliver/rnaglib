@@ -68,6 +68,47 @@ def update_RNApdb(pdir):
 
     return new_rna
 
+def cif_to_graph(cif):
+    """Build DDSR graphs for one mmCIF. Requires x3dna-dssr to be in PATH.
+
+    :param cif: path to CIF
+
+    :return: networkx graph of structure.
+    """
+
+    if '.cif' not in cif:
+        print("Incorrect format") 
+        return
+
+    # Build graph with DSSR
+    error_type = ''
+    try:
+        g = build_one(cif)
+        filter_dot_edges(g)
+        assert has_no_dots(g)
+
+    except Exception as e:
+        print("ERROR: Could not construct DSSR graph for ", cif)
+        print(traceback.print_exc())
+        return
+    else:
+        # Find ligand and ion annotations from the PDB cif
+        try:
+            interfaces, _ = get_interfaces(cif, cutoff=5)
+            annotations = parse_interfaces(interfaces)
+            g = annotate_graph(g, annotations)
+        except Exception as e:
+            print('ERROR: Could not compute interfaces for ', cif)
+            print(e)
+            print(traceback.print_exc())
+            error_type = 'interfaces_error'
+
+        if error_type in ['interfaces_error', 'OK']:
+            # Order the nodes
+            g = reorder_nodes(g)
+
+    return g
+
 def do_one(cif, output_dir, min_nodes=20):
     """Build DDSR graphs for one mmCIF.
 
