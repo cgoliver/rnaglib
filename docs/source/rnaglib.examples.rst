@@ -10,6 +10,8 @@ This script just shows a first very basic example : learn binding protein prefer
 To do so, we choose our data, create a data loader around it, build a RGCN model and train it.
 
 .. code-block:: python
+    from rnaglib.learning import models, learn
+    from rnaglib.data_loading import graphloader
 
     # Choose the data, features and targets to use and GET THE DATA GOING
     node_features = ['nt_code']
@@ -37,6 +39,12 @@ This script shows a second more complicated example : learn binding protein pref
 We also add a pretraining phase based on the R_graphlets kernel
 
 .. code-block:: python
+    from rnaglib.learning import models, learn
+    from rnaglib.data_loading import graphloader
+    from rnaglib.benchmark import evaluate
+    from rnaglib.kernels import node_sim
+
+
 
     # Choose the data, features and targets to use
     node_features = ['nt_code']
@@ -100,6 +108,10 @@ We use our Embedder object along with the nucleotide ID as features.
 This is passed to an edge loader and a base pair predictor model.
 
 .. code-block:: python
+   from rnaglib.learning import models, learn
+   from rnaglib.data_loading import graphloader
+   from rnaglib.benchmark import evaluate
+
 
     # Get loader for link prediction,
     # use nucleotide identity as input features and base our fixed train/test split
