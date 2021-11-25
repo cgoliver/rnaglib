@@ -16,6 +16,7 @@ script_dir = os.path.dirname(os.path.realpath(__file__))
 if __name__ == "__main__":
     sys.path.append(os.path.join(script_dir, '..', '..'))
 
+
 def dump_json(filename, graph):
     """
     Just a shortcut to dump a json graph more compactly
@@ -138,8 +139,8 @@ def download(url, path=None, overwrite=True, retries=5, verify_ssl=True, log=Tru
                             f.write(chunk)
                             done = int(50 * dl / total_length)
                             sys.stdout.write("\r[%s%s] %.2f %%" % \
-                                            ('=' * done, ' ' * (50-done),
-                                            dl/total_length * 100) )
+                                             ('=' * done, ' ' * (50 - done),
+                                              dl / total_length * 100))
                             sys.stdout.flush()
                 break
             except Exception as e:
@@ -243,20 +244,48 @@ def download_graphs(redundancy='NR', chop=False, annotated=False, overwrite=Fals
     return full_data_path, hashing_path
 
 
-def graph_from_pdbid(pdbid, graph_dir=get_default_download_dir(), graph_format='json'):
+def graph_from_pdbid(pdbid, graph_dir=None, graph_format='json'):
     """Fetch an annotated graph with a PDBID.
 
     :param pdbid: PDB id to fetch
     :param graph_dir: path containing annotated graphs
     :param graph_format: which format to load (JSON, or networkx)
     """
+
     if graph_format == 'nx':
-        graph_name = os.path.join(graph_dir, pdbid.lower() + '.nx')
+        graph_name = os.path.join(pdbid.lower() + '.nx')
     elif graph_format == 'json':
-        graph_name = os.path.join(graph_dir, pdbid.lower() + '.json')
+        graph_name = os.path.join(pdbid.lower() + '.json')
     else:
         raise ValueError(f"Invalid graph format {graph_format}. Use NetworkX or JSON.")
-    graph = load_graph(graph_name)
+
+    graph_path = None
+
+    # Try in look into the existing data, we need to check for both annotated and graphs, as well as in each dl
+    if graph_dir is None:
+        dl_dir = get_default_download_dir()
+        found = False
+        for parent_dirname in {'annotated', 'graphs'}:
+            parent_dir = os.path.join(dl_dir, 'data', parent_dirname)
+            if found:
+                break
+            if os.path.exists(parent_dir):
+                for data_dirname in os.listdir(parent_dir):
+                    # No need to screen chops
+                    if 'chop' in data_dirname:
+                        continue
+                    data_dir = os.path.join(parent_dir, data_dirname)
+                    if graph_name in os.listdir(data_dir):
+                        found = True
+                        graph_path = os.path.join(data_dir, graph_name)
+    else:
+        graph_path = os.path.join(graph_dir, graph_name)
+
+    if graph_path is None:
+        print('The required pdb was not found in existing default downloads, '
+              'please provide a path to look for the graph')
+        return None
+    graph = load_graph(graph_path)
     return graph
 
 
@@ -266,3 +295,4 @@ if __name__ == '__main__':
     # print(g.nodes())
     default = get_default_download_dir()
     print(default)
+    graph_from_pdbid('4nlf')
