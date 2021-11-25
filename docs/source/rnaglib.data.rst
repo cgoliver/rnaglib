@@ -6,15 +6,18 @@ rnaglib.data
 
 Download
 --------
-The instructions to produce this data are presented in prepare_data. We however offer two possibilities to directly access pre-built databases:
 
-Direct download at the address: http://rnaglib.cs.mcgill.ca/static/datasets/iguana
+The instructions to produce the data for all RNA are presented in :doc:`rnaglib.prepare_data`.
+However since this construction is computationally expensive at database scale, we offer pre-built databases.
+We however offer three possibilities to directly access pre-built databases :
 
-In code download: if one instantiates a :ref:`dataloader <_data-loader-label>` and the data cannot be found, the corresponding data will be automatically downloaded and cached
+-  A download script ships with the install, run : ``$ rnaglib_download -h``
+-  Direct download at the address :
+   http://rnaglib.cs.mcgill.ca/static/datasets/iguana.tar.gz
+-  Dynamic download : if one instantiates a dataloader and the data
+   cannot be found, the corresponding data will be automatically downloaded and cached
 
-Because of this second option, after installing our tool with pip, one can start learning on RNA data without extra steps
-
-
+Because of this last option, after installing our tool with pip, one can start learning on RNA data without extra steps.
 
 
 .. automodule:: rnaglib.data

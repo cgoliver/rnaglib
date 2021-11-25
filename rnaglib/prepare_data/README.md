@@ -4,27 +4,12 @@ The dataset included in the RNAglib package is a collection of 2.5D graphs which
 
 ![RNA motif binding to CMC ligand](../../images/1qvg_graphandchimera.png)
 
-
-|	Dataset 	    |Graphs | Edges| Nodes  |Avg. Nodes | Avg. Edges
-|---------------------------|-------:|------:|--------:|-------:|-----------|
-|ALL                         |2679   | 447225 | 641968  |166.9|239.6|
-|ALL complement              |9034   | 195395 | 228261 | 21.6 |25.3|
-|RNA-Protein                 |2750   | 411487 | 587961 | 149.6|213.8|
-|RNA-Protein complement      |8265   | 241611 | 322324 | 29.2 |39.0|
-|RNA-RNA                     |2737   | 59333  | 79116  | 21.7 |28.9|
-|RNA-RNA complement          |2483   | 55001  | 70551  | 22.2 |28.4|
-|RNA-Small\_Mol.             |166    | 981    | 1004   | 5.9 |6.0|
-|RNA-Small\_Mol. complement  |140    | 973    | 1038   | 7.0|7.4|
-|RNA-Ion                     |572    | 3490   | 3764   | 6.1  |6.6|
-|RNA-Ion complement          |493    | 3691   | 3993   | 7.5  |8.1|
-
 ## Graph Format
 
 Each graph contains structure information for one model of a PDB entry containing at least one RNA chain.
 
 Graphs are stored in `JSON` node-link format which can be loaded by
 [networkx](https://networkx.org/documentation/stable/reference/readwrite/generated/networkx.readwrite.json_graph.node_link_data.html#networkx.readwrite.json_graph.node_link_data).
-
 All data comes from the output of `x3dna-dssr` which can be downloaded
 [here](https://x3dna.org/) and our custom interface extraction tools.
 
@@ -126,4 +111,4 @@ G.edges[(<node_1>, <node_2>)]
 * `'DSSR'`: (str) Custom DSSR base pair geometry category (e.g. `'cW-W'`)
 
 #### References
-\[1\] [Richardson et al. (2008): "RNA backbone: consensus all-angle conformers and modular string nomenclature (an RNA Ontology Consortium contribution). RNA, 14(3):465-481](https://rnajournal.cshlp.org/content/14/3/465.short)
+[1] [Richardson et al. (2008): "RNA backbone: consensus all-angle conformers and modular string nomenclature (an RNA Ontology Consortium contribution). RNA, 14(3):465-481](https://rnajournal.cshlp.org/content/14/3/465.short)
