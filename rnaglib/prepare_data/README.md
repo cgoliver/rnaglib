@@ -111,4 +111,4 @@ G.edges[(<node_1>, <node_2>)]
 * `'DSSR'`: (str) Custom DSSR base pair geometry category (e.g. `'cW-W'`)
 
 #### References
-[1] [Richardson et al. (2008): "RNA backbone: consensus all-angle conformers and modular string nomenclature (an RNA Ontology Consortium contribution). RNA, 14(3):465-481](https://rnajournal.cshlp.org/content/14/3/465.short)
+\[1] [Richardson et al. (2008): "RNA backbone: consensus all-angle conformers and modular string nomenclature (an RNA Ontology Consortium contribution). RNA, 14(3):465-481](https://rnajournal.cshlp.org/content/14/3/465.short)
