@@ -137,7 +137,9 @@ def download(url, path=None, overwrite=True, retries=5, verify_ssl=True, log=Tru
                         if chunk:  # filter out keep-alive new chunks
                             f.write(chunk)
                             done = int(50 * dl / total_length)
-                            sys.stdout.write("\r[%s%s]" % ('=' * done, ' ' * (50-done)) )
+                            sys.stdout.write("\r[%s%s] %.2f %%" % \
+                                            ('=' * done, ' ' * (50-done),
+                                            dl/total_length * 100) )
                             sys.stdout.flush()
                 break
             except Exception as e:
