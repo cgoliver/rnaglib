@@ -76,7 +76,7 @@ def get_default_download_dir():
     """
     Get the absolute path to the download directory.
     """
-    dirname = os.path.join(os.path.expanduser('~'), '.rnaglib/data/graphs/NR')
+    dirname = os.path.join(os.path.expanduser('~'), '.rnaglib/')
     if not os.path.exists(dirname):
         os.makedirs(dirname)
     return dirname
@@ -184,7 +184,7 @@ def download_name_generator(dirname=None,
         data_path = os.path.join(download_dir, 'data/graphs/')
         hashing_info = None
     else:
-        data_path = os.path.join(download_dir, '/data/annotated/')
+        data_path = os.path.join(download_dir, 'data/annotated/')
         hashing_url = f'http://rnaglib.cs.mcgill.ca/static/datasets/{release}/{tarball_name}_hash.p'
         hashing_path = os.path.join(download_dir, f'data/hashing/{tarball_name}_hash.p')
         hashing_info = (hashing_url, hashing_path)
