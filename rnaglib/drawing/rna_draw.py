@@ -3,15 +3,6 @@ import sys
 
 import networkx as nx
 import matplotlib
-
-use_tex = False
-try:
-    matplotlib.rcParams['text.usetex'] = True
-    use_tex = True
-except:
-    use_tex = False
-    print("No LaTex installation was found, using a fallback drawing system.")
-
 import matplotlib.pyplot as plt
 import seaborn as sns
 
@@ -22,8 +13,16 @@ if __name__ == "__main__":
 
 from rnaglib.utils.graph_io import load_json
 from rnaglib.drawing.rna_layout import circular_layout
+from distutils.spawn import find_executable
+
+use_tex = False
+if find_executable('latex'):
+    use_tex = True
+else:
+    print("No LaTex installation was found, using a fallback drawing system.")
 
 if use_tex:
+    matplotlib.rcParams['text.usetex'] = True
     params = {'text.latex.preamble': r'\usepackage{fdsymbol}\usepackage{xspace}'}
     plt.rc('font', family='serif')
     plt.rcParams.update(params)
@@ -45,8 +44,7 @@ else:
         'tH': r"$\boxdot\ $",
     }
 
-make_label = lambda s: labels[s[:2]] + labels[s[0::2]] if len(set(s[1:])) == 2 \
-    else labels[s[:2]]
+make_label = lambda s: labels[s[:2]] + labels[s[0::2]] if len(set(s[1:])) == 2 else labels[s[:2]]
 
 
 def process_axis(axis,
