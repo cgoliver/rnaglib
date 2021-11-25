@@ -1,14 +1,6 @@
 rnaglib.kernels
 =======================
 
-Annotate 
--------------------------------
-
-.. automodule:: rnaglib.kernels.annotate
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 Node Similarity
 --------------------------------
 

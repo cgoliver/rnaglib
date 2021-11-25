@@ -188,6 +188,7 @@ def get_splits(query_attrs, graph_index=DEFAULT_INDEX, target_fraction=0.2, retu
     :param graph_index: should be the opened output of the previous function a dict of dict of dict.
     :param target_fraction: The fraction of each
     :param return_train: whether to return only the test set or both
+
     :return: the splits in the form of a list of graphs.
     """
     if isinstance(query_attrs, str):

@@ -47,11 +47,10 @@ A more detailed description of the data is presented in :doc:`rnaglib.data`.
 Package Structure
 -----------------
 
--  :doc:`rnaglib.prepare_data/`: processes raw PDB structures and
+-  :doc:`rnaglib.prepare_data`: processes raw PDB structures and
    builds a database of 2.5D graphs with full structural annotation
 -  :doc:`rnaglib.data_loading`: custom PyTorch dataloader implementations
--  :doc:`rnaglib.models`: pre-built GCN models.
--  :doc:`rnaglib.learning`: learning routines for the easiest use of the
+-  :doc:`rnaglib.learning`: learning routines and pre-built GCN models for the easiest use of the
    package.
 -  :doc:`rnaglib.drawing`: utilities for visualizing 2.5D graphs
 -  :doc:`rnaglib.ged`: custom graph similarity functions
@@ -126,7 +125,7 @@ access node and edge attributes as dictionary keys.
 To get more information on what each of these fields refer to, please visit :doc:`rnaglib.data`.
 
 Building a 2.5D Graph from a local PDB
------
+--------------------------------------
 
 If you have an mmCIF containing RNA stored locally and you wish to build a 2.5D graph that can be used in RNAglib you
 can use the ``prepare_data`` module. To do so, you need to have ``x3dna-dssr`` executable in your ``$PATH`` which
@@ -159,7 +158,7 @@ Graph Edit Distance (GED)
 -------------------------
 
 GED is the gold standard of graph comparisons. We have put our ged implementation as a part of networkx, and offer
-in :doc:`rnaglib/ged` the weighting scheme we propose to compare 2.5D graphs. One can call ``rnaglib.ged.ged()`` on two
+in :doc:`rnaglib.ged` the weighting scheme we propose to compare 2.5D graphs. One can call ``rnaglib.ged.ged()`` on two
 graphs to compare them. However, due to the exponential complexity of the comparison, the maximum size of the graphs
 should be around ten nodes, making it more suited for comparing graphlets or subgraphs.
 
@@ -172,7 +171,7 @@ should be around ten nodes, making it more suited for comparing graphlets or sub
     ... 0.0
 
 Building Machine Learning Models
--------------
+--------------------------------
 
 Finally we come to the end goal of this package : performing machine learning on RNA data represented as 2.5D graphs.
 To provide the user with a hands on tutorial, we offer two example learning pipelines in :doc:``rnaglib.examples``.

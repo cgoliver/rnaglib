@@ -18,10 +18,11 @@ Get Labels
    :show-inheritance:
 
 .. _data-loader-label:
-Loader
+
+GraphLoader
 -----------------------------------
 
-.. automodule:: rnaglib.data_loading.loader
+.. automodule:: rnaglib.data_loading.graphloader
    :members:
    :undoc-members:
    :show-inheritance:

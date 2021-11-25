@@ -59,7 +59,9 @@ class GraphDataset(Dataset):
         for example : ('nt_code','is_modified')
         :param node_features: node targets to include, stored in one tensor in order given by user
         for example : ('binding_protein', 'binding_small-molecule')
+        :return:
         """
+
         # If we don't input a data path, the right one according to redundancy, chop and annotated is fetched
         # By default, we set hashing to None and potential node sim should be specified when creating
         # the node_sim function.
