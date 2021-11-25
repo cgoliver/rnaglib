@@ -24,15 +24,17 @@ from rnaglib.prepare_data.dssr_2_graphs import build_one
 from rnaglib.prepare_data.interfaces import get_interfaces
 from rnaglib.prepare_data.annotations import *
 from rnaglib.prepare_data.filters import filter_all
-from rnaglib.prepare_data.filters import has_no_dots 
-from rnaglib.prepare_data.filters import filter_dot_edges 
+from rnaglib.prepare_data.filters import has_no_dots
+from rnaglib.prepare_data.filters import filter_dot_edges
 from rnaglib.prepare_data.chopper import chop_all
 from rnaglib.prepare_data.khop_annotate import annotate_all
 
 FILTERS = ['NR']
 
+
 def listdir_fullpath(d):
-        return [os.path.join(d, f) for f in os.listdir(d)]
+    return [os.path.join(d, f) for f in os.listdir(d)]
+
 
 def update_RNApdb(pdir):
     """
@@ -68,6 +70,7 @@ def update_RNApdb(pdir):
 
     return new_rna
 
+
 def cif_to_graph(cif):
     """Build DDSR graphs for one mmCIF. Requires x3dna-dssr to be in PATH.
 
@@ -77,7 +80,7 @@ def cif_to_graph(cif):
     """
 
     if '.cif' not in cif:
-        print("Incorrect format") 
+        print("Incorrect format")
         return
 
     # Build graph with DSSR
@@ -108,6 +111,7 @@ def cif_to_graph(cif):
             g = reorder_nodes(g)
 
     return g
+
 
 def do_one(cif, output_dir, min_nodes=20):
     """Build DDSR graphs for one mmCIF.
@@ -162,12 +166,13 @@ def do_one(cif, output_dir, min_nodes=20):
             g = reorder_nodes(g)
 
             # Write graph to outputdir in JSON format
-            write_graph(g, os.path.join(output_dir, 'all_graphs', pdbid+'.json'))
+            write_graph(g, os.path.join(output_dir, 'all_graphs', pdbid + '.json'))
             print('>>> SUCCESS: graph written: ', pdbid)
 
     return pdbid, error_type
 
-def main():
+
+def prepare_data_main():
     parser = argparse.ArgumentParser()
     # Input/Output Directories
     parser.add_argument('-S', '--structures_dir',
@@ -178,12 +183,12 @@ def main():
     parser.add_argument('-nw', '--num_workers',
                         type=int,
                         help='number of workers for multiprocessing',
-                        default = 1)
+                        default=1)
     parser.add_argument('-u', '--update', action='store_true',
                         help='update the structures dir')
     parser.add_argument('-c', '--continu', action='store_true',
                         help='Continue previously paused execution')
-    parser.add_argument('-f', '--filter', action ='store_true',
+    parser.add_argument('-f', '--filter', action='store_true',
                         help='build filtered datasets')
     args = parser.parse_args()
 
@@ -197,11 +202,11 @@ def main():
     cifs = listdir_fullpath(args.structures_dir)
     if args.update:
         new_rna = update_RNApdb(args.structures_dir)
-        todo = ((cif, args.output_dir) for cif in cifs\
+        todo = ((cif, args.output_dir) for cif in cifs \
                 if cif[-8:-4].upper() in new_rna)
     elif args.continu:
         done = [graph[:4] for graph in os.listdir(args.output_dir)]
-        todo = ((cif, args.output_dir, fltr) for cif in cifs\
+        todo = ((cif, args.output_dir, fltr) for cif in cifs \
                 if cif[-8:-4] not in done)
     else:
         todo = ((cif, args.output_dir) for cif in cifs)
@@ -217,7 +222,6 @@ def main():
                    filters=FILTERS
                    )
 
-
     for filter in FILTERS + ['all_graphs', 'NR']:
         filter_dest = os.path.join(args.output_dir, filter)
         chop_all(graph_path=filter_dest,
@@ -227,10 +231,9 @@ def main():
 
         print('Done producing graphs')
 
-        annotate_all(graph_path=filter_dest+"_chops", dump_path=filter_dest + "_annot")
+        annotate_all(graph_path=filter_dest + "_chops", dump_path=filter_dest + "_annot")
 
         print('Done annotating graphs')
-
 
     # Error Logging
     errors = [e for e in errors if e is not None]
@@ -248,6 +251,6 @@ def main():
 
     return
 
-if __name__ == '__main__':
-    main()
 
+if __name__ == '__main__':
+    prepare_data_main()
