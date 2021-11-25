@@ -71,7 +71,7 @@ the graphs will be plotted using the LaTex reduced features that ships with matp
 
 .. code-block:: python
 
-    >>> from rnaglib.drawing import rna_draw
+    >>> from rnaglib.drawing.rna_draw import rna_draw
     >>> rna_draw(G, show=True)
 
 

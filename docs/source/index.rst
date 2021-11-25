@@ -68,7 +68,7 @@ These include, but are not limited to:
 -  3-D coordinates(node-level)
 -  Leontis-westhof base pair geometry classification (edge-level)
 
-We provide a visualization of what the graphs in this database contain:
+We provide a visualization of what the graphs in this database contain.
 A more detailed description of the data is presented in :doc:`rnaglib.data`.
 |Example graph|
 
