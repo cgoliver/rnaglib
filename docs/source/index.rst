@@ -9,6 +9,7 @@
    :hidden:
 
    Homepage <self>
+   Installation <install>
    Quickstart <quickstart>
    Data <rnaglib.data>
 
@@ -27,9 +28,6 @@
    Learning <rnaglib.learning>
    Prepare Data <rnaglib.prepare_data>
    Utils <rnaglib.utils>
-
-
-
 
 
 Welcome to RNAGlib's Documentation!
