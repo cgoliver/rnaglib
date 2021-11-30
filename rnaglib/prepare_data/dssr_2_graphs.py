@@ -14,6 +14,7 @@ from collections import defaultdict
 from Bio.PDB import *
 import networkx as nx
 
+
 def mmcif_data(cif):
     """Parse an mmCIF return some metadata.
 
@@ -31,6 +32,7 @@ def mmcif_data(cif):
             'resolution_high': resolution_hi
             }
 
+
 def dssr_exec(cif):
     """Execute DSSR on an mmCIF. Requires `x3dna-dssr` binary to be in `PATH`
 
@@ -39,11 +41,12 @@ def dssr_exec(cif):
     :return: JSON of x3dna output
     """
     try:
-        annot = check_output(["x3dna-dssr", "--json", f"-i={cif}"] )
+        annot = check_output(["x3dna-dssr", "--json", f"-i={cif}"])
     except Exception as e:
         print(e)
         return (1, None)
     return (0, json.loads(annot))
+
 
 def snap_exec(cif):
     """Execute x3dna in SNAP mode to analyze protein interfaces.
@@ -53,11 +56,12 @@ def snap_exec(cif):
     :return: plaintext output
     """
     try:
-        annot = check_output(["x3dna-dssr", "snap", f"-i={cif}"] )
+        annot = check_output(["x3dna-dssr", "snap", f"-i={cif}"])
     except Exception as e:
         print(e)
         return (1, None)
     return (0, annot.decode("utf-8"))
+
 
 def snap_parse(snap_out):
     """
@@ -73,12 +77,12 @@ def snap_parse(snap_out):
     lines = iter(snap_out.split("\n"))
 
     # sometimes header is missing so we have to do this
-    header = ["id","nt-aa","nt","aa","Tdst","Rdst","Tx","Ty","Tz","Rx","Ry","Rz"]
+    header = ["id", "nt-aa", "nt", "aa", "Tdst", "Rdst", "Tx", "Ty", "Tz", "Rx", "Ry", "Rz"]
 
     # regex for base-amino acid interaction
     base_aa = re.compile("[AUCG]{1}-[a-z]{3}\s")
     interface_nts = dict()
-    for i,l in enumerate(lines):
+    for i, l in enumerate(lines):
         # get rid of first two columns
         if base_aa.search(l):
             l = l.split()[2:]
@@ -86,6 +90,7 @@ def snap_parse(snap_out):
             interface_nts[nt_id] = dict(zip(header, l))
 
     return interface_nts
+
 
 def find_nt(nt_annot, nt_id):
     """Find a nucleotide ID in annotation dictionary.
@@ -97,6 +102,7 @@ def find_nt(nt_annot, nt_id):
         if nt['nt_id'] == nt_id:
             return nt
 
+
 def rna_only_nts(annot):
     """ Filter nucleotide annotations to only keep RNA.
 
@@ -105,6 +111,7 @@ def rna_only_nts(annot):
     :return: filtered dictionay
     """
     return filter(lambda x: x['nt_type'] == 'RNA', annot['nts'])
+
 
 def rna_only_pairs(annot):
     """ Only keep pairs between RNAs.
@@ -117,6 +124,7 @@ def rna_only_pairs(annot):
                             find_nt(annot['nts'], x['nt2'])['nt_type'] == 'RNA', \
                   annot['pairs'])
 
+
 def get_backbones(nts):
     """ Get backbone pairs.
     :param nts: DSSR nucleotide info.
@@ -126,7 +134,7 @@ def get_backbones(nts):
     for i, three_p in enumerate(nts):
         if i == 0:
             continue
-        five_p = nts[i-1]
+        five_p = nts[i - 1]
         if five_p['chain_name'] != three_p['chain_name']:
             continue
         if three_p['nt_type'] != 'RNA' or five_p['nt_type'] != 'RNA':
@@ -134,6 +142,7 @@ def get_backbones(nts):
         if 'break' not in three_p['summary']:
             bb.append((five_p, three_p))
     return bb
+
 
 def add_sses(g, annot):
     """ Return dict of nodes that are in an sse as a list of
@@ -156,6 +165,8 @@ def add_sses(g, annot):
                 if nt in g.nodes():
                     sse_annots[nt] = {'sse': f'{sse[:-1]}_{elem["index"]}'}
     return sse_annots
+
+
 def base_pair_swap(pairs):
     """Swap the order of the entries in a pair dict for bidirectional edges.
 
@@ -174,6 +185,7 @@ def base_pair_swap(pairs):
 
     return pairs + new_pairs
 
+
 def get_graph_data(annots, mmcif_data=None):
     """ Fetch graph-level data
 
@@ -188,7 +200,7 @@ def get_graph_data(annots, mmcif_data=None):
     g_data['dbn'] = recursive_dd()
 
     if not mmcif_data is None:
-        for k,v in mmcif_data.items():
+        for k, v in mmcif_data.items():
             g_data[k] = v
 
     for chain, info in annots['dbn'].items():
@@ -198,6 +210,7 @@ def get_graph_data(annots, mmcif_data=None):
             g_data['dbn']['single_chains'][chain] = info
         pass
     return g_data
+
 
 def annot_2_graph(annot, rbp_annot, pdbid, mmcif_data=None):
     """
@@ -220,9 +233,9 @@ def annot_2_graph(annot, rbp_annot, pdbid, mmcif_data=None):
     G = nx.DiGraph()
 
     # for v in annot['pairs']:
-        # print(v['nt1'], v['nt2'], v['LW'])
+    # print(v['nt1'], v['nt2'], v['LW'])
     g_annot = get_graph_data(annot, mmcif_data=mmcif_data)
-    for k,v in g_annot.items():
+    for k, v in g_annot.items():
         G.graph[k] = v
     # print(G.graph)
     nt_annot = rna_only_nts(annot)
@@ -248,7 +261,7 @@ def annot_2_graph(annot, rbp_annot, pdbid, mmcif_data=None):
         print(f"No base pairs found for {pdbid}")
         return
 
-    G.add_edges_from(((pair['nt1'], pair['nt2'], pair)\
+    G.add_edges_from(((pair['nt1'], pair['nt2'], pair) \
                       for pair in rna_pairs))
 
     # add SSE data
@@ -268,13 +281,13 @@ def annot_2_graph(annot, rbp_annot, pdbid, mmcif_data=None):
             G.nodes[node]['binding_protein'] = None
 
     # for node, data in G.nodes(data=True):
-        # if 'chain_name' not in data.keys():
-            # print(node, data)
+    # if 'chain_name' not in data.keys():
+    # print(node, data)
     # for node, data in G.nodes(data=True):
-        # if 'chain_name' in data.keys():
-            # print(node, data)
-    new_labels = {n: ".".join([pdbid, str(d['chain_name']), str(d['nt_resnum'])])\
-                    for n,d in G.nodes(data=True)}
+    # if 'chain_name' in data.keys():
+    # print(node, data)
+    new_labels = {n: ".".join([pdbid, str(d['chain_name']), str(d['nt_resnum'])]) \
+                  for n, d in G.nodes(data=True)}
 
     G = nx.relabel_nodes(G, new_labels)
 
@@ -284,6 +297,7 @@ def annot_2_graph(annot, rbp_annot, pdbid, mmcif_data=None):
 
     return G
 
+
 def build_one(cif):
     """Buid annotation graph for one cif.
 
@@ -292,6 +306,8 @@ def build_one(cif):
     :return: annotated graph
     """
     exit_code, annot = dssr_exec(cif)
+    if exit_code == 1:
+        return None
     rbp_exit_code, rbp_out = snap_exec(cif)
     mmcif_info = mmcif_data(cif)
     try:
@@ -303,8 +319,10 @@ def build_one(cif):
 
     return G
 
+
 def build_all():
     pass
+
 
 if __name__ == "__main__":
     # doc example with multiloop

@@ -10,11 +10,12 @@ requirements = ["torch",
                 "seaborn",
                 "sklearn",
                 "tqdm",
+                "biopython"
                 ]
 
 setuptools.setup(
     name="rnaglib",
-    version="1.0.4",
+    version="1.0.1",
     author="Vincent Mallet, Carlos Oliver, Jonathan Broadbent, William L. Hamilton and Jérome Waldispuhl",
     author_email="vincent.mallet96@gmail.com",
     description="RNAglib: Tools for learning on the structure of RNA using 2.5D graph representations",
