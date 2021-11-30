@@ -85,14 +85,21 @@ def cif_to_graph(cif):
 
     # Build graph with DSSR
     error_type = ''
+    no_license = False
     try:
         g = build_one(cif)
+        if g is None:
+            no_license = True
         filter_dot_edges(g)
         assert has_no_dots(g)
 
     except Exception as e:
         print("ERROR: Could not construct DSSR graph for ", cif)
-        print(traceback.print_exc())
+        if no_license:
+            print("Annotation using x3dna-dssr failed, please ensure you have the executable in your PATH")
+            print("This requires a license.")
+        else:
+            print(traceback.print_exc())
         return
     else:
         # Find ligand and ion annotations from the PDB cif
