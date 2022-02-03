@@ -103,8 +103,10 @@ and can start using the packages functionalities by importing them in one's pyth
 
 To have an idea on how to use the main functions of RNAGlib, please visit :doc:`quickstart`
 
-Associated Repositories:
+Source Code and Associated Repositories:
 ------------------------
+`RNAglib`<https://jwgitlab.cs.mcgill.ca/cgoliver/rnaglib>`__
+
 `RNAMigos <https://github.com/cgoliver/RNAmigos>`__ : a research paper published in Nucleic Acid Research that
 demonstrates the usefulness of 2.5D graphs for machine learning tasks, exemplified onto the drug discovery application.
 
