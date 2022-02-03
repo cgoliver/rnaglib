@@ -14,11 +14,11 @@ from tqdm import tqdm
 
 script_dir = os.path.dirname(os.path.realpath(__file__))
 if __name__ == "__main__":
-    sys.path.append(os.path.join(script_dir, '..'))
-
+    sys.path.append(os.path.join(script_dir, '..', '..'))
 
 from rnaglib.utils.graphlet_hash import build_hash_table, Hasher
 from rnaglib.utils.graph_utils import extract_graphlet
+from rnaglib.utils.graph_io import load_graph
 from rnaglib.config.graph_keys import GRAPH_KEYS, TOOL
 
 
@@ -143,7 +143,7 @@ def annotate_one(args):
         if re_annotate:
             graph = pickle.load(open(os.path.join(graph_path, g), 'rb'))['graph']
         else:
-            graph = nx.read_gpickle(os.path.join(graph_path, g))
+            graph = load_graph(os.path.join(graph_path, g))
         rings = build_ring_tree_from_graph(graph,
                                            depth=5,
                                            hasher=hasher,
@@ -184,7 +184,7 @@ def annotate_all(dump_path='../data/annotated/sample_v2',
         print(">>> hashing graphlets.")
         hasher = Hasher(wl_hops=wl_hops)
         hash_table = build_hash_table(graph_path,
-                                      hasher, annot=re_annotate,
+                                      hasher,
                                       graphlet_size=graphlet_size
                                       )
         print(f">>> found {len(hash_table)} graphlets.")
@@ -193,12 +193,13 @@ def annotate_all(dump_path='../data/annotated/sample_v2',
                     open(os.path.join(dump_path + "_hash.p"), 'wb'))
     else:
         hasher = None
+        hash_table = None
 
     graphs = os.listdir(graph_path)
     failed = 0
     print(">>> annotating all.")
-    pool = mlt.Pool()
     if parallel:
+        pool = mlt.Pool()
         print(">>> going parallel")
         arguments = [(g, graph_path, dump_path, hasher, re_annotate, hash_table) for g in graphs]
         for res in tqdm(pool.imap_unordered(annotate_one, arguments), total=len(graphs)):
@@ -215,34 +216,19 @@ def annotate_all(dump_path='../data/annotated/sample_v2',
     pass
 
 
-def cline():
-    """
-    annotate_all(graph_path="../data/ref_graph", dump_path='../data/annotated/ref_graph', do_hash=True, parallel=False)
-    """
+if __name__ == '__main__':
+    # import doctest
+    # doctest.testmod()
+
     parser = argparse.ArgumentParser()
-    parser.add_argument("-g", "--graph_path", default=os.path.join(script_dir, '../data/samples_v2_chunks'))
-    parser.add_argument("-a", "--annot_id", default='samples', type=str, help="Annotated data ID.")
+    parser.add_argument("-g", "--graph_path", default=os.path.join(script_dir, '../data/samples_v2_chunks')
+                        , type=str, help="The path of the graphs directory you want to annotate.")
+    parser.add_argument("-a", "--annot_path", default=os.path.join(script_dir, '../data/annotated/samples'),
+                        type=str, help="The path where we want our annotated graphs to be created.")
     parser.add_argument("-ha", "--do_hash", default=False, action='store_true', help="Hash graphlets.")
     parser.add_argument("-p", "--parallel", default=False, action='store_true', help='Multiprocess annotations.')
     parser.add_argument("-re", "--re_annotate", default=False, action='store_true',
-                        help='Read alreadya annotated graphs.')
+                        help='Read already annotated graphs.')
     args, _ = parser.parse_known_args()
-    return args
-
-
-def caller(graph_path=os.path.join(script_dir, '../data/samples_v2'), annot_id='samples', do_hash=False,
-           parallel=False, re_annotate=False):
-    annotate_all(graph_path=graph_path,
-                 dump_path=os.path.join(os.path.join(script_dir, '..', 'data', 'annotated', annot_id)),
-                 do_hash=do_hash, parallel=parallel,
-                 re_annotate=re_annotate)
-    pass
-
-
-if __name__ == '__main__':
-    import doctest
-
-    doctest.testmod()
-
-    args = cline()
-    caller(**vars(args))
+    annotate_all(graph_path=args.graph_path, dump_path=args.annot_path, do_hash=args.do_hash,
+                 parallel=args.parallel, re_annotate=args.re_annotate)
