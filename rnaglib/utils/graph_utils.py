@@ -194,7 +194,7 @@ def bfs(graph, initial_nodes, nc_block=False, depth=2, label='label'):
     return set(itertools.chain(*total_nodes))
 
 
-def extract_graphlet(graph, n, size=1):
+def extract_graphlet(graph, n, size=1, label='LW'):
     """
     Small util to extract a graphlet around a node
 
@@ -204,7 +204,7 @@ def extract_graphlet(graph, n, size=1):
 
     :return: The graphlet as a copy
     """
-    graphlet = graph.subgraph(bfs(graph, [n], depth=size)).copy()
+    graphlet = graph.subgraph(bfs(graph, [n], depth=size, label=label)).copy()
     return graphlet
 
 
