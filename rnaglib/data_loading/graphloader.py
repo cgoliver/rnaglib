@@ -1,17 +1,19 @@
 import os
 import sys
 
-import pickle
 import networkx as nx
 import numpy as np
 import random
-import tarfile
-import zipfile
 
 import torch
 from torch.utils.data import Dataset, DataLoader, Subset
 import dgl
-from dgl.dataloading.pytorch import EdgeDataLoader
+
+DGL_VERSION = dgl.__version__
+if DGL_VERSION < "0.8":
+    from dgl.dataloading.pytorch import EdgeDataLoader
+else:
+    from dgl.dataloading import DataLoader as DGLDataLoader
 
 script_dir = os.path.dirname(os.path.realpath(__file__))
 if __name__ == "__main__":
@@ -413,7 +415,6 @@ class EdgeLoaderGenerator:
         :param inner_batch_size: The amount of base-pairs to sample in each batch on each graph
         :param sampler_layers: The size of the neighborhood
         :param neg_samples: The number of negative sample to use per positive ones
-        :param num_workers: The amount of cores to use for loading
         """
         self.graph_loader = graph_loader
         self.neg_samples = neg_samples
@@ -447,8 +448,21 @@ class EdgeLoaderGenerator:
 
         :return: the edge loader
         """
-        edge_loader = (EdgeDataLoader(g_batched, self.get_base_pairs(g_batched), self.sampler, **self.eloader_args)
-                       for g_batched, _ in self.graph_loader)
+
+        if DGL_VERSION < 1.8:
+            from dgl.dataloading.pytorch import EdgeDataLoader
+            edge_loader = (EdgeDataLoader(g_batched, self.get_base_pairs(g_batched), self.sampler, **self.eloader_args)
+                           for g_batched, _ in self.graph_loader)
+        else:
+            sampler = dgl.dataloading.as_edge_prediction_sampler(
+                self.sampler,
+                negative_sampler=self.negative_sampler)
+            edge_loader = (DGLDataLoader(g_batched,
+                                         self.get_base_pairs(g_batched),
+                                         sampler,
+                                         shuffle=False,
+                                         batch_size=self.inner_batch_size)
+                           for g_batched, _ in self.graph_loader)
         return edge_loader
 
 
@@ -504,8 +518,6 @@ class DefaultBasePairLoader:
 
 if __name__ == '__main__':
     pass
-    import time
-
     node_features = ['nt_code', "alpha", "C5prime_xyz", "is_modified"]
     node_target = ['binding_ion']
 
