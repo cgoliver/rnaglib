@@ -31,7 +31,7 @@ class SimFunctionNode():
                  normalization=None,
                  hash_init_path=os.path.join(script_dir, '..', 'data', 'hashing', 'NR_chops_hash.p')):
         """
-        Factory object to to compute all node similarities. These methods take as input an annotated pair of nodes
+        Factory object to compute all node similarities. These methods take as input an annotated pair of nodes
         and compare them.
 
         These methods are detailed in the supplemental of the paper, but include five methods. These methods frequently

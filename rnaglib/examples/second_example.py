@@ -28,8 +28,9 @@ if __name__ == "__main__":
     # Choose the data and kernel to use for pretraining
     print('Starting to pretrain the network')
     node_sim_func = node_sim.SimFunctionNode(method='R_graphlets', depth=2)
-    unsupervised_dataset = graphloader.UnsupervisedDataset(node_simfunc=node_sim_func,
-                                                           node_features=node_features)
+    unsupervised_dataset = graphloader.GraphDataset(node_simfunc=node_sim_func,
+                                                    node_features=node_features,
+                                                    chop=True)
     train_loader = graphloader.GraphLoader(dataset=unsupervised_dataset, split=False,
                                            num_workers=4, max_size_kernel=100).get_data()
 
@@ -49,10 +50,10 @@ if __name__ == "__main__":
     print('We have finished pretraining the network, let us fine tune it')
     # GET THE DATA GOING, we want to use precise data splits to be able to use the benchmark.
     train_split, test_split = evaluate.get_task_split(node_target=node_target)
-    supervised_train_dataset = graphloader.SupervisedDataset(node_features=node_features,
-                                                             redundancy='NR',
-                                                             node_target=node_target,
-                                                             all_graphs=train_split)
+    supervised_train_dataset = graphloader.GraphDataset(node_features=node_features,
+                                                        redundancy='NR',
+                                                        node_target=node_target,
+                                                        all_graphs=train_split)
     train_loader = graphloader.GraphLoader(dataset=supervised_train_dataset, split=False).get_data()
 
     # Define a model and train it :

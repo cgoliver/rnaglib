@@ -52,7 +52,8 @@ def pretrain_unsupervised(model,
         model.train()
         running_loss = 0.0
         num_batches = len(train_loader)
-        for batch_idx, (graph, K, graph_sizes, node_ids) in enumerate(train_loader):
+        for batch_idx, batch in enumerate(train_loader):
+            graph, graph_sizes, (K, node_ids) = batch['graphs'], batch['num_nodes'], batch['node_similarities']
             # Get data on the devices
             K = K.to(device)
             graph = send_graph_to_device(graph, device)
@@ -131,8 +132,9 @@ def train_supervised(model,
         running_loss = 0.0
         num_batches = len(train_loader)
 
-        for batch_idx, (graph, graph_sizes) in enumerate(train_loader):
+        for batch_idx, batch in enumerate(train_loader):
             # Get data on the devices
+            graph, graph_sizes = batch['graphs'], batch['num_nodes']
             graph = send_graph_to_device(graph, device)
 
             # Do the computations for the forward pass
@@ -254,9 +256,10 @@ if __name__ == '__main__':
         node_sim_func = node_sim.SimFunctionNode(method='R_1', depth=2)
         data_path = os.path.join(script_dir, '..', 'data/annotated/NR_annot/')
         node_features = ['nt_code']
-        unsupervised_dataset = graphloader.UnsupervisedDataset(node_simfunc=node_sim_func,
-                                                               node_features=node_features,
-                                                               data_path=data_path)
+        unsupervised_dataset = graphloader.GraphDataset(node_simfunc=node_sim_func,
+                                                        node_features=node_features,
+                                                        data_path=data_path,
+                                                        chop=True)
         train_loader = graphloader.GraphLoader(dataset=unsupervised_dataset, split=False,
                                                num_workers=0, max_size_kernel=100).get_data()
 
