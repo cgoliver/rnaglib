@@ -265,8 +265,9 @@ def compute_embeddings(model, validation_loader):
     model.eval()
     device = model.current_device
     predicted = list()
-    for batch_idx, (graph, graph_sizes) in enumerate(validation_loader):
+    for batch_idx, batch in enumerate(validation_loader):
         # Get data on the devices
+        graph, graph_sizes = batch['graphs'], batch['num_nodes']
         graph = send_graph_to_device(graph, device)
 
         # Do the computations for the forward pass
@@ -288,8 +289,9 @@ def compute_outputs(model, validation_loader):
     model.eval()
     device = model.current_device
     true, predicted = list(), list()
-    for batch_idx, (graph, graph_sizes) in enumerate(validation_loader):
+    for batch_idx, batch in enumerate(validation_loader):
         # Get data on the devices
+        graph, graph_sizes = batch['graphs'], batch['num_nodes']
         graph = send_graph_to_device(graph, device)
 
         # Do the computations for the forward pass
@@ -318,7 +320,8 @@ def evaluate_model_unsupervised(model, validation_loader,
     device = model.current_device
     test_size = len(validation_loader)
     recons_loss_tot = 0
-    for batch_idx, (graph, K, inds, graph_sizes) in enumerate(validation_loader):
+    for batch_idx, batch in enumerate(validation_loader):
+        graph, graph_sizes, (K, node_ids) = batch['graphs'], batch['num_nodes'], batch['node_similarities']
         # Get data on the devices
         K = K.to(device)
         graph = send_graph_to_device(graph, device)
@@ -329,6 +332,7 @@ def evaluate_model_unsupervised(model, validation_loader,
             reconstruction_loss = rec_loss(embeddings=out,
                                            target_K=K,
                                            graph=graph,
+                                           node_ids=node_ids,
                                            **rec_params)
             recons_loss_tot += reconstruction_loss
     return recons_loss_tot / test_size

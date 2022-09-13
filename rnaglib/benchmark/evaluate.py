@@ -55,9 +55,9 @@ def get_performance(node_target, model, node_features=None, evaluation_function=
     :return: The loss value
     """
     train_split, test_split = get_task_split(node_target=node_target)
-    test_dataset = graphloader.SupervisedDataset(node_features=node_features,
-                                                 node_target=node_target,
-                                                 all_graphs=test_split)
+    test_dataset = graphloader.GraphDataset(node_features=node_features,
+                                            node_target=node_target,
+                                            all_graphs=test_split)
     test_loader = graphloader.GraphLoader(dataset=test_dataset, split=False).get_data()
 
     loss = learn.evaluate_model_supervised(model=model, validation_loader=test_loader,
