@@ -393,20 +393,27 @@ class GraphDataset(Dataset):
                 if "target" in node_attrs_toadd:
                     to_embed.append(target_tens)
 
-                max = 20
+                max = None
                 if len(to_embed) == 0:
                     features = None
                 else:
                     if len(to_embed) == 2:
-                        to_embed = torch.hstack(to_embed)
+                        features = torch.hstack(to_embed)
                     else:
-                        to_embed = to_embed[0]
-                    features = to_embed.numpy()
+                        features = to_embed[0]
+                    features = features.numpy()
                     features = features[:max]
                 coords = coord_tens.numpy()
                 coords = coords[:max]
 
                 voxel_representation = get_grid(coords=coords, features=features)
+                # Just retrieve a one-hot
+                if features is None:
+                    res_dict['voxel_feats'] = voxel_representation
+                if "features" in node_attrs_toadd:
+                    res_dict['voxel_feats'] = voxel_representation[:self.input_dim]
+                if "target" in node_attrs_toadd:
+                    res_dict['voxel_target'] = voxel_representation[-self.output_dim:]
 
         if 'graph' in self.return_type:
             graph = self.fix_buggy_edges(graph=graph)
@@ -718,7 +725,9 @@ if __name__ == '__main__':
                                                                num_workers=0).get_data()
 
     for i, batch in enumerate(train_loader):
-        print(batch)
+        for k, v in batch.items():
+            if 'voxel' in k:
+                print(k, [value.shape for value in v])
         if i > 10:
             break
         # if not i % 20: print(i)
