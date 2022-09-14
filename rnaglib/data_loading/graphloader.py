@@ -4,6 +4,7 @@ import sys
 import networkx as nx
 import numpy as np
 import random
+from sklearn.gaussian_process.kernels import RBF
 
 import torch
 from torch.utils.data import Dataset, DataLoader, Subset
@@ -23,6 +24,122 @@ from rnaglib.kernels.node_sim import SimFunctionNode, k_block_list
 from rnaglib.utils import graph_io
 from rnaglib.data_loading.feature_maps import build_node_feature_parser
 from rnaglib.config.graph_keys import GRAPH_KEYS, TOOL, EDGE_MAP_RGLIB_REVERSE
+
+
+def get_bins(coords, spacing, padding, xyz_min=None, xyz_max=None):
+    """
+    Compute the 3D bins from the coordinates
+    """
+    if xyz_min is None:
+        xm, ym, zm = coords.min(axis=0) - padding
+    else:
+        xm, ym, zm = xyz_min - padding
+    if xyz_max is None:
+        xM, yM, zM = coords.max(axis=0) + padding
+    else:
+        xM, yM, zM = xyz_max + padding
+
+    # print(xm)
+    # print(xM)
+    # print(spacing)
+    xi = np.arange(xm, xM, spacing)
+    yi = np.arange(ym, yM, spacing)
+    zi = np.arange(zm, zM, spacing)
+    return xi, yi, zi
+
+
+def just_one(coord, xi, yi, zi, sigma, feature, total_grid, use_multiprocessing=False):
+    """
+
+    :param coord: x,y,z
+    :param grid:
+    :param sigma:
+    :return:
+    """
+    #  Find subgrid
+    nx, ny, nz = xi.size, yi.size, zi.size
+
+    bound = int(4 * sigma)
+    x, y, z = coord
+    binx = np.digitize(x, xi)
+    biny = np.digitize(y, yi)
+    binz = np.digitize(z, zi)
+    min_bounds_x, max_bounds_x = max(0, binx - bound), min(nx, binx + bound)
+    min_bounds_y, max_bounds_y = max(0, biny - bound), min(ny, biny + bound)
+    min_bounds_z, max_bounds_z = max(0, binz - bound), min(nz, binz + bound)
+
+    X, Y, Z = np.meshgrid(xi[min_bounds_x: max_bounds_x],
+                          yi[min_bounds_y: max_bounds_y],
+                          zi[min_bounds_z:max_bounds_z],
+                          indexing='ij')
+    X, Y, Z = X.flatten(), Y.flatten(), Z.flatten()
+
+    #  Compute RBF
+    rbf = RBF(sigma)
+    subgrid = rbf(coord, np.c_[X, Y, Z])
+    subgrid = subgrid.reshape((max_bounds_x - min_bounds_x,
+                               max_bounds_y - min_bounds_y,
+                               max_bounds_z - min_bounds_z))
+
+    # Broadcast the feature throughout the local grid.
+    subgrid = subgrid[None, ...]
+    feature = feature[:, None, None, None]
+    subgrid_feature = subgrid * feature
+
+    #  Add on the first grid
+    if not use_multiprocessing:
+        total_grid[:, min_bounds_x: max_bounds_x, min_bounds_y: max_bounds_y,
+        min_bounds_z:max_bounds_z] += subgrid_feature
+    else:
+        return min_bounds_x, max_bounds_x, min_bounds_y, max_bounds_y, min_bounds_z, max_bounds_z, subgrid_feature
+
+
+def gaussian_blur(coords, xi, yi, zi, features=None, sigma=1., use_multiprocessing=False):
+    """
+
+    :param coords: (n_points, 3)
+    :param xi:
+    :param yi:
+    :param zi:
+    :param features: (n_points, dim) or None
+    :param sigma:
+    :param use_multiprocessing:
+    :return:
+    """
+
+    nx, ny, nz = xi.size, yi.size, zi.size
+    features = np.ones((len(coords), 1)) if features is None else features
+    feature_len = features.shape[1]
+    total_grid = np.zeros(shape=(feature_len, nx, ny, nz))
+
+    if use_multiprocessing:
+        import multiprocessing
+        args = [(coord, xi, yi, zi, sigma, features[i], None, True) for i, coord in enumerate(coords)]
+        pool = multiprocessing.Pool()
+        grids_to_add = pool.starmap(just_one, args)
+        for min_bounds_x, max_bounds_x, min_bounds_y, max_bounds_y, min_bounds_z, max_bounds_z, subgrid in grids_to_add:
+            total_grid[:, min_bounds_x: max_bounds_x, min_bounds_y: max_bounds_y, min_bounds_z:max_bounds_z] += subgrid
+    else:
+        for i, coord in enumerate(coords):
+            just_one(coord, feature=features[i], xi=xi, yi=yi, zi=zi, sigma=sigma, total_grid=total_grid)
+    return total_grid
+
+
+def get_grid(coords, features=None, spacing=2, padding=3, xyz_min=None, xyz_max=None, sigma=1.):
+    """
+    Generate a grid from the coordinates
+    :param coords: (n,3) array
+    :param features: (n,k) array
+    :param spacing:
+    :param padding:
+    :param xyz_min:
+    :param xyz_max:
+    :param sigma:
+    :return:
+    """
+    xi, yi, zi = get_bins(coords, spacing, padding, xyz_min, xyz_max)
+    grid = gaussian_blur(coords, xi, yi, zi, features=features, sigma=sigma)
+    return grid
 
 
 class GraphDataset(Dataset):
@@ -250,15 +367,46 @@ class GraphDataset(Dataset):
     def __getitem__(self, idx):
         graph, node_attrs_toadd = self.get_nx_graph(idx)
         res_dict = {'num_nodes': len(graph)}
-        if 'point_cloud' in self.return_type:
-            coord_tens = self.as_tensor(graph, 'P_xyz')
-            res_dict['node_coords'] = coord_tens
+
+        if 'point_cloud' in self.return_type or 'voxel' in self.return_type:
+            # More robust to get C5 ? P is sometimes None
+            coord_tens = self.as_tensor(graph, 'C5prime_xyz')
+            # coord_tens = self.as_tensor(graph, 'P_xyz')
             if "features" in node_attrs_toadd:
                 feat_tens = self.as_tensor(graph, 'features')
-                res_dict['node_feats'] = feat_tens
             if "target" in node_attrs_toadd:
                 target_tens = self.as_tensor(graph, 'target')
-                res_dict['node_targets'] = target_tens
+
+            # If we need to return the point cloud computations
+            if 'point_cloud' in self.return_type:
+                res_dict['node_coords'] = coord_tens
+                if "features" in node_attrs_toadd:
+                    res_dict['node_feats'] = feat_tens
+                if "target" in node_attrs_toadd:
+                    res_dict['node_targets'] = target_tens
+
+            # If we need voxels, let's do the computations. Once again it's tricky to get the right dimensions.
+            if 'voxel' in self.return_type:
+                to_embed = []
+                if "features" in node_attrs_toadd:
+                    to_embed.append(feat_tens)
+                if "target" in node_attrs_toadd:
+                    to_embed.append(target_tens)
+
+                max = 20
+                if len(to_embed) == 0:
+                    features = None
+                else:
+                    if len(to_embed) == 2:
+                        to_embed = torch.hstack(to_embed)
+                    else:
+                        to_embed = to_embed[0]
+                    features = to_embed.numpy()
+                    features = features[:max]
+                coords = coord_tens.numpy()
+                coords = coords[:max]
+
+                voxel_representation = get_grid(coords=coords, features=features)
 
         if 'graph' in self.return_type:
             graph = self.fix_buggy_edges(graph=graph)
@@ -551,22 +699,26 @@ class DefaultBasePairLoader:
 if __name__ == '__main__':
     pass
     node_features = ['nt_code', "alpha", "C5prime_xyz", "is_modified"]
+    # node_features = None
     node_target = ['binding_ion']
+    # node_target = None
     # node_simfunc = SimFunctionNode(method='R_1', depth=2)
     node_simfunc = None
+
+    torch.random.manual_seed(42)
 
     # GET THE DATA GOING
     toy_dataset = GraphDataset(data_path='data/graphs/all_graphs',
                                node_features=node_features,
                                node_target=node_target,
-                               return_type='graph',
+                               return_type='voxel',
                                node_simfunc=node_simfunc)
     train_loader, validation_loader, test_loader = GraphLoader(dataset=toy_dataset,
                                                                batch_size=2,
-                                                               num_workers=6).get_data()
+                                                               num_workers=0).get_data()
 
     for i, batch in enumerate(train_loader):
-        print(batch['graphs'])
+        print(batch)
         if i > 10:
             break
         # if not i % 20: print(i)
