@@ -10,7 +10,7 @@ requirements = ["torch",
                 "seaborn",
                 "sklearn",
                 "tqdm",
-                "biopython"
+                "biopython",
                 ]
 
 setuptools.setup(
