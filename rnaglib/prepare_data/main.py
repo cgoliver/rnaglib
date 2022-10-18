@@ -228,7 +228,8 @@ def prepare_data_main():
     try:
         os.mkdir(os.path.join(args.output_dir))
         os.mkdir(os.path.join(args.output_dir, 'all_graphs'))
-        os.makedirs(os.path.join(args.output_dir, filter))
+        for rna_filter in FILTERS + ['all_graphs', 'NR']:
+            os.makedirs(os.path.join(args.output_dir, rna_filter))
 
     except FileExistsError:
         pass
@@ -257,12 +258,8 @@ def prepare_data_main():
                    filters=FILTERS
                    )
 
-    for filter in FILTERS + ['all_graphs', 'NR']:
-        try:
-            os.makedirs(os.path.join(args.output_dir, filter))
-        except FileExistsError:
-            pass
-        filter_dest = os.path.join(args.output_dir, filter)
+    for rna_filter in FILTERS + ['all_graphs', 'NR']:
+        filter_dest = os.path.join(args.output_dir, rna_filter)
         chop_all(graph_path=filter_dest,
                  pdb_path=args.structures_dir,
                  dest=filter_dest + "_chops"
