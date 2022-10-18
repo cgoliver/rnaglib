@@ -44,14 +44,18 @@ def get_rna_list():
                             "service": "text",
                             "parameters": {"attribute": "rcsb_entry_info.polymer_entity_count_RNA", "operator": "greater", "value": 0}
                           },
-                "return_type": "polymer_entity"
+                 "request_options": {
+                            "results_verbosity": "compact",
+                            "return_all_hits": True
+                          },
+                "return_type": "entry"
             }
 
 
     r = requests.get(f'https://search.rcsb.org/rcsbsearch/v2/query?json={json.dumps(payload)}')
     try:
         response_dict = json.loads(r.text)
-        ids = [x['identifier'].split('_')[0] for x in response_dict['result_set']]
+        ids = response_dict['result_set']
     except:
         print('An error occured when querying RCSB.')
         print(r.text)
@@ -224,6 +228,8 @@ def prepare_data_main():
     try:
         os.mkdir(os.path.join(args.output_dir))
         os.mkdir(os.path.join(args.output_dir, 'all_graphs'))
+        os.makedirs(os.path.join(args.output_dir, filter))
+
     except FileExistsError:
         pass
 
@@ -252,6 +258,10 @@ def prepare_data_main():
                    )
 
     for filter in FILTERS + ['all_graphs', 'NR']:
+        try:
+            os.makedirs(os.path.join(args.output_dir, filter))
+        except FileExistsError:
+            pass
         filter_dest = os.path.join(args.output_dir, filter)
         chop_all(graph_path=filter_dest,
                  pdb_path=args.structures_dir,
