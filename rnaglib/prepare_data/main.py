@@ -12,8 +12,8 @@ import sys
 import traceback
 import argparse
 from Bio.PDB.PDBList import PDBList
-# from rcsbsearch import TextQuery, Attr
 import json
+import requests
 from collections import defaultdict
 
 script_dir = os.path.dirname(os.path.realpath(__file__))
@@ -35,6 +35,29 @@ FILTERS = ['NR']
 def listdir_fullpath(d):
     return [os.path.join(d, f) for f in os.listdir(d)]
 
+def get_rna_list():
+    """ Fetch a list of PDBs containing RNA.
+    """
+    payload = {
+                "query": {
+                            "type": "terminal",
+                            "service": "text",
+                            "parameters": {"attribute": "rcsb_entry_info.polymer_entity_count_RNA", "operator": "greater", "value": 0}
+                          },
+                "return_type": "polymer_entity"
+            }
+
+
+    r = requests.get(f'https://search.rcsb.org/rcsbsearch/v2/query?json={json.dumps(payload)}')
+    try:
+        response_dict = json.loads(r.text)
+        ids = [x['identifier'].split('_')[0] for x in response_dict['result_set']]
+    except:
+        print('An error occured when querying RCSB.')
+        print(r.text)
+        exit()
+    return ids
+
 
 def update_RNApdb(pdir):
     """
@@ -45,8 +68,7 @@ def update_RNApdb(pdir):
     """
     print('Updating PDB...')
     # Get a list of PDBs containing RNA
-    query = Attr('rcsb_entry_info.polymer_entity_count_RNA') >= 1
-    rna = set(query())
+    rna = set(get_rna_list())
 
     pl = PDBList()
 
