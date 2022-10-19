@@ -6,15 +6,16 @@ Run with -u to update the PDB atleast once a week
 EXTERNAL PACKAGES:
     rcsbsearch : `pip install rcsbsearch`
 """
-import multiprocessing as mp
+import argparse
 import os
 import sys
 import traceback
-import argparse
+import multiprocessing as mp
+
 from Bio.PDB.PDBList import PDBList
+from collections import defaultdict
 import json
 import requests
-from collections import defaultdict
 
 script_dir = os.path.dirname(os.path.realpath(__file__))
 if __name__ == "__main__":
@@ -22,10 +23,8 @@ if __name__ == "__main__":
 
 from rnaglib.prepare_data.dssr_2_graphs import build_one
 from rnaglib.prepare_data.interfaces import get_interfaces
-from rnaglib.prepare_data.annotations import *
-from rnaglib.prepare_data.filters import filter_all
-from rnaglib.prepare_data.filters import has_no_dots
-from rnaglib.prepare_data.filters import filter_dot_edges
+from rnaglib.prepare_data.annotations import parse_interfaces, annotate_graph, reorder_nodes, write_graph
+from rnaglib.prepare_data.filters import filter_dot_edges, filter_all
 from rnaglib.prepare_data.chopper import chop_all
 from rnaglib.prepare_data.khop_annotate import annotate_all
 
@@ -35,22 +34,24 @@ FILTERS = ['NR']
 def listdir_fullpath(d):
     return [os.path.join(d, f) for f in os.listdir(d)]
 
+
 def get_rna_list():
-    """ Fetch a list of PDBs containing RNA.
+    """
+    Fetch a list of PDBs containing RNA.
+
     """
     payload = {
-                "query": {
-                            "type": "terminal",
-                            "service": "text",
-                            "parameters": {"attribute": "rcsb_entry_info.polymer_entity_count_RNA", "operator": "greater", "value": 0}
-                          },
-                 "request_options": {
-                            "results_verbosity": "compact",
-                            "return_all_hits": True
-                          },
-                "return_type": "entry"
-            }
-
+        "query": {
+            "type": "terminal",
+            "service": "text",
+            "parameters": {"attribute": "rcsb_entry_info.polymer_entity_count_RNA", "operator": "greater", "value": 0}
+        },
+        "request_options": {
+            "results_verbosity": "compact",
+            "return_all_hits": True
+        },
+        "return_type": "entry"
+    }
 
     r = requests.get(f'https://search.rcsb.org/rcsbsearch/v2/query?json={json.dumps(payload)}')
     try:
@@ -97,111 +98,69 @@ def update_RNApdb(pdir):
     return new_rna
 
 
-def cif_to_graph(cif):
-    """Build DDSR graphs for one mmCIF. Requires x3dna-dssr to be in PATH.
+def cif_to_graph(cif, output_dir=None, min_nodes=20, return_graph=False):
+    """
+    Build DDSR graphs for one mmCIF. Requires x3dna-dssr to be in PATH.
 
     :param cif: path to CIF
-
+    :param output_dir: where to dump
+    :param min_nodes: smallest RNA (number of residue nodes)
+    :param return_graph: Boolean to include the graph in the output
     :return: networkx graph of structure.
     """
 
     if '.cif' not in cif:
         print("Incorrect format")
         return
+    pdbid = cif[-8:-4]
+    print('Computing Graph for ', pdbid)
 
     # Build graph with DSSR
-    error_type = ''
-    no_license = False
+    error_type = 'OK'
     try:
+        dssr_failed = False
         g = build_one(cif)
-        if g is None:
-            no_license = True
+        dssr_failed = g is None
         filter_dot_edges(g)
-        assert has_no_dots(g)
-
     except Exception as e:
         print("ERROR: Could not construct DSSR graph for ", cif)
-        if no_license:
+        if dssr_failed:
             print("Annotation using x3dna-dssr failed, please ensure you have the executable in your PATH")
             print("This requires a license.")
+            error_type = 'DSSR_error'
         else:
             print(traceback.print_exc())
-        return
-    else:
-        # Find ligand and ion annotations from the PDB cif
-        try:
-            interfaces, _ = get_interfaces(cif, cutoff=5)
-            annotations = parse_interfaces(interfaces)
-            g = annotate_graph(g, annotations)
-        except Exception as e:
-            print('ERROR: Could not compute interfaces for ', cif)
-            print(e)
-            print(traceback.print_exc())
-            error_type = 'interfaces_error'
+            error_type = 'Filtering error after DSSR building'
+        return None, error_type
 
-        if error_type in ['interfaces_error', 'OK']:
-            # Order the nodes
-            g = reorder_nodes(g)
+    if len(g.nodes()) < min_nodes:
+        print(f'Excluding {pdbid} from output, less than 20 nodes')
+        error_type = 'tooSmall'
+        return pdbid, error_type
+    if len(g.edges()) < len(g.nodes()) - 3:
+        print(f'Excluding {pdbid} from output, edges < nodes -3')
+        error_type = 'edges<nodes-3'
+        return pdbid, error_type
 
-    return g
-
-
-def do_one(cif, output_dir, min_nodes=20):
-    """Build DDSR graphs for one mmCIF.
-
-    :param cif: path to CIF
-    :param output_dir: where to dump
-    :param min_nodes: smallest RNA (number of residue nodes)
-    """
-
-    if '.cif' not in cif: return
-    pdbid = cif[-8:-4]
-    error_type = 'OK'
-
-    # Build graph with DSSR
-    print('Computing Graph for ', pdbid)
+    # Find ligand and ion annotations from the PDB cif
     try:
-        g = build_one(cif)
-        filter_dot_edges(g)
-        assert has_no_dots(g)
-
+        interfaces, _ = get_interfaces(cif, cutoff=5)
+        annotations = parse_interfaces(interfaces)
+        g = annotate_graph(g, annotations)
     except Exception as e:
-        print("ERROR: Could not construct DSSR graph for ", pdbid)
+        print('ERROR: Could not compute interfaces for ', cif)
+        print(e)
         print(traceback.print_exc())
-        error_type = 'DSSR_error'
-    else:
-        if g is None:
-            print(f'Excluding {pdbid} from output')
-            error_type = 'noBasePairs'
-            return pdbid, error_type
-        if len(g.nodes()) < min_nodes:
-            print(f'Excluding {pdbid} from output, less than 20 nodes')
-            error_type = 'tooSmall'
-            return pdbid, error_type
-        if len(g.edges()) < len(g.nodes()) - 3:
-            print(f'Excluding {pdbid} from output, edges < nodes -3')
-            error_type = 'edges<nodes-3'
-            return pdbid, error_type
+        error_type = 'interfaces_error'
+    # Order the nodes
+    g = reorder_nodes(g)
 
-        # Find ligand and ion annotations from the PDB cif
-        try:
-            interfaces, _ = get_interfaces(cif, cutoff=5)
-            annotations = parse_interfaces(interfaces)
-            g = annotate_graph(g, annotations)
-        except Exception as e:
-            print('ERROR: Could not compute interfaces for ', pdbid)
-            print(e)
-            print(traceback.print_exc())
-            error_type = 'interfaces_error'
-
-        if error_type in ['interfaces_error', 'OK']:
-            # Order the nodes
-            g = reorder_nodes(g)
-
-            # Write graph to outputdir in JSON format
-            write_graph(g, os.path.join(output_dir, 'all_graphs', pdbid + '.json'))
-            print('>>> SUCCESS: graph written: ', pdbid)
-
+    # Write graph to outputdir in JSON format
+    if output_dir is not None:
+        write_graph(g, os.path.join(output_dir, 'all_graphs', pdbid + '.json'))
+    print('>>> SUCCESS: graph written: ', pdbid)
+    if return_graph:
+        return pdbid, error_type, g
     return pdbid, error_type
 
 
@@ -242,14 +201,14 @@ def prepare_data_main():
                 if cif[-8:-4].upper() in new_rna)
     elif args.continu:
         done = [graph[:4] for graph in os.listdir(args.output_dir)]
-        todo = ((cif, args.output_dir, fltr) for cif in cifs \
+        todo = ((cif, args.output_dir, args.filter) for cif in cifs \
                 if cif[-8:-4] not in done)
     else:
         todo = ((cif, args.output_dir) for cif in cifs)
 
     # Build Graphs
     pool = mp.Pool(args.num_workers)
-    errors = pool.starmap(do_one, todo)
+    errors = pool.starmap(cif_to_graph, todo)
 
     # Filters
     if args.filter:
@@ -272,7 +231,7 @@ def prepare_data_main():
         print('Done annotating graphs')
 
     # Error Logging
-    errors = [e for e in errors if e is not None]
+    errors = [e for e in errors if e[1] != "OK"]
     if len(errors) == 0:
         print("DONE\nNo Errors found")
         return
@@ -284,7 +243,6 @@ def prepare_data_main():
 
     print("DONE\nErrors found: (recorded in log.json)")
     print(errors_dict)
-
     return
 
 
