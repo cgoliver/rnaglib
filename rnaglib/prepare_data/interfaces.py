@@ -12,6 +12,25 @@ sys.path.append(os.path.join(script_dir, '..'))
 from prepare_data.retrieve_structures import load_csv
 
 
+def mmcif_data(cif):
+    """Parse an mmCIF return some metadata.
+
+    :param cif: path to an mmCIF
+
+    :return: dictionary of mmcif metadata (for now only resolution terms)
+    """
+    mmcif_dict = MMCIF2Dict.MMCIF2Dict(cif)
+    try:
+        resolution_lo = mmcif_dict['_reflns.d_resolution_low']
+        resolution_hi = mmcif_dict['_reflns.d_resolution_high']
+    except KeyError:
+        resolution_lo, resolution_hi = (None, None)
+    return {'resolution_low': resolution_lo,
+            'resolution_high': resolution_hi
+            }
+
+
+# useless ?
 def find_ligand_annotations(cif_path, ligands):
     """
     Returns a list of ligand annotations in from a PDB structures cif file
@@ -23,7 +42,7 @@ def find_ligand_annotations(cif_path, ligands):
     :return known_interfaces: list of tuples of known interfaces
                                 [(pbid, position, chain, type), ...]
     """
-    known_interfaces=[]
+    known_interfaces = []
     mmcif_dict = MMCIF2Dict(cif_path)
     structure_id = cif_path[-8:-4]
     ligands = set(ligands)
@@ -80,6 +99,8 @@ def is_dna(res):
     else:
         return False
 
+
+# useless ?
 def get_offset_pos(res):
     """Get neighboring residues on chain.
 
@@ -91,12 +112,13 @@ def get_offset_pos(res):
     else:
         return res.id[1] + 1
 
+
 def get_interfaces(cif_path,
-                    ligands_file = os.path.join(script_dir, 'ligand_list.txt'),
-                    redundancy_filter=None,
-                    pbid_filter = None,
-                    cutoff=10,
-                    skipWater=True):
+                   ligands_file=os.path.join(script_dir, 'ligand_list.txt'),
+                   redundancy_filter=None,
+                   pbid_filter=None,
+                   cutoff=10,
+                   skipWater=True):
     """Obtain RNA interface residues within a single structure of polymers. Uses
     KDTree data structure for vector search, by the biopython NeighborSearch module.
 
@@ -122,14 +144,14 @@ def get_interfaces(cif_path,
     structure = parser.get_structure(structure_id, cif_path)
 
     # print(f'Finding RNA interfaces for structure: {structure_id}')
-    #3-D KD tree
+    # 3-D KD tree
     atom_list = Selection.unfold_entities(structure, 'A')
     neighbors = NeighborSearch(atom_list)
     interface_residues = []
 
-
     for model in structure:
-        for res_1 in model.get_residues():
+        model_residues = list(model.get_residues())
+        for res_1 in model_residues:
 
             if is_aa(res_1) or is_dna(res_1) or 'H' in res_1.id[0]:
                 continue
@@ -153,12 +175,116 @@ def get_interfaces(cif_path,
                         typ = 'ion'
 
                     interface_residues.append((structure_id, c1, typ,
-                                                r2, r1_pbid_position))
+                                               r2, r1_pbid_position))
 
     # remove duplicates and sort by seqid
     interface_residues = list(set(interface_residues))
-    interface_residues_sorted = sorted(interface_residues, key=lambda tup: tup[2])
     interface_residues_sorted = sorted(interface_residues, key=lambda tup: tup[1])
-
     return interface_residues_sorted, structure
 
+
+IONS = ["3CO", "ACT", "AG", "AL", "ALF", "AU", "AU3", "BA", "BEF", "BO4", "BR", "CA", "CAC", "CD", "CL", "CO",
+        "CON", "CS", "CU", "EU3", "F", "FE", "FE2", "FLC", "HG", "IOD", "IR", "IR3", "IRI", "IUM", "K", "LI",
+        "LU", "MG", "MLI", "MMC", "MN", "NA", "NCO", "NH4", "NI", "NO3", "OH", "OHX", "OS", "PB", "PO4", "PT",
+        "PT4", "RB", "RHD", "RU", "SE4", "SM", "SO4", "SR", "TB", "TL", "VO4", "ZN"]
+
+ALLOWED_ATOMS = ['C', 'H', 'N', 'O', 'Br', 'Cl', 'F', 'P', 'Si', 'B', 'Se']
+ALLOWED_ATOMS += [atom_name.upper() for atom_name in ALLOWED_ATOMS]
+ALLOWED_ATOMS = set(ALLOWED_ATOMS)
+
+
+# def get_hetatm(cif_dict):
+#     all_hetatm = set(cif_dict.get('_pdbx_nonpoly_scheme.mon_id', []))
+#     return all_hetatm
+
+
+def hariboss_filter(lig, cif_dict, mass_lower_limit=1, mass_upper_limit=1000):
+    """
+    Return if the hetatm is ion, ligand or discard
+    :param cif_dict: 
+    :param lig: 
+    :return: 
+    """
+    lig_name = lig.id[0][2:]
+    if lig_name == 'HOH':
+        return None
+
+    if lig_name in IONS:
+        return 'ion'
+
+    lig_mass = float(cif_dict['_chem_comp.formula_weight'][cif_dict['_chem_comp.id'].index(lig_name)])
+
+    if lig_mass < mass_lower_limit or lig_mass > mass_upper_limit:
+        return None
+    ligand_atoms = set([atom.element for atom in lig.get_atoms()])
+    if 'C' not in ligand_atoms:
+        return None
+    if any([atom not in ALLOWED_ATOMS for atom in ligand_atoms]):
+        return None
+    return 'ligand'
+
+
+def get_mmcif_graph_level(mmcif_dict):
+    """Parse an mmCIF return some metadata.
+
+    :param cif: path to an mmCIF
+
+    :return: dictionary of mmcif metadata (for now only resolution terms)
+    """
+    try:
+        resolution_lo = mmcif_dict['_reflns.d_resolution_low']
+        resolution_hi = mmcif_dict['_reflns.d_resolution_high']
+    except KeyError:
+        resolution_lo, resolution_hi = (None, None)
+    return {'resolution_low': resolution_lo,
+            'resolution_high': resolution_hi
+            }
+
+
+def get_small_partners(cif):
+    """
+    Returns all the relevant small partners in the form of a dict of list of dicts:
+    {'ligands': [
+                    {'ligand_id': ('H_ARG', 47, ' '),
+                     'rna_neighs': ['1aju.A.21', '1aju.A.22', ... '1aju.A.41']},
+                  ],
+     'ion': []}
+
+    :param cif:
+    :return:
+    """
+    structure_id = cif[-8:-4]
+    print(f'Parsing structure {structure_id}...')
+
+    mmcif_dict = MMCIF2Dict(cif)
+    parser = FastMMCIFParser(QUIET=True)
+    structure = parser.get_structure(structure_id, cif)
+
+    atom_list = Selection.unfold_entities(structure, 'A')
+    neighbors = NeighborSearch(atom_list)
+
+    all_interactions = {'ligands': [], 'ions': []}
+
+    model = structure[0]
+    for res_1 in model.get_residues():
+        # Only look around het_flag
+        het_flag = res_1.id[0]
+        if 'H' in het_flag:
+            # hariboss select the right heteroatoms and look around ions and ligands
+            selected = hariboss_filter(res_1, mmcif_dict)
+            if selected is not None:  # ion or ligand
+                interaction_dict = {f'{selected}_id': res_1.id}
+                found_rna_neighbors = set()
+                for atom in res_1:
+                    # print(atom)
+                    for res_2 in neighbors.search(atom.get_coord(), 6, level='R'):
+                        # Select for interactions with RNA
+                        if not (is_aa(res_2) or is_dna(res_2) or 'H' in res_2.id[0]):
+                            # We found a hit
+                            rglib_resname = '.'.join([structure_id, str(res_2.get_parent().id), str(res_2.id[1])])
+                            found_rna_neighbors.add(rglib_resname)
+                if len(found_rna_neighbors) > 0:
+                    found_rna_neighbors = sorted(list(found_rna_neighbors))
+                    interaction_dict['rna_neighs'] = found_rna_neighbors
+                    all_interactions[f"{selected}s"].append(interaction_dict)
+    print(all_interactions)
