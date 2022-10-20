@@ -17,10 +17,13 @@ import shutil
 script_dir = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(os.path.join(script_dir, '..', '..'))
 
-from rnaglib.prepare_data.annotations import load_dssr_graph, write_graph
+from rnaglib.utils.graph_io import dump_json
+
 
 def listdir_fullpath(d):
-        return [os.path.join(d, f) for f in os.listdir(d)]
+    return [os.path.join(d, f) for f in os.listdir(d)]
+
+
 def get_NRlist(resolution):
     """
     Get non-redudant RNA list from the BGSU website
@@ -29,7 +32,7 @@ def get_NRlist(resolution):
     """
 
     base_url = 'http://rna.bgsu.edu/rna3dhub/nrlist/download'
-    release = 'current' # can be replaced with a specific release id, e.g. 0.70
+    release = 'current'  # can be replaced with a specific release id, e.g. 0.70
     release = '3.186'
     url = '/'.join([base_url, release, resolution])
 
@@ -41,6 +44,7 @@ def get_NRlist(resolution):
         repr_set.append(ife)
 
     return repr_set
+
 
 def load_csv(input_file, quiet=False):
     """
@@ -61,6 +65,7 @@ def load_csv(input_file, quiet=False):
                     print(f'Warning error {e} found when trying to parse row: \n {row}')
 
     return NRlist
+
 
 def parse_NRlist(NRlist):
     """
@@ -115,6 +120,7 @@ def filter_graph(g, fltr):
 
     return h
 
+
 def has_no_dots(graph):
     """Return True if graph has no edges with a '.' in the edge type (these are
     likely ambiguous edges).
@@ -123,10 +129,11 @@ def has_no_dots(graph):
 
     :return: True if has a '.' edge.
     """
-    for _,_,d in graph.edges(data=True):
+    for _, _, d in graph.edges(data=True):
         if '.' in d['LW'] or d['LW'] == '--':
             return False
     return True
+
 
 def filter_dot_edges(graph):
     """ Remove edges with a '.' in the LW annotation.
@@ -135,8 +142,9 @@ def filter_dot_edges(graph):
     :param graph: networkx graph
     """
 
-    graph.remove_edges_from([(u,v) for u,v,d  in graph.edges(data=True)
-                               if '.' in d['LW'] or d['LW'] == '--'])
+    graph.remove_edges_from([(u, v) for u, v, d in graph.edges(data=True)
+                             if '.' in d['LW'] or d['LW'] == '--'])
+
 
 def get_NRchains(resolution):
     """
@@ -170,6 +178,7 @@ def get_Ribochains():
     # print("intersection len: ", len(results))
     return set(query())
 
+
 def get_NonRibochains():
     """
     Get a list of all PDB structures containing RNA
@@ -180,8 +189,8 @@ def get_NonRibochains():
     q1 = Attr('rcsb_entry_info.polymer_entity_count_RNA') >= 1
     q2 = TextQuery("ribosome")
 
-
     return set(q1()).difference(set(q2()))
+
 
 def get_Custom(text):
     """
@@ -196,6 +205,7 @@ def get_Custom(text):
     query = q1 & q2
 
     return set(query())
+
 
 # fltrs = ['NR', 'Ribo', 'NonRibo'],
 def filter_all(graph_dir, output_dir, filters=['NR'], min_nodes=20):
@@ -225,7 +235,7 @@ def filter_all(graph_dir, output_dir, filters=['NR'], min_nodes=20):
                     g = filter_graph(g, fltr_set)
                     if g is None: continue
                     if len(g.nodes) < min_nodes: continue
-                    write_graph(g, output_file)
+                    dump_json(output_file, g)
                 else:
                     pbid = graph_file[-9:-5]
                     if pbid in fltr_set:
@@ -238,6 +248,7 @@ def filter_all(graph_dir, output_dir, filters=['NR'], min_nodes=20):
                 continue
 
     print(f"Fails: {fails}")
+
 
 def get_fltr(fltr):
     """Fetch the filter object for a given filter ID.
@@ -256,8 +267,8 @@ def get_fltr(fltr):
 
     return get_Custom(fltr)
 
-def main():
 
+def main():
     filter_all('data/graphs_vernal', 'data/graphs_vernal_filters')
 
 

@@ -19,6 +19,24 @@ CANONICALS = GRAPH_KEYS['canonical'][TOOL]
 VALID_EDGES = GRAPH_KEYS['edge_map'][TOOL].keys()
 
 
+def reorder_nodes(g):
+    """
+    Reorder nodes in graph
+
+    :param g: Pass a graph for node reordering.
+    :type g: networkx.DiGraph
+
+    :return h: (nx DiGraph)
+    """
+
+    reordered_graph = nx.DiGraph()
+    reordered_graph.add_nodes_from(sorted(g.nodes.data()))
+    reordered_graph.add_edges_from(g.edges.data())
+    for key, value in g.graph.items():
+        reordered_graph.graph[key] = value
+    return reordered_graph
+
+
 def induced_edge_filter(graph, roots, depth=1):
     """
     Remove edges in graph introduced by the induced sugraph routine.
