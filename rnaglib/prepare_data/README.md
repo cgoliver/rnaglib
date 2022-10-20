@@ -1,5 +1,4 @@
-# Data 
-
+# Data
 The dataset included in the RNAglib package is a collection of 2.5D graphs which represent RNA bases as nodes and bonds as edges. We include node and edge-level attribute as detailed below. 
 
 ![RNA motif binding to CMC ligand](../../images/1qvg_graphandchimera.png)
@@ -86,7 +85,7 @@ These are the keys in the node data dictionary:
 * `'suiteness'`: (float) (measure of conformer - match quality ( low to high in range 0 to 1) ) \[1\]
 * `'filter_rmsd'`: (float)
 * `'frame':` (dict)  e.g. (`{'rmsd': 0.006, 'origin': [-4.856, 8.564, -1.171], 'x_axis': [0.922, 0.386, -0.006], 'y_axis': [0.098, -0.25, -0.963], 'z_axis': [-0.374, 0.888, -0.269], 'quaternion': [0.592, -0.781, -0.155, 0.122]}`
-* `'sse'`: (dict) Secondary structure info (e.g. residue inside third hairpin `{'sse': 'hairpin-3'}`)
+* `'sse'`: (dict) Secondary structure info (e.g. residue inside third hairpin `{'sse': 'hairpin_3'}`)
 * `'binding_protein'`: (dict) RNA-Protein interface. If no interface found, `None`. Else, dictionary (e.g. `{'nt-aa': 'C-arg', 'nt': 'A.C37', 'aa': 'A.ARG47', 'Tdst': '6.62', 'Rdst': '-114.00', 'Tx': '-1.15', 'Ty': '1.89', 'Tz': '6.23', 'Rx': '-53.57', 'Ry': '19.41', 'Rz': '-103.42', 'sse': 'a-helix'}`)
 * `binding_ion`: (string) molecule ID of ion if residue is at a binding site (otherwise `None`) (e.g. `'Ca'`)
 * `binding_small-molecule`: (string) molecule ID of small molecule if residue is at a binding site (otherwise `None`) (e.g. `'SAM'`)
@@ -109,6 +108,26 @@ G.edges[(<node_1>, <node_2>)]
 * `'Saenger'`: (str) Saenger base pairing category (e.g. `'19-XIX'`),
 * `'LW'`: (str) Leontis-Westhof base pair geometry category (e.g. `'cWW'`)
 * `'DSSR'`: (str) Custom DSSR base pair geometry category (e.g. `'cW-W'`)
+
+
+### Graph data
+
+Each graph also has an attribute dictionary:
+
+```python
+G.graph
+```
+* `'dbn'`: a dict containing information on the chains contained in the graph, such as the sequences or their length 
+* `'resolution_{low,high}'`: bounds on the resolution, present in most (~80%) of the graphs 
+* `'ligands'`: A list of the ligands interacting with the graph nucleotides. Each ligand is a dict with the ligand Biopython id, its name, and the rna residues it is bound to
+* `'ions'`: same thing with ions
+
+## Graph creation pipeline 
+* `dssr_to_graphs.py` : runs dssr on the cif file to get the first networkx graph
+object. It moreover computes the RNA/protein interfaces (since it uses dssr) and annotates at the level of the node.
+* `annotations.py'`: Completes the graph using the mmcif file to include resolution and interaction with small molecules and ions 
+* `main.py` : The script to call to build or update the data releases
+
 
 #### References
 \[1] [Richardson et al. (2008): "RNA backbone: consensus all-angle conformers and modular string nomenclature (an RNA Ontology Consortium contribution). RNA, 14(3):465-481](https://rnajournal.cshlp.org/content/14/3/465.short)

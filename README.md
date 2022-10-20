@@ -28,12 +28,10 @@ The graphs are annotated with graph, node, and edge-level attributes. These incl
 * 3-d coordinates(node-level)
 * Leontis-westhof base pair geometry classification (edge-level)
 
-
 We provide a visualization of what the graphs in this database contain.
-A more detailed description of the data is presented in `/RNAGlib/prepare_data/README`. 
+A more detailed description of the data is presented in `/RNAGlib/prepare_data/README`.
 
 ![Example graph](https://jwgitlab.cs.mcgill.ca/cgoliver/rnaglib/-/raw/main/images/Fig1.png)
-
 
 ## Package Structure
 
@@ -72,9 +70,9 @@ We however offer three possibilities to directly access pre-built databases :
 
 * A download script ships with the install, run : ``$ rnaglib_download -h``
 * Direct download at the address :
-   http://rnaglib.cs.mcgill.ca/static/datasets/iguana.tar.gz
+  http://rnaglib.cs.mcgill.ca/static/datasets/iguana.tar.gz
 * Dynamic download : if one instantiates a dataloader and the data
-   cannot be found, the corresponding data will be automatically downloaded and cached
+  cannot be found, the corresponding data will be automatically downloaded and cached
 
 Because of this last option, after installing our tool with pip, one can start learning on RNA data without extra steps.
 
@@ -82,7 +80,6 @@ Once the graphs are downloaded we can begin to inspect and visualize the data. G
 their PDBID. Since nodes represent nucleotides, the node data dictionary will include features such as nucleotide type,
 position, 3D coordinates, etc. Nodes are assigned an ID in the form ``<pdbid.chain.position>``. Using node IDs we can
 access node and edge attributes as dictionary keys.
-
 
 ```
 >>> from rnaglib.utils.graph_io import graph_from_pdbid
@@ -104,7 +101,6 @@ access node and edge attributes as dictionary keys.
  'sse': {'sse': None}, 'binding_protein': None, 'binding_ion': None, 'binding_small-molecule': None}
 ```
 
-
 ## Building a 2.5D Graph from a local PDB
 
 If you have an mmCIF containing RNA stored locally and you wish to build a 2.5D graph that can be used in RNAglib you
@@ -114,7 +110,7 @@ requires a `license <http://x3dna.org>`_.
 ```
 >>> from rnaglib.prepare_data.main import cif_to_graph
 >>> pdb_path = '../data/1aju.cif'
->>> graph_nx = cif_to_graph(pdb_path)
+>>> graph_nx = cif_to_graph(pdb_path, return_graph=True)
 ```
 
 This will return a networkx Graph object containing all the annotation data shown above.

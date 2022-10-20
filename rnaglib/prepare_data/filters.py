@@ -15,9 +15,9 @@ from tqdm import tqdm
 import shutil
 
 script_dir = os.path.dirname(os.path.realpath(__file__))
-sys.path.append(os.path.join(script_dir, '..'))
+sys.path.append(os.path.join(script_dir, '..', '..'))
 
-from prepare_data.annotations import load_graph, write_graph
+from rnaglib.prepare_data.annotations import load_dssr_graph, write_graph
 
 def listdir_fullpath(d):
         return [os.path.join(d, f) for f in os.listdir(d)]
