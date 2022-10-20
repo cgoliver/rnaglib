@@ -23,6 +23,7 @@ if __name__ == "__main__":
 
 from rnaglib.utils.graph_utils import reorder_nodes
 from rnaglib.utils.graph_io import dump_json
+
 from rnaglib.prepare_data.dssr_2_graphs import build_one
 from rnaglib.prepare_data.annotations import add_graph_annotations
 from rnaglib.prepare_data.filters import filter_dot_edges, filter_all
