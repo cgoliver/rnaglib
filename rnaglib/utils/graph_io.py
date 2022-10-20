@@ -30,7 +30,7 @@ def dump_json(filename, graph):
 
 def load_json(filename):
     """
-    Just a shortcut to dump a json graph more compactly
+    Just a shortcut to load a json graph more compactly
 
     :param filename: The dump name
 
