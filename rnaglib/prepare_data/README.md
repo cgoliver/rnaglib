@@ -119,6 +119,7 @@ G.graph
 ```
 * `'dbn'`: a dict containing information on the chains contained in the graph, such as the sequences or their length 
 * `'resolution_{low,high}'`: bounds on the resolution, present in most (~80%) of the graphs 
+* `'proteins'`: A list of the residues in contact with a protein
 * `'ligands'`: A list of the ligands interacting with the graph nucleotides. Each ligand is a dict with the ligand Biopython id, its name, and the rna residues it is bound to
 * `'ions'`: same thing with ions
 
