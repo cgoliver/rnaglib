@@ -21,8 +21,10 @@ script_dir = os.path.dirname(os.path.realpath(__file__))
 if __name__ == "__main__":
     sys.path.append(os.path.join(script_dir, '..', '..'))
 
+from rnaglib.utils.graph_utils import reorder_nodes
+from rnaglib.utils.graph_io import dump_json
 from rnaglib.prepare_data.dssr_2_graphs import build_one
-from rnaglib.prepare_data.annotations import reorder_nodes, write_graph, add_graph_annotations
+from rnaglib.prepare_data.annotations import add_graph_annotations
 from rnaglib.prepare_data.filters import filter_dot_edges, filter_all
 from rnaglib.prepare_data.chopper import chop_all
 from rnaglib.prepare_data.khop_annotate import annotate_all
@@ -154,7 +156,7 @@ def cif_to_graph(cif, output_dir=None, min_nodes=20, return_graph=False):
 
     # Write graph to outputdir in JSON format
     if output_dir is not None:
-        write_graph(g, os.path.join(output_dir, 'all_graphs', pdbid + '.json'))
+        dump_json(os.path.join(output_dir, 'all_graphs', pdbid + '.json'), g)
     print('>>> SUCCESS: graph written: ', pdbid)
     if return_graph:
         return pdbid, error_type, g
