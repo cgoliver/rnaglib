@@ -182,6 +182,8 @@ def prepare_data_main():
                         help='Continue previously paused execution')
     parser.add_argument('-f', '--filter', action='store_true',
                         help='build filtered datasets')
+    parser.add_argument('-d', '--debug', action='store_true',
+                        help='runs only on 10 structures for debug.')
     args = parser.parse_args()
 
     try:
@@ -192,6 +194,7 @@ def prepare_data_main():
 
     except FileExistsError:
         pass
+
 
     # Update PDB and get Todo list
     cifs = listdir_fullpath(args.structures_dir)
@@ -205,6 +208,10 @@ def prepare_data_main():
                 if cif[-8:-4] not in done)
     else:
         todo = ((cif, args.output_dir) for cif in cifs)
+
+    if args.debug:
+        print(">>> Using debug mode. Preparing only 10 structures.")
+        todo = (item for i, item in enumerate(todo) if i < 10)
 
     # Build Graphs
     pool = mp.Pool(args.num_workers)
