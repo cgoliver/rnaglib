@@ -241,26 +241,19 @@ def dssr_dict_2_graph(dssr_dict, rbp_dict, pdbid):
         except KeyError:
             G.nodes[node]['sse'] = {'sse': None}
 
-    # add RNA-Protein interface data
-    for node in G.nodes():
-        try:
-            G.nodes[node]['binding_protein'] = rbp_dict[node]
-            # print(node)
-        except KeyError:
-            G.nodes[node]['binding_protein'] = None
-
-    # for node, data in G.nodes(data=True):
-    # if 'chain_name' not in data.keys():
-    # print(node, data)
-    # for node, data in G.nodes(data=True):
-    # if 'chain_name' in data.keys():
-    # print(node, data)
     new_labels = {n: ".".join([pdbid, str(d['chain_name']), str(d['nt_resnum'])]) for n, d in G.nodes(data=True)}
     G = nx.relabel_nodes(G, new_labels)
 
-    # import matplotlib.pyplot as plt
-    # nx.draw(G)
-    # plt.show()
+    # Relabel the dict to include it at both the node and the graph level
+    rbp_dict_relabeled = {new_labels[node]: interaction for node, interaction in rbp_dict.items()}
+    # add RNA-Protein interface data in the nodes
+    for node in G.nodes():
+        try:
+            G.nodes[node]['binding_protein'] = rbp_dict_relabeled[node]
+        except KeyError:
+            G.nodes[node]['binding_protein'] = None
+    # add RNA-Protein interface data in the graph
+    G.graph['proteins'] = list(rbp_dict_relabeled.keys())
     return G
 
 
