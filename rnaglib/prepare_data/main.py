@@ -22,8 +22,7 @@ if __name__ == "__main__":
     sys.path.append(os.path.join(script_dir, '..', '..'))
 
 from rnaglib.prepare_data.dssr_2_graphs import build_one
-from rnaglib.prepare_data.interfaces import get_interfaces
-from rnaglib.prepare_data.annotations import parse_interfaces, annotate_graph, reorder_nodes, write_graph
+from rnaglib.prepare_data.annotations import reorder_nodes, write_graph, add_graph_annotations
 from rnaglib.prepare_data.filters import filter_dot_edges, filter_all
 from rnaglib.prepare_data.chopper import chop_all
 from rnaglib.prepare_data.khop_annotate import annotate_all
@@ -144,9 +143,7 @@ def cif_to_graph(cif, output_dir=None, min_nodes=20, return_graph=False):
 
     # Find ligand and ion annotations from the PDB cif
     try:
-        interfaces, _ = get_interfaces(cif, cutoff=5)
-        annotations = parse_interfaces(interfaces)
-        g = annotate_graph(g, annotations)
+        add_graph_annotations(g=g, cif=cif)
     except Exception as e:
         print('ERROR: Could not compute interfaces for ', cif)
         print(e)
