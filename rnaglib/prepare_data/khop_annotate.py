@@ -18,7 +18,7 @@ if __name__ == "__main__":
 
 from rnaglib.utils.graphlet_hash import build_hash_table, Hasher
 from rnaglib.utils.graph_utils import extract_graphlet
-from rnaglib.utils.graph_io import load_graph
+from rnaglib.utils.graph_io import load_json
 from rnaglib.config.graph_keys import GRAPH_KEYS, TOOL
 
 
@@ -143,7 +143,7 @@ def annotate_one(args):
         if re_annotate:
             graph = pickle.load(open(os.path.join(graph_path, g), 'rb'))['graph']
         else:
-            graph = load_graph(os.path.join(graph_path, g))
+            graph = load_json(os.path.join(graph_path, g))
         rings = build_ring_tree_from_graph(graph,
                                            depth=5,
                                            hasher=hasher,

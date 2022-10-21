@@ -4,24 +4,17 @@ coordinates of each residue orthogonal to main PCA axis.
 """
 import sys
 import os
-import glob
-import traceback
 
-if __name__ == "__main__":
-    script_dir = os.path.dirname(os.path.realpath(__file__))
-    sys.path.append(os.path.join(script_dir, '..'))
-
-from joblib import Paralle, delayed
+from joblib import Parallel, delayed
 import os.path as osp
 import multiprocessing as mlt
 
 import numpy as np
-from tqdm import tqdm
 from sklearn.decomposition import PCA
 import networkx as nx
 
 from rnaglib.utils.graph_utils import dangle_trim, gap_fill
-from rnaglib.utils.graph_io import load_json
+from rnaglib.utils.graph_io import load_json, dump_json
 
 def block_pca(residues):
     """
@@ -53,7 +46,6 @@ def pca_chop(residues):
             s2.append(residues[i])
     # print(f"sum check {len(s1) + len(s2)} == {len(residues)}, {len(proj)}")
     return s1, s2
-
 
 def chop(residues, max_size=50):
     """
@@ -117,7 +109,7 @@ def chop_one_rna(G):
     :param G: networkx graph built by rnaglib.
     :return: list of subgraphs
     """
-    residue_coords = []
+    residues = []
     missing_coords = 0
     for n, d in sorted(G.nodes(data=True)):
         try:
@@ -125,7 +117,7 @@ def chop_one_rna(G):
         except KeyError:
             missing_coords += 1
             continue
-    print(f">>> Graph G.graph['pdbid'] has {missing_coords} residues with missing coords.")
+    print(f">>> Graph {G.graph['pdbid']} has {missing_coords} residues with missing coords.")
 
     # glib node format: 3iab.R.83 <pdbid>.<chain>.<pos>
     # residues = [r for r in structure.get_residues() if r.id[0] == ' ' and
@@ -133,8 +125,8 @@ def chop_one_rna(G):
 
     chops = chop(residues)
     subgraphs = []
-    for j, chop in enumerate(chops):
-        subgraph = G.subgraph((n for n,_ in chop)).copy()
+    for j, this_chop in enumerate(chops):
+        subgraph = G.subgraph((n for n,_ in this_chop)).copy()
         subgraph = graph_clean(G, subgraph)
         if graph_filter(subgraph):
             subgraphs.append(subgraph)
@@ -142,7 +134,7 @@ def chop_one_rna(G):
             pass
     return subgraphs
 
-def chop_all(graph_path, dest, parallel=True):
+def chop_all(graph_path, dest, n_jobs=4, parallel=True):
     """
         Chop and dump all the rglib graphs in the dataset.
     """
@@ -154,23 +146,16 @@ def chop_all(graph_path, dest, parallel=True):
 
     graphs = (load_json(os.path.join(graph_path, g)) for g in os.listdir(graph_path))
     failed = 0
-    if parallel:
-        arguments = [(rna, pdb_path, dest) for rna in g_paths]
-        exit_codes = Parallen(n_jobs=n_jobs)(delayed(chop_one_rna)(G) for G in graphs)
-        failed += sum(exit_codes)
-        print(f'failed on {(failed)} on {len(g_paths)}')
-        return failed
-    for i, rna in tqdm(enumerate(g_paths), total=len(g_paths)):
-        failed_rna = chop_one_rna((rna, pdb_path, dest))
-        if failed_rna:
-            failed += failed_rna
-            print(f'failed on {rna}, this is the {failed}-th one on {len(g_paths)}')
+    subgraphs = Parallel(n_jobs=n_jobs)(delayed(chop_one_rna)(G) for G in graphs)
+    # dump the chops
+    for chopped_rna in subgraphs:
+        for i, this_chop in enumerate(chopped_rna):
+            dump_json(os.path.join(dest, f"{this_chop.graph['pdbid'][0]}_{i}.json"), this_chop)
     pass
 
-
 if __name__ == "__main__":
-    chop_all('../db/all_graphs'
-             "../db/graphs_chopped",
+    chop_all('db/graphs/all_graphs',
+             "db/graphs_chopped",
              parallel=False
              )
     pass
