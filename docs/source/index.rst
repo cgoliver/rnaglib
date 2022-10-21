@@ -12,6 +12,7 @@
    Installation <install>
    Quickstart <quickstart>
    Data <rnaglib.data>
+   Building 2.5D Graph Database <data_build>
 
 .. toctree::
    :maxdepth: 2
