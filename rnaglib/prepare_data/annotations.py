@@ -133,7 +133,7 @@ def get_small_partners(cif, mmcif_dict=None, radius=6, mass_lower_limit=160, mas
                                        mass_lower_limit=mass_lower_limit,
                                        mass_upper_limit=mass_upper_limit)
             if selected is not None:  # ion or ligand
-                interaction_dict = {f'{selected}_id': res_1.id, f'{selected}_name': res_1.id[0][2:]}
+                interaction_dict = {f'id': res_1.id, f'name': res_1.id[0][2:]}
                 found_rna_neighbors = set()
                 for atom in res_1:
                     # print(atom)
@@ -169,11 +169,11 @@ def add_graph_annotations(g, cif):
 
     # First fill relevant nodes
     for interaction_dict in all_interactions['ligands']:
-        ligand_id = interaction_dict['ligand_id']
+        ligand_id = interaction_dict['id']
         for rna_neigh in interaction_dict['rna_neighs']:
             g.nodes[rna_neigh]['binding_small-molecule'] = ligand_id
     for interaction_dict in all_interactions['ions']:
-        ligand_id = interaction_dict['ligand_id']
+        ligand_id = interaction_dict['id']
         for rna_neigh in interaction_dict['rna_neighs']:
             g.nodes[rna_neigh]['binding_ion'] = ligand_id
 
