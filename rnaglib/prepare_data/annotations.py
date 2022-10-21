@@ -79,15 +79,18 @@ def get_mmcif_graph_level(mmcif_dict):
     :param cif: output of the Biopython MMCIF2Dict function
     :return: dictionary of mmcif metadata (for now only resolution terms)
     """
-    try:
-        resolution_lo = mmcif_dict['_reflns.d_resolution_low']
-        resolution_hi = mmcif_dict['_reflns.d_resolution_high']
-    except KeyError:
-        resolution_lo, resolution_hi = (None, None)
-    return {'resolution_low': resolution_lo,
-            'resolution_high': resolution_hi
+    keys = {'resolution_low': '_reflns.d_resolution_low',
+            'resolution_high': '_reflns.d_resolution_high',
+            'pdbid': '_pdbx_database_status.entry_id'
             }
 
+    annots = {}
+    for name, key in keys.items()
+        try:
+            annots[name] = mmcif_dict[key]
+        except KeyError:
+            pass
+    return annots
 
 # def get_hetatm(cif_dict):
 #     all_hetatm = set(cif_dict.get('_pdbx_nonpoly_scheme.mon_id', []))
