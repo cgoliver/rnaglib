@@ -33,8 +33,16 @@ release = '0.0.1'
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
-             'sphinx.ext.autodoc',
-                'myst_parser']
+    'sphinx.ext.autodoc',
+    'sphinx.ext.autosummary',
+    'sphinx.ext.intersphinx',
+    'sphinx.ext.mathjax',
+    'sphinx.ext.napoleon',
+    'sphinx.ext.viewcode',
+    'myst_parser'
+]
+
+
 myst_enable_extensions = [
              "substitution",
              ]

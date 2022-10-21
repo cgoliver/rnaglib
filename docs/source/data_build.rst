@@ -6,10 +6,10 @@ of fully annotated 2.5D graphs. We follow this exact process when building the
 data releases used by default in ``rnaglib``.
 
 What you will need
-~~~~~~~~~~~~~~~~~~~
+-------------------
 
 * An internet connection
-* A working installation of x3dna-dssr in your system PATH.
+* A working installation of x3dna-dssr in your system PATH version >= 2.0.0.
 * An installation of ``rnaglib``
 
 Command line
@@ -37,7 +37,7 @@ To do a quick debug run on a handful of structures, additionally pass the ``-d``
 Once the process is complete, you will have a fully annotated database of RNA 2.5D graphs.
 
 Processing steps
-~~~~~~~~~~~~~~~~~
+-----------------
 
 Here we have a closer look at what is happening when you run ``rnaglib_preprare_data``.
 
