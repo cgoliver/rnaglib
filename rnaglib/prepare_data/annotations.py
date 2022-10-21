@@ -85,7 +85,7 @@ def get_mmcif_graph_level(mmcif_dict):
             }
 
     annots = {}
-    for name, key in keys.items()
+    for name, key in keys.items():
         try:
             annots[name] = mmcif_dict[key]
         except KeyError:
