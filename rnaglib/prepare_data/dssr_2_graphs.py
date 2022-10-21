@@ -32,7 +32,7 @@ def snap_exec(cif):
     """Execute x3dna in SNAP mode to analyze protein interfaces.
 
     :param cif: path to mmCIF
-    
+
     :return: plaintext output
     """
     try:
@@ -48,7 +48,7 @@ def snap_parse(snap_out):
     SNAP output is raw text so we have to parse it.
 
     :param snap_out: raw output from SNAP
-    
+
     :return: dictionary of data for each residue in interface
 
     """
@@ -245,7 +245,12 @@ def dssr_dict_2_graph(dssr_dict, rbp_dict, pdbid):
     G = nx.relabel_nodes(G, new_labels)
 
     # Relabel the dict to include it at both the node and the graph level
-    rbp_dict_relabeled = {new_labels[node]: interaction for node, interaction in rbp_dict.items()}
+    rbp_dict_relabeled = {}
+    for node, interaction in rbp_dict.items():
+        try:
+            rbp_dict_relabeled[new_labels[node]] = interaction
+        except KeyError:
+            pass
     # add RNA-Protein interface data in the nodes
     for node in G.nodes():
         try:
