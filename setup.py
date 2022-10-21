@@ -3,22 +3,14 @@ import setuptools
 with open("README.md", "r") as fh:
     long_description = fh.read()
 
-requirements = ["torch",
-                "dgl>=0.6",
-                'networkx',
-                "numpy",
-                "seaborn",
-                "sklearn",
-                "tqdm",
-                "biopython",
-                ]
+requirements = open("requirements.txt", "r").readlines()
 
 setuptools.setup(
     name="rnaglib",
     version="1.0.1",
     author="Vincent Mallet, Carlos Oliver, Jonathan Broadbent, William L. Hamilton and Jérome Waldispuhl",
     author_email="vincent.mallet96@gmail.com",
-    description="RNAglib: Tools for learning on the structure of RNA using 2.5D graph representations",
+    description="RNAglib: Tools for learning on the structure of RNA using 2.5D geometric representations",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://jwgitlab.cs.mcgill.ca/cgoliver/rnaglib",
