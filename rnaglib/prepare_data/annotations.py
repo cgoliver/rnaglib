@@ -100,14 +100,14 @@ def get_small_partners(cif, mmcif_dict=None, radius=6, mass_lower_limit=160, mas
     """
     Returns all the relevant small partners in the form of a dict of list of dicts:
     {'ligands': [
-                    {'ligand_id': ('H_ARG', 47, ' '),
-                     'ligand_name': 'ARG'
+                    {'id': ('H_ARG', 47, ' '),
+                     'name': 'ARG'
                      'rna_neighs': ['1aju.A.21', '1aju.A.22', ... '1aju.A.41']},
                   ],
      'ions': [
-                    {'ion_id': ('H_ZN', 56, ' '),
-                     'ion_name': 'ZN'],
-                     'rna_neighs': ['x', y ,z]}
+                    {'id': ('H_ZN', 56, ' '),
+                     'name': 'ZN',
+                     'rna_neighs': ['x', y , z]}
                      }
 
     :param cif: path to a mmcif file
@@ -136,7 +136,7 @@ def get_small_partners(cif, mmcif_dict=None, radius=6, mass_lower_limit=160, mas
                                        mass_lower_limit=mass_lower_limit,
                                        mass_upper_limit=mass_upper_limit)
             if selected is not None:  # ion or ligand
-                interaction_dict = {f'id': res_1.id, f'name': res_1.id[0][2:]}
+                interaction_dict = {'id': res_1.id, 'name': res_1.id[0][2:]}
                 found_rna_neighbors = set()
                 for atom in res_1:
                     # print(atom)
@@ -176,9 +176,9 @@ def add_graph_annotations(g, cif):
         for rna_neigh in interaction_dict['rna_neighs']:
             g.nodes[rna_neigh]['binding_small-molecule'] = ligand_id
     for interaction_dict in all_interactions['ions']:
-        ligand_id = interaction_dict['id']
+        ion_id = interaction_dict['id']
         for rna_neigh in interaction_dict['rna_neighs']:
-            g.nodes[rna_neigh]['binding_ion'] = ligand_id
+            g.nodes[rna_neigh]['binding_ion'] = ion_id
 
     # Then add a None field in all other nodes
     for node, node_data in g.nodes(data=True):

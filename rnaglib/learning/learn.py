@@ -16,14 +16,14 @@ if __name__ == "__main__":
 
 from rnaglib.config.graph_keys import GRAPH_KEYS, TOOL
 from rnaglib.utils import misc
-from rnaglib.learning.learning_utils import *
+from rnaglib.learning import learning_utils
 
 
 def pretrain_unsupervised(model,
                           train_loader,
                           optimizer,
                           node_sim=None,
-                          learning_routine=LearningRoutine(),
+                          learning_routine=learning_utils.LearningRoutine(),
                           rec_params={"similarity": True, "normalize": False, "use_graph": False, "hops": 2}
                           ):
     """
@@ -56,15 +56,15 @@ def pretrain_unsupervised(model,
             graph, graph_sizes, (K, node_ids) = batch['graphs'], batch['num_nodes'], batch['node_similarities']
             # Get data on the devices
             K = K.to(device)
-            graph = send_graph_to_device(graph, device)
+            graph = learning_utils.send_graph_to_device(graph, device)
 
             # Do the computations for the forward pass
             out = model(graph)
-            loss = rec_loss(embeddings=out,
-                            target_K=K,
-                            graph=graph,
-                            node_ids=node_ids,
-                            **rec_params)
+            loss = learning_utils.rec_loss(embeddings=out,
+                                           target_K=K,
+                                           graph=graph,
+                                           node_ids=node_ids,
+                                           **rec_params)
             # Backward
             loss.backward()
             optimizer.step()
@@ -97,9 +97,9 @@ def pretrain_unsupervised(model,
                                                                  model=model, optimizer=optimizer)
 
         else:
-            validation_loss = evaluate_model_unsupervised(model,
-                                                          validation_loader=learning_routine.validation_loader,
-                                                          rec_params=rec_params)
+            validation_loss = learning_utils.evaluate_model_unsupervised(model,
+                                                                         validation_loader=learning_routine.validation_loader,
+                                                                         rec_params=rec_params)
             if learning_routine.writer is not None:
                 learning_routine.writer.add_scalar("Validation loss during training", validation_loss, epoch)
             early_stop = learning_routine.early_stopping_routine(validation_loss=validation_loss, epoch=epoch,
@@ -112,7 +112,7 @@ def pretrain_unsupervised(model,
 def train_supervised(model,
                      optimizer,
                      train_loader,
-                     learning_routine=LearningRoutine()):
+                     learning_routine=learning_utils.LearningRoutine()):
     """
     Performs the entire training routine for a supervised task
 
@@ -135,7 +135,7 @@ def train_supervised(model,
         for batch_idx, batch in enumerate(train_loader):
             # Get data on the devices
             graph, graph_sizes = batch['graphs'], batch['num_nodes']
-            graph = send_graph_to_device(graph, device)
+            graph = learning_utils.send_graph_to_device(graph, device)
 
             # Do the computations for the forward pass
             out = model(graph)
@@ -173,7 +173,8 @@ def train_supervised(model,
             early_stop = learning_routine.early_stopping_routine(validation_loss=train_loss, epoch=epoch,
                                                                  model=model, optimizer=optimizer)
         else:
-            validation_loss = evaluate_model_supervised(model, validation_loader=learning_routine.validation_loader)
+            validation_loss = learning_utils.evaluate_model_supervised(model,
+                                                                       validation_loader=learning_routine.validation_loader)
             if learning_routine.writer is not None:
                 learning_routine.writer.add_scalar("Validation loss during training", validation_loss, epoch)
             early_stop = learning_routine.early_stopping_routine(validation_loss=validation_loss, epoch=epoch,
@@ -278,10 +279,10 @@ if __name__ == '__main__':
 
         # Define model
         # GET THE DATA GOING
-        loader = graphloader.SupervisedLoader(data_path=annotated_path,
-                                              node_features=node_features,
-                                              node_target=node_target,
-                                              num_workers=2)
+        supervised_dataset = graphloader.GraphDataset(data_path=annotated_path,
+                                                      node_features=node_features,
+                                                      node_target=node_target)
+        loader = graphloader.GraphLoader(dataset=supervised_dataset, split=True, num_workers=0)
         train_loader, validation_loader, test_loader = loader.get_data()
 
         embedder_model = models.Embedder([10, 10], infeatures_dim=1)
