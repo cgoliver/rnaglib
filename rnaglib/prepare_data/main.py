@@ -186,14 +186,10 @@ def prepare_data_main():
                         help='runs only on 10 structures for debug.')
     args = parser.parse_args()
 
-    try:
-        os.mkdir(os.path.join(args.output_dir))
-        os.mkdir(os.path.join(args.output_dir, 'all_graphs'))
-        for rna_filter in FILTERS + ['all_graphs', 'NR']:
-            os.makedirs(os.path.join(args.output_dir, rna_filter))
-
-    except FileExistsError:
-        pass
+    os.makedirs(os.path.join(args.output_dir), exist_ok=True)
+    os.makedirs(os.path.join(args.output_dir, 'all_graphs'), exist_ok=True)
+    for rna_filter in FILTERS + ['all_graphs', 'NR']:
+        os.makedirs(os.path.join(args.output_dir, rna_filter), exist_ok=True)
 
 
     # Update PDB and get Todo list
