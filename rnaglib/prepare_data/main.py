@@ -226,10 +226,7 @@ def prepare_data_main():
 
     for rna_filter in FILTERS + ['all_graphs', 'NR']:
         filter_dest = os.path.join(args.output_dir, rna_filter)
-        chop_all(filter_dest,
-                 args.structures_dir,
-                 filter_dest + "_chops"
-                 )
+        chop_all(filter_dest, filter_dest + "_chops", n_jobs=args.num_workers)
 
         print('Done producing graphs')
 
