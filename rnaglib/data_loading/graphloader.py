@@ -2,7 +2,6 @@ import os
 import sys
 
 from collections import defaultdict
-import numpy as np
 import random
 
 import torch
@@ -42,7 +41,7 @@ class Collater:
     @staticmethod
     def collate_rings(list_of_rings, node_simfunc, max_size_kernel=None):
         # we need to flatten the list and then use the kernels :
-        # The rings is now a list of list of tuples
+        # The rings is now a list of lists of tuples
         # If we have a huge graph, we can sample max_size_kernel nodes to avoid huge computations,
         # We then return the sampled ids
 
@@ -58,8 +57,8 @@ class Collater:
                        [0 for _ in range(len(flat_rings) - max_size_kernel)]
             random.shuffle(node_ids)
             flat_rings = [node for i, node in enumerate(flat_rings) if node_ids[i] == 1]
-        K = k_block_list(flat_rings, node_simfunc)
-        return torch.from_numpy(K).detach().float(), node_ids
+        k_block = k_block_list(flat_rings, node_simfunc)
+        return torch.from_numpy(k_block).detach().float(), node_ids
 
     def collate(self, samples):
         """
@@ -120,8 +119,7 @@ def full_split(dataset, split_train=0.7, split_valid=0.85):
 
 def get_multitask_split(node_targets, graph_index=DEFAULT_INDEX, target_fraction=0.2):
     """
-    :param node_target: A subset of {'binding_protein', 'binding_small-molecule', 'is_modified', 'binding_ion'}
-    :param seed: Should be set to the default zero
+    :param node_targets: A subset of {'binding_protein', 'binding_small-molecule', 'is_modified', 'binding_ion'}
     :param graph_index: should be the opened output of the previous function a dict of dict of dict.
     :param target_fraction: The fraction of each task to have in the test set
 
@@ -182,7 +180,9 @@ def meaningful_split_dataset(dataset, split_train=0.7, split_valid=0.85):
     # 1st strategy : if we are looking for a single property : subset the graphs that contain at least a node with this
     # property and make a random split among these.
     if len(node_targets) == 1:
-        train_split, validation_split, test_split = get_single_task_split(node_targets[0])
+        train_split, validation_split, test_split = get_single_task_split(node_targets[0],
+                                                                          split_train=split_train,
+                                                                          split_valid=split_valid)
         train_set = dataset.subset(train_split)
         validation_set = dataset.subset(validation_split)
         test_set = dataset.subset(test_split)
@@ -195,7 +195,7 @@ def meaningful_split_dataset(dataset, split_train=0.7, split_valid=0.85):
 
     train_set = dataset.subset(train_split)
     test_set = dataset.subset(test_split)
-    return train_split, None, test_set  # TODO : implement validation using similar strategy
+    return train_set, None, test_set  # TODO : implement validation using similar strategy
 
 
 def get_loader(dataset,
@@ -211,7 +211,6 @@ def get_loader(dataset,
         return loader
 
     else:
-
         train_set, valid_set, test_set = meaningful_split_dataset(dataset)
         if verbose:
             print(f"training items: ", len(train_set))
