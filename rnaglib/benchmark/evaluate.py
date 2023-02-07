@@ -4,7 +4,7 @@ import sys
 import random
 from sklearn.metrics import roc_auc_score
 
-from rnaglib.data_loading import graphloader, get_all_labels
+from rnaglib.data_loading import graphloader, get_statistics
 from rnaglib.learning import learn
 
 """
@@ -19,26 +19,6 @@ These splits rely on fixed seed random splitting. One can ask to get a multi-tas
 """
 
 
-def get_task_split(node_target, seed=0):
-    """
-    This function takes a supervised task (possibly multi-task) and generates balanced lists of graphs to load from
-    the NR set in a deterministic way.
-
-    Using these splits is a compulsory step of entering the leaderboard
-
-    :param node_target: A subset of {'binding_protein', 'binding_small-molecule', 'is_modified', 'binding_ion'}
-    :param seed: Should be set to the default zero
-    :return: Lists of graphs that consist in the train and test splits
-    """
-    random.seed(seed)
-    if isinstance(node_target, str):
-        node_target = set(node_target)
-    query_attrs = {f'node_{target_feature}' for target_feature in node_target}
-    train_split, test_split = get_all_labels.get_splits(query_attrs=query_attrs, return_train=True)
-    train_split, test_split = sorted(train_split), sorted(test_split)
-    return train_split, test_split
-
-
 def get_performance(node_target, model, node_features=None, evaluation_function=roc_auc_score):
     """
     Evaluates a model on a given task
@@ -50,11 +30,9 @@ def get_performance(node_target, model, node_features=None, evaluation_function=
         Takes a predicted and true labels list and returns the value
     :return: The loss value
     """
-    train_split, test_split = get_task_split(node_target=node_target)
     test_dataset = graphloader.GraphDataset(node_features=node_features,
-                                            node_target=node_target,
-                                            all_graphs=test_split)
-    test_loader = graphloader.GraphLoader(dataset=test_dataset, split=False).get_data()
+                                            node_target=node_target)
+    _, _, test_loader = graphloader.get_loader(dataset=test_dataset, split=True)
 
     loss = learn.evaluate_model_supervised(model=model, validation_loader=test_loader,
                                            evaluation_function=evaluation_function)

@@ -261,8 +261,8 @@ if __name__ == '__main__':
                                                         node_features=node_features,
                                                         data_path=data_path,
                                                         chop=True)
-        train_loader = graphloader.GraphLoader(dataset=unsupervised_dataset, split=False,
-                                               num_workers=0, max_size_kernel=100).get_data()
+        train_loader = graphloader.get_loader(dataset=unsupervised_dataset, split=False,
+                                              num_workers=0, max_size_kernel=100)
 
         pretrain_unsupervised(model=embedder_model,
                               optimizer=optimizer,
@@ -282,8 +282,8 @@ if __name__ == '__main__':
         supervised_dataset = graphloader.GraphDataset(data_path=annotated_path,
                                                       node_features=node_features,
                                                       node_target=node_target)
-        loader = graphloader.GraphLoader(dataset=supervised_dataset, split=True, num_workers=0)
-        train_loader, validation_loader, test_loader = loader.get_data()
+        train_loader, validation_loader, test_loader = graphloader.get_loader(dataset=supervised_dataset, split=True,
+                                                                              num_workers=0)
 
         embedder_model = models.Embedder([10, 10], infeatures_dim=1)
         classifier_model = models.Classifier(embedder=embedder_model, classif_dims=[1])

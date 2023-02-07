@@ -31,8 +31,8 @@ if __name__ == "__main__":
     unsupervised_dataset = graphloader.GraphDataset(node_simfunc=node_sim_func,
                                                     node_features=node_features,
                                                     chop=True)
-    train_loader = graphloader.GraphLoader(dataset=unsupervised_dataset, split=False,
-                                           num_workers=4, max_size_kernel=100).get_data()
+    train_loader = graphloader.get_loader(dataset=unsupervised_dataset, split=False,
+                                          num_workers=4, max_size_kernel=100)
 
     # Then choose the embedder model and pre_train it, we dump a version of this pretrained model
     embedder_model = models.Embedder(infeatures_dim=unsupervised_dataset.input_dim,
@@ -54,7 +54,7 @@ if __name__ == "__main__":
                                                         redundancy='NR',
                                                         node_target=node_target,
                                                         all_graphs=train_split)
-    train_loader = graphloader.GraphLoader(dataset=supervised_train_dataset, split=False).get_data()
+    train_loader = graphloader.get_loader(dataset=supervised_train_dataset, split=False)
 
     # Define a model and train it :
     # We first embed our data in 64 dimensions, using the pretrained embedder and then add one classification

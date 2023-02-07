@@ -33,8 +33,8 @@ def process_graph_dict(dict_to_flatten, prepend=None, counter=False, possible_su
     :param prepend: An optional prefix to add to the resulting dict. Useful to make the distinction between node
     and edge features
     :param counter: Whether to return just the items or their associated counts
-    :param possible_supervisions: A list of features we want. By default we count them all
-    :return: A flatten dictionary with all the possible values of the node/edge data and optionally their counter
+    :param possible_supervisions: A list of features we want. By default, we count them all
+    :return: A flattened dictionary with all the possible values of the node/edge data and optionally their counter
     For instance : {nucleotide_type : {'A', 'U', 'C', 'G', 'a', 'u', 'c', 'g'}
     """
     if counter:
@@ -65,7 +65,7 @@ def process_graph_dict(dict_to_flatten, prepend=None, counter=False, possible_su
                     inner_value = tuple(inner_value)
                     return_dict[inner_key].add(inner_value)
                 if type(inner_value) == dict:
-                    # Just one does that : its 'node frame'
+                    # Just one does that : it is 'node frame'
                     if inner_value is not 'node_frame':
                         pass
                     for inner_key, inner_value in inner_value.items():
@@ -81,7 +81,7 @@ def process_graph_dict(dict_to_flatten, prepend=None, counter=False, possible_su
 
 def graph_to_dict(graph, counter=False, possible_supervisions=None):
     """
-    Turn a graph dictionaries into one dict key : set
+    Turn a graph dictionaries into one dict { possible node/edge keys : set of existing values }
 
     This is useful to list and count all possible values for the data associated with the edges and
     nodes of a set of graphs
@@ -92,7 +92,7 @@ def graph_to_dict(graph, counter=False, possible_supervisions=None):
     :return: A dictionary with node and edge data keys and their associated possible values.
     """
 
-    # Nx returns an Node/Edge view object, a list filled with (node, data)/(source, target, data) tuples
+    # Nx returns a Node/Edge view object, a list filled with (node, data)/(source, target, data) tuples
     list_nodes = graph.nodes(data=True)
     dict_nodes = {u: data for u, data in list_nodes}
     list_edges = graph.edges(data=True)
@@ -173,57 +173,6 @@ def get_graph_indexes(graph_dir, possible_supervisions=None, dump_name='graph_in
         dict_all[key] = dict(dict_value)
     pickle.dump(dict_all, open(dump_name, 'wb'))
     return dict_all
-
-
-def get_splits(query_attrs, graph_index=DEFAULT_INDEX, target_fraction=0.2, return_train=False):
-    """
-    This is a very easy version of data splitting.
-    Correctly splitting the data for multitasking is hard, 
-    For instance in a triangle situation AB,AC,BC : we can half split along each dimension but not the three
-        at the same time
-    We still do a greedy version though, where we first count the amount of nodes for each attrs,
-        and we then fill a test split. 
-
-    :param query_attrs: The attributes we want to learn on
-    :param graph_index: should be the opened output of the previous function a dict of dict of dict.
-    :param target_fraction: The fraction of each
-    :param return_train: whether to return only the test set or both
-
-    :return: the splits in the form of a list of graphs.
-    """
-    if isinstance(query_attrs, str):
-        query_attrs = set(query_attrs)
-    # First count all occurences :
-    total_counts = defaultdict(int)
-    for graph, graph_attrs in graph_index.items():
-        for graph_attrs_name, graph_attrs_counter in graph_attrs.items():
-            if graph_attrs_name in query_attrs:
-                # Maybe there is something to be made here, but usually it's just absent from the encoding
-                # So summing all values in counter makes sense
-                total_counts[graph_attrs_name] += sum(graph_attrs_counter.values())
-    query_attrs_insplit = defaultdict(int)
-    # total_nodes_in_split = 0
-    copy_query_attrs = query_attrs.copy()
-    selected_graphs = set()
-    # Then iterate again and stop after reaching the threshold.
-    for graph, graph_attrs in graph_index.items():
-        for graph_attrs_name, graph_attrs_counter in graph_attrs.items():
-            if graph_attrs_name in copy_query_attrs:
-                # Now add this graph and update the splits
-                selected_graphs.add(graph)
-                # total_nodes_in_split += len(graph.nodes()) TODO get the number of nodes per graph
-                query_attrs_insplit[graph_attrs_name] += sum(graph_attrs_counter.values())
-                attrs_fraction = float(query_attrs_insplit[graph_attrs_name]) / total_counts[graph_attrs_name]
-                if attrs_fraction > target_fraction:
-                    copy_query_attrs.remove(graph_attrs_name)
-        # If we found everything we needed
-        if len(copy_query_attrs) == 0:
-            break
-
-    if not return_train:
-        return selected_graphs
-    else:
-        return set(graph_index.keys()) - selected_graphs, selected_graphs
 
 
 if __name__ == '__main__':
