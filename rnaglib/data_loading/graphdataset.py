@@ -371,8 +371,9 @@ class GraphDataset(Dataset):
         return subset
 
     def __getitem__(self, idx):
+        res_dict = {'graph_name': self.all_graphs[idx]}
         graph, node_attrs_toadd = self.get_nx_graph(idx)
-        res_dict = {'num_nodes': len(graph)}
+        res_dict['num_nodes'] = len(graph)
 
         if 'point_cloud' in self.return_type or 'voxel' in self.return_type:
             # More robust to get C5 ? P is sometimes None
