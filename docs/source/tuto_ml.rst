@@ -5,11 +5,10 @@ First usage of the data
 --------------------------------
 
 Following datasets like OGB, we provide ready-to-use data sets.
+When using the Dataset class, the appropriate data should be downloaded automatically.
 The most common task is node classification.
 The user is asked for input node features and node targets.
 As an example, we use nucleotide identity ('nt_code') as input and the binding of an ion ('binding_ion') as output.
-
-
 
 Then you have one-liner access to a Pytorch dataset and to three loaders that
 return DGL batched graphs.

@@ -1,24 +1,6 @@
 rnaglib.prepare\_data
 =============================
 
-If you have an mmCIF containing RNA stored locally and you wish to build a 2.5D graph that can be used in RNAglib you
-can use the ``prepare_data`` module. To do so, you need to have ``x3dna-dssr`` executable in your ``$PATH`` which
-requires a `license <http://x3dna.org/>`.
-
-.. code-block:: python
-
-    >>> from rnaglib.prepare_data.main import cif_to_graph
-
-    >>> pdb_path = '../data/1aju.cif'
-    >>> graph_nx = cif_to_graph(pdb_path)
-
-
-Another useful functionality is to build the data systematically and in parallel. To do so, use :
-
-.. code-block:: bash
-
-    $ rnaglib_prepare_data -h
-
 Annotations
 ----------------------------------------
 
