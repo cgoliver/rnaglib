@@ -106,9 +106,9 @@ To have an idea on how to use the main functions of RNAGlib, please visit :doc:`
 
 Source Code and Associated Repositories:
 ------------------------
-`RNAglib`<https://jwgitlab.cs.mcgill.ca/cgoliver/rnaglib>`__
+`RNAglib <https://jwgitlab.cs.mcgill.ca/cgoliver/rnaglib>`__ homepage.
 
-`RNAMigos <https://github.com/cgoliver/RNAmigos>`__ : a research paper published in Nucleic Acid Research that
+t: a research paper published in Nucleic Acid Research that
 demonstrates the usefulness of 2.5D graphs for machine learning tasks, exemplified onto the drug discovery application.
 
 `VeRNAl <https://github.com/cgoliver/vernal>`__ : a research paper published in Bioinformatics that uses learnt
