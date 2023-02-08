@@ -12,6 +12,7 @@
    Installation <install>
    Quickstart <quickstart>
    Data <rnaglib.data>
+   ML Tutorial <tutorial_ml>
    Building 2.5D Graph Database <data_build>
 
 .. toctree::
