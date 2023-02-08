@@ -145,10 +145,10 @@ class GraphDataset(Dataset):
                  node_features='nt_code',
                  node_target=None,
                  return_type=('graph'),
-                 edge_map=GRAPH_KEYS['edge_map'][TOOL],
-                 label='LW',
                  node_simfunc=None,
                  hashing_path=None,
+                 edge_map=GRAPH_KEYS['edge_map'][TOOL],
+                 label='LW',
                  verbose=False):
         """
         This class is the main object for graph data loading. One can simply ask for feature and the appropriate data
@@ -162,14 +162,16 @@ class GraphDataset(Dataset):
         :param redundancy: To use all graphs or just the non redundant set.
         :param chop: if we want full graphs or chopped ones for learning on smaller chunks
         :param all_graphs: In the given directory, one can choose to provide a list of graphs to use
-        :param edge_map: Necessary to build the one hot mapping from edge labels to an id
-        :param label: The label to use
-        :param node_simfunc: The node comparison object as defined in kernels/node_sim to use for the embeddings.
-         If None is selected, this will just return graphs
         :param node_features: node features to include, stored in one tensor in order given by user,
         for example : ('nt_code','is_modified')
-        :param node_features: node targets to include, stored in one tensor in order given by user
+        :param node_target: node targets to include, stored in one tensor in order given by user
         for example : ('binding_protein', 'binding_small-molecule')
+        :param return_type: string or iterable of a subset from {'graph', 'point_cloud', 'voxel'}. This determines what
+        is included in the output from get_item and serves as keys to the dictionnary.
+        :param edge_map: Necessary to build the one hot mapping from edge labels to an id
+        :param label: The label to use for the edges in the graph
+        :param node_simfunc: The node comparison object as defined in kernels/node_sim to use for the embeddings.
+         If None is selected, this will just return graphs
         :return:
         """
 
@@ -326,7 +328,7 @@ class GraphDataset(Dataset):
         return graph
 
     def shuffle(self):
-        self.all_graphs = np.random.shuffle(self.all_graphs)
+        np.random.shuffle(self.all_graphs)
 
     def add_node_sim(self, node_simfunc):
         if node_simfunc is not None:
@@ -397,7 +399,6 @@ class GraphDataset(Dataset):
                 if "target" in node_attrs_toadd:
                     to_embed.append(target_tens)
 
-                max = None
                 if len(to_embed) == 0:
                     features = None
                 else:
@@ -405,12 +406,11 @@ class GraphDataset(Dataset):
                         features = torch.hstack(to_embed)
                     else:
                         features = to_embed[0]
-                    features = features.numpy()
-                    features = features[:max]
+                    features = features.numpy()  # TODO : port in torch to avoid back and forth
                 coords = coord_tens.numpy()
-                coords = coords[:max]
-
                 voxel_representation = get_grid(coords=coords, features=features)
+                voxel_representation = torch.from_numpy(voxel_representation)
+
                 # Just retrieve a one-hot
                 if features is None:
                     res_dict['voxel_feats'] = voxel_representation

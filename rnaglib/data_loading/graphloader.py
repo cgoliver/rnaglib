@@ -4,6 +4,7 @@ import sys
 from collections import defaultdict
 import random
 
+import numpy as np
 import torch
 from torch.utils.data import DataLoader, Subset
 import dgl
@@ -25,7 +26,7 @@ from rnaglib.data_loading.get_statistics import DEFAULT_INDEX
 
 
 class Collater:
-    def __init__(self, node_simfunc=None, max_size_kernel=None):
+    def __init__(self, node_simfunc=None, max_size_kernel=None, hstack=False):
         """
         Wrapper for collate function, so we can use different node similarities.
             We cannot use functools.partial as it is not picklable so incompatible with Pytorch loading
@@ -33,10 +34,12 @@ class Collater:
         comparison of the nodes in the batch
         :param max_size_kernel: If the node comparison is not None, optionnaly only return a pairwise
         comparison between a subset of all nodes, of size max_size_kernel
+        :param hstack: If True, hstack point cloud return
         :return: a picklable python function that can be called on a batch by Pytorch loaders
         """
         self.node_simfunc = node_simfunc
         self.max_size_kernel = max_size_kernel
+        self.hstack = hstack
 
     @staticmethod
     def collate_rings(list_of_rings, node_simfunc, max_size_kernel=None):
@@ -82,7 +85,10 @@ class Collater:
             batch['node_similarities'] = (K, node_ids)
 
         for key in batch_keys - {'graph', 'ring'}:
-            batch[key] = [sample[key] for sample in samples]
+            if key in {'node_coords', 'node_feats', 'node_targets', } and self.hstack:
+                batch[key] = torch.cat([sample[key] for sample in samples], dim=0)
+            else:
+                batch[key] = [sample[key] for sample in samples]
         return batch
 
 
@@ -219,9 +225,10 @@ def get_loader(dataset,
                batch_size=5,
                num_workers=0,
                max_size_kernel=None,
+               hstack=False,
                split=True,
                verbose=False):
-    collater = Collater(dataset.node_simfunc, max_size_kernel=max_size_kernel)
+    collater = Collater(dataset.node_simfunc, max_size_kernel=max_size_kernel, hstack=hstack)
     if not split:
         loader = DataLoader(dataset=dataset, shuffle=True, batch_size=batch_size,
                             num_workers=num_workers, collate_fn=collater.collate)
