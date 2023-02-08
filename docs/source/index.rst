@@ -5,14 +5,23 @@
 
 .. toctree::
    :maxdepth: 2
-   :caption: Homepage
+   :caption: Documentation
    :hidden:
 
    Homepage <self>
    Installation <install>
-   Quickstart <quickstart>
-   Data <rnaglib.data>
-   Building 2.5D Graph Database <data_build>
+   Data Explanation <rnaglib.data>
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Tutorials
+   :hidden:
+
+   Data Building <tuto_data>
+   Handling 2.5D Graphs <tuto_2.5d>
+   Learning on your own data <tuto_compbio>
+   Machine Learning on Benchmark Datasets <tuto_ml>
+   Machine Learning Examples <rnaglib.examples>
 
 .. toctree::
    :maxdepth: 2
@@ -23,23 +32,24 @@
    Config <rnaglib.config>
    Data Loading <rnaglib.data_loading>
    Drawing <rnaglib.drawing>
-   Examples <rnaglib.examples>
    Ged <rnaglib.ged>
    Kernels <rnaglib.kernels>
    Learning <rnaglib.learning>
    Prepare Data <rnaglib.prepare_data>
    Utils <rnaglib.utils>
 
-
+=========
 Welcome to RNAGlib's Documentation!
-----------------------------------------
+=========
+
 ..
  This is a comment : contents:: Table of Contents
 
 
-``RNAglib`` is a Python package for studying RNA 2.5D structures.
+``RNAglib`` is a Python package for studying RNA structures.
 Functionality includes automated data loading, analysis, visualization, ML model building
 and benchmarking.
+We support point clouds and voxels representations for RNA structures, but mostly offer functionnalities about 2.5D graphs.
 
 -  What are RNA 2.5D structures?
 
@@ -71,19 +81,6 @@ We provide a visualization of what the graphs in this database contain.
 A more detailed description of the data is presented in :doc:`rnaglib.data`.
 |Example graph|
 
-Package Structure
------------------
-
--  :doc:`rnaglib.prepare_data`: processes raw PDB structures and
-   builds a database of 2.5D graphs with full structural annotation
--  :doc:`rnaglib.data_loading`: custom PyTorch dataloader implementations
--  :doc:`rnaglib.learning`: learning routines and pre-built GCN models for the easiest use of the
-   package.
--  :doc:`rnaglib.drawing`: utilities for visualizing 2.5D graphs
--  :doc:`rnaglib.ged`: custom graph similarity functions
--  :doc:`rnaglib.kernels`: custom local neighbourhood similarity functions
-
-
 Installation
 ------------
 
@@ -102,7 +99,27 @@ Then, one just needs to run :
 
 and can start using the packages functionalities by importing them in one's python script.
 
-To have an idea on how to use the main functions of RNAGlib, please visit :doc:`quickstart`
+Documentation Structure
+-----------------
+
+In addition to a more detailed description of the :doc:`rnaglib.data<data>`), we provide four tutorials :
+
+-  A tutorial to obtain the data (:doc:`tuto_data<link>`)
+-  A tutorial to manipulate and visualize the data (:doc:`tuto_2.5d<link>`)
+-  A tutorial showing how your own biological data can fuel a machine learning model (:doc:`tuto_compbio<link>`)
+-  A tutorial for machine learning practicioners who want to use the data directly (:doc:`tuto_ml<link>`)
+
+Package Structure
+-----------------
+
+-  :doc:`rnaglib.prepare_data`: processes raw PDB structures and
+   builds a database of 2.5D graphs with full structural annotation
+-  :doc:`rnaglib.data_loading`: custom PyTorch dataloader implementations
+-  :doc:`rnaglib.learning`: learning routines and pre-built GCN models for the easiest use of the
+   package.
+-  :doc:`rnaglib.drawing`: utilities for visualizing 2.5D graphs
+-  :doc:`rnaglib.ged`: custom graph similarity functions
+-  :doc:`rnaglib.kernels`: custom local neighbourhood similarity functions
 
 Source Code and Associated Repositories:
 ------------------------
@@ -113,7 +130,6 @@ demonstrates the usefulness of 2.5D graphs for machine learning tasks, exemplifi
 
 `VeRNAl <https://github.com/cgoliver/vernal>`__ : a research paper published in Bioinformatics that uses learnt
 vector representations of RNA subgraphs to mine structural motifs in RNA.
-
 
 
 References

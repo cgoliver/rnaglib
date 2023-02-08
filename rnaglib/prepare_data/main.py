@@ -171,7 +171,10 @@ def prepare_data_main():
                         help='directory containing structures from the PDB')
     parser.add_argument('-O', '--output_dir',
                         help='directory to output graphs')
-    # Optional Flags
+    # For just one output
+    parser.add_argument('--one_mmcif',
+                        help='If one wants to do only one structure, path to the mmcif file')
+    # Optional arguments
     parser.add_argument('-nw', '--num_workers',
                         type=int,
                         help='number of workers for multiprocessing',
@@ -187,6 +190,11 @@ def prepare_data_main():
     args = parser.parse_args()
 
     os.makedirs(os.path.join(args.output_dir), exist_ok=True)
+
+    if args.one_mmcif is not None:
+        cif_to_graph(cif=args.one_mmcif, output_dir=args.output_dir)
+        return
+
     os.makedirs(os.path.join(args.output_dir, 'all_graphs'), exist_ok=True)
     for rna_filter in FILTERS + ['all_graphs', 'NR']:
         os.makedirs(os.path.join(args.output_dir, rna_filter), exist_ok=True)
