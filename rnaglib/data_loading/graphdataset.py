@@ -138,6 +138,7 @@ def get_grid(coords, features=None, spacing=2, padding=3, xyz_min=None, xyz_max=
 class GraphDataset(Dataset):
     def __init__(self,
                  data_path=None,
+                 version='0.0.1',
                  download_dir=None,
                  redundancy='NR',
                  chop=False,
@@ -185,6 +186,7 @@ class GraphDataset(Dataset):
         if data_path is None:
             self.data_path, self.hashing_path = graph_io.download_graphs(redundancy=redundancy,
                                                                          chop=chop,
+                                                                         version=version,
                                                                          annotated=node_simfunc is not None,
                                                                          download_dir=download_dir,
                                                                          verbose=verbose)
