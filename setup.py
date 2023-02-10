@@ -27,5 +27,6 @@ setuptools.setup(
     scripts=['rnaglib/bin/rnaglib_first',
              'rnaglib/bin/rnaglib_second',
              'rnaglib/bin/rnaglib_prepare_data',
+             'rnaglib/bin/rnaglib_tokenize',
              'rnaglib/bin/rnaglib_download']
 )
