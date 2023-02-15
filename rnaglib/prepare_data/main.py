@@ -207,7 +207,8 @@ def prepare_data_main():
         todo = ((cif, args.output_dir) for cif in cifs \
                 if cif[-8:-4].upper() in new_rna)
     elif args.continu:
-        done = [graph[:4] for graph in os.listdir(args.output_dir)]
+        done = [graph[:4] for graph in os.listdir(os.path.join(args.output_dir, "all_graphs"))]
+        print(f">>> Skipping {len(done)} already processed RNAs.")
         todo = ((cif, args.output_dir, args.filter) for cif in cifs \
                 if cif[-8:-4] not in done)
     else:
@@ -223,6 +224,7 @@ def prepare_data_main():
 
     # Filters
     if args.filter:
+        print(">>> Building filtered datasets")
         filter_all(os.path.join(args.output_dir, 'all_graphs'),
                    args.output_dir,
                    filters=FILTERS
