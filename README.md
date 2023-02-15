@@ -35,10 +35,10 @@ A more detailed description of the data is presented in `/RNAGlib/prepare_data/R
 
 ## Data stats
 
-| Version | Date | Total RNAs | Total Non-Redundant | Non-redundant version | `rnaglib` version |
+| Version | Date | Total RNAs | Total Non-Redundant | Non-redundant version | `rnaglib` commit  |
 ----------|------|------------|---------------------|-----------------------|-------------------|
-0.0.1     | 15-02-23 | 5759   | 1176                | 3.269                 |                   |
-0.0.0     | 20-07-21 | 3739   | 899                 | 3.186                 |                   |
+0.0.1     | 15-02-23 | 5759   | 1176                | 3.269                 |  5446ae2c         |
+0.0.0     | 20-07-21 | 3739   | 899                 | 3.186                 |  eb25dabd         |
 
 ## Package Structure
 
