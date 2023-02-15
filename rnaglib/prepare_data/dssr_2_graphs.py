@@ -10,7 +10,7 @@ import traceback
 from collections import defaultdict
 import json
 import networkx as nx
-from subprocess import check_output
+import subprocess
 
 
 def dssr_exec(cif):
@@ -21,7 +21,7 @@ def dssr_exec(cif):
     :return: JSON of x3dna output
     """
     try:
-        dssr_dict = check_output(["x3dna-dssr", "--json", f"-i={cif}"])
+        dssr_dict = subprocess.check_output(["x3dna-dssr", "--json", f"-i={cif}"], stderr=subprocess.PIPE)
     except Exception as e:
         print(e)
         return 1, None
@@ -36,7 +36,7 @@ def snap_exec(cif):
     :return: plaintext output
     """
     try:
-        rpb_dict = check_output(["x3dna-dssr", "snap", f"-i={cif}"])
+        rpb_dict = subprocess.check_output(["x3dna-dssr", "snap", f"-i={cif}"], stderr=subprocess.PIPE)
     except Exception as e:
         print(e)
         return 1, None
@@ -226,9 +226,9 @@ def dssr_dict_2_graph(dssr_dict, rbp_dict, pdbid):
         rna_pairs = rna_only_pairs(dssr_dict)
         rna_pairs = base_pair_swap(list(rna_pairs))
     except Exception as e:
-        print(e)
-        traceback.print_exc()
-        print(f"No base pairs found for {pdbid}")
+        #print(e)
+        #traceback.print_exc()
+        #print(f">>> No base pairs found for {pdbid}")
         return
 
     G.add_edges_from(((pair['nt1'], pair['nt2'], pair) for pair in rna_pairs))

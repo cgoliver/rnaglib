@@ -33,6 +33,13 @@ A more detailed description of the data is presented in `/RNAGlib/prepare_data/R
 
 ![Example graph](https://jwgitlab.cs.mcgill.ca/cgoliver/rnaglib/-/raw/main/images/Fig1.png)
 
+## Data stats
+
+| Version | Date | Total RNAs | Total Non-Redundant | Non-redundant version | `rnaglib` version |
+----------|------|------------|---------------------|-----------------------|-------------------|
+0.0.1     | 15-02-23 | 5759   | 1176                | 3.269                 |                   |
+0.0.0     | 20-07-21 | 3739   | 899                 | 3.186                 |                   |
+
 ## Package Structure
 
 * `/RNAGlib/prepare_data/`: processes raw PDB structures and builds a database of 2.5D graphs with full structural
