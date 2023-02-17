@@ -1,9 +1,8 @@
-=====
 Data tutorial
-=====
+=================
 
 Overview of the 2.5D Graphs
-------
+-----------------------------
 First, let us have a look at the 2.5d graph object from a code perspective. We use networkx to represent this graph.
 Once the graphs are downloaded, they can be fetched directly using their PDBID.
 Since nodes represent nucleotides, the node data dictionary will include features such as nucleotide type,
@@ -34,7 +33,8 @@ Using node IDs we can access node and edge attributes as dictionary keys.
 To get more information on what each of these fields refer to, please visit :doc:`rnaglib.data`.
 
 Downloading Prebuilt Data Sets
-------
+--------------------------------
+
 To perform machine learning one needs RNA data. We provide a way of obtaining a 2.5D graph from local PDB files (see below).
 However since this construction is computationally expensive at database scale, we offer pre-built databases.
 We however offer three possibilities to directly access pre-built databases :
@@ -48,7 +48,7 @@ We however offer three possibilities to directly access pre-built databases :
 Because of this last option, after installing our tool with pip, one can start learning on RNA data without extra steps.
 
 Building the Data
-------
+-------------------
 
 ------------------
 What you will need

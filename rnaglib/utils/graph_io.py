@@ -12,10 +12,6 @@ import zipfile
 from networkx.readwrite import json_graph
 import networkx as nx
 
-script_dir = os.path.dirname(os.path.realpath(__file__))
-if __name__ == "__main__":
-    sys.path.append(os.path.join(script_dir, '..', '..'))
-
 
 def dump_json(filename, graph):
     """
@@ -80,6 +76,8 @@ def get_default_download_dir():
     dirname = os.path.join(os.path.expanduser('~'), '.rnaglib/')
     if not os.path.exists(dirname):
         os.makedirs(dirname)
+        os.makedirs(os.path.join(dirname, 'downloads'))
+        os.makedirs(os.path.join(dirname, 'datasets'))
     return dirname
 
 
@@ -155,59 +153,38 @@ def download(url, path=None, overwrite=True, retries=5, verify_ssl=True, log=Tru
     return fname
 
 
-def download_name_generator(dirname=None,
+def download_name_generator(
                             version='0.0.1',
                             redundancy='NR',
-                            chop=False,
                             annotated=False,
-                            download_dir=get_default_download_dir()):
+                            ):
     """
-    This builds the adress of some data based on its feature
+    This returns the zenodo URL given dataset choices. 
 
-    :param dirname: For custom data saving
-    :param version: For versioning
+    :param version: Which data version to use.
     :param redundancy: Whether we want all RNA structures or just a filtered set
-    :param chop: Whether we want all graphs or fixed size chopped parts of the whole ones
     :param annotated: Whether to include pre-computed annotation for each node with information
         to be used by kernel functions
-    :return:  url address, path of the downloaded file, path for the extracted data, dirname to save it,
-     hashing files if needed (annotated = True)
     """
     # Generic name
-    chop_str = '_chops' if chop else ''
-    annotated_str = '_annot' if annotated else ''
-    tarball_name = f'{version}_{redundancy}{chop_str}{annotated_str}'
 
     # Find remote url and get download link
     # url = f'http://rnaglib.cs.mcgill.ca/static/datasets/{version}/{tarball_name}.tar.gz'
-    url = f"https://sandbox.zenodo.org/record/1162406/files/rnaglib-{redundancy}-{version}.tar.gz?download=1"
-    dl_path = os.path.join(download_dir, f'data/downloads/{tarball_name}.tar.gz')
-
-    # Complete dl path depending on annotation and optionally get hashing too
-    if annotated_str == '':
-        data_path = os.path.join(download_dir, f'data/graphs/')
-        hashing_info = None
+    if annotated:
+        return f"https://sandbox.zenodo.org/record/1162406/files/rnaglib-{redundancy}-{version}-annotated.tar.gz?download=1"
     else:
-        data_path = os.path.join(download_dir, f'data/annotated/')
-        # hashing_url = f'http://rnaglib.cs.mcgill.ca/static/datasets/{version}/{tarball_name}_hash.p'
-        hashing_url = f'https://sandbox.zenodo.org/record/1162337/files/rnaglib-{version}/{tarball_name}_hash.p'
-        hashing_path = os.path.join(download_dir, f'data/hashing/{tarball_name}_hash.p')
-        hashing_info = (hashing_url, hashing_path)
-    dirname = tarball_name if dirname is None else dirname
-    return url, dl_path, data_path, dirname, hashing_info
+        return f"https://sandbox.zenodo.org/record/1162406/files/rnaglib-{redundancy}-{version}.tar.gz?download=1"
 
 
 def download_graphs(redundancy='NR',
                     version='0.0.1',
-                    chop=False,
                     annotated=False,
                     overwrite=False,
-                    download_dir=get_default_download_dir(),
-                    verbose=False):
+                    data_root=None,
+                    ):
     """
     Based on the options, get the right data from the latest release and put it in download_dir.
     :param redundancy: Whether to include all RNAs or just a non-redundant set as defined by BGSU
-    :param chop: Whether to use full graphs or their chopped versions
     :param annotated: Whether to include graphlet annotations in the graphs. This will also create a hashing directory and table
     :param overwrite: To overwrite existing data
     :param download_dir: Where to save this data. Defaults to ~/.rnaglib/
@@ -215,45 +192,25 @@ def download_graphs(redundancy='NR',
     """
     # Get the correct names for the download option and download the correct files
     hashing_path = None
-    download_dir = get_default_download_dir() if download_dir is None else download_dir
-    url, dl_path, data_path, dirname, hashing = download_name_generator(
-                                                                        dirname=f"rnaglib-{redundancy}-{version}",
-                                                                        redundancy=redundancy,
-                                                                        version=version,
-                                                                        chop=chop,
-                                                                        annotated=annotated,
-                                                                        download_dir=download_dir)
-    full_data_path = os.path.join(data_path, dirname)
-    if verbose:
-        print(f'Getting dataset : {full_data_path}')
-        if hashing is not None:
-            print(f'Getting hashing : {hashing[1]}')
-    if not os.path.exists(full_data_path) or overwrite:
-        if not os.path.exists(dl_path) or overwrite:
-            print('Required dataset not found, launching a download. This should take about a minute')
-            print(f"Downloading to : {dl_path}")
-            print(f"Saving to : {full_data_path}")
-            download(path=dl_path,
-                     url=url)
+    if data_root is None:
+        data_root = get_default_download_dir()
+
+    tag = f"{redundancy}-{version}{'-' + 'annotated' if annotated else ''}"
+    url = download_name_generator(redundancy=redundancy, version=version, annotated=annotated)
+    dl_path = os.path.join(data_root, 'downloads', tag + '.tar.gz')
+    data_path = os.path.join(data_root, 'datasets', tag)
+
+    if not os.path.exists(dl_path) or overwrite:
+        print('Required dataset not found, launching a download. This should take about a minute')
+        print(f"Downloading to : {dl_path}")
+        print(f"Saving to : {data_path}")
+        download(path=dl_dest, url=url)
         # Expand the compressed files at the right location
-        if dl_path.endswith('.zip'):
-            with zipfile.ZipFile(dl_path, 'r') as zip_file:
-                zip_file.extractall(path=data_path)
-        elif '.tar' in url:
-            with tarfile.open(dl_path) as tar_file:
-                tar_file.extractall(path=data_path)
+        with tarfile.open(dl_path) as tar_file:
+            tar_file.extractall(path=data_path)
     else:
-        if verbose:
-            print(f'Dataset was found and not overwritten')
-    if hashing is not None:
-        hashing_url, hashing_path = hashing
-        if not os.path.exists(hashing_path) or overwrite:
-            download(path=hashing_path,
-                     url=hashing_url)
-        else:
-            if verbose:
-                print(f'Hashing was found and not overwritten')
-    return full_data_path, hashing_path
+        print(f'Dataset was found and not overwritten')
+    return full_data_path
 
 
 def graph_from_pdbid(pdbid, graph_dir=None, graph_format='json'):
