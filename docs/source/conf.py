@@ -20,8 +20,8 @@ print(sys.path)
 # -- Project information -----------------------------------------------------
 
 project = 'rnaglib'
-copyright = '2021, Vincent Mallet'
-author = 'Vincent Mallet'
+copyright = '2021, Vincent Mallet et al.'
+author = 'Vincent Mallet, Carlos Oliver, Jonathan Broadbent, William L. Hamilton, Jerome Waldispuhl'
 
 # The full version, including alpha/beta/rc tags
 release = '0.0.1'

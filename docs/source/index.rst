@@ -39,25 +39,34 @@
    Utils <rnaglib.utils>
 
 =========
-Welcome to RNAGlib's Documentation!
+Welcome to RNAGlib!
 =========
 
 ..
  This is a comment : contents:: Table of Contents
 
 
-``RNAglib`` is a Python package for studying RNA structures.
-Functionality includes automated data loading, analysis, visualization, ML model building
+``RNAGlib`` (RNA Geometric Library) is a Python package for studying models of RNA 3D structures.
+Through this package you can access a rich set of up-to-date annotations for all available RNA structures in the PDB Databank.
+Functionality includes automated data loading, analysis, visualization, machine learning model building
 and benchmarking.
-We support point clouds and voxels representations for RNA structures, but mostly offer functionnalities about 2.5D graphs.
+We support point cloud and voxel representations for RNA structures, but mostly offer functionality for 2.5D graphs.
 
--  What are RNA 2.5D structures?
+.. topic:: Core Features
+
+   * Quick access to all available RNA 3D structures with annotations
+   * Rich functionality for 2.5D RNA graphs, point clouds, and voxels
+   * Visualization 
+   * ML Benchmarking tasks 
+
+
+**What are RNA 2.5D structures?**
 
 RNA 2.5D structures are discrete graph-based representations of atomic coordinates derived
 from techniques such as X-ray crystallography and NMR. This type of representation encodes
 all possible base pairing interactions which are known to be crucial for understanding RNA function.
 
--  Why use RNA 2.5D data?
+**Why use RNA 2.5D data?**
 
 The benefit is twofold. When dealing with RNA 3D data, a representation centered on
 base pairing is a very natural prior which has been shown to carry important signals for
@@ -65,7 +74,7 @@ complex interactions, and can be directly interpreted.
 Second, adopting graph representations lets us take advantage of many powerful algorithmic tools
 such as graph neural networks and graph kernels.
 
--  What type of functional data is included?
+**What type of functional data is included?**
 
 The graphs are annotated with graph, node, and edge-level attributes.
 These include, but are not limited to:
@@ -100,9 +109,9 @@ Then, one just needs to run :
 and can start using the packages functionalities by importing them in one's python script.
 
 Documentation Structure
------------------
+-------------------------
 
-In addition to a more detailed description of the :doc:`rnaglib.data<data>`), we provide four tutorials :
+In addition to a more detailed description of the :doc:`rnaglib.data<rnaglib.data>`), we provide four tutorials :
 
 -  A tutorial to obtain the data (:doc:`tuto_data<link>`)
 -  A tutorial to manipulate and visualize the data (:doc:`tuto_2.5d<link>`)

@@ -10,11 +10,8 @@ import torch
 from torch.utils.data import Dataset
 import dgl
 
-script_dir = os.path.dirname(os.path.realpath(__file__))
-if __name__ == "__main__":
-    sys.path.append(os.path.join(script_dir, '..', '..'))
-
-from rnaglib.utils import graph_io
+from rnaglib.utils import download_graphs
+from rnaglib.utils import load_graph
 from rnaglib.data_loading.feature_maps import build_node_feature_parser
 from rnaglib.config.graph_keys import GRAPH_KEYS, TOOL
 
@@ -184,17 +181,17 @@ class GraphDataset(Dataset):
         self.data_path = data_path
         self.hashing_path = hashing_path
         if data_path is None:
-            self.data_path, self.hashing_path = graph_io.download_graphs(redundancy=redundancy,
-                                                                         chop=chop,
-                                                                         version=version,
-                                                                         annotated=node_simfunc is not None,
-                                                                         download_dir=download_dir,
-                                                                         verbose=verbose)
+            self.data_path = download_graphs(redundancy=redundancy,
+                                             version=version,
+                                             annotated=node_simfunc is not None,
+                                             download_dir=download_dir,
+                                             )
 
         if all_graphs is not None:
             self.all_graphs = all_graphs
         else:
-            self.all_graphs = sorted(os.listdir(self.data_path))
+            print(self.data_path)
+            self.all_graphs = sorted(os.listdir(os.path.join(self.data_path, 'graphs')))
 
         self.return_type = [return_type] if isinstance(return_type, str) else return_type
 
@@ -274,7 +271,7 @@ class GraphDataset(Dataset):
         :return:
         """
         g_path = os.path.join(self.data_path, self.all_graphs[idx])
-        graph = graph_io.load_graph(g_path)
+        graph = load_graph(g_path)
 
         # Get Node labels
         node_attrs_toadd = list()
