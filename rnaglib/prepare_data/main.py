@@ -3,8 +3,6 @@ Prepare graphs from PDB cif files using DSSR annotation software.
 Ligand and Ion annotations are manually annotated by neighbor search on PDB structures.
 Write graphs in JSON format to output directory
 Run with -u to update the PDB atleast once a week
-EXTERNAL PACKAGES:
-    rcsbsearch : `pip install rcsbsearch`
 """
 import argparse
 import os
@@ -17,12 +15,9 @@ from collections import defaultdict
 import json
 import requests
 
-script_dir = os.path.dirname(os.path.realpath(__file__))
-if __name__ == "__main__":
-    sys.path.append(os.path.join(script_dir, '..', '..'))
 
-from rnaglib.utils.graph_utils import reorder_nodes
-from rnaglib.utils.graph_io import dump_json
+from rnaglib.utils import reorder_nodes
+from rnaglib.utils import dump_json
 
 from rnaglib.prepare_data.dssr_2_graphs import build_one
 from rnaglib.prepare_data.annotations import add_graph_annotations
@@ -239,15 +234,16 @@ def prepare_data_main(args):
         todo = (item for i, item in enumerate(todo) if i < 10)
 
     # Build Graphs
-    print(">>> Building graphs")
+    print(">>> Building graphs with DSSR")
     pool = mp.Pool(args.num_workers)
     errors = pool.starmap(cif_to_graph, todo)
 
     if args.annotate:
-        print("Chopping")
         chop_dir = os.path.join(build_dir, "chops")
         annot_dir = os.path.join(build_dir, "annot")
+        print(">>> Chopping")
         chop_all(graphs_dir, chop_dir, n_jobs=args.num_workers)
+        print(">>> Annotating")
         annotate_all(graph_path=chop_dir, dump_path=annot_dir)
 
         print('Done annotating graphs')
