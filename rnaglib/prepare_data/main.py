@@ -9,13 +9,15 @@ import os
 import sys
 import traceback
 from joblib import Parallel, delayed
+import json
+import requests
 
 from Bio.PDB.PDBList import PDBList
 from collections import defaultdict
 
-import json
-import requests
 
+from Bio.PDB.PDBList import PDBList
+from tqdm import tqdm
 
 from rnaglib.utils import reorder_nodes
 from rnaglib.utils import dump_json
@@ -112,10 +114,10 @@ def cif_to_graph(cif, output_dir=None, min_nodes=20, return_graph=False):
     """
 
     if '.cif' not in cif:
-        print("Incorrect format")
-        return
+        # print("Incorrect format")
+        return os.path.basename(cif), 'format'
     pdbid = cif[-8:-4]
-    print('Computing Graph for ', pdbid)
+    # print('Computing Graph for ', pdbid)
 
     # Build graph with DSSR
     error_type = 'OK'
@@ -125,22 +127,22 @@ def cif_to_graph(cif, output_dir=None, min_nodes=20, return_graph=False):
         dssr_failed = g is None
         filter_dot_edges(g)
     except Exception as e:
-        print("ERROR: Could not construct DSSR graph for ", cif)
+        # print("ERROR: Could not construct DSSR graph for ", cif)
         if dssr_failed:
-            print("Annotation using x3dna-dssr failed, please ensure you have the executable in your PATH")
-            print("This requires a license.")
+            # print("Annotation using x3dna-dssr failed, please ensure you have the executable in your PATH")
+            # print("This requires a license.")
             error_type = 'DSSR_error'
         else:
-            print(traceback.print_exc())
+            # print(traceback.print_exc())
             error_type = 'Filtering error after DSSR building'
-        return None, error_type
+        return pdbid, error_type
 
     if len(g.nodes()) < min_nodes:
-        print(f'Excluding {pdbid} from output, less than 20 nodes')
+        # print(f'Excluding {pdbid} from output, less than 20 nodes')
         error_type = 'tooSmall'
         return pdbid, error_type
     if len(g.edges()) < len(g.nodes()) - 3:
-        print(f'Excluding {pdbid} from output, edges < nodes -3')
+        # print(f'Excluding {pdbid} from output, edges < nodes -3')
         error_type = 'edges<nodes-3'
         return pdbid, error_type
 
@@ -148,17 +150,16 @@ def cif_to_graph(cif, output_dir=None, min_nodes=20, return_graph=False):
     try:
         add_graph_annotations(g=g, cif=cif)
     except Exception as e:
-        print('ERROR: Could not compute interfaces for ', cif)
-        print(e)
-        print(traceback.print_exc())
+        # print('ERROR: Could not compute interfaces for ', cif)
+        # print(e)
+        # print(traceback.print_exc())
         error_type = 'interfaces_error'
     # Order the nodes
     g = reorder_nodes(g)
 
     # Write graph to outputdir in JSON format
     if output_dir is not None:
-        dump_json(os.path.join(output_dir, 'all', pdbid + '.json'), g)
-    print('>>> SUCCESS: graph written: ', pdbid)
+        dump_json(os.path.join(output_dir, 'all_graphs', pdbid + '.json'), g)
     if return_graph:
         return pdbid, error_type, g
     return pdbid, error_type
@@ -247,15 +248,17 @@ def prepare_data_main():
 
     todo = ((os.path.join(args.structures_dir, pdbid + ".cif"), build_dir)\
             for pdbid in rna_list if pdbid not in done)
-
     if args.debug:
         print(">>> Using debug mode. Preparing only 10 structures.")
         todo = (item for i, item in enumerate(todo) if i < 10)
 
     # Build Graphs
     print(">>> Building graphs with DSSR")
-    pool = mp.Pool(args.num_workers)
-    errors = pool.starmap(cif_to_graph, todo)
+    total = len(todo)
+    errors = Parallel(n_jobs=args.num_workers)(delayed(cif_to_graph)(*t) for t in tqdm(todo, total=total, desc='Building RNAs.'))
+    with open(os.path.join(args.output_dir, "errors.csv"), 'w') as err:
+        for pdbid, error in errors:
+            err.write(f"{pdbid},{error}\n")
 
     if args.annotate:
         chop_dir = os.path.join(build_dir, "chops")
@@ -264,24 +267,7 @@ def prepare_data_main():
         chop_all(graphs_dir, chop_dir, n_jobs=args.num_workers)
         print(">>> Annotating")
         annotate_all(graph_path=chop_dir, dump_path=annot_dir)
-
         print('Done annotating graphs')
-
-    # Error Logging
-    errors = [e for e in errors if e[1] != "OK"]
-    if len(errors) == 0:
-        print("DONE\nNo Errors found")
-        return
-
-    errors_dict = defaultdict(list)
-    for pbid, err in errors: errors_dict[err].append(pbid)
-    with open('log.json', 'w') as f:
-        json.dump(errors_dict, f, indent=2)
-
-    print("DONE\nErrors found: (recorded in log.json)")
-    print(errors_dict)
-    return
-
 
 if __name__ == '__main__':
     prepare_data_main()

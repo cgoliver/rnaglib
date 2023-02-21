@@ -30,7 +30,7 @@ def get_NRlist(resolution):
 
     base_url = 'http://rna.bgsu.edu/rna3dhub/nrlist/download'
     release = 'current'  # can be replaced with a specific release id, e.g. 0.70
-    release = '3.186'
+    # release = '3.186'
     url = '/'.join([base_url, release, resolution])
 
     print(url)

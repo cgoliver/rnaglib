@@ -123,16 +123,20 @@ def chop_one_rna(G):
     # residues = [r for r in structure.get_residues() if r.id[0] == ' ' and
     # r.get_resname() in RNA]
 
-    chops = chop(residues)
-    subgraphs = []
-    for j, this_chop in enumerate(chops):
-        subgraph = G.subgraph((n for n,_ in this_chop)).copy()
-        subgraph = graph_clean(G, subgraph)
-        if graph_filter(subgraph):
-            subgraphs.append(subgraph)
-        else:
-            pass
-    return subgraphs
+    try:
+        chops = chop(residues)
+        subgraphs = []
+        for j, this_chop in enumerate(chops):
+            subgraph = G.subgraph((n for n,_ in this_chop)).copy()
+            subgraph = graph_clean(G, subgraph)
+            if graph_filter(subgraph):
+                subgraphs.append(subgraph)
+            else:
+                pass
+        return subgraphs
+    except:
+        print("chopping error")
+        return None
 
 def chop_all(graph_path, dest, n_jobs=4, parallel=True):
     """
@@ -149,6 +153,8 @@ def chop_all(graph_path, dest, n_jobs=4, parallel=True):
     subgraphs = Parallel(n_jobs=n_jobs)(delayed(chop_one_rna)(G) for G in graphs)
     # dump the chops
     for chopped_rna in subgraphs:
+        if chopped_rna is None:
+            continue
         for i, this_chop in enumerate(chopped_rna):
             dump_json(os.path.join(dest, f"{this_chop.graph['pdbid'][0]}_{i}.json"), this_chop)
     pass
