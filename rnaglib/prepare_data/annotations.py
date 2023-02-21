@@ -115,7 +115,7 @@ def get_small_partners(cif, mmcif_dict=None, radius=6, mass_lower_limit=160, mas
     :return:
     """
     structure_id = cif[-8:-4]
-    print(f'Parsing structure {structure_id}...')
+    # print(f'Parsing structure {structure_id}...')
 
     mmcif_dict = MMCIF2Dict(cif) if mmcif_dict is None else mmcif_dict
     parser = FastMMCIFParser(QUIET=True)
