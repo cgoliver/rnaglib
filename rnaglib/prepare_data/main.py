@@ -28,12 +28,6 @@ from rnaglib.prepare_data.filters import filter_dot_edges, filter_all
 from rnaglib.prepare_data.chopper import chop_all
 from rnaglib.prepare_data.khop_annotate import annotate_all
 
-FILTERS = ['NR']
-
-
-def listdir_fullpath(d):
-    return [os.path.join(d, f) for f in os.listdir(d)]
-
 
 def get_rna_list(nr_only=False):
     """
@@ -76,7 +70,7 @@ def update_RNApdb(pdir, nr_only=True):
 
     :returns rna: list of PDBIDs that were fetched.
     """
-    print('Updating PDB...')
+    print(f'Updating PDB mirror in {pdir}')
     # Get a list of PDBs containing RNA
     rna = set(get_rna_list(nr_only=nr_only))
 
@@ -159,7 +153,7 @@ def cif_to_graph(cif, output_dir=None, min_nodes=20, return_graph=False):
 
     # Write graph to outputdir in JSON format
     if output_dir is not None:
-        dump_json(os.path.join(output_dir, 'all_graphs', pdbid + '.json'), g)
+        dump_json(os.path.join(output_dir, 'graphs', pdbid + '.json'), g)
     if return_graph:
         return pdbid, error_type, g
     return pdbid, error_type
@@ -168,11 +162,14 @@ def cif_to_graph(cif, output_dir=None, min_nodes=20, return_graph=False):
 def dir_setup(args):
     """ Create all necessary folders"""
 
-    data_tag = f"{args.prefix}{args.version}-{'NR' if args.nr else 'all'}{'-annot' if args.annotate else ''}"
-    build_dir = os.path.join(args.output_dir, data_tag)
+    build_dir = os.path.join(args.output_dir, args.tag)
 
     os.makedirs(args.output_dir, exist_ok=True)
     os.makedirs(build_dir, exist_ok=True)
+    os.makedirs(os.path.join(build_dir, 'graphs'), exist_ok=True)
+    if args.annotate:
+        os.makedirs(os.path.join(build_dir, 'chops'), exist_ok=True)
+        os.makedirs(os.path.join(build_dir, 'annot'), exist_ok=True)
     return build_dir
 
 def cline():
@@ -202,7 +199,9 @@ def cline():
                         default=1)
     parser.add_argument('-u', '--update', action='store_true',
                         help='update the structures dir')
-    parser.add_argument('-v', '--version',
+    parser.add_argument('-t',
+                        '--tag',
+                        default='default',
                         help='Version tag to assign to the dataset.')
     parser.add_argument('-a', '--annotate', action='store_true', default=False,
                         help='Whether to build graphlet annotations.')
@@ -246,17 +245,16 @@ def prepare_data_main():
     if args.continu:
         done = set([os.path.splitext(g)[0] for g in os.listdir(graphs_dir)])
 
-    todo = ((os.path.join(args.structures_dir, pdbid + ".cif"), build_dir)\
-            for pdbid in rna_list if pdbid not in done)
+    todo = [(os.path.join(args.structures_dir, pdbid + ".cif"), build_dir)\
+            for pdbid in rna_list if pdbid not in done]
     if args.debug:
         print(">>> Using debug mode. Preparing only 10 structures.")
-        todo = (item for i, item in enumerate(todo) if i < 10)
+        todo = [item for i, item in enumerate(todo) if i < 10]
 
     # Build Graphs
-    print(">>> Building graphs with DSSR")
     total = len(todo)
-    errors = Parallel(n_jobs=args.num_workers)(delayed(cif_to_graph)(*t) for t in tqdm(todo, total=total, desc='Building RNAs.'))
-    with open(os.path.join(args.output_dir, "errors.csv"), 'w') as err:
+    errors = Parallel(n_jobs=args.num_workers)(delayed(cif_to_graph)(*t) for t in tqdm(todo, total=total, desc='Building RNA graphs.'))
+    with open(os.path.join(args.build_dir, "errors.csv"), 'w') as err:
         for pdbid, error in errors:
             err.write(f"{pdbid},{error}\n")
 
