@@ -30,7 +30,7 @@ $ rnaglib_prepare_data -s structures/ --tag first_build -o builds/ -d
 ## Data versioning
 
 The optional argument `--tag` is used to name the folder containing the final output.
-For our distributions we use `rnaglib-<version>-<'all' or 'nr'><'annot' or ''>` depending on the build options.
+For our distributions we use `rnaglib-<version>-<'all' or 'nr'><'annotated' or ''>` depending on the build options.
 We distribute data builds with all available RNAs and assign `all` to the tag, and non-redundant structures according to the [BGSU Representative Set](https://www.bgsu.edu/research/rna/databases/non-redundant-list.html).
 For each of these two choices, we also provide versions pre-processed for [graphlet kernel](https://rnaglib.cs.mcgill.ca/static/docs/html/rnaglib.kernels.html) computations used to compute node similarity and assign the `annot` value to the tag.
 

@@ -135,9 +135,9 @@ def get_grid(coords, features=None, spacing=2, padding=3, xyz_min=None, xyz_max=
 class GraphDataset(Dataset):
     def __init__(self,
                  data_path=None,
-                 version='0.0.1',
+                 version='0.0.0',
                  download_dir=None,
-                 redundancy='NR',
+                 redundancy='nr',
                  chop=False,
                  all_graphs=None,
                  node_features='nt_code',
@@ -152,7 +152,7 @@ class GraphDataset(Dataset):
         This class is the main object for graph data loading. One can simply ask for feature and the appropriate data
         will be fetched.
 
-        :param data_path: The path of the data. If node_sim is not None, this data should be annotated
+        :param data_path: The path to the folder containing the graphs. If node_sim is not None, this data should be annotated
         :param hashing_path: If node_sim is not None, we need hashing tables. If the path is not automatically created
         (ie the data was downloaded manually) one should input the path to the hashing.
         :param download_dir: When one fetches the data, one can choose where to dl it.
@@ -184,14 +184,14 @@ class GraphDataset(Dataset):
             self.data_path = download_graphs(redundancy=redundancy,
                                              version=version,
                                              annotated=node_simfunc is not None,
-                                             download_dir=download_dir,
-                                             )
+                                             data_root=download_dir,
+                                           )
 
+            self.graph_path = os.path.join(self.data_path, 'graphs')
         if all_graphs is not None:
             self.all_graphs = all_graphs
         else:
-            print(self.data_path)
-            self.all_graphs = sorted(os.listdir(os.path.join(self.data_path, 'graphs')))
+            self.all_graphs = sorted(os.listdir(self.graph_path))
 
         self.return_type = [return_type] if isinstance(return_type, str) else return_type
 
@@ -270,7 +270,7 @@ class GraphDataset(Dataset):
         :param idx:
         :return:
         """
-        g_path = os.path.join(self.data_path, self.all_graphs[idx])
+        g_path = os.path.join(self.graph_path, self.all_graphs[idx])
         graph = load_graph(g_path)
 
         # Get Node labels

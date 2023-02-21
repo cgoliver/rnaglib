@@ -155,8 +155,9 @@ def download(url, path=None, overwrite=True, retries=5, verify_ssl=True, log=Tru
 
 def download_name_generator(
                             version='0.0.1',
-                            redundancy='NR',
+                            redundancy='nr',
                             annotated=False,
+                            record='1166237'
                             ):
     """
     This returns the zenodo URL given dataset choices. 
@@ -171,13 +172,13 @@ def download_name_generator(
     # Find remote url and get download link
     # url = f'http://rnaglib.cs.mcgill.ca/static/datasets/{version}/{tarball_name}.tar.gz'
     if annotated:
-        return f"https://sandbox.zenodo.org/record/1162406/files/rnaglib-{redundancy}-{version}-annotated.tar.gz?download=1"
+        return f"https://sandbox.zenodo.org/record/{record}/files/rnaglib-{redundancy}-{version}-annotated.tar.gz?download=1"
     else:
-        return f"https://sandbox.zenodo.org/record/1162406/files/rnaglib-{redundancy}-{version}.tar.gz?download=1"
+        return f"https://sandbox.zenodo.org/record/{record}/files/rnaglib-{redundancy}-{version}.tar.gz?download=1"
 
 
-def download_graphs(redundancy='NR',
-                    version='0.0.1',
+def download_graphs(redundancy='nr',
+                    version='0.0.0',
                     annotated=False,
                     overwrite=False,
                     data_root=None,
@@ -195,22 +196,22 @@ def download_graphs(redundancy='NR',
     if data_root is None:
         data_root = get_default_download_dir()
 
-    tag = f"{redundancy}-{version}{'-' + 'annotated' if annotated else ''}"
+    tag = f"rnaglib-{redundancy}-{version}{'-' + 'annotated' if annotated else ''}"
     url = download_name_generator(redundancy=redundancy, version=version, annotated=annotated)
     dl_path = os.path.join(data_root, 'downloads', tag + '.tar.gz')
-    data_path = os.path.join(data_root, 'datasets', tag)
+    data_path = os.path.join(data_root, 'datasets')
 
     if not os.path.exists(dl_path) or overwrite:
         print('Required dataset not found, launching a download. This should take about a minute')
         print(f"Downloading to : {dl_path}")
         print(f"Saving to : {data_path}")
-        download(path=dl_dest, url=url)
+        download(path=dl_path, url=url)
         # Expand the compressed files at the right location
         with tarfile.open(dl_path) as tar_file:
             tar_file.extractall(path=data_path)
     else:
         print(f'Dataset was found and not overwritten')
-    return full_data_path
+    return os.path.join(data_root, "datasets", tag)
 
 
 def graph_from_pdbid(pdbid, graph_dir=None, graph_format='json'):
