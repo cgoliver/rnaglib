@@ -10,6 +10,7 @@ import traceback
 from collections import defaultdict
 import json
 import networkx as nx
+import subprocess
 from subprocess import check_output
 
 
@@ -21,7 +22,7 @@ def dssr_exec(cif):
     :return: JSON of x3dna output
     """
     try:
-        dssr_dict = check_output(["x3dna-dssr", "--json", f"-i={cif}"])
+        dssr_dict = check_output(["x3dna-dssr", "--json", f"-i={cif}"], stderr=subprocess.DEVNULL)
     except Exception as e:
         print(e)
         return 1, None
@@ -36,7 +37,7 @@ def snap_exec(cif):
     :return: plaintext output
     """
     try:
-        rpb_dict = check_output(["x3dna-dssr", "snap", f"-i={cif}"])
+        rpb_dict = check_output(["x3dna-dssr", "snap", f"-i={cif}"], stderr=subprocess.DEVNULL)
     except Exception as e:
         print(e)
         return 1, None

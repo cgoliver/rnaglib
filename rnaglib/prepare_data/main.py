@@ -8,10 +8,11 @@ import argparse
 import os
 import sys
 import traceback
-import multiprocessing as mp
+from joblib import Parallel, delayed
 
 from Bio.PDB.PDBList import PDBList
 from collections import defaultdict
+
 import json
 import requests
 
@@ -34,7 +35,7 @@ def listdir_fullpath(d):
 
 def get_rna_list(nr_only=False):
     """
-    Fetch a list of PDBs containing RNA.
+    Fetch a list of PDBs containing RNA from RCSB API.
 
     """
     payload = {
@@ -64,23 +65,24 @@ def get_rna_list(nr_only=False):
     return ids
 
 
-def update_RNApdb(pdir):
+def update_RNApdb(pdir, nr_only=True):
     """
     Download a list of RNA containing structures from the PDB
     overwrite exising files
 
     :param pdbdir: path containing downloaded PDBs
+
+    :returns rna: list of PDBIDs that were fetched.
     """
     print('Updating PDB...')
     # Get a list of PDBs containing RNA
-    rna = set(get_rna_list())
+    rna = set(get_rna_list(nr_only=nr_only))
 
     pl = PDBList()
 
     # If not fully downloaded before, download all structures
     if len(os.listdir(pdir)) < 2000:
         pl.download_pdb_files(rna, pdir=pdir, overwrite=True)
-        return rna
     else:
         added, mod, obsolete = pl.get_recent_changes()
         # Download new and modded entries
@@ -95,7 +97,7 @@ def update_RNApdb(pdir):
             if cif[-8:-4].upper() in set(obsolete):
                 os.rename(os.path.join(pdir, cif), os.path.join(obsolete_dir, cif))
 
-    return new_rna
+    return rna
 
 
 def cif_to_graph(cif, output_dir=None, min_nodes=20, return_graph=False):
@@ -165,7 +167,7 @@ def cif_to_graph(cif, output_dir=None, min_nodes=20, return_graph=False):
 def dir_setup(args):
     """ Create all necessary folders"""
 
-    data_tag = f"{args.version}-{'NR' if args.nr else 'all'}{'-annot' if args.annotate else ''}"
+    data_tag = f"{args.prefix}{args.version}-{'NR' if args.nr else 'all'}{'-annot' if args.annotate else ''}"
     build_dir = os.path.join(args.output_dir, data_tag)
 
     os.makedirs(args.output_dir, exist_ok=True)
@@ -175,14 +177,24 @@ def dir_setup(args):
 def cline():
     parser = argparse.ArgumentParser()
     # Input/Output Directories
-    parser.add_argument('-S', '--structures_dir',
+    parser.add_argument('-s',
+                        '--structures_dir',
+                        required=True,
                         help='directory containing RNA structures from the PDB')
-    parser.add_argument('-O', '--output_dir',
+    parser.add_argument('-o',
+                        '--output_dir',
+                        required=True,
                         help='directory to output graphs')
     # For just one output
     parser.add_argument('--one_mmcif',
                         help='If one wants to do only one structure, path to the mmcif file')
     # Optional arguments
+    parser.add_argument('--rna-source',
+                        type=str,
+                        default='rcsb',
+                        help='Source of RNA structures. If "rcsb" RNAs taken from up to date list of\
+                              RNA-containing PDBs in RCSB. If "local" take all cifs in --structures_dir',
+                        choices=['rcsb', 'local'])
     parser.add_argument('-nw', '--num_workers',
                         type=int,
                         help='number of workers for multiprocessing',
@@ -193,21 +205,25 @@ def cline():
                         help='Version tag to assign to the dataset.')
     parser.add_argument('-a', '--annotate', action='store_true', default=False,
                         help='Whether to build graphlet annotations.')
+    parser.add_argument('--prefix', default="",
+                        help='Optional prefix to be used as custom ID for dataset.')
     parser.add_argument('-c', '--continu', action='store_true',
                         help='Continue previously paused execution')
-    parser.add_argument('-nr', '--non-redundant', action='store_true', default=True,
+    parser.add_argument('-nr', "--nr", '--non-redundant', action='store_true', default=False,
                         help='If true, build non-redundant dataset')
     parser.add_argument('-d', '--debug', action='store_true',
                         help='runs only on 10 structures for debug.')
-    args = parser.parse_args()
+    return parser.parse_args()
 
 
-def prepare_data_main(args):
+def prepare_data_main():
     """ Master function for building an annotated RNA dataset.
     Results in a folder with the following sub-directories: 'graphs', 'chops', annots'.
     The last two are only present if args.annotate are set. The 'graphs' folder
     contains JSON objects which can be loaded by networkx into graphs.
     """
+
+    args = cline()
 
     if args.one_mmcif is not None:
         cif_to_graph(cif=args.one_mmcif, output_dir=args.output_dir)
@@ -217,10 +233,13 @@ def prepare_data_main(args):
         graphs_dir = os.path.join(build_dir, 'graphs')
 
     # Update PDB and get Todo list
-    cifs = listdir_fullpath(args.structures_dir)
     # list of rnas to process
-    rna_list = get_rna_list(nr_only=args.nr)
-    update_RNApdb(args.structures_dir)
+    if args.rna_source == 'rcsb':
+        print(">>> Updating local PDB mirror")
+        rna_list = update_RNApdb(args.structures_dir, nr_only=args.nr)
+    if args.rna_source == 'local':
+        print(f">>> Using structures in {args.structures_dir}")
+        rna_list = [f.split(".")[0] for f in os.listdir(args.structures_dir)]
 
     done = []
     if args.continu:
@@ -265,4 +284,4 @@ def prepare_data_main(args):
 
 
 if __name__ == '__main__':
-    prepare_data_main(cline())
+    prepare_data_main()
