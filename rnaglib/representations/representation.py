@@ -9,11 +9,13 @@ class Representation:
     and returns a representation of it (e.g. graph, voxel, point cloud)
     along with necessary nucleotide / base pair features """
     def __init__(self,
-                framework='dgl'
-                 ):
+                 framework='nx',
+                 frameworks=['nx'],
+                ):
 
-        self.check_framework(self.framework)
         self.framework = framework
+        self.frameworks = frameworks
+        self.check_framework(self.framework)
         
     def __call__(self, rna_dict, features_dict):
         """ This function is applied to each RNA in the dataset and updates
