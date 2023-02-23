@@ -24,26 +24,33 @@ class GraphRepresentation(Representation):
         super().__init__(**kwargs)
         pass
 
-    def call(self, rna_dict):
+    def call(self, rna_dict, features_dict):
         if self.clean_edges:
             base_graph = fix_buggy_edges(graph=rna_dict['rna'])
         else:
             base_graph = rna_dict['rna']
 
         if self.framework == 'nx':
-            graph = base_graph
+            graph = self.to_nx(base_graph, features_dict)
             pass
         elif self.framework == 'dgl':
-            graph = self.to_dgl(base_graph, rna_dict)
+            graph = self.to_dgl(base_graph, features_dict)
 
-        rna_dict['graph'] = graph
+        return graph
 
-    def to_dgl(self, graph, rna_dict):
+    def name(self):
+        return "graph"
+
+    def to_nx(self, graph, features_dict):
+        pass
+
+    def to_dgl(self, graph, features_dict):
         import dgl
         # Get Edge Labels
         edge_type = {(u,v): self.edge_map[data[self.etype_key]] for u,v, data in graph.edges(data=True)}
         nx.set_edge_attributes(graph, name='edge_type', values=edge_type)
-        nx.set_node_attributes(graph, name='features', values=rna_dict['nt_features'])
+        print(features_dict)
+        nx.set_node_attributes(graph, name='features', values=features_dict['nt_features'])
         # Careful ! When doing this, the graph nodes get sorted.
         g_dgl = dgl.from_networkx(nx_graph=graph,
                                   edge_attrs=['edge_type'],
