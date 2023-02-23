@@ -92,7 +92,7 @@ class RNADataset:
         # apply representations to the res_dict
         # each is a callable that updates the res_dict
         for rep in self.representations:
-            rna_dict[r.name] = rep(rna_dict, features_dict)
+            rna_dict[rep.name] = rep(rna_dict, features_dict)
         return rna_dict
 
     def get_pdbid(self, pdbid):
