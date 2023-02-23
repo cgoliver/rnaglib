@@ -17,9 +17,13 @@ class RNADataset:
                  redundancy='nr',
                  all_graphs=None,
                  representations=None,
+                 rna_features=None,
+                 nt_features=None,
+                 bp_features=None,
+                 rna_targets=None,
+                 nt_targets=None,
+                 bp_targets=None,
                  annotated=False,
-                 node_features='nt_code',
-                 node_target=None,
                  verbose=False):
         """
         This class is the main object to hold the core RNA data annotations.
@@ -54,10 +58,20 @@ class RNADataset:
         else:
             self.all_graphs = sorted(os.listdir(self.graphs_path))
 
-        self.node_features = [node_features] if isinstance(node_features, str) else node_features
-        self.node_target = [node_target] if isinstance(node_target, str) else node_target
-        self.node_features_parser = build_node_feature_parser(self.node_features)
-        self.node_target_parser = build_node_feature_parser(self.node_target)
+
+        self.rna_features = rna_features
+        self.rna_targets = rna_targets
+        self.nt_features = nt_features
+        self.nt_targets = nt_targets
+        self.bp_features = bp_features
+        self.bp_targets = bp_targets
+
+
+        self.node_features_parser = build_node_feature_parser(self.nt_features)
+        self.node_target_parser = build_node_feature_parser(self.nt_targets)
+
+        self.input_dim = self.compute_dim(self.node_features_parser)
+        self.output_dim = self.compute_dim(self.node_target_parser)
 
         self.available_pdbids = [g.split(".")[0].lower() for g in self.all_graphs]
         self.rnas = (self[i] for i in range(len(self.available_pdbids)))
@@ -74,18 +88,18 @@ class RNADataset:
                     'rna': load_graph(g_path),
                     'path': g_path
                     }
+        features_dict = self.compute_features(rna_dict)
         # apply representations to the res_dict
         # each is a callable that updates the res_dict
-        [r(rna_dict) for r in self.representations]
+        for r in self.representations:
+            rna_dict[r.name] = r(rna_dict, features_dict)
         return rna_dict
-
 
     def get_pdbid(self, pdbid):
         """ Grab an RNA by its pdbid """
         return self.get(self.available_pdbids.index(pdbid.lower()))
 
-
-    def get_node_encoding(self, g, encode_feature=True):
+    def get_nt_encoding(self, g, encode_feature=True):
         """
 
         Get targets for graph g
@@ -113,4 +127,39 @@ class RNADataset:
                 all_node_feature_encoding.append(node_feature_encoding)
             targets[node] = torch.cat(all_node_feature_encoding)
         return targets
+
+    def compute_dim(self, node_parser):
+        """
+        Based on the encoding scheme, we can compute the shapes of the in and out tensors
+
+        :return:
+        """
+        if len(node_parser) == 0:
+            return 0
+        all_node_feature_encoding = list()
+        for i, (feature, feature_encoder) in enumerate(node_parser.items()):
+            node_feature_encoding = feature_encoder.encode_default()
+            all_node_feature_encoding.append(node_feature_encoding)
+        all_node_feature_encoding = torch.cat(all_node_feature_encoding)
+        return len(all_node_feature_encoding)
+
+
+    def compute_features(self, rna_dict):
+        """ Add 3 dictionaries to the `rna_dict` wich maps nts, edges, and the whole graph
+        to a feature vector each. The final converter uses these to include the data in the
+        framework-specific object."""
+
+        graph = rna_dict['rna']
+        features_dict = {}
+
+        # Get Node labels
+        node_attrs_toadd = list()
+        if len(self.node_features_parser) > 0:
+            feature_encoding = self.get_nt_encoding(graph, encode_feature=True)
+            features_dict['nt_features'] = feature_encoding
+        if len(self.node_target_parser) > 0:
+            target_encoding = self.get_nt_encoding(graph, encode_feature=False)
+            features_dict['nt_targets'] = target_encoding
+        return features_dict
+
 
