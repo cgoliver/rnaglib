@@ -285,16 +285,16 @@ class GraphDataset(Dataset):
             node_attrs_toadd.append('target')
         return graph, node_attrs_toadd
 
-    def as_tensor(self, graph, node_feature, sorted=False):
+    def as_tensor(self, graph, node_feature, sort=False):
         """
         Flattens graph attributes as a tensor : (num_node, dim_feature)
         :param graph:
         :param node_feature:
-        :param sorted:
+        :param sort:
         :return:
         """
         iterator = graph.nodes.data()
-        iterator = sorted(iterator) if sorted else iterator
+        iterator = sorted(iterator) if sort else iterator
         tensor_list = list()
         for node, attrs in iterator:
             feat = attrs[node_feature]

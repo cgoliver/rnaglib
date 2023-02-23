@@ -9,6 +9,7 @@ from rnaglib.utils import build_node_feature_parser
 from rnaglib.utils import download_graphs
 from rnaglib.utils import load_graph
 
+
 class RNADataset:
     def __init__(self,
                  data_path=None,
@@ -50,7 +51,7 @@ class RNADataset:
                                              version=version,
                                              annotated=annotated,
                                              data_root=download_dir,
-                                           )
+                                             )
 
             self.graphs_path = os.path.join(self.data_path, 'graphs')
         if all_graphs is not None:
@@ -58,14 +59,12 @@ class RNADataset:
         else:
             self.all_graphs = sorted(os.listdir(self.graphs_path))
 
-
         self.rna_features = rna_features
         self.rna_targets = rna_targets
         self.nt_features = nt_features
         self.nt_targets = nt_targets
         self.bp_features = bp_features
         self.bp_targets = bp_targets
-
 
         self.node_features_parser = build_node_feature_parser(self.nt_features)
         self.node_target_parser = build_node_feature_parser(self.nt_targets)
@@ -84,15 +83,16 @@ class RNADataset:
         with representations and annotations to be used by loaders """
 
         g_path = os.path.join(self.graphs_path, self.all_graphs[idx])
+        rna_graph = load_graph(g_path)
         rna_dict = {'rna_name': self.all_graphs[idx],
-                    'rna': load_graph(g_path),
+                    'rna': rna_graph,
                     'path': g_path
                     }
         features_dict = self.compute_features(rna_dict)
         # apply representations to the res_dict
         # each is a callable that updates the res_dict
         for rep in self.representations:
-            rna_dict[rep.name] = rep(rna_dict, features_dict)
+            rna_dict[rep.name()] = rep(rna_graph, features_dict)
         return rna_dict
 
     def get_pdbid(self, pdbid):
@@ -110,7 +110,7 @@ class RNADataset:
         :param encode_feature: A boolean as to whether this should encode the features or targets
         :return: A dict that maps nodes to encodings
         """
-        targets = {}
+        node_encodings = {}
         node_parser = self.node_features_parser if encode_feature else self.node_target_parser
 
         if len(node_parser) == 0:
@@ -125,8 +125,8 @@ class RNADataset:
                 except KeyError:
                     node_feature_encoding = feature_encoder.encode_default()
                 all_node_feature_encoding.append(node_feature_encoding)
-            targets[node] = torch.cat(all_node_feature_encoding)
-        return targets
+            node_encodings[node] = torch.cat(all_node_feature_encoding)
+        return node_encodings
 
     def compute_dim(self, node_parser):
         """
@@ -143,7 +143,6 @@ class RNADataset:
         all_node_feature_encoding = torch.cat(all_node_feature_encoding)
         return len(all_node_feature_encoding)
 
-
     def compute_features(self, rna_dict):
         """ Add 3 dictionaries to the `rna_dict` wich maps nts, edges, and the whole graph
         to a feature vector each. The final converter uses these to include the data in the
@@ -153,7 +152,6 @@ class RNADataset:
         features_dict = {}
 
         # Get Node labels
-        node_attrs_toadd = list()
         if len(self.node_features_parser) > 0:
             feature_encoding = self.get_nt_encoding(graph, encode_feature=True)
             features_dict['nt_features'] = feature_encoding
@@ -161,5 +159,3 @@ class RNADataset:
             target_encoding = self.get_nt_encoding(graph, encode_feature=False)
             features_dict['nt_targets'] = target_encoding
         return features_dict
-
-
