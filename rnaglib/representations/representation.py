@@ -1,33 +1,36 @@
-import torch
-
-from rnaglib.utils import build_node_feature_parser
-
-FRAMEWORKS = ['dgl', 'torch', 'pyg', 'nx']
-
 class Representation:
-    """ Callable object that accepts a raw RNA networkx object
+    """
+    Callable object that accepts a raw RNA networkx object along with features and target vector representations
     and returns a representation of it (e.g. graph, voxel, point cloud)
-    along with necessary nucleotide / base pair features """
-    def __init__(self,
-                 framework='nx',
-                 frameworks=['nx'],
-                ):
+    """
 
-        self.framework = framework
-        self.frameworks = frameworks
-        self.check_framework(self.framework)
-        
-    def __call__(self, rna_dict, features_dict):
-        """ This function is applied to each RNA in the dataset and updates
-        `rna_dict`"""
-        return self.call(rna_dict, features_dict)
+    def __init__(self):
+        pass
+
+    def __call__(self, rna_graph, features_dict):
+        """
+        Return
+
+        :param rna_graph:
+        :param features_dict:
+        :return:
+        """
+        raise NotImplementedError
 
     @property
     def name(self):
+        """
+        Just return the name of the representation
+
+        :return: A string
+        """
         raise NotImplementedError
 
-    def call(self, rna_dict):
-        raise NotImplementedError
+    def batch(self, samples):
+        """
+        Just return the name of the representation
 
-    def check_framework(self, framework):
-        assert framework in self.frameworks, f"Framework {framework} not supported for this representation. Choose one of {self.frameworks}."
+        :param samples: A list of the output from this representation
+        :return: a batched version of it.
+        """
+        raise NotImplementedError
