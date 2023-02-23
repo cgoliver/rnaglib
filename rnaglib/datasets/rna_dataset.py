@@ -84,6 +84,7 @@ class RNADataset:
         """ Grab an RNA by its pdbid """
         return self.get(self.available_pdbids.index(pdbid.lower()))
 
+
     def get_node_encoding(self, g, encode_feature=True):
         """
 
@@ -112,3 +113,4 @@ class RNADataset:
                 all_node_feature_encoding.append(node_feature_encoding)
             targets[node] = torch.cat(all_node_feature_encoding)
         return targets
+
