@@ -91,8 +91,8 @@ class RNADataset:
         features_dict = self.compute_features(rna_dict)
         # apply representations to the res_dict
         # each is a callable that updates the res_dict
-        for r in self.representations:
-            rna_dict[r.name] = r(rna_dict, features_dict)
+        for rep in self.representations:
+            rna_dict[r.name] = rep(rna_dict, features_dict)
         return rna_dict
 
     def get_pdbid(self, pdbid):
