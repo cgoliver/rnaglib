@@ -77,4 +77,4 @@ class GraphRepresentation(Representation):
         y = [features_dict['nt_targets'][n] for n in sorted(graph.nodes())] if 'nt_targets' in features_dict else None
         edge_index = [[node_map[u], node_map[v]] for u, v in sorted(graph.edges())]
         edge_attrs = [self.edge_map[data[self.etype_key]] for u, v, data in sorted(graph.edges(data=True))]
-        return Data(x=x, edge_attr=edge_attrs, edge_index=edge_index)
+        return Data(x=x, y=y, edge_attr=edge_attrs, edge_index=edge_index)
