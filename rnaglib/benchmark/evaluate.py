@@ -4,7 +4,7 @@ import sys
 import random
 from sklearn.metrics import roc_auc_score
 
-from rnaglib.data_loading import graphloader, get_statistics
+from rnaglib.data_loading import rna_loader, get_statistics
 from rnaglib.learning import learn
 
 """

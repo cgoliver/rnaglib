@@ -53,7 +53,7 @@ def pretrain_unsupervised(model,
         running_loss = 0.0
         num_batches = len(train_loader)
         for batch_idx, batch in enumerate(train_loader):
-            graph, graph_sizes, (K, node_ids) = batch['graphs'], batch['num_nodes'], batch['node_similarities']
+            graph, (K, node_ids) = batch['graphs'], batch['ring']
             # Get data on the devices
             K = K.to(device)
             graph = learning_utils.send_graph_to_device(graph, device)
@@ -134,7 +134,7 @@ def train_supervised(model,
 
         for batch_idx, batch in enumerate(train_loader):
             # Get data on the devices
-            graph, graph_sizes = batch['graphs'], batch['num_nodes']
+            graph = batch['graph']
             graph = learning_utils.send_graph_to_device(graph, device)
 
             # Do the computations for the forward pass
@@ -244,7 +244,7 @@ def train_linkpred(model,
 if __name__ == '__main__':
     pass
     from rnaglib.learning import models
-    from rnaglib.data_loading import graphloader
+    from rnaglib.data_loading import rna_loader
 
     test_unsupervised = False
     test_supervised = True

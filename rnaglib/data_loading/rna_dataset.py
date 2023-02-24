@@ -73,7 +73,6 @@ class RNADataset:
         self.output_dim = self.compute_dim(self.node_target_parser)
 
         self.available_pdbids = [g.split(".")[0].lower() for g in self.all_graphs]
-        self.rnas = (self[i] for i in range(len(self.available_pdbids)))
 
     def __len__(self):
         return len(self.all_graphs)
@@ -101,6 +100,17 @@ class RNADataset:
     def remove_representation(self, name):
         self.representations = [representation for representation in self.representations if
                                 representation.name != name]
+
+    def subset(self, list_of_graphs):
+        """
+        Create another dataset with only the specified graphs
+
+        :param list_of_graphs: a list of graph names
+        :return: A graphdataset
+        """
+        subset = copy.deepcopy(self)
+        subset.all_graphs = list(set(list_of_graphs).intersection(set(self.all_graphs)))
+        return subset
 
     def get_pdbid(self, pdbid):
         """ Grab an RNA by its pdbid """

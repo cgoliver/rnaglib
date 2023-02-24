@@ -21,12 +21,13 @@ if __name__ == "__main__":
 
 from rnaglib.kernels.node_sim import k_block_list
 from rnaglib.config.graph_keys import EDGE_MAP_RGLIB_REVERSE
-from rnaglib.data_loading.graphdataset import GraphDataset
+from rnaglib.data_loading.rna_dataset import RNADataset
 from rnaglib.data_loading.get_statistics import DEFAULT_INDEX
+from rnaglib.representations import RingRepresentation
 
 
 class Collater:
-    def __init__(self, node_simfunc=None, max_size_kernel=None, hstack=False):
+    def __init__(self, dataset):
         """
         Wrapper for collate function, so we can use different node similarities.
             We cannot use functools.partial as it is not picklable so incompatible with Pytorch loading
@@ -37,31 +38,7 @@ class Collater:
         :param hstack: If True, hstack point cloud return
         :return: a picklable python function that can be called on a batch by Pytorch loaders
         """
-        self.node_simfunc = node_simfunc
-        self.max_size_kernel = max_size_kernel
-        self.hstack = hstack
-
-    @staticmethod
-    def collate_rings(list_of_rings, node_simfunc, max_size_kernel=None):
-        # we need to flatten the list and then use the kernels :
-        # The rings is now a list of lists of tuples
-        # If we have a huge graph, we can sample max_size_kernel nodes to avoid huge computations,
-        # We then return the sampled ids
-
-        flat_rings = list()
-        for ring in list_of_rings:
-            flat_rings.extend(ring)
-        if max_size_kernel is None or len(flat_rings) < max_size_kernel:
-            # Just take them all
-            node_ids = [1 for _ in flat_rings]
-        else:
-            # Take only 'max_size_kernel' elements
-            node_ids = [1 for _ in range(max_size_kernel)] + \
-                       [0 for _ in range(len(flat_rings) - max_size_kernel)]
-            random.shuffle(node_ids)
-            flat_rings = [node for i, node in enumerate(flat_rings) if node_ids[i] == 1]
-        k_block = k_block_list(flat_rings, node_simfunc)
-        return torch.from_numpy(k_block).detach().float(), node_ids
+        self.dataset = dataset
 
     def collate(self, samples):
         """
@@ -71,28 +48,18 @@ class Collater:
         :param samples:
         :return: a dict
         """
-        # Exceptionnal treatment for batching graphs and rings.
-        # Otherwise, return a list of individual embeddings (concatenation is one liner)
         batch = dict()
-        batch_keys = set(samples[0].keys())
-        if 'graph' in batch_keys:
-            batched_graph = dgl.batch([sample['graph'] for sample in samples])
-            batch['graphs'] = batched_graph
-
-        if 'ring' in batch_keys:
-            K, node_ids = self.collate_rings([sample['ring'] for sample in samples], self.node_simfunc,
-                                             self.max_size_kernel)
-            batch['node_similarities'] = (K, node_ids)
-
-        for key in batch_keys - {'graph', 'ring'}:
-            if key in {'node_coords', 'node_feats', 'node_targets', } and self.hstack:
-                batch[key] = torch.cat([sample[key] for sample in samples], dim=0)
-            else:
-                batch[key] = [sample[key] for sample in samples]
+        for representation in self.dataset.representations:
+            representation_samples = [sample.pop(representation.name) for sample in samples]
+            batched_representation = representation.batch(representation_samples)
+            batch[representation.name] = batched_representation
+        remaining_keys = set(samples[0].keys())
+        for key in remaining_keys:
+            batch[key] = [sample[key] for sample in samples]
         return batch
 
 
-def split_in_fractions(list_to_split, split_train=0.7, split_valid=0.85):
+def split_list_in_fractions(list_to_split, split_train=0.7, split_valid=0.85):
     copy_list = list_to_split.copy()
     random.shuffle(copy_list)
 
@@ -104,7 +71,7 @@ def split_in_fractions(list_to_split, split_train=0.7, split_valid=0.85):
     return train_list, valid_list, test_list
 
 
-def full_split(dataset, split_train=0.7, split_valid=0.85):
+def split_dataset_in_fractions(dataset, split_train=0.7, split_valid=0.85):
     """
     Just randomly split a dataset
     :param dataset:
@@ -113,9 +80,9 @@ def full_split(dataset, split_train=0.7, split_valid=0.85):
     :return:
     """
     indices = list(range(len(dataset)))
-    train_indices, valid_indices, test_indices = split_in_fractions(indices,
-                                                                    split_train=split_train,
-                                                                    split_valid=split_valid)
+    train_indices, valid_indices, test_indices = split_list_in_fractions(indices,
+                                                                         split_train=split_train,
+                                                                         split_valid=split_valid)
 
     train_set = Subset(dataset, train_indices)
     valid_set = Subset(dataset, valid_indices)
@@ -188,15 +155,15 @@ def get_single_task_split(node_target, graph_index=DEFAULT_INDEX, split_train=0.
         if node_target in graph_attrs:
             all_list.append(graph)
 
-    train_graphs, valid_graphs, test_graphs = split_in_fractions(all_list,
-                                                                 split_train=split_train,
-                                                                 split_valid=split_valid)
+    train_graphs, valid_graphs, test_graphs = split_list_in_fractions(all_list,
+                                                                      split_train=split_train,
+                                                                      split_valid=split_valid)
 
     return train_graphs, valid_graphs, test_graphs
 
 
-def meaningful_split_dataset(dataset, split_train=0.7, split_valid=0.85):
-    node_targets = [f"node_{target}" for target in dataset.node_target]
+def split_dataset(dataset, split_train=0.7, split_valid=0.85):
+    node_targets = [f"node_{target}" for target in dataset.nt_targets]
     # 1st strategy : if we are looking for a single property : subset the graphs that contain at least a node with this
     # property and make a random split among these.
     if len(node_targets) == 1:
@@ -211,7 +178,6 @@ def meaningful_split_dataset(dataset, split_train=0.7, split_valid=0.85):
     # 2nd strategy : for multitask objective, we could also subset, but a random split could end up with one of
     # the categories missing from a set
     fractions = (1 - split_valid, split_valid - split_train)
-    fractions = (0.01, 0.01)
     train_split, validation_split, test_split = get_multitask_split(node_targets=node_targets,
                                                                     fractions=fractions)
 
@@ -224,18 +190,17 @@ def meaningful_split_dataset(dataset, split_train=0.7, split_valid=0.85):
 def get_loader(dataset,
                batch_size=5,
                num_workers=0,
-               max_size_kernel=None,
-               hstack=False,
                split=True,
                verbose=False):
-    collater = Collater(dataset.node_simfunc, max_size_kernel=max_size_kernel, hstack=hstack)
+    collater = Collater(dataset=dataset)
     if not split:
         loader = DataLoader(dataset=dataset, shuffle=True, batch_size=batch_size,
                             num_workers=num_workers, collate_fn=collater.collate)
         return loader
 
     else:
-        train_set, valid_set, test_set = meaningful_split_dataset(dataset)
+        train_set, valid_set, test_set = split_dataset(dataset)
+        
         if verbose:
             print(f"training items: ", len(train_set))
         train_loader = DataLoader(dataset=train_set, shuffle=True, batch_size=batch_size,
@@ -248,7 +213,7 @@ def get_loader(dataset,
 
 
 def get_inference_loader(list_to_predict,
-                         data_path,
+                         data_path=None,
                          dataset=None,
                          batch_size=5,
                          num_workers=20,
@@ -256,8 +221,10 @@ def get_inference_loader(list_to_predict,
     """
     This is to just make an inference over a list of graphs.
     """
+    if (dataset is None and data_path is None) or (dataset is not None and data_path is not None):
+        raise ValueError("To create an inference loader please provide either an existing dataset or a data path")
     if dataset is None:
-        dataset = GraphDataset(data_path=data_path, **kwargs)
+        dataset = RNADataset(data_path=data_path, **kwargs)
     subset = dataset.subset(list_to_predict)
     collater = Collater()
     train_loader = DataLoader(dataset=subset,
@@ -402,13 +369,19 @@ if __name__ == '__main__':
 
     torch.random.manual_seed(42)
 
+    from rnaglib.representations import GraphRepresentation, RingRepresentation
+    from rnaglib.data_loading import RNADataset
+    from rnaglib.kernels import node_sim
+
     # GET THE DATA GOING
-    toy_dataset = GraphDataset(
-        # data_path='data/graphs/all_graphs',
-        node_features=node_features,
-        node_target=node_target,
-        return_type='voxel',
-        node_simfunc=node_simfunc)
+    graph_rep = GraphRepresentation(framework='dgl')
+    ring_rep = RingRepresentation(node_simfunc=node_simfunc, max_size_kernel=None)
+
+    toy_dataset = RNADataset(
+        representations=[graph_rep, ring_rep],
+        annotated=True,
+        nt_features=node_features,
+        nt_targets=node_target)
     train_loader, validation_loader, test_loader = get_loader(dataset=toy_dataset,
                                                               batch_size=3,
                                                               num_workers=0)
