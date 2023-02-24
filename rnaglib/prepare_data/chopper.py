@@ -133,6 +133,7 @@ def chop_one_rna(G):
                 subgraphs.append(subgraph)
             else:
                 pass
+        print(f"RNA with {len(residues)} bases chopped to {len(subgraphs)} chops.")
         return subgraphs
     except:
         print("chopping error")

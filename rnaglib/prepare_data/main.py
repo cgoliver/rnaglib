@@ -200,7 +200,7 @@ def cline():
                         help='Source of RNA structures. If "rcsb" RNAs taken from up to date list of\
                               RNA-containing PDBs in RCSB. If "local" take all cifs in --structures_dir',
                         choices=['rcsb', 'local'])
-    parser.add_argument('-nw', '--num_workers',
+    parser.add_argument('-nw', '--num-workers',
                         type=int,
                         help='number of workers for multiprocessing',
                         default=1)
