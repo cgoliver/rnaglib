@@ -130,10 +130,11 @@ def get_grid(coords, features=None, spacing=2, padding=3, xyz_min=None, xyz_max=
 class VoxelRepresentation(Representation):
     """ Converts and RNA into a voxel based representation """
 
-    def __init__(self,
-                 **kwargs):
+    def __init__(self, spacing=2, padding=3, sigma=1., **kwargs):
         super().__init__(**kwargs)
-        pass
+        self.spacing = spacing
+        self.padding = padding
+        self.sigma = sigma
 
     def __call__(self, rna_graph, features_dict):
         # If we need voxels, let's do the computations.
@@ -163,7 +164,8 @@ class VoxelRepresentation(Representation):
 
         features = features.numpy()  # TODO : port in torch to avoid back and forth
         coords = point_cloud_coords.numpy()
-        voxel_representation = get_grid(coords=coords, features=features)
+        voxel_representation = get_grid(coords=coords, features=features,
+                                        spacing=self.spacing, padding=self.padding, sigma=self.sigma)
         voxel_representation = torch.from_numpy(voxel_representation)
 
         res_dict = {'voxel_feats': voxel_representation[:input_dim]}
@@ -177,9 +179,12 @@ class VoxelRepresentation(Representation):
 
     def batch(self, samples):
         """
-        Just return the name of the representation
+        Batch a list of voxel samples
 
         :param samples: A list of the output from this representation
         :return: a batched version of it.
         """
-        raise NotImplementedError
+        voxel_batch = {}
+        for key, value in samples[0].items():
+            voxel_batch[key] = [sample[key] for sample in samples]
+        return voxel_batch
