@@ -41,7 +41,9 @@ def get_point_cloud_dict(rna_graph, features_dict, sort=False):
 
 
 class PointCloudRepresentation(Representation):
-    """ Converts and RNA into a voxel based representation """
+    """
+    Converts RNA into a point cloud based representation
+    """
 
     def __init__(self, hstack=True, sorted_nodes=True, **kwargs):
         super().__init__(**kwargs)

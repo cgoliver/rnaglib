@@ -27,7 +27,7 @@ from rnaglib.representations import RingRepresentation
 
 
 class Collater:
-    def __init__(self, dataset, node_simfunc=None, max_size_kernel=None, hstack=False):
+    def __init__(self, dataset):
         """
         Wrapper for collate function, so we can use different node similarities.
             We cannot use functools.partial as it is not picklable so incompatible with Pytorch loading
@@ -38,34 +38,7 @@ class Collater:
         :param hstack: If True, hstack point cloud return
         :return: a picklable python function that can be called on a batch by Pytorch loaders
         """
-        self.node_simfunc = node_simfunc
         self.dataset = dataset
-        if node_simfunc is not None:
-            self.max_size_kernel = max_size_kernel
-            ring_representation = RingRepresentation(node_simfunc.level)
-            self.dataset.representations.append(ring_representation)
-
-    @staticmethod
-    def collate_rings(list_of_rings, node_simfunc, max_size_kernel=None):
-        # we need to flatten the list and then use the kernels :
-        # The rings is now a list of lists of tuples
-        # If we have a huge graph, we can sample max_size_kernel nodes to avoid huge computations,
-        # We then return the sampled ids
-
-        flat_rings = list()
-        for ring in list_of_rings:
-            flat_rings.extend(ring)
-        if max_size_kernel is None or len(flat_rings) < max_size_kernel:
-            # Just take them all
-            node_ids = [1 for _ in flat_rings]
-        else:
-            # Take only 'max_size_kernel' elements
-            node_ids = [1 for _ in range(max_size_kernel)] + \
-                       [0 for _ in range(len(flat_rings) - max_size_kernel)]
-            random.shuffle(node_ids)
-            flat_rings = [node for i, node in enumerate(flat_rings) if node_ids[i] == 1]
-        k_block = k_block_list(flat_rings, node_simfunc)
-        return torch.from_numpy(k_block).detach().float(), node_ids
 
     def collate(self, samples):
         """
@@ -217,12 +190,9 @@ def split_dataset(dataset, split_train=0.7, split_valid=0.85):
 def get_loader(dataset,
                batch_size=5,
                num_workers=0,
-               node_simfunc=None,
-               max_size_kernel=None,
-               hstack=False,
                split=True,
                verbose=False):
-    collater = Collater(dataset=dataset, node_simfunc=node_simfunc, max_size_kernel=max_size_kernel, hstack=hstack)
+    collater = Collater(dataset=dataset)
     if not split:
         loader = DataLoader(dataset=dataset, shuffle=True, batch_size=batch_size,
                             num_workers=num_workers, collate_fn=collater.collate)
