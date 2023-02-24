@@ -1,3 +1,2 @@
-from .graphdataset import GraphDataset
+from .rna_dataset import RNADataset
 
-da = GraphDataset()

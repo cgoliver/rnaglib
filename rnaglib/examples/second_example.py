@@ -8,10 +8,11 @@ import torch
 script_dir = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(os.path.join(script_dir, '..', '..'))
 
-from rnaglib.learning import models, learn
-from rnaglib.data_loading import graphloader
-from rnaglib.benchmark import evaluate
 from rnaglib.kernels import node_sim
+from rnaglib.data_loading import rna_dataset, rna_loader
+from rnaglib.representations import GraphRepresentation, RingRepresentation
+from rnaglib.learning import models, learning_utils, learn
+from rnaglib.benchmark import evaluate
 
 """
 This script shows a second more complicated example : learn binding protein preferences as well as
@@ -27,12 +28,12 @@ if __name__ == "__main__":
     ###### Unsupervised phase : ######
     # Choose the data and kernel to use for pretraining
     print('Starting to pretrain the network')
-    node_sim_func = node_sim.SimFunctionNode(method='R_graphlets', depth=2)
-    unsupervised_dataset = graphloader.GraphDataset(node_simfunc=node_sim_func,
-                                                    node_features=node_features,
-                                                    chop=True)
-    train_loader = graphloader.get_loader(dataset=unsupervised_dataset, split=False,
-                                          num_workers=4, max_size_kernel=100)
+    node_simfunc = node_sim.SimFunctionNode(method='R_graphlets', depth=2)
+    graph_representation = GraphRepresentation(framework='dgl')
+    ring_representation = RingRepresentation(node_simfunc=node_simfunc, max_size_kernel=50)
+    unsupervised_dataset = rna_dataset.RNADataset(nt_features=node_features,
+                                                  representations=[ring_representation, graph_representation])
+    train_loader = rna_loader.get_loader(dataset=unsupervised_dataset, split=False, num_workers=4)
 
     # Then choose the embedder model and pre_train it, we dump a version of this pretrained model
     embedder_model = models.Embedder(infeatures_dim=unsupervised_dataset.input_dim,
@@ -41,7 +42,7 @@ if __name__ == "__main__":
     learn.pretrain_unsupervised(model=embedder_model,
                                 optimizer=optimizer,
                                 train_loader=train_loader,
-                                learning_routine=learn.LearningRoutine(num_epochs=10),
+                                learning_routine=learning_utils.LearningRoutine(num_epochs=10),
                                 rec_params={"similarity": True, "normalize": False, "use_graph": True, "hops": 2})
     # torch.save(embedder_model.state_dict(), 'pretrained_model.pth')
     print()
@@ -50,11 +51,11 @@ if __name__ == "__main__":
     print('We have finished pretraining the network, let us fine tune it')
     # GET THE DATA GOING, we want to use precise data splits to be able to use the benchmark.
     train_split, test_split = evaluate.get_task_split(node_target=node_target)
-    supervised_train_dataset = graphloader.GraphDataset(node_features=node_features,
-                                                        redundancy='NR',
-                                                        node_target=node_target,
-                                                        all_graphs=train_split)
-    train_loader = graphloader.get_loader(dataset=supervised_train_dataset, split=False)
+    supervised_train_dataset = rna_dataset.RNADataset(nt_features=node_features,
+                                                      nt_targets=node_target,
+                                                      representations=[graph_representation],
+                                                      all_graphs=train_split)
+    train_loader = rna_loader.get_loader(dataset=supervised_train_dataset, split=False)
 
     # Define a model and train it :
     # We first embed our data in 64 dimensions, using the pretrained embedder and then add one classification
@@ -64,7 +65,7 @@ if __name__ == "__main__":
     learn.train_supervised(model=classifier_model,
                            optimizer=optimizer,
                            train_loader=train_loader,
-                           learning_routine=learn.LearningRoutine(num_epochs=10))
+                           learning_routine=learning_utils.LearningRoutine(num_epochs=10))
 
     # torch.save(classifier_model.state_dict(), 'final_model.pth')
     # embedder_model = models.Embedder(infeatures_dim=4, dims=[64, 64])

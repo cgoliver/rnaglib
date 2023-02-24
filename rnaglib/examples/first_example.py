@@ -8,7 +8,8 @@ script_dir = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(os.path.join(script_dir, '..', '..'))
 
 from rnaglib.learning import models, learn
-from rnaglib.data_loading import graphloader
+from rnaglib.data_loading import rna_dataset, rna_loader
+from rnaglib.representations import GraphRepresentation
 
 """
 This script just shows a first very basic example : learn binding protein preferences 
@@ -21,9 +22,10 @@ if __name__ == "__main__":
     # Choose the data, features and targets to use and GET THE DATA GOING
     node_features = ['nt_code']
     node_target = ['binding_protein']
-    supervised_dataset = graphloader.GraphDataset(node_features=node_features,
-                                                  node_target=node_target)
-    train_loader, validation_loader, test_loader = graphloader.get_loader(dataset=supervised_dataset)
+    graph_rep = GraphRepresentation(framework='dgl')
+    supervised_dataset = rna_dataset.RNADataset(nt_features=node_features, nt_targets=node_target,
+                                                representations=[graph_rep])
+    train_loader, validation_loader, test_loader = rna_loader.get_loader(dataset=supervised_dataset)
 
     # Define a model, we first embed our data in 10 dimensions, and then add one classification
     input_dim, target_dim = supervised_dataset.input_dim, supervised_dataset.output_dim
