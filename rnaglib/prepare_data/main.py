@@ -220,7 +220,7 @@ def cline():
                         help='If true, build non-redundant dataset')
     parser.add_argument('-d', '--debug', action='store_true',
                         help='runs only on --n-debug structures for debug.')
-    parser.add_argument('--n-debug', default=10,
+    parser.add_argument('--n-debug', type=int, default=10,
                         help='set number of debug structures.')
     return parser.parse_args()
 
