@@ -29,7 +29,7 @@ class GraphRepresentation(Representation):
         pass
 
     def __call__(self, rna_graph, features_dict):
-        print(f"Converting to {self.framework}")
+        # print(f"Converting to {self.framework}")
         if self.clean_edges:
             base_graph = fix_buggy_edges(graph=rna_graph)
         else:
@@ -41,10 +41,6 @@ class GraphRepresentation(Representation):
             return self.to_dgl(base_graph, features_dict)
         if self.framework == 'pyg':
             return self.to_pyg(base_graph, features_dict)
-
-    @property
-    def name(self):
-        return "graph"
 
     def to_nx(self, graph, features_dict):
         # Get Edge Labels
@@ -79,3 +75,23 @@ class GraphRepresentation(Representation):
         edge_index = [[node_map[u], node_map[v]] for u, v in sorted(graph.edges())]
         edge_attrs = [self.edge_map[data[self.etype_key]] for u, v, data in sorted(graph.edges(data=True))]
         return Data(x=x, y=y, edge_attr=edge_attrs, edge_index=edge_index)
+
+    @property
+    def name(self):
+        return "graph"
+
+    def batch(self, samples):
+        """
+        Batch a list of graph samples
+
+        :param samples: A list of the output from this representation
+        :return: a batched version of it.
+        """
+        if self.framework == 'nx':
+            return samples
+        if self.framework == 'dgl':
+            import dgl
+            batched_graph = dgl.batch([sample for sample in samples])
+            return batched_graph
+        if self.framework == 'pyg':
+            return samples

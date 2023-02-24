@@ -8,6 +8,8 @@ def get_point_cloud_dict(rna_graph, features_dict, sort=False):
     """
     This is factored out because this computation is also used by the voxel based representation.
 
+
+
     :param rna_graph:
     :param features_dict:
     :return:
@@ -41,13 +43,14 @@ def get_point_cloud_dict(rna_graph, features_dict, sort=False):
 class PointCloudRepresentation(Representation):
     """ Converts and RNA into a voxel based representation """
 
-    def __init__(self,
-                 **kwargs):
+    def __init__(self, hstack=True, sorted_nodes=True, **kwargs):
         super().__init__(**kwargs)
+        self.hstack = hstack
+        self.sorted_nodes = sorted_nodes
         pass
 
     def __call__(self, rna_graph, features_dict):
-        return get_point_cloud_dict(rna_graph=rna_graph, features_dict=features_dict)
+        return get_point_cloud_dict(rna_graph=rna_graph, features_dict=features_dict, sort=self.sorted_nodes)
 
     @property
     def name(self):
@@ -55,9 +58,18 @@ class PointCloudRepresentation(Representation):
 
     def batch(self, samples):
         """
-        Just return the name of the representation
+        Batch a list of point cloud samples
 
         :param samples: A list of the output from this representation
         :return: a batched version of it.
         """
-        raise NotImplementedError
+        pc_batch = {}
+        for key, value in samples[0].items():
+            if self.hstack:
+                if key == 'point_cloud_nodes':
+                    pc_batch[key] = [node_id for sample in samples for node_id in sample[key]]
+                else:
+                    pc_batch[key] = torch.cat([sample[key] for sample in samples], dim=0)
+            else:
+                pc_batch[key] = [sample[key] for sample in samples]
+        return pc_batch
