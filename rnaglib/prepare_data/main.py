@@ -22,6 +22,7 @@ from tqdm import tqdm
 from rnaglib.utils import reorder_nodes
 from rnaglib.utils import dump_json
 
+from rnaglib.prepare_data import get_NRchains
 from rnaglib.prepare_data.dssr_2_graphs import build_one
 from rnaglib.prepare_data.annotations import add_graph_annotations
 from rnaglib.prepare_data.filters import filter_dot_edges, filter_all
@@ -52,11 +53,12 @@ def get_rna_list(nr_only=False):
         response_dict = json.loads(r.text)
         ids = response_dict['result_set']
         if nr_only:
-            nr_chains = getNRchains("4.0A")
+            nr_chains = get_NRchains("4.0A")
             ids = [pdbid for pdbid in ids if pdbid in nr_chains]
-    except:
+    except Exception as e:
         print('An error occured when querying RCSB.')
         print(r.text)
+        print(e)
         exit()
     return ids
 
@@ -259,7 +261,7 @@ def prepare_data_main():
     # Build Graphs
     total = len(todo)
     errors = Parallel(n_jobs=args.num_workers)(delayed(cif_to_graph)(*t) for t in tqdm(todo, total=total, desc='Building RNA graphs.'))
-    with open(os.path.join(args.build_dir, "errors.csv"), 'w') as err:
+    with open(os.path.join(build_dir, "errors.csv"), 'w') as err:
         for pdbid, error in errors:
             err.write(f"{pdbid},{error}\n")
 

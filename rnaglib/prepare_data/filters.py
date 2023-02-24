@@ -14,8 +14,6 @@ from collections import defaultdict
 from tqdm import tqdm
 import shutil
 
-script_dir = os.path.dirname(os.path.realpath(__file__))
-sys.path.append(os.path.join(script_dir, '..', '..'))
 
 from rnaglib.utils.graph_io import dump_json, load_graph
 from rnaglib.utils.misc import listdir_fullpath
