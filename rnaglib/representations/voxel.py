@@ -128,7 +128,9 @@ def get_grid(coords, features=None, spacing=2, padding=3, xyz_min=None, xyz_max=
 
 
 class VoxelRepresentation(Representation):
-    """ Converts and RNA into a voxel based representation """
+    """
+    Converts RNA into a voxel based representation
+    """
 
     def __init__(self, spacing=2, padding=3, sigma=1., **kwargs):
         super().__init__(**kwargs)

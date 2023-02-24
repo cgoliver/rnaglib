@@ -95,6 +95,13 @@ class RNADataset:
             rna_dict[rep.name] = rep(rna_graph, features_dict)
         return rna_dict
 
+    def add_representation(self, representation):
+        self.representations.append(representation)
+
+    def remove_representation(self, name):
+        self.representations = [representation for representation in self.representations if
+                                representation.name != name]
+
     def get_pdbid(self, pdbid):
         """ Grab an RNA by its pdbid """
         return self.__getitem__(self.available_pdbids.index(pdbid.lower()))

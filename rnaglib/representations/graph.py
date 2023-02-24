@@ -7,7 +7,9 @@ from rnaglib.utils import fix_buggy_edges
 
 
 class GraphRepresentation(Representation):
-    """ Converts and RNA into a graph """
+    """
+    Converts RNA into a graph
+    """
 
     def __init__(self,
                  clean_edges=True,
