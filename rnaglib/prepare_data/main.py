@@ -219,7 +219,9 @@ def cline():
     parser.add_argument('-nr', "--nr", '--non-redundant', action='store_true', default=False,
                         help='If true, build non-redundant dataset')
     parser.add_argument('-d', '--debug', action='store_true',
-                        help='runs only on 10 structures for debug.')
+                        help='runs only on --n-debug structures for debug.')
+    parser.add_argument('--n-debug', default=10,
+                        help='set number of debug structures.')
     return parser.parse_args()
 
 
@@ -256,7 +258,7 @@ def prepare_data_main():
             for pdbid in rna_list if pdbid not in done]
     if args.debug:
         print(">>> Using debug mode. Preparing only 10 structures.")
-        todo = [item for i, item in enumerate(todo) if i < 10]
+        todo = [item for i, item in enumerate(todo) if i < args.n_debug]
 
     # Build Graphs
     total = len(todo)
