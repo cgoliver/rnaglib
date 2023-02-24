@@ -8,6 +8,7 @@ from sklearn.gaussian_process.kernels import RBF
 import torch
 
 from rnaglib.representations import Representation
+from rnaglib.representations.point_cloud import get_point_cloud_dict
 
 
 def get_bins(coords, spacing, padding, xyz_min=None, xyz_max=None):
@@ -135,35 +136,42 @@ class VoxelRepresentation(Representation):
         pass
 
     def __call__(self, rna_graph, features_dict):
-        # If we need voxels, let's do the computations. Once again it's tricky to get the right dimensions.
-        raise NotImplementedError
-        to_embed = []
-        if "features" in node_attrs_toadd:
-            to_embed.append(feat_tens)
-        if "target" in node_attrs_toadd:
-            to_embed.append(target_tens)
+        # If we need voxels, let's do the computations.
+        # We redo the point cloud computations that are fast compared to voxels
+        point_cloud_dict = get_point_cloud_dict(rna_graph, features_dict, sort=False)
 
-        if len(to_embed) == 0:
-            features = None
+        point_cloud_coords = point_cloud_dict['point_cloud_coords']
+
+        output_dim = 0
+        if "point_cloud_feats" in point_cloud_dict:
+            stacked_feats = point_cloud_dict['point_cloud_feats']
+            input_dim = stacked_feats.shape[1]
+        # If no features are provided, use a one hot encoding
         else:
-            if len(to_embed) == 2:
-                features = torch.hstack(to_embed)
-            else:
-                features = to_embed[0]
-            features = features.numpy()  # TODO : port in torch to avoid back and forth
-        coords = coord_tens.numpy()
+            stacked_feats = torch.ones(size=(len(point_cloud_coords), 1))
+            input_dim = 1
+        to_embed = [stacked_feats]
+        if "point_cloud_targets" in point_cloud_dict:
+            stacked_targets = point_cloud_dict['point_cloud_targets']
+            output_dim = stacked_targets.shape[1]
+            to_embed.append(stacked_targets)
+
+        if output_dim > 0:
+            features = torch.hstack((stacked_feats, stacked_targets))
+        else:
+            features = stacked_feats
+
+        features = features.numpy()  # TODO : port in torch to avoid back and forth
+        coords = point_cloud_coords.numpy()
         voxel_representation = get_grid(coords=coords, features=features)
         voxel_representation = torch.from_numpy(voxel_representation)
 
-        # Just retrieve a one-hot
-        if features is None:
-            res_dict['voxel_feats'] = voxel_representation
-        if "features" in node_attrs_toadd:
-            res_dict['voxel_feats'] = voxel_representation[:self.input_dim]
-        if "target" in node_attrs_toadd:
-            res_dict['voxel_target'] = voxel_representation[-self.output_dim:]
-        return 0
+        res_dict = {'voxel_feats': voxel_representation[:input_dim]}
+        if output_dim > 0:
+            res_dict['voxel_target'] = voxel_representation[-output_dim:]
+        return res_dict
 
+    @property
     def name(self):
         return "voxel"
 

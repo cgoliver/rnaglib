@@ -92,12 +92,12 @@ class RNADataset:
         # apply representations to the res_dict
         # each is a callable that updates the res_dict
         for rep in self.representations:
-            rna_dict[rep.name()] = rep(rna_graph, features_dict)
+            rna_dict[rep.name] = rep(rna_graph, features_dict)
         return rna_dict
 
     def get_pdbid(self, pdbid):
         """ Grab an RNA by its pdbid """
-        return self.get(self.available_pdbids.index(pdbid.lower()))
+        return self.__getitem__(self.available_pdbids.index(pdbid.lower()))
 
     def get_nt_encoding(self, g, encode_feature=True):
         """

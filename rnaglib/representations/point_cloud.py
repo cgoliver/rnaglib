@@ -49,6 +49,7 @@ class PointCloudRepresentation(Representation):
     def __call__(self, rna_graph, features_dict):
         return get_point_cloud_dict(rna_graph=rna_graph, features_dict=features_dict)
 
+    @property
     def name(self):
         return "point_cloud"
 

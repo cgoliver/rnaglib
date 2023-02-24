@@ -42,6 +42,7 @@ class GraphRepresentation(Representation):
         if self.framework == 'pyg':
             return self.to_pyg(base_graph, features_dict)
 
+    @property
     def name(self):
         return "graph"
 
