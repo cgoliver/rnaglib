@@ -51,10 +51,10 @@ def get_rna_list(nr_only=False):
     r = requests.get(f'https://search.rcsb.org/rcsbsearch/v2/query?json={json.dumps(payload)}')
     try:
         response_dict = json.loads(r.text)
-        ids = response_dict['result_set']
+        ids = [p.lower() for p in response_dict['result_set']]
         if nr_only:
-            nr_chains = get_NRchains("4.0A")
-            ids = [pdbid for pdbid in ids if pdbid in nr_chains]
+            nr_chains = [c.lower() for c in get_NRchains("4.0A")]
+            ids = [pdbid.lower() for pdbid in ids if pdbid in nr_chains]
     except Exception as e:
         print('An error occured when querying RCSB.')
         print(r.text)
@@ -260,6 +260,7 @@ def prepare_data_main():
 
     # Build Graphs
     total = len(todo)
+    print(f">>> Processing {total} RNAs.")
     errors = Parallel(n_jobs=args.num_workers)(delayed(cif_to_graph)(*t) for t in tqdm(todo, total=total, desc='Building RNA graphs.'))
     with open(os.path.join(build_dir, "errors.csv"), 'w') as err:
         for pdbid, error in errors:
