@@ -170,6 +170,11 @@ def dir_setup(args):
     if args.annotate:
         os.makedirs(os.path.join(build_dir, 'chops'), exist_ok=True)
         os.makedirs(os.path.join(build_dir, 'annot'), exist_ok=True)
+    elif args.chop:
+        os.makedirs(os.path.join(build_dir, 'chops'), exist_ok=True)
+    else:
+        pass
+    
     return build_dir
 
 def cline():
@@ -205,8 +210,8 @@ def cline():
                         help='Version tag to assign to the dataset.')
     parser.add_argument('-a', '--annotate', action='store_true', default=False,
                         help='Whether to build graphlet annotations.')
-    parser.add_argument('--prefix', default="",
-                        help='Optional prefix to be used as custom ID for dataset.')
+    parser.add_argument('-ch', '--chop', action='store_true', default=False,
+                        help='Whether to build chopped graphs.')
     parser.add_argument('-c', '--continu', action='store_true',
                         help='Continue previously paused execution')
     parser.add_argument('-nr', "--nr", '--non-redundant', action='store_true', default=False,
@@ -258,14 +263,19 @@ def prepare_data_main():
         for pdbid, error in errors:
             err.write(f"{pdbid},{error}\n")
 
+    chop_dir = os.path.join(build_dir, "chops")
+    annot_dir = os.path.join(build_dir, "annot")
     if args.annotate:
-        chop_dir = os.path.join(build_dir, "chops")
-        annot_dir = os.path.join(build_dir, "annot")
         print(">>> Chopping")
         chop_all(graphs_dir, chop_dir, n_jobs=args.num_workers)
         print(">>> Annotating")
         annotate_all(graph_path=chop_dir, dump_path=annot_dir)
         print('Done annotating graphs')
+    elif args.chop:
+        print(">>> Chopping")
+        chop_all(graphs_dir, chop_dir, n_jobs=args.num_workers)
+    else:
+        pass
 
 if __name__ == '__main__':
     prepare_data_main()
