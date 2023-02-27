@@ -191,6 +191,8 @@ def get_loader(dataset,
                batch_size=5,
                num_workers=0,
                split=True,
+               split_train=0.7,
+               split_valid=0.85,
                verbose=False):
     collater = Collater(dataset=dataset)
     if not split:
@@ -199,8 +201,8 @@ def get_loader(dataset,
         return loader
 
     else:
-        train_set, valid_set, test_set = split_dataset(dataset)
-        
+        train_set, valid_set, test_set = split_dataset(dataset, split_train=split_train, split_valid=split_valid)
+
         if verbose:
             print(f"training items: ", len(train_set))
         train_loader = DataLoader(dataset=train_set, shuffle=True, batch_size=batch_size,
