@@ -178,7 +178,7 @@ def download_name_generator(
 
 
 def download_graphs(redundancy='nr',
-                    version='0.0.0',
+                    version='1.0.0',
                     annotated=False,
                     overwrite=False,
                     data_root=None,
@@ -234,27 +234,14 @@ def graph_from_pdbid(pdbid, graph_dir=None, graph_format='json'):
     # Try in look into the existing data, we need to check for both annotated and graphs, as well as in each dl
     if graph_dir is None:
         dl_dir = get_default_download_dir()
-        found = False
-        for parent_dirname in {'annotated', 'graphs'}:
-            parent_dir = os.path.join(dl_dir, 'data', parent_dirname)
-            if found:
-                break
-            if os.path.exists(parent_dir):
-                for data_dirname in os.listdir(parent_dir):
-                    # No need to screen chops
-                    if 'chop' in data_dirname:
-                        continue
-                    data_dir = os.path.join(parent_dir, data_dirname)
-                    if graph_name in os.listdir(data_dir):
-                        found = True
-                        graph_path = os.path.join(data_dir, graph_name)
+        graph_path = os.path.join(dl_dir, "graphs", graph_name)
+        if not os.path.exists(graph_path):
+            print('The required pdb was not found in existing default downloads, '
+                  'please provide a path to look for the graph')
+            return None
     else:
         graph_path = os.path.join(graph_dir, graph_name)
 
-    if graph_path is None:
-        print('The required pdb was not found in existing default downloads, '
-              'please provide a path to look for the graph')
-        return None
     graph = load_graph(graph_path)
     return graph
 

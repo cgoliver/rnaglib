@@ -3,7 +3,7 @@ Working with 2.5D graphs
 
 Now that we know :doc:`what is an RNA 2.5D graph<what_is>` we can inspect the graph using `rnaglib`.
 
-Fetching a hosted graph
+Fetching hosted graphs
 --------------------------
 
 The libray ships with some pre-built datasets which you can download with the following command line:
@@ -13,29 +13,6 @@ The libray ships with some pre-built datasets which you can download with the fo
 
 
 This will download the default data distribution to `~/.rnaglib`
-
-Using a local RNA structure.
------------------------------
-
-
-If you have an mmCIF containing RNA stored locally and you wish to build a 2.5D graph that can be used in RNAglib you
-can use the ``prepare_data`` module.
-To do so, you need to have ``x3dna-dssr`` executable in your ``$PATH`` which requires a `license <http://x3dna.org/>`.
-The first option is to use the library from a python script, following the example :
-
-.. code-block:: python
-
-    >>> from rnaglib.prepare_data.main import cif_to_graph
-
-    >>> pdb_path = '../data/1aju.cif'
-    >>> graph_nx = cif_to_graph(pdb_path)
-
-Another possibility is to use the shell function that ships with rnaglib.
-
-::
-
-    $ rnaglib_prepare_data  --one_mmcif $PATH_TO_YOUR_MMCIF -O /path/to/output
-
 
 
 Overview of the 2.5D Graphs
@@ -95,3 +72,29 @@ should be around ten nodes, making it more suited for comparing graphlets or sub
     ... 0.0
 
 .. |Example graph| image:: https://jwgitlab.cs.mcgill.ca/cgoliver/rnaglib/-/raw/main/images/Fig1.png
+
+
+
+Using local RNA structures
+-----------------------------
+
+
+If you have an mmCIF containing RNA stored locally and you wish to build a 2.5D graph that can be used in RNAglib you
+can use the ``prepare_data`` module.
+To do so, you need to have ``x3dna-dssr`` executable in your ``$PATH`` which requires a `license <http://x3dna.org/>`.
+The first option is to use the library from a python script, following the example :
+
+.. code-block:: python
+
+    >>> from rnaglib.prepare_data.main import cif_to_graph
+
+    >>> pdb_path = '../data/1aju.cif'
+    >>> graph_nx = cif_to_graph(pdb_path)
+
+Another possibility is to use the shell function that ships with rnaglib.
+
+::
+
+    $ rnaglib_prepare_data  --one_mmcif $PATH_TO_YOUR_MMCIF -O /path/to/output
+
+
