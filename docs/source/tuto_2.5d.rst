@@ -14,6 +14,21 @@ The libray ships with some pre-built datasets which you can download with the fo
 
 This will download the default data distribution to `~/.rnaglib`
 
+To see the list of available PDBs you downloaded, use:
+
+.. code-block:: python
+
+   from rnaglib.utils import available_pdbids
+   # returns a list of PDBIDs
+   pdbids = available_pdbids()
+   # get the first RNA by PDBID
+   rna = graph_from_pdbid(pdbids[0])
+
+
+.. warning::
+
+        The list of available PDBDs depends on which data build you want to use. See :doc::`preparing data<tuto_build>` for more info on versioning and data build arguments. You can pass these arguments to the `available_pdbids(redundancy='all', version='0.0.0', annotated=True)` for non-default builds.
+
 
 Overview of the 2.5D Graphs
 -----------------------------
@@ -55,8 +70,22 @@ the graphs will be plotted using the LaTex reduced features that ships with matp
 |Example graph|
 
 
-Graph Edit Distance (GED)
--------------------------
+The RNA 2.5D graph contains a rich set of annotations.
+For a complete list of these annotations see :doc:`this page<rna_ref>`.
+In the next two examples we will show how you can make use of these annotations to study chemical modifications and RNA-protein binding sites.
+
+Chemical Modification Data Analysis
+--------------------------------------
+
+
+
+Collecting protein-RNA interfaces
+----------------------------------
+
+
+
+Aligning two RNA graphs: Graph Edit Distance (GED)
+-------------------------------------------------------
 
 GED is the gold standard of graph comparisons. We have put our ged implementation as a part of networkx, and offer
 in :doc:`rnaglib.ged` the weighting scheme we propose to compare 2.5D graphs. One can call ``rnaglib.ged.ged()`` on two
