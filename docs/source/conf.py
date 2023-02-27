@@ -65,6 +65,7 @@ autodoc_member_order = 'bysource'
 # a list of builtin themes.
 #
 html_theme = 'sphinx_rtd_theme'
+html_logo = ''
 html_sidebars = { '**': ['globaltoc.html', 'relations.html', 'sourcelink.html', 'searchbox.html'] }
 
 
