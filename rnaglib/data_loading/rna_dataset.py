@@ -17,7 +17,7 @@ class RNADataset:
                  download_dir=None,
                  redundancy='nr',
                  all_graphs=None,
-                 representations=None,
+                 representations=(),
                  rna_features=None,
                  nt_features=None,
                  bp_features=None,
