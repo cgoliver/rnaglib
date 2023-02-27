@@ -4,28 +4,41 @@
    contain the root `toctree` directive.
 
 .. toctree::
-   :maxdepth: 2
-   :caption: Documentation
+   :maxdepth: 1
+   :caption: Get Started 
    :hidden:
 
    Homepage <self>
    Installation <install>
-   Data Explanation <rnaglib.data>
+   What is an RNA 2.5D graph? <what_is>
+   How is the data built? <tuto_build>
 
 .. toctree::
    :maxdepth: 2
    :caption: Tutorials
    :hidden:
 
-   Data Building <tuto_data>
-   Handling 2.5D Graphs <tuto_2.5d>
-   Learning on your own data <tuto_compbio>
+   A tour of RNA 2.5D graphs <tuto_2.5d>
+   RNA 3D Datasets <tuto_compbio>
    Machine Learning on Benchmark Datasets <tuto_ml>
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Advanced Examples
+   :hidden:
+
    Machine Learning Examples <rnaglib.examples>
 
 .. toctree::
    :maxdepth: 2
-   :caption: API Reference
+   :caption: Data Reference 
+   :hidden:
+
+   RNA Annotation Reference <rna_ref>
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Package Reference
    :hidden:
 
    Benchmark <rnaglib.benchmark>
@@ -38,9 +51,8 @@
    Prepare Data <rnaglib.prepare_data>
    Utils <rnaglib.utils>
 
-=========
 Welcome to RNAGlib!
-=========
+=====================
 
 ..
  This is a comment : contents:: Table of Contents
@@ -52,71 +64,29 @@ Functionality includes automated data loading, analysis, visualization, machine 
 and benchmarking.
 We support point cloud and voxel representations for RNA structures, but mostly offer functionality for 2.5D graphs.
 
-.. topic:: Core Features
+Core Features
+-----------------
 
-   * Quick access to all available RNA 3D structures with annotations
-   * Rich functionality for 2.5D RNA graphs, point clouds, and voxels
-   * Visualization 
-   * ML Benchmarking tasks 
+* Quick access to all available RNA 3D structures with annotations
+* Rich functionality for 2.5D RNA graphs, point clouds, and voxels
+* RNA graph visualization 
+* Machine Learning benchmarking tasks 
 
 
-**What are RNA 2.5D structures?**
+Get started with RNAGlib
+---------------------------
 
-RNA 2.5D structures are discrete graph-based representations of atomic coordinates derived
-from techniques such as X-ray crystallography and NMR. This type of representation encodes
-all possible base pairing interactions which are known to be crucial for understanding RNA function.
+* :doc:`Install<install>`
+* :doc:`Learn about RNA 2.5D Graphs<what_is>`
+* :doc:`Annotation reference <rna_ref>`
 
-**Why use RNA 2.5D data?**
+Tutorials
+-----------
 
-The benefit is twofold. When dealing with RNA 3D data, a representation centered on
-base pairing is a very natural prior which has been shown to carry important signals for
-complex interactions, and can be directly interpreted.
-Second, adopting graph representations lets us take advantage of many powerful algorithmic tools
-such as graph neural networks and graph kernels.
+* :doc:`Using 2.5D Graphs<tuto_2.5d>`
+* :doc:`Working with 2.5D graphs datasets <tuto_2.5d>`
+* :doc:`Training machine learning models <tuto_ml>`
 
-**What type of functional data is included?**
-
-The graphs are annotated with graph, node, and edge-level attributes.
-These include, but are not limited to:
-
--  Secondary structure (graph-level)
--  Protein binding (node-level)
--  Small molecule binding (node-level)
--  Chemical modifications (node-level)
--  3-D coordinates(node-level)
--  Leontis-westhof base pair geometry classification (edge-level)
-
-We provide a visualization of what the graphs in this database contain.
-A more detailed description of the data is presented in :doc:`rnaglib.data`.
-|Example graph|
-
-Installation
-------------
-
-The package can be cloned and the source code used directly.
-We also deploy it as a pip package and recommend using this install in conda environments.
-
-If one wants to use GPU support, one should install `Pytorch <https://pytorch.org/get-started/locally/>`__
-and `DGL <https://www.dgl.ai/pages/start.html>`__ with the appropriate options.
-Otherwise you can just skip this step and the pip installs of Pytorch and DGL will be used.
-
-Then, one just needs to run :
-
-::
-
-    pip install rnaglib
-
-and can start using the packages functionalities by importing them in one's python script.
-
-Documentation Structure
--------------------------
-
-In addition to a more detailed description of the :doc:`rnaglib.data<rnaglib.data>`), we provide four tutorials :
-
--  A tutorial to obtain the data (:doc:`tuto_data<link>`)
--  A tutorial to manipulate and visualize the data (:doc:`tuto_2.5d<link>`)
--  A tutorial showing how your own biological data can fuel a machine learning model (:doc:`tuto_compbio<link>`)
--  A tutorial for machine learning practicioners who want to use the data directly (:doc:`tuto_ml<link>`)
 
 Package Structure
 -----------------
@@ -130,8 +100,8 @@ Package Structure
 -  :doc:`rnaglib.ged`: custom graph similarity functions
 -  :doc:`rnaglib.kernels`: custom local neighbourhood similarity functions
 
-Source Code and Associated Repositories:
-------------------------
+Source Code and Associated Repositories
+-----------------------------------------------
 `RNAglib <https://jwgitlab.cs.mcgill.ca/cgoliver/rnaglib>`__ homepage.
 
 t: a research paper published in Nucleic Acid Research that
