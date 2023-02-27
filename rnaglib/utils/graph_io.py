@@ -154,10 +154,10 @@ def download(url, path=None, overwrite=True, retries=5, verify_ssl=True, log=Tru
 
 
 def download_name_generator(
-                            version='0.0.1',
+                            version='1.0.0',
                             redundancy='nr',
                             annotated=False,
-                            record='1166237'
+                            record='1166254'
                             ):
     """
     This returns the zenodo URL given dataset choices. 
@@ -180,8 +180,10 @@ def download_name_generator(
 def download_graphs(redundancy='nr',
                     version='1.0.0',
                     annotated=False,
+                    chop=False,
                     overwrite=False,
                     data_root=None,
+                    verbose=False
                     ):
     """
     Based on the options, get the right data from the latest release and put it in download_dir.
@@ -196,7 +198,7 @@ def download_graphs(redundancy='nr',
     if data_root is None:
         data_root = get_default_download_dir()
 
-    tag = f"rnaglib-{redundancy}-{version}{'-' + 'annotated' if annotated else ''}"
+    tag = f"rnaglib-{redundancy}-{version}{'-chop' if chop else ''}{'-' + 'annotated' if annotated else ''}"
     url = download_name_generator(redundancy=redundancy, version=version, annotated=annotated)
     dl_path = os.path.join(data_root, 'downloads', tag + '.tar.gz')
     data_path = os.path.join(data_root, 'datasets')
@@ -214,7 +216,30 @@ def download_graphs(redundancy='nr',
     return os.path.join(data_root, "datasets", tag)
 
 
-def graph_from_pdbid(pdbid, graph_dir=None, graph_format='json'):
+def available_pdbids(graph_dir=None,
+                     version='1.0.0',
+                     chop=False,
+                     annotated=False,
+                     redundancy='nr'):
+    tag = f"rnaglib-{redundancy}-{version}{'-chop' if chop else ''}{'-' + 'annotated' if annotated else ''}"
+    if graph_dir is None:
+        dl_dir = get_default_download_dir()
+        graph_path = os.path.join(dl_dir, "datasets", tag, "graphs" )
+        if not os.path.exists(graph_path):
+            print(f"Data build {graph_path} download not found. Use rnaglib_download to fetch")
+            return None
+    else:
+        graph_path = graph_dir
+
+    return [os.path.splitext(g)[0] for g in os.listdir(graph_path)]
+
+def graph_from_pdbid(pdbid,
+                     graph_dir=None,
+                     version='1.0.0',
+                     annotated=False,
+                     chop=False,
+                     redundancy='nr',
+                     graph_format='json'):
     """Fetch an annotated graph with a PDBID.
 
     :param pdbid: PDB id to fetch
@@ -222,6 +247,8 @@ def graph_from_pdbid(pdbid, graph_dir=None, graph_format='json'):
     :param graph_format: which format to load (JSON, or networkx)
     """
 
+    tag = f"rnaglib-{redundancy}-{version}{'-chop' if chop else ''}{'-' + 'annotated' if annotated else ''}"
+    
     if graph_format == 'nx':
         graph_name = os.path.join(pdbid.lower() + '.nx')
     elif graph_format == 'json':
@@ -234,7 +261,7 @@ def graph_from_pdbid(pdbid, graph_dir=None, graph_format='json'):
     # Try in look into the existing data, we need to check for both annotated and graphs, as well as in each dl
     if graph_dir is None:
         dl_dir = get_default_download_dir()
-        graph_path = os.path.join(dl_dir, "graphs", graph_name)
+        graph_path = os.path.join(dl_dir, "datasets", tag, "graphs", graph_name)
         if not os.path.exists(graph_path):
             print('The required pdb was not found in existing default downloads, '
                   'please provide a path to look for the graph')

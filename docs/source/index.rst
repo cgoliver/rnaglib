@@ -19,7 +19,6 @@
    :hidden:
 
    A tour of RNA 2.5D graphs <tuto_2.5d>
-   RNA 3D Datasets <tuto_compbio>
    Machine Learning on Benchmark Datasets <tuto_ml>
 
 .. toctree::
