@@ -92,6 +92,7 @@ def get_mmcif_graph_level(mmcif_dict):
             pass
     return annots
 
+
 # def get_hetatm(cif_dict):
 #     all_hetatm = set(cif_dict.get('_pdbx_nonpoly_scheme.mon_id', []))
 #     return all_hetatm
@@ -174,12 +175,17 @@ def add_graph_annotations(g, cif):
     for interaction_dict in all_interactions['ligands']:
         ligand_id = interaction_dict['id']
         for rna_neigh in interaction_dict['rna_neighs']:
-            g.nodes[rna_neigh]['binding_small-molecule'] = ligand_id
+            # In some rare cases, dssr removes a residue from the cif, in which case it can be fou
+            # in the interaction dict but not in graph...
+            if rna_neigh in g.nodes:
+                g.nodes[rna_neigh]['binding_small-molecule'] = ligand_id
     for interaction_dict in all_interactions['ions']:
         ion_id = interaction_dict['id']
         for rna_neigh in interaction_dict['rna_neighs']:
-            g.nodes[rna_neigh]['binding_ion'] = ion_id
-
+            # In some rare cases, dssr removes a residue from the cif, in which case it can be fou
+            # in the interaction dict but not in graph...
+            if rna_neigh in g.nodes:
+                g.nodes[rna_neigh]['binding_ion'] = ion_id
     # Then add a None field in all other nodes
     for node, node_data in g.nodes(data=True):
         if 'binding_ion' not in node_data:

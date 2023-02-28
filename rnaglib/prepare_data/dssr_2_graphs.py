@@ -13,6 +13,7 @@ import networkx as nx
 import subprocess
 from subprocess import check_output
 
+
 def dssr_exec(cif):
     """Execute DSSR on an mmCIF. Requires `x3dna-dssr` binary to be in `PATH`
 
@@ -226,9 +227,9 @@ def dssr_dict_2_graph(dssr_dict, rbp_dict, pdbid):
         rna_pairs = rna_only_pairs(dssr_dict)
         rna_pairs = base_pair_swap(list(rna_pairs))
     except Exception as e:
-        #print(e)
-        #traceback.print_exc()
-        #print(f">>> No base pairs found for {pdbid}")
+        # print(e)
+        # traceback.print_exc()
+        # print(f">>> No base pairs found for {pdbid}")
         return
 
     G.add_edges_from(((pair['nt1'], pair['nt2'], pair) for pair in rna_pairs))
