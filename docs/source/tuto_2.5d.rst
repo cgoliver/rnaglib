@@ -74,14 +74,19 @@ The RNA 2.5D graph contains a rich set of annotations.
 For a complete list of these annotations see :doc:`this page<rna_ref>`.
 In the next two examples we will show how you can make use of these annotations to study chemical modifications and RNA-protein binding sites.
 
-Chemical Modification Data Analysis
---------------------------------------
+Analyzing RNA-small molecule binding sites
+-------------------------------------------------------
+
+In this short example we will compute some statistics to describe the kinds of structural features around RNA-small molecule binding pockets using RNAGlib.
 
 
+Let's get our graphs. We are using the default data build which contains whole non-redundant RNA structures.
 
-Collecting protein-RNA interfaces
-----------------------------------
+.. code-block:: python
+        from rnaglib.utils import available_pdbids
+        from rnaglib.utils import graph_from_pdbid
 
+        graphs = [graph_from_pdbid(p) for p in available_pdbids()]
 
 
 Aligning two RNA graphs: Graph Edit Distance (GED)

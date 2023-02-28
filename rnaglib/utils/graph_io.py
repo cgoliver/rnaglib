@@ -157,7 +157,7 @@ def download_name_generator(
                             version='1.0.0',
                             redundancy='nr',
                             annotated=False,
-                            record='1166254'
+                            record='1168342'
                             ):
     """
     This returns the zenodo URL given dataset choices. 
