@@ -15,7 +15,6 @@ import requests
 from Bio.PDB.PDBList import PDBList
 from collections import defaultdict
 
-
 from Bio.PDB.PDBList import PDBList
 from tqdm import tqdm
 
@@ -176,8 +175,9 @@ def dir_setup(args):
         os.makedirs(os.path.join(build_dir, 'chops'), exist_ok=True)
     else:
         pass
-    
+
     return build_dir
+
 
 def cline():
     parser = argparse.ArgumentParser()
@@ -254,7 +254,7 @@ def prepare_data_main():
     if args.continu:
         done = set([os.path.splitext(g)[0] for g in os.listdir(graphs_dir)])
 
-    todo = [(os.path.join(args.structures_dir, pdbid + ".cif"), build_dir)\
+    todo = [(os.path.join(args.structures_dir, pdbid + ".cif"), build_dir) \
             for pdbid in rna_list if pdbid not in done]
     if args.debug:
         print(">>> Using debug mode. Preparing only 10 structures.")
@@ -263,7 +263,8 @@ def prepare_data_main():
     # Build Graphs
     total = len(todo)
     print(f">>> Processing {total} RNAs.")
-    errors = Parallel(n_jobs=args.num_workers)(delayed(cif_to_graph)(*t) for t in tqdm(todo, total=total, desc='Building RNA graphs.'))
+    errors = Parallel(n_jobs=args.num_workers)(
+        delayed(cif_to_graph)(*t) for t in tqdm(todo, total=total, desc='Building RNA graphs.'))
     with open(os.path.join(build_dir, "errors.csv"), 'w') as err:
         for pdbid, error in errors:
             err.write(f"{pdbid},{error}\n")
@@ -281,6 +282,7 @@ def prepare_data_main():
         chop_all(graphs_dir, chop_dir, n_jobs=args.num_workers)
     else:
         pass
+
 
 if __name__ == '__main__':
     prepare_data_main()
