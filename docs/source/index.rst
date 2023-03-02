@@ -101,12 +101,12 @@ Package Structure
 
 Source Code and Associated Repositories
 -----------------------------------------------
-`RNAglib <https://jwgitlab.cs.mcgill.ca/cgoliver/rnaglib>`__ homepage.
+`RNAglib <https://jwgitlab.cs.mcgill.ca/cgoliver/rnaglib>`_ homepage.
 
-`RNAMigos <https://github.com/cgoliver/RNAmigos>`__ : a research paper published in Nucleic Acid Research that
+`RNAmigos <https://github.com/cgoliver/RNAmigos>`_ : a research paper published in Nucleic Acid Research that
 demonstrates the usefulness of 2.5D graphs for machine learning tasks, exemplified onto the drug discovery application.
 
-`VeRNAl <https://github.com/cgoliver/vernal>`__ : a research paper published in Bioinformatics that uses learnt
+`VeRNAl <https://github.com/cgoliver/vernal>`_ : a research paper published in Bioinformatics that uses learnt
 vector representations of RNA subgraphs to mine structural motifs in RNA.
 
 
