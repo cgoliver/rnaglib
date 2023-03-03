@@ -10,6 +10,7 @@
 
    Homepage <self>
    Installation <install>
+   Quickstart <quickstart>
    What is an RNA 2.5D graph? <what_is>
    How is the data built? <tuto_build>
 
