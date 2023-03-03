@@ -58,10 +58,6 @@ Welcome to RNAGlib!
 
 
 ``RNAGlib`` (RNA Geometric Library) is a Python package for studying models of RNA 3D structures.
-Through this package you can access a rich set of up-to-date annotations for all available RNA structures in the PDB Databank.
-Functionality includes automated data loading, analysis, visualization, machine learning model building
-and benchmarking.
-We support point cloud and voxel representations for RNA structures, but mostly offer functionality for 2.5D graphs.
 
 Core Features
 -----------------
