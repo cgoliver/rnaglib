@@ -7,26 +7,10 @@
 # `rnaGlib`: RNA Geometric Library
 [![Documentation Status](https://readthedocs.org/projects/rnaglib/badge/?version=latest)](https://rnaglib.readthedocs.io/en/latest/?badge=latest)
 
-`RNAglib` is a Python package for studying RNA 2.5D structures. Functionality includes automated data loading, analysis,
+`RNAglib` is a Python package for studying RNA 2.5D and 3D structures. Functionality includes automated data loading, analysis,
 visualization, ML model building and benchmarking.
-An [online documentation](https://rnaglib.cs.mcgill.ca/static/docs/html/index.html) is available.
 
-* What are RNA 2.5D structures?
-
-RNA 2.5D structures are discrete graph-based representations of atomic coordinates derived from techniues such as X-ray
-crystallography and NMR. This type of representation encodes all possible base pairing interactions which are known to
-be crucial for understanding RNA function.
-
-* Why use RNA 2.5D data?
-
-The benefit is twofold. When dealing with RNA 3D data, a representation centered on base pairing is a very natural prior
-which has been shown to carry important signals for complex interactions, and can be directly interpreted. Second,
-adopting graph representations lets us take advantage of many powerful algorithmic tools such as graph neural networks
-and graph kernels.
-
-* What type of functional data is included?
-
-The graphs are annotated with graph, node, and edge-level attributes. These include, but are not limited to:
+We host RNAs annotated with molecule, base pair, and nucleotide level attributes. These include, but are not limited to:
 
 * Secondary structure (graph-level)
 * Protein binding (node-level)
@@ -34,9 +18,6 @@ The graphs are annotated with graph, node, and edge-level attributes. These incl
 * Chemical modifications (node-level)
 * 3-d coordinates(node-level)
 * Leontis-westhof base pair geometry classification (edge-level)
-
-We provide a visualization of what the graphs in this database contain.
-A more detailed description of the data is presented in `/RNAGlib/prepare_data/README`.
 
 ![Example graph](https://jwgitlab.cs.mcgill.ca/cgoliver/rnaglib/-/raw/main/images/Fig1.png)
 
