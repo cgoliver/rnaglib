@@ -91,16 +91,23 @@ Package Structure
 
 -  :doc:`rnaglib.prepare_data`: processes raw PDB structures and
    builds a database of 2.5D graphs with full structural annotation
--  :doc:`rnaglib.data_loading`: custom PyTorch dataloader implementations
+-  :doc:`rnaglib.data_loading`: custom PyTorch dataloader and dataset implementations
+-  :doc:`rnaglib.representations`: graph, voxel, point cloud representations
 -  :doc:`rnaglib.learning`: learning routines and pre-built GCN models for the easiest use of the
    package.
 -  :doc:`rnaglib.drawing`: utilities for visualizing 2.5D graphs
 -  :doc:`rnaglib.ged`: custom graph similarity functions
 -  :doc:`rnaglib.kernels`: custom local neighbourhood similarity functions
 
-Source Code and Associated Repositories
+Source Code and Contact
+--------------------------
+
+* `RNAglib homepage <https://rnaglib.cs.mcgill.ca>`_.
+* `Source Code <https://github.com/cgoliver/rnaglib>`_.
+* Contact rnaglib@cs.mcgill.ca 
+
+ Associated Repositories
 -----------------------------------------------
-`RNAglib <https://jwgitlab.cs.mcgill.ca/cgoliver/rnaglib>`_ homepage.
 
 `RNAmigos <https://github.com/cgoliver/RNAmigos>`_ : a research paper published in Nucleic Acid Research that
 demonstrates the usefulness of 2.5D graphs for machine learning tasks, exemplified onto the drug discovery application.
