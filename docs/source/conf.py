@@ -64,7 +64,7 @@ autodoc_member_order = 'bysource'
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-html_theme = 'pyg_sphinx_theme'
+html_theme = 'sphinx-rtd-theme'
 html_logo = 'https://jwgitlab.cs.mcgill.ca/cgoliver/rnaglib/-/raw/zenodo/images/rgl.png'
 html_sidebars = { '**': ['globaltoc.html', 'relations.html', 'sourcelink.html', 'searchbox.html'] }
 
