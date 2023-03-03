@@ -5,11 +5,8 @@ import argparse
 import csv
 from tqdm import tqdm
 
-script_dir = os.path.dirname(os.path.realpath(__file__))
-sys.path.append(os.path.join(script_dir, '..'))
-
-from prepare_data.annotations import load_graph
-from prepare_data.main import listdir_fullpath
+from rnaglib.utils import load_graph
+from rnaglib.utils import listdir_fullpath
 
 def main():
 

@@ -41,14 +41,15 @@
    :caption: Package Reference
    :hidden:
 
+   Build Data <rnaglib.prepare_data>
+   Data Loading <rnaglib.data_loading>
+   Data Representations <rnaglib.representations>
    Benchmark <rnaglib.benchmark>
    Config <rnaglib.config>
-   Data Loading <rnaglib.data_loading>
    Drawing <rnaglib.drawing>
    Ged <rnaglib.ged>
    Kernels <rnaglib.kernels>
    Learning <rnaglib.learning>
-   Prepare Data <rnaglib.prepare_data>
    Utils <rnaglib.utils>
 
 Welcome to RNAGlib!

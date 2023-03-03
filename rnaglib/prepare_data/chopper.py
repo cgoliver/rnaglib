@@ -13,8 +13,8 @@ import numpy as np
 from sklearn.decomposition import PCA
 import networkx as nx
 
-from rnaglib.utils.graph_utils import dangle_trim, gap_fill
-from rnaglib.utils.graph_io import load_json, dump_json
+from rnaglib.utils import dangle_trim, gap_fill
+from rnaglib.utils import load_json, dump_json
 
 def block_pca(residues):
     """
@@ -141,7 +141,12 @@ def chop_one_rna(G):
 
 def chop_all(graph_path, dest, n_jobs=4, parallel=True):
     """
-        Chop and dump all the rglib graphs in the dataset.
+    Chop and dump all the rglib graphs in the dataset.
+
+    :param graph_path: path to graphs for chopping
+    :param dest: path where chopped graphs will be dumped
+    :n_jobs: number of workers to use
+    :paralle: whether to use multiprocessing
     """
 
     try:

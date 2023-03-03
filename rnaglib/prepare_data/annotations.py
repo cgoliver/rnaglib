@@ -13,9 +13,6 @@ from Bio.PDB.Polypeptide import is_aa
 from Bio.PDB.DSSP import DSSP
 from time import perf_counter
 
-script_dir = os.path.join(os.path.realpath(__file__), '..')
-sys.path.append(os.path.join(script_dir, '..'))
-
 IONS = ["3CO", "ACT", "AG", "AL", "ALF", "AU", "AU3", "BA", "BEF", "BO4", "BR", "CA", "CAC", "CD", "CL", "CO",
         "CON", "CS", "CU", "EU3", "F", "FE", "FE2", "FLC", "HG", "IOD", "IR", "IR3", "IRI", "IUM", "K", "LI",
         "LU", "MG", "MLI", "MMC", "MN", "NA", "NCO", "NH4", "NI", "NO3", "OH", "OHX", "OS", "PB", "PO4", "PT",
