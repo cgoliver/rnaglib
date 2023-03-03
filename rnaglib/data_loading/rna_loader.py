@@ -16,16 +16,22 @@ from rnaglib.representations import RingRepresentation
 
 
 class Collater:
-    def __init__(self, dataset):
-        """
+    """
         Wrapper for collate function, so we can use different node similarities.
-            We cannot use functools.partial as it is not picklable so incompatible with Pytorch loading
+        We cannot use functools.partial as it is not picklable so incompatible with Pytorch loading
+    """
+
+    def __init__(self, dataset):
+        """ Initialize a Collater object.
+
         :param node_simfunc: A node comparison function as defined in kernels, to optionally return a pairwise
         comparison of the nodes in the batch
         :param max_size_kernel: If the node comparison is not None, optionnaly only return a pairwise
         comparison between a subset of all nodes, of size max_size_kernel
         :param hstack: If True, hstack point cloud return
+
         :return: a picklable python function that can be called on a batch by Pytorch loaders
+
         """
         self.dataset = dataset
 
@@ -36,6 +42,7 @@ class Collater:
         The graphs are batched, the rings are compared with self.node_simfunc and the features are just put into a list.
         :param samples:
         :return: a dict
+
         """
         batch = dict()
         for representation in self.dataset.representations:
@@ -57,6 +64,20 @@ def get_loader(dataset,
                verbose=False,
                framework='dgl'
                ):
+    """ Fetch a loader object for a given dataset.
+
+    :param rnaglib.data_loading.RNADataset dataset: Dataset for loading.
+    :param int batch_size: number of items in batch
+    :param bool split: whether to compute splits
+    :param float split_train: proportion of dataset to keep for training
+    :param float split_valid: proportion of dataset to keep for validation
+    :param bool verbose: print updates
+    :param str framework: learning framework to use ('dgl')
+
+    :return: torch.utils.data.DataLoader
+
+    """
+
     collater = Collater(dataset=dataset)
     if not split:
         loader = DataLoader(dataset=dataset, shuffle=True, batch_size=batch_size,
@@ -100,12 +121,7 @@ def get_inference_loader(list_to_predict,
 
 
 class EdgeLoaderGenerator:
-    def __init__(self,
-                 graph_loader,
-                 inner_batch_size=50,
-                 sampler_layers=2,
-                 neg_samples=1):
-        """
+    """
         This turns a graph dataloader or dataset into an edge data loader generator.
         It needs to be reinitialized every epochs because of the double iteration pattern
 
@@ -116,7 +132,15 @@ class EdgeLoaderGenerator:
         timing :
         - num workers should be used to load the graphs not in the inner loop
         - The inner batch size yields huge speedups (probably generating all MFGs is tedious)
+    """
 
+    def __init__(self,
+                 graph_loader,
+                 inner_batch_size=50,
+                 sampler_layers=2,
+                 neg_samples=1):
+        """ Initialize the loader.
+        
         :param graph_loader: A GraphLoader or GraphDataset. We will iterate over its graphs and then over its basepairs
         :param inner_batch_size: The amount of base-pairs to sample in each batch on each graph
         :param sampler_layers: The size of the neighborhood
@@ -173,6 +197,8 @@ class EdgeLoaderGenerator:
 
 
 class DefaultBasePairLoader:
+    """ Dataloader that yields base pairs """
+
     def __init__(self,
                  dataset=None,
                  data_path=None,
