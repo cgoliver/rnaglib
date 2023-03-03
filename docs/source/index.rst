@@ -73,6 +73,7 @@ Get started with RNAGlib
 ---------------------------
 
 * :doc:`Install<install>`
+* :doc:`Quickstart<quickstart>`
 * :doc:`Learn about RNA 2.5D Graphs<what_is>`
 * :doc:`Annotation reference <rna_ref>`
 

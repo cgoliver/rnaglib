@@ -46,6 +46,6 @@ For that we have the ``RNADataset`` object.::
 
 
 This object holds the same objects as above but also supports ML functionalities such as converting the RNAs to different representations (graphs, point clouds, voxels) and to different frameworks (dgl, torch, pytorch geometric)
-See the ML :doc:`tutorial <tuto_ml>` for more on model training and tasks.
+See the ML :doc:`tutorial <tuto_ml>` for more on model training and tas.
 
 
