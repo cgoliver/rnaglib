@@ -42,7 +42,6 @@ extensions = [
     'myst_parser'
 ]
 
-
 myst_enable_extensions = [
              "substitution",
              ]
@@ -78,6 +77,3 @@ html_sidebars = { '**': ['globaltoc.html', 'relations.html', 'sourcelink.html', 
 source_suffix = {   '.rst': 'restructuredtext',
                     '.txt': 'markdown',
                     '.md': 'markdown'}
-
-
-

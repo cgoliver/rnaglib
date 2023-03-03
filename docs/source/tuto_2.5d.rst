@@ -43,7 +43,7 @@ Using node IDs we can access node and edge attributes as dictionary keys.
 
 .. code-block:: python
 
-   >>> from rnaglib.utils.graph_io import graph_from_pdbid
+   >>> from rnaglib.utils import graph_from_pdbid
    >>> G = graph_from_pdbid("4nlf")
    >>> G.nodes['4nlf.A.2647']
     {'index': 1, 'index_chain': 1, 'chain_name': 'A', 'nt_resnum': 2647, 'nt_name': 'U', 'nt_code': 'U',
@@ -63,7 +63,7 @@ the graphs will be plotted using the LaTex reduced features that ships with matp
 
 .. code-block:: python
 
-    >>> from rnaglib.drawing.rna_draw import rna_draw
+    >>> from rnaglib.drawing import rna_draw
     >>> rna_draw(G, show=True, layout="spring")
 
 
@@ -187,8 +187,8 @@ should be around ten nodes, making it more suited for comparing graphlets or sub
 
 .. code-block:: python
 
-    >>> from rnaglib.ged.ged_nx import graph_edit_distance
-    >>> from rnaglib.utils.graph_io import graph_from_pdbid
+    >>> from rnaglib.ged import graph_edit_distance
+    >>> from rnaglib.utils import graph_from_pdbid
     >>> G = graph_from_pdbid("4nlf")
     >>> graph_edit_distance(G, G)
     ... 0.0
@@ -206,7 +206,7 @@ The first option is to use the library from a python script, following the examp
 
 .. code-block:: python
 
-    >>> from rnaglib.prepare_data.main import cif_to_graph
+    >>> from rnaglib.prepare_data import cif_to_graph
 
     >>> pdb_path = '../data/1aju.cif'
     >>> graph_nx = cif_to_graph(pdb_path)

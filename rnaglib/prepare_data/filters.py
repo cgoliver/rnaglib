@@ -10,79 +10,11 @@ import networkx as nx
 import csv
 import pandas as pd
 from collections import defaultdict
-# from rcsbsearch import TextQuery, Attr
 from tqdm import tqdm
 import shutil
 
-
-from rnaglib.utils.graph_io import dump_json, load_graph
-from rnaglib.utils.misc import listdir_fullpath
-
-
-def get_NRlist(resolution):
-    """
-    Get non-redudant RNA list from the BGSU website
-
-    :param resolution: minimum rseolution to apply
-    """
-
-    base_url = 'http://rna.bgsu.edu/rna3dhub/nrlist/download'
-    release = 'current'  # can be replaced with a specific release id, e.g. 0.70
-    # release = '3.186'
-    url = '/'.join([base_url, release, resolution])
-
-    print(url)
-    df = pd.read_csv(url, header=None)
-
-    repr_set = []
-    for ife in df[1]:
-        repr_set.append(ife)
-
-    return repr_set
-
-
-def load_csv(input_file, quiet=False):
-    """
-    Load a csv of from rna.bgsu.edu of representative set
-
-    :param input_file: path to csv file
-    :param quiet: set to true to turn off warnings
-    :return repr_set: list of equivalence class RNAs
-    """
-    NRlist = []
-    with open(input_file, 'r') as f:
-        reader = csv.reader(f)
-        for row in reader:
-            try:
-                NRlist.append(row[1])
-            except csv.Error as e:
-                if not quiet:
-                    print(f'Warning error {e} found when trying to parse row: \n {row}')
-
-    return NRlist
-
-
-def parse_NRlist(NRlist):
-    """
-    Parse NR BGSU csv file for a list of non-redundant RNA chains
-    list can be downloaded from:
-        http://rna.bgsu.edu/rna3dhub/nrlist
-
-    :param NRlist: Set of representative RNAs output (see load_csv())
-
-    :return: set of non-redundant RNA chains (tuples of (structure, model, chain))
-    """
-
-    NRchains = defaultdict(set)
-
-    # split into each IFE (Integrated Functional Element)
-    for representative in NRlist:
-        items = representative.split('+')
-        for entry in items:
-            pbid, model, chain = entry.split('|')
-            NRchains[pbid.lower()].add(chain)
-
-    return NRchains
+from rnaglib.utils import dump_json, load_graph
+from rnaglib.utils import listdir_fullpath
 
 
 def filter_graph(g, fltr):
@@ -140,66 +72,6 @@ def filter_dot_edges(graph):
     graph.remove_edges_from([(u, v) for u, v, d in graph.edges(data=True)
                              if '.' in d['LW'] or d['LW'] == '--'])
 
-
-def get_NRchains(resolution):
-    """
-    Get a map of non redundant IFEs (integrated functional elements) from
-    rna.bgsu.edu/rna3dhub/nrlist
-
-    :param resolution: (string) one of
-    [1.0A, 1.5A, 2.0A, 2.5A, 3.0A, 3.5A, 4.0A, 20.0A]
-    :return: Dictionary, keys=PDB IDs, Values=(set) Chain IDs
-    """
-
-    NR_list = get_NRlist(resolution)
-    return parse_NRlist(NR_list)
-
-
-def get_Ribochains():
-    """
-    Get a list of all PDB structures containing RNA and have the text 'ribosome'
-
-    :return: dictionary, keys=pbid, value='all'
-    """
-    q1 = Attr('rcsb_entry_info.polymer_entity_count_RNA') >= 1
-    q2 = TextQuery("ribosome")
-
-    query = q1 & q2
-
-    results = set(query())
-
-    # print("textquery len: ", len(set(q2())))
-    # print("RNA query len: ", len(set(q1())))
-    # print("intersection len: ", len(results))
-    return set(query())
-
-
-def get_NonRibochains():
-    """
-    Get a list of all PDB structures containing RNA
-    and do not have the text 'ribosome'
-
-    :return: dictionary, keys=pbid, value='all'
-    """
-    q1 = Attr('rcsb_entry_info.polymer_entity_count_RNA') >= 1
-    q2 = TextQuery("ribosome")
-
-    return set(q1()).difference(set(q2()))
-
-
-def get_Custom(text):
-    """
-    Get a list of all PDB structures containing RNA
-    and do not have the text 'ribosome'
-
-    :return: dictionary, keys=pbid, value='all'
-    """
-    q1 = Attr('rcsb_entry_info.polymer_entity_count_RNA') >= 1
-    q2 = TextQuery(text)
-
-    query = q1 & q2
-
-    return set(query())
 
 
 # fltrs = ['NR', 'Ribo', 'NonRibo'],

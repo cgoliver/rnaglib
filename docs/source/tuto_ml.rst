@@ -3,7 +3,7 @@ Machine Learning Tutorial
 
 
 RNAGlib data structures
-------
+--------------------------
 
 We have introduced the 2.5D graph format in another tutorial.
 RNAGlib provides access to collections of RNAs for machine learning with PyTorch.
@@ -16,7 +16,7 @@ It revolves around the usual Dataset and Dataloader objects, along with a Repres
 
 
 Datasets
-~~~~~~~~
+~~~~~~~~~~
 
 The `rnaglib.data_loading.RNADataset` object builds and provides access to collections of RNAs.
 When using the Dataset class, our standard data distribution should be downloaded automatically.
@@ -52,7 +52,7 @@ The returned object is a dictionnary with three entries :
 * path : the path to the pdb files
 
 Representations
-~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~
 
 The next important object for RNAGlib is the `representation`. Previously, our return only included the raw data.
 One can add a `Representation` object with arguments to post-process this raw data into a more usable data format.
@@ -114,7 +114,7 @@ While dataset[0]['point_cloud'] is a dictionnary that contains one list and thre
 * ``point_cloud_nodes ['1a9n.Q.0', '1a9n.Q.1',... '1a9n.Q.9']``
 
 Dataloader
-~~~~~~~~~~
+~~~~~~~~~~~~
 
 The missing piece is utilities to efficiently load our dataset for machine learning. The first task is to split our data
 in a principled way.
@@ -140,10 +140,10 @@ will yield a dictionnary with the same keys and structure as above, for batches 
 
 
 More advanced functionalities
------------------------------
+-------------------------------
 
 Additional inputs and outputs
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Adding more input features to the graphs is straightforward, as you simply have to specify more items in the features list.
 A full description of the input features that can be used is available in :doc:`rnaglib.data`.
@@ -160,6 +160,7 @@ An example of a variation is provided below, the rest of the code is unaffected.
 
 Unsupervised pre-training
 --------------------------------
+
 Due to a relatively scarse data, we have found useful to pretrain our networks.
 The semi-supervised setting was found to work well, where node embeddings are asked to approximate a similarity function over subgraphs.
 More precisely, given two subgraphs g1 and g2, a similarity function K, and a neural embedding function f, we want to approximate K(sg1,sg2) ~ <f(sg1), f(sg2)> .
