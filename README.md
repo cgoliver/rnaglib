@@ -1,7 +1,7 @@
 # RNAGlib
 
 <p align="center">
-<img src="/images/rgl.png#gh-light-mode-only" width="60%">
+<img src="/images/rgl.png#gh-light-mode-only" width="40%">
 </p>
 
 [![Documentation Status](https://readthedocs.org/projects/rnaglib/badge/?version=latest)](https://rnaglib.readthedocs.io/en/latest/?badge=latest)
