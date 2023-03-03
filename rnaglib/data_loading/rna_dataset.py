@@ -11,6 +11,13 @@ from rnaglib.utils import load_graph
 
 
 class RNADataset:
+    """ 
+        This class is the main object to hold the core RNA data annotations.
+        The ``RNAglibDataset.all_rnas`` object is a generator networkx objects that hold all the annotations for each RNA in the dataset.
+        You can also access individual RNAs on-disk with ``RNAGlibDataset()[idx]`` or ``RNAGlibDataset().get_pdbid('1b23')``
+
+    """
+
     def __init__(self,
                  data_path=None,
                  version='0.0.0',
@@ -27,16 +34,14 @@ class RNADataset:
                  annotated=False,
                  verbose=False):
         """
-        This class is the main object to hold the core RNA data annotations.
-        The `RNAglibDataset.all_rnas` object is a generator networkx objects that hold all the annotations for each RNA in the dataset.
-        You can also access individual RNAs on-disk with `RNAGlibDataset()[idx]` or `RNAGlibDataset().get_pdbid('1b23')`
+
 
         :param representations: List of `rnaglib.Representation` objects to apply to each item.
         :param data_path: The path to the folder containing the graphs. If node_sim is not None, this data should be annotated
         :param version: Version of the dataset to use (default='0.0.0')
         :param redundancy: To use all graphs or just the non redundant set.
         :param all_graphs: In the given directory, one can choose to provide a list of graphs to use
-        :return:
+
         """
 
         # If we don't input a data path, the right one according to redundancy, chop and annotated is fetched
@@ -126,6 +131,7 @@ class RNADataset:
         :param g: a nx graph
         :param encode_feature: A boolean as to whether this should encode the features or targets
         :return: A dict that maps nodes to encodings
+        
         """
         node_encodings = {}
         node_parser = self.node_features_parser if encode_feature else self.node_target_parser
@@ -150,6 +156,7 @@ class RNADataset:
         Based on the encoding scheme, we can compute the shapes of the in and out tensors
 
         :return:
+
         """
         if len(node_parser) == 0:
             return 0
@@ -163,7 +170,9 @@ class RNADataset:
     def compute_features(self, rna_dict):
         """ Add 3 dictionaries to the `rna_dict` wich maps nts, edges, and the whole graph
         to a feature vector each. The final converter uses these to include the data in the
-        framework-specific object."""
+        framework-specific object.
+
+        """
 
         graph = rna_dict['rna']
         features_dict = {}
