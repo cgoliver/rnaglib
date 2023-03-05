@@ -23,12 +23,12 @@ such as graph neural networks and graph kernels.
 The graphs are annotated with graph, node, and edge-level attributes.
 These include, but are not limited to:
 
--  Secondary structure (graph-level)
--  Protein binding (node-level)
--  Small molecule binding (node-level)
--  Chemical modifications (node-level)
--  3-D coordinates(node-level)
--  Leontis-westhof base pair geometry classification (edge-level)
+-  Secondary structure 
+-  Protein binding 
+-  Small molecule binding 
+-  Chemical modifications 
+-  3-D coordinates
+-  Leontis-westhof base pair geometry classification 
 
 We provide a visualization of what the graphs in this database contain.
 A more detailed description of the data is presented in :doc:`rnaglib.data`.

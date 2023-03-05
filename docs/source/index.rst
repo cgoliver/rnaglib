@@ -81,7 +81,6 @@ Get started with RNAGlib
 Tutorials
 -----------
 
-* :doc:`Using 2.5D Graphs<tuto_2.5d>`
 * :doc:`Working with 2.5D graphs datasets <tuto_2.5d>`
 * :doc:`Training machine learning models <tuto_ml>`
 
