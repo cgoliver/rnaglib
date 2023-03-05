@@ -42,7 +42,6 @@ extensions = [
     'myst_parser'
 ]
 
-
 myst_enable_extensions = [
              "substitution",
              ]
@@ -64,7 +63,7 @@ autodoc_member_order = 'bysource'
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-html_theme = 'pyg_sphinx_theme'
+html_theme = 'sphinx_rtd_theme'
 html_logo = 'https://jwgitlab.cs.mcgill.ca/cgoliver/rnaglib/-/raw/zenodo/images/rgl.png'
 html_sidebars = { '**': ['globaltoc.html', 'relations.html', 'sourcelink.html', 'searchbox.html'] }
 
@@ -78,6 +77,3 @@ html_sidebars = { '**': ['globaltoc.html', 'relations.html', 'sourcelink.html', 
 source_suffix = {   '.rst': 'restructuredtext',
                     '.txt': 'markdown',
                     '.md': 'markdown'}
-
-
-

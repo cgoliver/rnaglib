@@ -60,8 +60,10 @@ def get_undirected_iso(bpa, bpb):
     :type bpa: str
     :param bpb: LW edge code
     :type bpb: str 
+
     :return: isostericty value
     :rtype float
+
     """
     bpa = bpa.upper()
     bpb = bpb.upper()
@@ -80,6 +82,7 @@ def build_iso():
     - Different edges types are computed to have the associated undirected isostericity value
 
     :return: A np matrix that yields the isostericity values, ordered as EDGE_MAP
+
     """
     iso_mat = np.zeros(shape=(len(EDGE_MAP_RGLIB), len(EDGE_MAP_RGLIB)), dtype=np.float32)
     for i, bpa in enumerate(EDGE_MAP_RGLIB.keys()):

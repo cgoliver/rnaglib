@@ -10,6 +10,7 @@
 
    Homepage <self>
    Installation <install>
+   Quickstart <quickstart>
    What is an RNA 2.5D graph? <what_is>
    How is the data built? <tuto_build>
 
@@ -40,14 +41,15 @@
    :caption: Package Reference
    :hidden:
 
+   Build Data <rnaglib.prepare_data>
+   Data Loading <rnaglib.data_loading>
+   Data Representations <rnaglib.representations>
    Benchmark <rnaglib.benchmark>
    Config <rnaglib.config>
-   Data Loading <rnaglib.data_loading>
    Drawing <rnaglib.drawing>
    Ged <rnaglib.ged>
    Kernels <rnaglib.kernels>
    Learning <rnaglib.learning>
-   Prepare Data <rnaglib.prepare_data>
    Utils <rnaglib.utils>
 
 Welcome to RNAGlib!
@@ -58,10 +60,6 @@ Welcome to RNAGlib!
 
 
 ``RNAGlib`` (RNA Geometric Library) is a Python package for studying models of RNA 3D structures.
-Through this package you can access a rich set of up-to-date annotations for all available RNA structures in the PDB Databank.
-Functionality includes automated data loading, analysis, visualization, machine learning model building
-and benchmarking.
-We support point cloud and voxel representations for RNA structures, but mostly offer functionality for 2.5D graphs.
 
 Core Features
 -----------------
@@ -76,6 +74,7 @@ Get started with RNAGlib
 ---------------------------
 
 * :doc:`Install<install>`
+* :doc:`Quickstart<quickstart>`
 * :doc:`Learn about RNA 2.5D Graphs<what_is>`
 * :doc:`Annotation reference <rna_ref>`
 
@@ -92,16 +91,23 @@ Package Structure
 
 -  :doc:`rnaglib.prepare_data`: processes raw PDB structures and
    builds a database of 2.5D graphs with full structural annotation
--  :doc:`rnaglib.data_loading`: custom PyTorch dataloader implementations
+-  :doc:`rnaglib.data_loading`: custom PyTorch dataloader and dataset implementations
+-  :doc:`rnaglib.representations`: graph, voxel, point cloud representations
 -  :doc:`rnaglib.learning`: learning routines and pre-built GCN models for the easiest use of the
    package.
 -  :doc:`rnaglib.drawing`: utilities for visualizing 2.5D graphs
 -  :doc:`rnaglib.ged`: custom graph similarity functions
 -  :doc:`rnaglib.kernels`: custom local neighbourhood similarity functions
 
-Source Code and Associated Repositories
+Source Code and Contact
+--------------------------
+
+* `RNAglib homepage <https://rnaglib.cs.mcgill.ca>`_.
+* `Source Code <https://github.com/cgoliver/rnaglib>`_.
+* Contact rnaglib@cs.mcgill.ca 
+
+ Associated Repositories
 -----------------------------------------------
-`RNAglib <https://jwgitlab.cs.mcgill.ca/cgoliver/rnaglib>`_ homepage.
 
 `RNAmigos <https://github.com/cgoliver/RNAmigos>`_ : a research paper published in Nucleic Acid Research that
 demonstrates the usefulness of 2.5D graphs for machine learning tasks, exemplified onto the drug discovery application.

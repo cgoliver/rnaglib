@@ -12,152 +12,20 @@ from joblib import Parallel, delayed
 import json
 import requests
 
-from Bio.PDB.PDBList import PDBList
 from collections import defaultdict
 
-from Bio.PDB.PDBList import PDBList
 from tqdm import tqdm
 
 from rnaglib.utils import reorder_nodes
 from rnaglib.utils import dump_json
+from rnaglib.utils import get_rna_list
+from rnaglib.utils import update_RNApdb
 
-from rnaglib.prepare_data import get_NRchains
-from rnaglib.prepare_data.dssr_2_graphs import build_one
-from rnaglib.prepare_data.annotations import add_graph_annotations
-from rnaglib.prepare_data.filters import filter_dot_edges, filter_all
-from rnaglib.prepare_data.chopper import chop_all
-from rnaglib.prepare_data.khop_annotate import annotate_all
-
-
-def get_rna_list(nr_only=False):
-    """
-    Fetch a list of PDBs containing RNA from RCSB API.
-
-    """
-    payload = {
-        "query": {
-            "type": "terminal",
-            "service": "text",
-            "parameters": {"attribute": "rcsb_entry_info.polymer_entity_count_RNA", "operator": "greater", "value": 0}
-        },
-        "request_options": {
-            "results_verbosity": "compact",
-            "return_all_hits": True
-        },
-        "return_type": "entry"
-    }
-
-    r = requests.get(f'https://search.rcsb.org/rcsbsearch/v2/query?json={json.dumps(payload)}')
-    try:
-        response_dict = json.loads(r.text)
-        ids = [p.lower() for p in response_dict['result_set']]
-        if nr_only:
-            nr_chains = [c.lower() for c in get_NRchains("4.0A")]
-            ids = [pdbid.lower() for pdbid in ids if pdbid in nr_chains]
-    except Exception as e:
-        print('An error occured when querying RCSB.')
-        print(r.text)
-        print(e)
-        exit()
-    return ids
-
-
-def update_RNApdb(pdir, nr_only=True):
-    """
-    Download a list of RNA containing structures from the PDB
-    overwrite exising files
-
-    :param pdbdir: path containing downloaded PDBs
-
-    :returns rna: list of PDBIDs that were fetched.
-    """
-    print(f'Updating PDB mirror in {pdir}')
-    # Get a list of PDBs containing RNA
-    rna = set(get_rna_list(nr_only=nr_only))
-
-    pl = PDBList()
-
-    # If not fully downloaded before, download all structures
-    if len(os.listdir(pdir)) < 2000:
-        pl.download_pdb_files(rna, pdir=pdir, overwrite=True)
-    else:
-        added, mod, obsolete = pl.get_recent_changes()
-        # Download new and modded entries
-        new_rna = rna.intersection(set(added).union(set(mod)))
-        pl.download_pdb_files(new_rna, pdir=pdir, overwrite=True)
-
-        # Remove Obsolete entries
-        obsolete_dir = os.path.join(pdir, 'obsolete')
-        if not os.path.exists(obsolete_dir):
-            os.mkdir(obsolete_dir)
-        for cif in os.listdir(pdir):
-            if cif[-8:-4].upper() in set(obsolete):
-                os.rename(os.path.join(pdir, cif), os.path.join(obsolete_dir, cif))
-
-    return rna
-
-
-def cif_to_graph(cif, output_dir=None, min_nodes=20, return_graph=False):
-    """
-    Build DDSR graphs for one mmCIF. Requires x3dna-dssr to be in PATH.
-
-    :param cif: path to CIF
-    :param output_dir: where to dump
-    :param min_nodes: smallest RNA (number of residue nodes)
-    :param return_graph: Boolean to include the graph in the output
-    :return: networkx graph of structure.
-    """
-
-    if '.cif' not in cif:
-        # print("Incorrect format")
-        return os.path.basename(cif), 'format'
-    pdbid = cif[-8:-4]
-    # print('Computing Graph for ', pdbid)
-
-    # Build graph with DSSR
-    error_type = 'OK'
-    try:
-        dssr_failed = False
-        g = build_one(cif)
-        dssr_failed = g is None
-        filter_dot_edges(g)
-    except Exception as e:
-        # print("ERROR: Could not construct DSSR graph for ", cif)
-        if dssr_failed:
-            # print("Annotation using x3dna-dssr failed, please ensure you have the executable in your PATH")
-            # print("This requires a license.")
-            error_type = 'DSSR_error'
-        else:
-            # print(traceback.print_exc())
-            error_type = 'Filtering error after DSSR building'
-        return pdbid, error_type
-
-    if len(g.nodes()) < min_nodes:
-        # print(f'Excluding {pdbid} from output, less than 20 nodes')
-        error_type = 'tooSmall'
-        return pdbid, error_type
-    if len(g.edges()) < len(g.nodes()) - 3:
-        # print(f'Excluding {pdbid} from output, edges < nodes -3')
-        error_type = 'edges<nodes-3'
-        return pdbid, error_type
-
-    # Find ligand and ion annotations from the PDB cif
-    try:
-        add_graph_annotations(g=g, cif=cif)
-    except Exception as e:
-        # print('ERROR: Could not compute interfaces for ', cif)
-        # print(e)
-        # print(traceback.print_exc())
-        error_type = 'interfaces_error'
-    # Order the nodes
-    g = reorder_nodes(g)
-
-    # Write graph to outputdir in JSON format
-    if output_dir is not None:
-        dump_json(os.path.join(output_dir, 'graphs', pdbid + '.json'), g)
-    if return_graph:
-        return pdbid, error_type, g
-    return pdbid, error_type
+from rnaglib.prepare_data import cif_to_graph
+from rnaglib.prepare_data import add_graph_annotations
+from rnaglib.prepare_data import filter_dot_edges, filter_all
+from rnaglib.prepare_data import chop_all
+from rnaglib.prepare_data import annotate_all
 
 
 def dir_setup(args):
@@ -282,7 +150,6 @@ def prepare_data_main():
         chop_all(graphs_dir, chop_dir, n_jobs=args.num_workers)
     else:
         pass
-
 
 if __name__ == '__main__':
     prepare_data_main()
