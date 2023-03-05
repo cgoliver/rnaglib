@@ -31,7 +31,7 @@ The graphs are annotated with graph, node, and edge-level attributes. These incl
 We provide a visualization of what the graphs in this database contain.
 A more detailed description of the data is presented in `/RNAGlib/prepare_data/README`.
 
-![Example graph](https://jwgitlab.cs.mcgill.ca/cgoliver/rnaglib/-/raw/main/images/Fig1.png)
+![Example graph](https://raw.githubusercontent.com/cgoliver/rnaglib/master/images/rgl_fig.png)
 
 ## Data stats
 
