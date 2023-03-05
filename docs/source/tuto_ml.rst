@@ -3,7 +3,7 @@ Machine Learning Tutorial
 
 
 RNAGlib data structures
-------
+--------------------------
 
 We have introduced the 2.5D graph format in another tutorial.
 RNAGlib provides access to collections of RNAs for machine learning with PyTorch.
@@ -16,7 +16,7 @@ It revolves around the usual Dataset and Dataloader objects, along with a Repres
 
 
 Datasets
-~~~~~~~~
+~~~~~~~~~~
 
 The `rnaglib.data_loading.RNADataset` object builds and provides access to collections of RNAs.
 When using the Dataset class, our standard data distribution should be downloaded automatically.
@@ -52,7 +52,7 @@ The returned object is a dictionnary with three entries :
 * path : the path to the pdb files
 
 Representations
-~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~
 
 The next important object for RNAGlib is the `representation`. Previously, our return only included the raw data.
 One can add a `Representation` object with arguments to post-process this raw data into a more usable data format.
@@ -103,18 +103,18 @@ or point clouds.
 In our case, the RNA has 24 nucleotides and is approximately 12 Angrstroms wide.
 Hence, dataset[0]['point_cloud'] is a dictionnary that contains two grids in the PyTorch order :
 
-* voxel_feats : torch.Size([4, 6, 5, 6])
-* voxel_target : torch.Size([1, 6, 5, 6])
+* ``voxel_feats : torch.Size([4, 6, 5, 6])``
+* ``voxel_target : torch.Size([1, 6, 5, 6])``
 
 While dataset[0]['point_cloud'] is a dictionnary that contains one list and three tensors :
 
-* point_cloud_coords torch.Size([24, 3])
-* point_cloud_feats torch.Size([24, 4])
-* point_cloud_targets torch.Size([24, 1])
-* point_cloud_nodes ['1a9n.Q.0', '1a9n.Q.1',... '1a9n.Q.9']
+* ``point_cloud_coords torch.Size([24, 3])``
+* ``point_cloud_feats torch.Size([24, 4])``
+* ``point_cloud_targets torch.Size([24, 1])``
+* ``point_cloud_nodes ['1a9n.Q.0', '1a9n.Q.1',... '1a9n.Q.9']``
 
 Dataloader
-~~~~~~~~~~
+~~~~~~~~~~~~
 
 The missing piece is utilities to efficiently load our dataset for machine learning. The first task is to split our data
 in a principled way.
@@ -125,6 +125,7 @@ The other problematic step is to batch our data automatically, as the batching p
 that are used. These two functionalities are implemented in a straightforward manner :
 
 .. code-block:: python
+
     from torch.utils.data import DataLoader
     from rnaglib.data_loading import split_dataset, Collater
 
@@ -139,10 +140,10 @@ will yield a dictionnary with the same keys and structure as above, for batches 
 
 
 More advanced functionalities
------------------------------
+-------------------------------
 
 Additional inputs and outputs
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Adding more input features to the graphs is straightforward, as you simply have to specify more items in the features list.
 A full description of the input features that can be used is available in :doc:`rnaglib.data`.
@@ -152,12 +153,14 @@ The tasks currently implemented are in the set : {'node_binding_small-molecule',
 An example of a variation is provided below, the rest of the code is unaffected.
 
 .. code-block:: python
+
     nt_features = ['nt_code', "alpha", "C5prime_xyz", "is_modified"]
     nt_target = ['binding_ion', 'binding_protein']
 
 
 Unsupervised pre-training
 --------------------------------
+
 Due to a relatively scarse data, we have found useful to pretrain our networks.
 The semi-supervised setting was found to work well, where node embeddings are asked to approximate a similarity function over subgraphs.
 More precisely, given two subgraphs g1 and g2, a similarity function K, and a neural embedding function f, we want to approximate K(sg1,sg2) ~ <f(sg1), f(sg2)> .
@@ -169,6 +172,7 @@ To use this functionality, we packaged into an additional Representation.
 The loader will then return an additional field in the batch, with a 'ring' key that represents the values of the similarity function over subgraphs.
 
 .. code-block:: python
+   
     from rnaglib.kernels import node_sim
     from rnaglib.representations import RingRepresentation
 

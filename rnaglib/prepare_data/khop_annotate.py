@@ -12,14 +12,10 @@ import multiprocessing as mlt
 import networkx as nx
 from tqdm import tqdm
 
-script_dir = os.path.dirname(os.path.realpath(__file__))
-if __name__ == "__main__":
-    sys.path.append(os.path.join(script_dir, '..', '..'))
-
-from rnaglib.utils.graphlet_hash import build_hash_table, Hasher
-from rnaglib.utils.graph_utils import extract_graphlet
-from rnaglib.utils.graph_io import load_json
-from rnaglib.config.graph_keys import GRAPH_KEYS, TOOL
+from rnaglib.utils import build_hash_table, Hasher
+from rnaglib.utils import extract_graphlet
+from rnaglib.utils import load_json
+from rnaglib.config import GRAPH_KEYS, TOOL
 
 
 def node_2_unordered_rings(G, node, depth=5, hasher=None, hash_table=None):

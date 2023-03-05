@@ -1,29 +1,13 @@
-rnaglib.data\_loading
-=============================
+Data Loading
+=======================
 
-Feature Maps
-------------------------------------------
 
-.. automodule:: rnaglib.data_loading.feature_maps
-   :members:
-   :undoc-members:
-   :show-inheritance:
+.. currentmodule:: rnaglib.data_loading
 
-Get Labels
----------------------------------------------
 
-.. automodule:: rnaglib.data_loading.get_all_labels
-   :members:
-   :undoc-members:
-   :show-inheritance:
+.. automodule:: rnaglib.data_loading
+    :members:
 
-.. _data-loader-label:
 
-GraphLoader
------------------------------------
 
-.. automodule:: rnaglib.data_loading.graphloader
-   :members:
-   :undoc-members:
-   :show-inheritance:
 

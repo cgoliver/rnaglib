@@ -263,9 +263,9 @@ def dssr_dict_2_graph(dssr_dict, rbp_dict, pdbid):
     return G
 
 
-def build_one(cif):
+def one_rna_from_cif(cif):
     """
-    Buid 2.5d graph for one cif using dssr
+    Build 2.5d graph for one cif using dssr
 
     :param cif: path to mmCIF
 
@@ -283,9 +283,69 @@ def build_one(cif):
     G = dssr_dict_2_graph(dssr_dict, rbp_dict, pdbid)
     return G
 
+def cif_to_graph(cif, output_dir=None, min_nodes=20, return_graph=False):
+    """
+    Build DDSR graphs for one mmCIF. Requires x3dna-dssr to be in PATH.
 
-def build_all():
-    pass
+    :param cif: path to CIF
+    :param output_dir: where to dump
+    :param min_nodes: smallest RNA (number of residue nodes)
+    :param return_graph: Boolean to include the graph in the output
+
+    :return: networkx graph of structure.
+    """
+
+    if '.cif' not in cif:
+        # print("Incorrect format")
+        return os.path.basename(cif), 'format'
+    pdbid = cif[-8:-4]
+    # print('Computing Graph for ', pdbid)
+
+    # Build graph with DSSR
+    error_type = 'OK'
+    try:
+        dssr_failed = False
+        g = one_rna_from_cif(cif)
+        dssr_failed = g is None
+        filter_dot_edges(g)
+    except Exception as e:
+        # print("ERROR: Could not construct DSSR graph for ", cif)
+        if dssr_failed:
+            # print("Annotation using x3dna-dssr failed, please ensure you have the executable in your PATH")
+            # print("This requires a license.")
+            error_type = 'DSSR_error'
+        else:
+            # print(traceback.print_exc())
+            error_type = 'Filtering error after DSSR building'
+        return pdbid, error_type
+
+    if len(g.nodes()) < min_nodes:
+        # print(f'Excluding {pdbid} from output, less than 20 nodes')
+        error_type = 'tooSmall'
+        return pdbid, error_type
+    if len(g.edges()) < len(g.nodes()) - 3:
+        # print(f'Excluding {pdbid} from output, edges < nodes -3')
+        error_type = 'edges<nodes-3'
+        return pdbid, error_type
+
+    # Find ligand and ion annotations from the PDB cif
+    try:
+        add_graph_annotations(g=g, cif=cif)
+    except Exception as e:
+        # print('ERROR: Could not compute interfaces for ', cif)
+        # print(e)
+        # print(traceback.print_exc())
+        error_type = 'interfaces_error'
+    # Order the nodes
+    g = reorder_nodes(g)
+
+    # Write graph to outputdir in JSON format
+    if output_dir is not None:
+        dump_json(os.path.join(output_dir, 'graphs', pdbid + '.json'), g)
+    if return_graph:
+        return pdbid, error_type, g
+    return pdbid, error_type
+
 
 
 if __name__ == "__main__":

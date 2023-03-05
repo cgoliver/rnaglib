@@ -7,8 +7,6 @@ from tqdm import tqdm
 import networkx as nx
 import numpy as np
 
-import dgl
-
 from rnaglib.config.graph_keys import GRAPH_KEYS, TOOL
 
 CANONICALS = GRAPH_KEYS['canonical'][TOOL]
@@ -136,6 +134,7 @@ def nx_to_dgl(graph, edge_map, label='label'):
     """
         Networkx graph to DGL.
     """
+    import dgl
 
     graph, _, ring = pickle.load(open(graph, 'rb'))
     edge_type = {edge: edge_map[lab] for edge, lab in (nx.get_edge_attributes(graph, label)).items()}
