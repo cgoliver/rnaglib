@@ -13,6 +13,8 @@ import networkx as nx
 import subprocess
 from subprocess import check_output
 
+from rnaglib.prepare_data import add_graph_annotations
+
 
 def dssr_exec(cif):
     """Execute DSSR on an mmCIF. Requires `x3dna-dssr` binary to be in `PATH`
