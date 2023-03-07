@@ -24,8 +24,8 @@ setuptools.setup(
         "Operating System :: OS Independent",
     ],
     # python_requires='>=3.5',
-    scripts=['rnaglib/bin/rnaglib_first',
-             'rnaglib/bin/rnaglib_second',
+    scripts=['rnaglib/examples/rnaglib_first',
+             'rnaglib/examples/rnaglib_second',
              'rnaglib/bin/rnaglib_prepare_data',
              'rnaglib/bin/rnaglib_tokenize',
              'rnaglib/bin/rnaglib_download']

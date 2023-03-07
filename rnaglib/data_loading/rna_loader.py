@@ -1,18 +1,8 @@
-import os
-import sys
-
-from collections import defaultdict
-import random
-
-import numpy as np
 import torch
-from torch.utils.data import DataLoader, Subset
+from torch.utils.data import DataLoader
 
 from rnaglib.data_loading import split_dataset
-from rnaglib.kernels.node_sim import k_block_list
 from rnaglib.config.graph_keys import EDGE_MAP_RGLIB_REVERSE
-from rnaglib.data_loading import DEFAULT_INDEX
-from rnaglib.representations import RingRepresentation
 
 
 class Collater:
@@ -89,12 +79,25 @@ def get_loader(dataset,
 
         if verbose:
             print(f"training items: ", len(train_set))
-        train_loader = DataLoader(dataset=train_set, shuffle=True, batch_size=batch_size,
-                                  num_workers=num_workers, collate_fn=collater.collate)
-        valid_loader = DataLoader(dataset=valid_set, shuffle=True, batch_size=batch_size,
-                                  num_workers=num_workers, collate_fn=collater.collate)
-        test_loader = DataLoader(dataset=test_set, shuffle=True, batch_size=batch_size,
-                                 num_workers=num_workers, collate_fn=collater.collate)
+
+        def safe_loader_creation(**kwargs):
+            """
+            Just a small util wrapper to avoid raising errors on empty sets that can arise by splitting
+            :param kwargs:
+            :return:
+            """
+            num_items = len(kwargs['dataset'])
+            if num_items > 0:
+                return DataLoader(**kwargs)
+            else:
+                return None
+
+        train_loader = safe_loader_creation(dataset=train_set, shuffle=True, batch_size=batch_size,
+                                            num_workers=num_workers, collate_fn=collater.collate)
+        valid_loader = safe_loader_creation(dataset=valid_set, shuffle=True, batch_size=batch_size,
+                                            num_workers=num_workers, collate_fn=collater.collate)
+        test_loader = safe_loader_creation(dataset=test_set, shuffle=True, batch_size=batch_size,
+                                           num_workers=num_workers, collate_fn=collater.collate)
         return train_loader, valid_loader, test_loader
 
 
@@ -236,7 +239,7 @@ class DefaultBasePairLoader:
         self.neg_samples = neg_samples
         self.sampler_layers = sampler_layers
         self.framework = framework
-            
+
     def get_data(self):
         if self.framework == 'dgl':
             import dgl
@@ -246,7 +249,6 @@ class DefaultBasePairLoader:
                 from dgl.dataloading.pytorch import EdgeDataLoader
             else:
                 from dgl.dataloading import DataLoader as DGLDataLoader
-
 
             train_loader = EdgeLoaderGenerator(graph_loader=self.g_train, inner_batch_size=self.inner_batch_size,
                                                sampler_layers=self.sampler_layers,

@@ -1,11 +1,6 @@
 #!/usr/bin/env python3
 
-import os
-import sys
 import torch
-
-script_dir = os.path.dirname(os.path.realpath(__file__))
-sys.path.append(os.path.join(script_dir, '..', '..'))
 
 from rnaglib.learning import models, learn
 from rnaglib.data_loading import rna_dataset, rna_loader

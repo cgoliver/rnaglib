@@ -338,15 +338,15 @@ def evaluate_model_unsupervised(model, validation_loader,
     return recons_loss_tot / test_size
 
 
-def evaluate_model_supervised(model, validation_loader, evaluation_function=roc_auc_score):
+def evaluate_model_supervised(model, loader, evaluation_function=roc_auc_score):
     """
     Make the inference and apply an evaluation function on it
 
     :param model: The model to use
-    :param validation_loader: A graph loader
+    :param loader: A graph loader
     :param evaluation_function: A function that takes two np arrays and returns a score
     :return: The validation score for this evaluation function
     """
-    true, predicted = compute_outputs(model, validation_loader)
+    true, predicted = compute_outputs(model, loader)
     score = evaluation_function(true, predicted)
     return score

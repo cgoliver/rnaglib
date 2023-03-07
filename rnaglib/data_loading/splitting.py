@@ -1,6 +1,8 @@
 from collections import defaultdict
+import random
 
 from rnaglib.data_loading import DEFAULT_INDEX
+
 
 def get_multitask_split(node_targets, graph_index=DEFAULT_INDEX, fractions=(0.15, 0.15)):
     """
@@ -97,6 +99,7 @@ def split_dataset(dataset, split_train=0.7, split_valid=0.85):
     validation_set = dataset.subset(validation_split)
     test_set = dataset.subset(test_split)
     return train_set, validation_set, test_set
+
 
 def split_dataset_in_fractions(dataset, split_train=0.7, split_valid=0.85):
     """
