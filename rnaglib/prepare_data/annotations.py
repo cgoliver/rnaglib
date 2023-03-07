@@ -44,11 +44,12 @@ def hariboss_filter(lig, cif_dict, mass_lower_limit=160, mass_upper_limit=1000):
     """
     Sorts ligands into ion / ligand / None
      Returns ions for a specific list of ions, ligands if the hetatm has the right atoms and mass and None otherwise
+
     :param lig: A biopython ligand residue object
     :param cif_dict: The output of the biopython MMCIF2DICT object
     :param mass_lower_limit:
     :param mass_upper_limit:
-    :return:
+
     """
     lig_name = lig.id[0][2:]
     if lig_name == 'HOH':
