@@ -159,7 +159,7 @@ An example of a variation is provided below, the rest of the code is unaffected.
 
 
 Unsupervised pre-training
---------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Due to a relatively scarse data, we have found useful to pretrain our networks.
 The semi-supervised setting was found to work well, where node embeddings are asked to approximate a similarity function over subgraphs.
