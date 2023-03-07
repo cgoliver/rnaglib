@@ -1,4 +1,4 @@
-rnaglib.utils
+``rnaglib.utils``
 =====================
 
 .. currentmodule:: rnaglib.utils

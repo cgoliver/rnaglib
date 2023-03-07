@@ -1,5 +1,5 @@
-Data Representations
-=======================
+`rnaglib.representations`
+==========================
 
 
 .. currentmodule:: rnaglib.representations

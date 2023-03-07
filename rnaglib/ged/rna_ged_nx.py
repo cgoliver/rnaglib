@@ -3,10 +3,6 @@ import time
 import pickle
 import numpy as np
 
-script_dir = os.path.dirname(os.path.realpath(__file__))
-if __name__ == "__main__":
-    sys.path.append(os.path.join(script_dir, '..', '..'))
-
 from rnaglib.ged.ged_nx import graph_edit_distance, optimize_graph_edit_distance
 from rnaglib.config.build_iso_mat import iso_mat as iso_matrix
 from rnaglib.config.graph_keys import GRAPH_KEYS, TOOL
@@ -68,6 +64,7 @@ def ged(g1, g2, roots=None, upper_bound=None, timeout=None):
     :param upper_bound: Maximum edit distance to consider.
     :param timeout: Time after which we want to stop
     :return: The GED value
+
     """
     return graph_edit_distance(g1, g2,
                                edge_subst_cost=e_sub,

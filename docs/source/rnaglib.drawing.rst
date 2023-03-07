@@ -1,4 +1,4 @@
-rnaglib.drawing
+``rnaglib.drawing``
 =======================
 
 Draw RNA
