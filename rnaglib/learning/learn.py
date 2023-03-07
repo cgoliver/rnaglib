@@ -158,7 +158,6 @@ def train_supervised(model,
                 if learning_routine.writer is not None:
                     step = epoch * num_batches + batch_idx
                     learning_routine.writer.add_scalar("Training loss", loss, step)
-            break
 
         train_loss = running_loss / num_batches
         if learning_routine.writer is not None:
@@ -178,7 +177,6 @@ def train_supervised(model,
                                                                  model=model, optimizer=optimizer)
         if early_stop:
             break
-        break
     return learning_routine.best_loss
 
 
