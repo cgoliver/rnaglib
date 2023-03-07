@@ -1,6 +1,6 @@
 
 <p align="center">
-<img src="/images/rgl.png#gh-light-mode-only" width="40%">
+<img src="https://raw.githubusercontent.com/cgoliver/rnaglib/master/images/rgl.png#gh-light-mode-only" width="40%">
 </p>
 
 
