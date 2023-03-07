@@ -1,10 +1,10 @@
 
 <p align="center">
-<img src="/images/rgl.png#gh-light-mode-only" width="40%">
+<img src="https://raw.githubusercontent.com/cgoliver/rnaglib/master/images/rgl.png#gh-light-mode-only" width="40%">
 </p>
 
 
-# `rnaGlib`: RNA Geometric Library
+# RNA Geometric Library (`rnaglib`)
 [![Documentation Status](https://readthedocs.org/projects/rnaglib/badge/?version=latest)](https://rnaglib.readthedocs.io/en/latest/?badge=latest)
 
 `RNAglib` is a Python package for studying RNA 2.5D and 3D structures. Functionality includes automated data loading, analysis,
@@ -106,7 +106,7 @@ can use the ``prepare_data`` module. To do so, you need to have ``x3dna-dssr`` e
 requires a `license <http://x3dna.org>`_.
 
 ```
->>> from rnaglib.prepare_data.main import cif_to_graph
+>>> from rnaglib.prepare_data import cif_to_graph
 >>> pdb_path = '../data/1aju.cif'
 >>> graph_nx = cif_to_graph(pdb_path, return_graph=True)
 ```
@@ -150,14 +150,6 @@ If one has run the pip installation, just run :
 ```
     $ rnaglib_first
     $ rnaglib_second
-```
-
-Otherwise, after cloning the repository, run :
-
-```
-    $ cd examples
-    $ python first_example.py
-    $ python second_example.py
 ```
 
 You should see data getting downloaded and networks being trained. The first example is a basic supervised model

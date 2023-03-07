@@ -42,10 +42,6 @@ def pretrain_unsupervised(model,
     device = model.current_device
     learning_routine.device = device
 
-    misc.get_dataset(train_loader).update_node_sim(node_simfunc=node_sim)
-    if learning_routine.validation_loader is not None:
-        misc.get_dataset(learning_routine.validation_loader).update_node_sim(node_simfunc=node_sim)
-
     start_time = time.time()
     for epoch in range(learning_routine.num_epochs):
         # Training phase
@@ -139,7 +135,7 @@ def train_supervised(model,
 
             # Do the computations for the forward pass
             out = model(graph)
-            labels = graph.ndata['target']
+            labels = graph.ndata['nt_targets']
             loss = torch.nn.MSELoss()(out, labels)
 
             # Backward
@@ -174,7 +170,7 @@ def train_supervised(model,
                                                                  model=model, optimizer=optimizer)
         else:
             validation_loss = learning_utils.evaluate_model_supervised(model,
-                                                                       validation_loader=learning_routine.validation_loader)
+                                                                       loader=learning_routine.validation_loader)
             if learning_routine.writer is not None:
                 learning_routine.writer.add_scalar("Validation loss during training", validation_loss, epoch)
             early_stop = learning_routine.early_stopping_routine(validation_loss=validation_loss, epoch=epoch,

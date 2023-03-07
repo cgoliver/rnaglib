@@ -93,7 +93,7 @@ class Embedder(nn.Module):
 
     def forward(self, g):
         if self.use_node_features:
-            h = g.ndata['features']
+            h = g.ndata['nt_features']
         else:
             # h = g.in_degrees().view(-1, 1).float().to(self.current_device)
             h = torch.ones(len(g.nodes())).view(-1, 1).to(self.current_device)
