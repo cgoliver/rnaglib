@@ -42,15 +42,15 @@
    :caption: Package Reference
    :hidden:
 
-   Build Data <rnaglib.prepare_data>
+   Data Building <rnaglib.prepare_data>
    Data Loading <rnaglib.data_loading>
    Data Representations <rnaglib.representations>
-   Config <rnaglib.config>
-   Drawing <rnaglib.drawing>
-   Ged <rnaglib.ged>
-   Kernels <rnaglib.kernels>
-   Learning <rnaglib.learning>
+   Visualization <rnaglib.drawing>
+   RNA Graph Edit Distance <rnaglib.ged>
+   RNA Graph Kernels <rnaglib.kernels>
+   Model Training <rnaglib.learning>
    Utils <rnaglib.utils>
+   Configurations <rnaglib.config>
 
 RNAGlib Official Documentation
 ================================

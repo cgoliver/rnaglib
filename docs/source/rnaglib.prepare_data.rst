@@ -1,4 +1,4 @@
-rnaglib.prepare\_data
+``rnaglib.prepare_data``
 =============================
 
 Functions to build data releases from raw PDBs.

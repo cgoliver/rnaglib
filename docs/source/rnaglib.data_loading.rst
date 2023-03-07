@@ -1,5 +1,5 @@
-Data Loading
-=======================
+``rnaglib.data_loading``
+=========================
 
 
 .. currentmodule:: rnaglib.data_loading

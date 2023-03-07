@@ -1,4 +1,4 @@
-rnaglib.config
+``rnaglib.config``
 ======================
 
 Build Isostericity Matrix
