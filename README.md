@@ -4,7 +4,7 @@
 </p>
 
 
-# `rnaGlib`: RNA Geometric Library
+# RNA Geometric Library (`rnaglib`)
 [![Documentation Status](https://readthedocs.org/projects/rnaglib/badge/?version=latest)](https://rnaglib.readthedocs.io/en/latest/?badge=latest)
 
 `RNAglib` is a Python package for studying RNA 2.5D and 3D structures. Functionality includes automated data loading, analysis,
