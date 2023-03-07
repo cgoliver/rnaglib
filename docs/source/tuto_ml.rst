@@ -70,8 +70,8 @@ These two additions are exemplified below :
 
     graph_rep = GraphRepresentation(framework='dgl')
     nt_features = ['nt_code']
-    nt_target = ['binding_ion']
-    dataset = RNADataset(nt_features=nt_features, nt_targets=nt_target, representations=[graph_rep])
+    nt_targets = ['binding_ion']
+    dataset = RNADataset(nt_features=nt_features, nt_targets=nt_targets, representations=[graph_rep])
     print(dataset[0]['graph'])
 
     >>> {Graph(num_nodes=24, num_edges=58,
@@ -155,7 +155,7 @@ An example of a variation is provided below, the rest of the code is unaffected.
 .. code-block:: python
 
     nt_features = ['nt_code', "alpha", "C5prime_xyz", "is_modified"]
-    nt_target = ['binding_ion', 'binding_protein']
+    nt_targets = ['binding_ion', 'binding_protein']
 
 
 Unsupervised pre-training
