@@ -63,7 +63,7 @@ def process_graph_dict(dict_to_flatten, prepend=None, counter=False, possible_su
                     return_dict[inner_key].add(inner_value)
                 if type(inner_value) == dict:
                     # Just one does that : it is 'node frame'
-                    if inner_value is not 'node_frame':
+                    if inner_value != 'node_frame':
                         pass
                     for inner_key, inner_value in inner_value.items():
                         if type(inner_value) == list:

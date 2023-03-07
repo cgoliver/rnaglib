@@ -1,18 +1,10 @@
 #!/usr/bin/env python3
-
-import os
-import sys
-
 import torch
-
-script_dir = os.path.dirname(os.path.realpath(__file__))
-sys.path.append(os.path.join(script_dir, '..', '..'))
 
 from rnaglib.kernels import node_sim
 from rnaglib.data_loading import rna_dataset, rna_loader
 from rnaglib.representations import GraphRepresentation, RingRepresentation
 from rnaglib.learning import models, learning_utils, learn
-from rnaglib.benchmark import evaluate
 
 """
 This script shows a second more complicated example : learn binding protein preferences as well as
@@ -50,12 +42,12 @@ if __name__ == "__main__":
     ###### Now the supervised phase : ######
     print('We have finished pretraining the network, let us fine tune it')
     # GET THE DATA GOING, we want to use precise data splits to be able to use the benchmark.
-    train_split, test_split = evaluate.get_task_split(node_target=node_target)
     supervised_train_dataset = rna_dataset.RNADataset(nt_features=node_features,
                                                       nt_targets=node_target,
-                                                      representations=[graph_representation],
-                                                      all_graphs=train_split)
-    train_loader = rna_loader.get_loader(dataset=supervised_train_dataset, split=False)
+                                                      representations=[graph_representation])
+    train_loader, _, test_loader = rna_loader.get_loader(dataset=supervised_train_dataset,
+                                                         split_train=0.8, split_valid=0.8,
+                                                         num_workers=10)
 
     # Define a model and train it :
     # We first embed our data in 64 dimensions, using the pretrained embedder and then add one classification
@@ -67,12 +59,7 @@ if __name__ == "__main__":
                            train_loader=train_loader,
                            learning_routine=learning_utils.LearningRoutine(num_epochs=10))
 
-    # torch.save(classifier_model.state_dict(), 'final_model.pth')
-    # embedder_model = models.Embedder(infeatures_dim=4, dims=[64, 64])
-    # classifier_model = models.Classifier(embedder=embedder_model, classif_dims=[1])
-    # classifier_model.load_state_dict(torch.load('final_model.pth'))
-
     # Get a benchmark performance on the official uncontaminated test set :
-    metric = evaluate.get_performance(node_target=node_target, node_features=node_features, model=classifier_model)
+    metric = learning_utils.evaluate_model_supervised(model=classifier_model, loader=test_loader)
     print('We get a performance of :', metric)
     print()

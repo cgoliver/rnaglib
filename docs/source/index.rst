@@ -44,7 +44,6 @@
    Build Data <rnaglib.prepare_data>
    Data Loading <rnaglib.data_loading>
    Data Representations <rnaglib.representations>
-   Benchmark <rnaglib.benchmark>
    Config <rnaglib.config>
    Drawing <rnaglib.drawing>
    Ged <rnaglib.ged>
