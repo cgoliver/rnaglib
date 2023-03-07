@@ -71,7 +71,7 @@ These two additions are exemplified below :
     graph_rep = GraphRepresentation(framework='dgl')
     nt_features = ['nt_code']
     nt_target = ['binding_ion']
-    dataset = RNADataset(nt_features=nt_features, nt_target=nt_target, representations=[graph_rep])
+    dataset = RNADataset(nt_features=nt_features, nt_targets=nt_target, representations=[graph_rep])
     print(dataset[0]['graph'])
 
     >>> {Graph(num_nodes=24, num_edges=58,
