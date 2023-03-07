@@ -20,7 +20,7 @@ class RNADataset:
 
     def __init__(self,
                  data_path=None,
-                 version='0.0.0',
+                 version='1.0.0',
                  download_dir=None,
                  redundancy='nr',
                  all_graphs=None,
