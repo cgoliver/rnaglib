@@ -52,8 +52,8 @@
    Learning <rnaglib.learning>
    Utils <rnaglib.utils>
 
-Welcome to RNAGlib!
-=====================
+RNAGlib Official Documentation
+================================
 
 ..
  This is a comment : contents:: Table of Contents
