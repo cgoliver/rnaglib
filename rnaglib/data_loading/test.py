@@ -68,9 +68,7 @@ for key, value in da[0]['point_cloud'].items():
     except:
         print(key, value)
 
-for node in da[0]['graph'].nodes(data=True):
-    print(node)
-    break
+print('graph : ', da[0]['graph'])
 
 node_simfunc = node_sim.SimFunctionNode(method='R_1', depth=2)
 ring_rep = RingRepresentation(node_simfunc=node_simfunc, max_size_kernel=None)
