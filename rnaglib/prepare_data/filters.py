@@ -27,6 +27,7 @@ def filter_graph(g, fltr):
     :param fltr: Dictionary, keys=PDB IDs, values=(set) Chain IDs
 
     :return h: subgraph or None if does not exist
+
     """
     filter_dot_edges(g)
 
@@ -64,7 +65,7 @@ def has_no_dots(graph):
 
 def filter_dot_edges(graph):
     """ Remove edges with a '.' in the LW annotation.
-    This happens _in place_.
+    This happens in place.
 
     :param graph: networkx graph
     """
@@ -81,8 +82,8 @@ def filter_all(graph_dir, output_dir, filters=['NR'], min_nodes=20):
     :param graph_dir: where to read graphs from
     :param output_dir: where to dump the graphs
     :param filters: list of which filters to apply ('NR', 'Ribo', 'NonRibo')
-    :param min_nodes: skip graphs with fewer than `min_nodes` nodes
-    (default=20).
+    :param min_nodes: skip graphs with fewer than `min_nodes` nodes (default=20)
+
     """
 
     for fltr in filters:

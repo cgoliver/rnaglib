@@ -3,11 +3,12 @@
 from .filters import filter_dot_edges
 from .filters import filter_all
 
+from .annotations import add_graph_annotations
+from .annotations import hariboss_filter
+
 from .dssr_2_graphs import one_rna_from_cif
 from .dssr_2_graphs import cif_to_graph
 
-from .annotations import add_graph_annotations
-from .annotations import hariboss_filter
 
 from .chopper import chop_all
 
