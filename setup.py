@@ -7,13 +7,13 @@ requirements = open("requirements.txt", "r").readlines()
 
 setuptools.setup(
     name="rnaglib",
-    version="1.0.1",
+    version="2.0.0",
     author="Vincent Mallet, Carlos Oliver, Jonathan Broadbent, William L. Hamilton and Jérome Waldispuhl",
     author_email="vincent.mallet96@gmail.com",
     description="RNAglib: Tools for learning on the structure of RNA using 2.5D geometric representations",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://jwgitlab.cs.mcgill.ca/cgoliver/rnaglib",
+    url="https://rnaglib.readthedocs.io/en/latest/index.html",
     packages=setuptools.find_packages(),
     package_data={'rnaglib': ['data_loading/graph_index_NR.json']},
     # include_package_data=True,
@@ -23,9 +23,8 @@ setuptools.setup(
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
     ],
-    # python_requires='>=3.5',
-    scripts=['rnaglib/bin/rnaglib_first',
-             'rnaglib/bin/rnaglib_second',
+    scripts=['rnaglib/examples/rnaglib_first',
+             'rnaglib/examples/rnaglib_second',
              'rnaglib/bin/rnaglib_prepare_data',
              'rnaglib/bin/rnaglib_tokenize',
              'rnaglib/bin/rnaglib_download']
