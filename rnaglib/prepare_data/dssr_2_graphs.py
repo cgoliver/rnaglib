@@ -13,7 +13,10 @@ import networkx as nx
 import subprocess
 from subprocess import check_output
 
+from rnaglib.utils import dump_json
+from rnaglib.utils import reorder_nodes 
 from rnaglib.prepare_data import add_graph_annotations
+from rnaglib.prepare_data import filter_dot_edges
 
 
 def dssr_exec(cif):
@@ -311,7 +314,8 @@ def cif_to_graph(cif, output_dir=None, min_nodes=20, return_graph=False):
         dssr_failed = g is None
         filter_dot_edges(g)
     except Exception as e:
-        # print("ERROR: Could not construct DSSR graph for ", cif)
+        print("ERROR: Could not construct DSSR graph for ", cif)
+        print(e)
         if dssr_failed:
             # print("Annotation using x3dna-dssr failed, please ensure you have the executable in your PATH")
             # print("This requires a license.")
@@ -334,9 +338,9 @@ def cif_to_graph(cif, output_dir=None, min_nodes=20, return_graph=False):
     try:
         add_graph_annotations(g=g, cif=cif)
     except Exception as e:
-        # print('ERROR: Could not compute interfaces for ', cif)
-        # print(e)
-        # print(traceback.print_exc())
+        print('ERROR: Could not compute interfaces for ', cif)
+        print(e)
+        print(traceback.print_exc())
         error_type = 'interfaces_error'
     # Order the nodes
     g = reorder_nodes(g)

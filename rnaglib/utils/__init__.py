@@ -10,6 +10,7 @@ from .graph_io import update_RNApdb
 from .graph_utils import reorder_nodes
 from .graph_utils import fix_buggy_edges
 from .graph_utils import dangle_trim
+from .graph_utils import reorder_nodes 
 from .graph_utils import gap_fill
 from .graph_utils import extract_graphlet
 
@@ -29,6 +30,7 @@ __all__ = ['download_graphs',
            'load_graph',
            'dump_json',
            'load_json',
+           'reorder_nodes',
            'update_RNApdb',
            'reorder_nodes',
            'fix_buggy_edges',

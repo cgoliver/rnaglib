@@ -1,5 +1,5 @@
-`rnaglib.representations`
-==========================
+``rnaglib.representations``
+============================
 
 
 .. currentmodule:: rnaglib.representations
