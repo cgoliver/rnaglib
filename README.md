@@ -26,6 +26,9 @@ A more detailed description of the data is presented in `/RNAGlib/prepare_data/R
 
 ## Data stats
 
+Data can be downloaded directrly from [Zenodo](https://sandbox.zenodo.org/record/1168342) or through the provided command 
+line utility `$ rnaglib_download`.
+
 | Version | Date | Total RNAs | Total Non-Redundant | Non-redundant version | `rnaglib` commit  |
 ----------|------|------------|---------------------|-----------------------|-------------------|
 1.0.0    | 15-02-23 | 5759   | 1176                | 3.269                 |  5446ae2c         |
