@@ -56,6 +56,14 @@ Then one can start using the packages functionalities by importing them in one's
 
 [RNAMigos](https://github.com/cgoliver/RNAmigos)
 
+
+## Resources
+
+* [Documentation](https://rnaglib.readthedocs.io/en/latest/?badge=latest)
+* [Homepage](https://rnaglib.cs.mcgill.ca/)
+* [Twitter](https://twitter.com/rnaglib)
+* Contact: `rnaglib@cs.mcgill.ca`
+
 ## References
 
 1. Leontis, N. B., & Zirbel, C. L. (2012). Nonredundant 3D Structure Datasets for RNA Knowledge Extraction and
