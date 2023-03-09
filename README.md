@@ -19,12 +19,9 @@ We host RNAs annotated with molecule, base pair, and nucleotide level attributes
 * Chemical modifications 
 * Leontis-westhof base pair geometry classification
 
-We provide a visualization of what the graphs in this database contain.
-A more detailed description of the data is presented in `/RNAGlib/prepare_data/README`.
-
 ![Example graph](https://raw.githubusercontent.com/cgoliver/rnaglib/master/images/rgl_fig.png)
 
-## Data stats
+## Data
 
 Data can be downloaded directrly from [Zenodo](https://sandbox.zenodo.org/record/1168342) or through the provided command 
 line utility `$ rnaglib_download`.
