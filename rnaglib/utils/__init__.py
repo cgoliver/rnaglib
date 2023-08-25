@@ -7,6 +7,7 @@ from .graph_io import load_graph
 from .graph_io import dump_json
 from .graph_io import load_json
 from .graph_io import update_RNApdb
+from .graph_io import get_rna_list
 from .graph_utils import reorder_nodes
 from .graph_utils import fix_buggy_edges
 from .graph_utils import dangle_trim
@@ -26,6 +27,7 @@ from .graphlet_hash import Hasher
 
 __all__ = ['download_graphs',
            'available_pdbids',
+           'get_rna_list',
            'graph_from_pdbid',
            'load_graph',
            'dump_json',
