@@ -77,7 +77,7 @@ def get_nc_weight(graph, hops=2):
     nx_graph = graph.to_networkx(edge_attrs=['edge_type'])
     nx_graph = nx.to_undirected(nx_graph)
     ordered = sorted(nx_graph.nodes())
-    adj_matrix_full = nx.to_scipy_sparse_matrix(nx_graph, nodelist=ordered)
+    adj_matrix_full = nx.to_scipy_sparse_array(nx_graph, nodelist=ordered)
 
     edge_map = GRAPH_KEYS['edge_map'][TOOL]
     canonical = GRAPH_KEYS['canonical'][TOOL]
@@ -90,7 +90,7 @@ def get_nc_weight(graph, hops=2):
     extracted_graph.add_nodes_from(ordered)
     extracted_graph.add_edges_from(extracted_edges)
     extracted_graph = nx.to_undirected(extracted_graph)
-    adj_matrix_small = nx.to_scipy_sparse_matrix(extracted_graph, nodelist=ordered)
+    adj_matrix_small = nx.to_scipy_sparse_array(extracted_graph, nodelist=ordered)
 
     # This is a matrix with non zero entries for non canonical relationships
     # One must then expand it based on the number of hops
