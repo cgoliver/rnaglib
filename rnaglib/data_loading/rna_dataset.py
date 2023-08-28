@@ -62,7 +62,7 @@ class RNADataset:
         if all_graphs is not None:
             self.all_graphs = all_graphs
         else:
-            self.all_graphs = sorted(os.listdir(self.graphs_path))
+            self.all_graphs = sorted(os.listdir(self.data_path))
 
         self.rna_features = rna_features
         self.rna_targets = rna_targets
@@ -86,7 +86,7 @@ class RNADataset:
         """ Fetches one RNA and converts it from raw data to a dictionary
         with representations and annotations to be used by loaders """
 
-        g_path = os.path.join(self.graphs_path, self.all_graphs[idx])
+        g_path = os.path.join(self.data_path, self.all_graphs[idx])
         rna_graph = load_graph(g_path)
         rna_dict = {'rna_name': self.all_graphs[idx],
                     'rna': rna_graph,

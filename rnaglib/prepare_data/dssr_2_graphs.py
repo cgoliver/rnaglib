@@ -33,6 +33,13 @@ def dssr_exec(cif):
         return 1, None
     return 0, json.loads(dssr_dict)
 
+def barnabas_exec(cif):
+    """ Execute BARNABAS to get LW base pairing interactions
+
+    :return: 
+    """
+    pass
+
 
 def snap_exec(cif):
     """Execute x3dna in SNAP mode to analyze protein interfaces.

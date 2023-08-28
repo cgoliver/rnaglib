@@ -49,7 +49,7 @@ def pretrain_unsupervised(model,
         running_loss = 0.0
         num_batches = len(train_loader)
         for batch_idx, batch in enumerate(train_loader):
-            graph, (K, node_ids) = batch['graphs'], batch['ring']
+            graph, (K, node_ids) = batch['graph'], batch['ring']
             # Get data on the devices
             K = K.to(device)
             graph = learning_utils.send_graph_to_device(graph, device)
