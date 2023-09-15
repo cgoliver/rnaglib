@@ -21,6 +21,21 @@ We host RNAs annotated with molecule, base pair, and nucleotide level attributes
 
 ![Example graph](https://raw.githubusercontent.com/cgoliver/rnaglib/master/images/rgl_fig.png)
 
+## Cite
+
+```
+@article{mallet2022rnaglib,
+  title={RNAglib: a python package for RNA 2.5 D graphs},
+  author={Mallet, Vincent and Oliver, Carlos and Broadbent, Jonathan and Hamilton, William L and Waldisp{\"u}hl, J{\'e}r{\^o}me},
+  journal={Bioinformatics},
+  volume={38},
+  number={5},
+  pages={1458--1459},
+  year={2022},
+  publisher={Oxford University Press}
+}
+```
+
 ## Data
 
 Data can be downloaded directrly from [Zenodo](https://sandbox.zenodo.org/record/1168342) or through the provided command 
