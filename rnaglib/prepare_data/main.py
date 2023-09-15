@@ -11,10 +11,12 @@ import traceback
 from joblib import Parallel, delayed
 import json
 import requests
+from pathlib import Path
 
 from collections import defaultdict
 
 from tqdm import tqdm
+from loguru import logger
 
 from rnaglib.utils import reorder_nodes
 from rnaglib.utils import dump_json
@@ -22,6 +24,7 @@ from rnaglib.utils import get_rna_list
 from rnaglib.utils import update_RNApdb
 
 from rnaglib.prepare_data import cif_to_graph
+from rnaglib.prepare_data import barnaba_to_graph
 from rnaglib.prepare_data import add_graph_annotations
 from rnaglib.prepare_data import filter_dot_edges, filter_all
 from rnaglib.prepare_data import chop_all
@@ -31,16 +34,16 @@ from rnaglib.prepare_data import annotate_all
 def dir_setup(args):
     """ Create all necessary folders"""
 
-    build_dir = os.path.join(args.output_dir, args.tag)
+    build_dir = Path(args.output_dir, args.tag)
 
     os.makedirs(args.output_dir, exist_ok=True)
     os.makedirs(build_dir, exist_ok=True)
-    os.makedirs(os.path.join(build_dir, 'graphs'), exist_ok=True)
+    os.makedirs(Path(build_dir, 'graphs'), exist_ok=True)
     if args.annotate:
-        os.makedirs(os.path.join(build_dir, 'chops'), exist_ok=True)
-        os.makedirs(os.path.join(build_dir, 'annot'), exist_ok=True)
+        os.makedirs(Path(build_dir, 'chops'), exist_ok=True)
+        os.makedirs(Path(build_dir, 'annot'), exist_ok=True)
     elif args.chop:
-        os.makedirs(os.path.join(build_dir, 'chops'), exist_ok=True)
+        os.makedirs(Path(build_dir, 'chops'), exist_ok=True)
     else:
         pass
 
@@ -90,6 +93,12 @@ def cline():
                         help='runs only on --n-debug structures for debug.')
     parser.add_argument('--n-debug', type=int, default=10,
                         help='set number of debug structures.')
+    parser.add_argument('--annotator', type=str, default='barnaba',
+                        choices=['barnaba', 'fr3d'],
+                        help='Which structure annotator to use.')
+    parser.add_argument('--structure-format', type=str, default='mmCif',
+                        choices=['mmCif', 'pdb'],
+                        help='Which structure annotator to use.')
     return parser.parse_args()
 
 
@@ -107,46 +116,51 @@ def prepare_data_main():
         return
     else:
         build_dir = dir_setup(args)
-        graphs_dir = os.path.join(build_dir, 'graphs')
+        graphs_dir = Path(build_dir, 'graphs')
 
     # Update PDB and get Todo list
     # list of rnas to process
     if args.rna_source == 'rcsb':
-        print(">>> Updating local PDB mirror")
-        rna_list = update_RNApdb(args.structures_dir, nr_only=args.nr)
+        logger.info(">>> Updating local PDB mirror")
+        rna_list = update_RNApdb(args.structures_dir, file_format=args.structure_format, debug=args.debug, nr_only=args.nr)
     if args.rna_source == 'local':
-        print(f">>> Using structures in {args.structures_dir}")
-        rna_list = [f.split(".")[0] for f in os.listdir(args.structures_dir)]
+        logger.info(f">>> Using structures in {args.structures_dir}")
+        if args.annotator == 'barnabas':
+            logger.warning("You are using barnabas. Make sure the files in {args.structures_dir} are in PDB format")
+
+        rna_list = list(set([f.split(".")[0] for f in os.listdir(args.structures_dir)]))
 
     done = []
     if args.continu:
         done = set([os.path.splitext(g)[0] for g in os.listdir(graphs_dir)])
 
-    todo = [(os.path.join(args.structures_dir, pdbid + ".cif"), build_dir) \
+    pdb_extension = ".pdb" if args.annotator == 'barnaba' else ".cif"
+
+    todo = [(Path(args.structures_dir, pdbid + pdb_extension), build_dir) \
             for pdbid in rna_list if pdbid not in done]
     if args.debug:
-        print(">>> Using debug mode. Preparing only 10 structures.")
+        logger.warning(">>> Using debug mode. Preparing only 10 structures.")
         todo = [item for i, item in enumerate(todo) if i < args.n_debug]
 
     # Build Graphs
     total = len(todo)
-    print(f">>> Processing {total} RNAs.")
+    logger.info(f">>> Processing {total} RNAs.")
     errors = Parallel(n_jobs=args.num_workers)(
-        delayed(cif_to_graph)(*t) for t in tqdm(todo, total=total, desc='Building RNA graphs.'))
-    with open(os.path.join(build_dir, "errors.csv"), 'w') as err:
+        delayed(barnaba_to_graph)(*t) for t in tqdm(todo, total=total, desc='Building RNA graphs.'))
+    with open(Path(build_dir, "errors.csv"), 'w') as err:
         for pdbid, error in errors:
             err.write(f"{pdbid},{error}\n")
 
-    chop_dir = os.path.join(build_dir, "chops")
-    annot_dir = os.path.join(build_dir, "annot")
+    chop_dir = Path(build_dir, "chops")
+    annot_dir = Path(build_dir, "annot")
     if args.annotate:
-        print(">>> Chopping")
+        logger.info(">>> Chopping")
         chop_all(graphs_dir, chop_dir, n_jobs=args.num_workers)
-        print(">>> Annotating")
+        logger.info(">>> Annotating")
         annotate_all(graph_path=chop_dir, dump_path=annot_dir)
-        print('Done annotating graphs')
+        logger.info('Done annotating graphs')
     elif args.chop:
-        print(">>> Chopping")
+        logger.info(">>> Chopping")
         chop_all(graphs_dir, chop_dir, n_jobs=args.num_workers)
     else:
         pass

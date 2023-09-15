@@ -5,7 +5,9 @@ import json
 import pickle
 import requests
 from collections import defaultdict
+from pathlib import Path
 
+from loguru import logger
 import requests
 import warnings
 import pandas as pd
@@ -391,30 +393,55 @@ def get_NRchains(resolution):
     NR_list = get_NRlist(resolution)
     return parse_NRlist(NR_list)
 
+def cleanup_pdb_names(pdir):
+    """ Biopython.PDB downloads pdbs with a weird name (e.g. pdb6jcy.ent) rename this to 6jcy.pdb)
 
-def update_RNApdb(pdir, nr_only=True):
+    :param pdir: path to structure folder
+    """
+
+    for f in os.listdir(pdir):
+        os.rename(Path(pdir, f), Path(pdir, f[3:-4] + ".pdb"))
+    pass
+
+def get_pdbids_dir(path):
+    """ Return list of pdbids in a directory
+    :param path: path to directory with structures
+    :returns set: set of unique pdbids 
+    """
+    return set([Path(p).stem[-4:] for p in os.listdir(path)])
+
+def update_RNApdb(pdir, file_format='mmcif', nr_only=True, debug=False):
     """
     Download a list of RNA containing structures from the PDB
     overwrite exising files
 
     :param pdbdir: path containing downloaded PDBs
+    :param nr_only: only fetch non-redundant PDBs 
+    :param file_format: which format to download structures in ('pdb' or 'mmCif')
+    :param debug: if True, only downloads 5 structures
 
     :returns rna: list of PDBIDs that were fetched.
     """
     print(f'Updating PDB mirror in {pdir}')
     # Get a list of PDBs containing RNA
-    rna = set(get_rna_list(nr_only=nr_only))
+    rna = list(set(get_rna_list(nr_only=nr_only)))
+    if debug:
+        rna = rna[:3]
 
     pl = PDBList()
 
+    done_pdbids = get_pdbids_dir(pdir)
+    logger.debug(done_pdbids)
     # If not fully downloaded before, download all structures
-    if len(os.listdir(pdir)) < 2000:
-        pl.download_pdb_files(rna, pdir=pdir, overwrite=True)
+    if done_pdbids != rna:
+        pl.download_pdb_files(rna, pdir=pdir, file_format=file_format, overwrite=True)
     else:
         added, mod, obsolete = pl.get_recent_changes()
         # Download new and modded entries
-        new_rna = rna.intersection(set(added).union(set(mod)))
-        pl.download_pdb_files(new_rna, pdir=pdir, overwrite=True)
+        new_rna = list(rna.intersection(set(added).union(set(mod))))
+        if debug:
+            new_rna = new_rna[:3]
+        pl.download_pdb_files(new_rna, pdir=pdir, file_format=file_format, overwrite=True)
 
         # Remove Obsolete entries
         obsolete_dir = os.path.join(pdir, 'obsolete')
@@ -424,9 +451,9 @@ def update_RNApdb(pdir, nr_only=True):
             if cif[-8:-4].upper() in set(obsolete):
                 os.rename(os.path.join(pdir, cif), os.path.join(obsolete_dir, cif))
 
+    if file_format == 'pdb':
+        cleanup_pdb_names(pdir)
     return rna
-
-
 
 def get_Ribochains():
     """

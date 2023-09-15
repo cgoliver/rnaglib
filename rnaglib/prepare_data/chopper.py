@@ -8,6 +8,7 @@ import os
 from joblib import Parallel, delayed
 import os.path as osp
 import multiprocessing as mlt
+from loguru import logger
 
 import numpy as np
 from sklearn.decomposition import PCA
@@ -113,7 +114,7 @@ def chop_one_rna(G):
     missing_coords = 0
     for n, d in sorted(G.nodes(data=True)):
         try:
-            residues.append((n, d['C5prime_xyz']))
+            residues.append((n, d['xyz_P']))
         except KeyError:
             missing_coords += 1
             continue
@@ -135,8 +136,8 @@ def chop_one_rna(G):
                 pass
         print(f"RNA with {len(residues)} bases chopped to {len(subgraphs)} chops.")
         return subgraphs
-    except:
-        print("chopping error")
+    except Exception as e:
+        logger.exception("Chop")
         return None
 
 def chop_all(graph_path, dest, n_jobs=4, parallel=True):

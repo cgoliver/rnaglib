@@ -186,7 +186,7 @@ def annotate_all(dump_path='../data/annotated/sample_v2',
         print(f">>> found {len(hash_table)} graphlets.")
         name = os.path.basename(dump_path)
         pickle.dump((hasher.__dict__, hash_table),
-                    open(os.path.join(dump_path + "_hash.p"), 'wb'))
+                    open(os.path.join(str(dump_path) + "_hash.p"), 'wb'))
     else:
         hasher = None
         hash_table = None

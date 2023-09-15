@@ -8,6 +8,14 @@ EDGE_MAP_RGLIB = {'B53': 0, 'cHH': 1, 'cHS': 2, 'cHW': 3, 'cSH': 4, 'cSS': 5, 'c
                   'tHH': 10, 'tHS': 11, 'tHW': 12, 'tSH': 13, 'tSS': 14, 'tSW': 15, 'tWH': 16, 'tWS': 17, 'tWW': 18,
                   'B35': 19, }
 
+BARNABA_NONSTANDARD_NUC = {'dT': 'T', 'DT':'T','DT5':'T','DT3':'T',\
+                           'dA':'A','DA':'A','A':'dA','DA3':'A',\
+                           'dC':'C','DC':'C','DC5':'C','DC3':'C',\
+                           'dG':'G','DG':'G','DG5':'G','DG3':'G',
+                           'G': 'G', 'U':'U', 'A':'A', 'C':'C'
+                           }
+
+
 EDGE_MAP_FR3D_REVERSE = {v: k for k, v in EDGE_MAP_FR3D.items()}
 EDGE_MAP_RGLIB_REVERSE = {v: k for k, v in EDGE_MAP_RGLIB.items()}
 
@@ -35,5 +43,6 @@ GRAPH_KEYS = {'nt_position': {'RGLIB': 'nt_resnum', 'FR3D': 'pdb_pos'},
               'indel_vector': {'RGLIB': INDEL_VECTOR_RGLIB, 'FR3D': INDEL_VECTOR_FR3D},
               'valid_edges': {'RGLIB': EDGE_MAP_RGLIB.keys(), 'FR3D': EDGE_MAP_FR3D.keys()},
               'idf': {'RGLIB': IDF_RGLIB, 'FR3D': IDF},
+              'nt_code': {'barnaba': BARNABA_NONSTANDARD_NUC}
               }
 TOOL = 'RGLIB'
