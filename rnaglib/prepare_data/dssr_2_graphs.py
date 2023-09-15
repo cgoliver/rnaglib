@@ -428,16 +428,18 @@ def barnaba_to_graph(rna_path, output_dir=None, return_graph=False,):
     for (base_1, base_2), label in zip(basepairs, edge_labels):
         logger.debug(f"{res[base_1]} {res[base_2]} {label}")
         elabel = label[-1] + label[0:-1]
+        elabel_flip = elabel[0] + elabel[2]  + elabel[1]
         if elabel not in EDGE_MAP_RGLIB:
             continue
         G.add_edge(res[base_1], res[base_2], LW=elabel)
+        G.add_edge(res[base_2], res[base_1], LW=elabel_flip)
 
     bbs = barnaba_bb(res)
     logger.debug(bbs)
     G.add_edges_from(bbs)
 
     G.graph['pdbid'] = pdbid
-
+    
     logger.debug(G.edges(data=True))
 
     if output_dir is not None:

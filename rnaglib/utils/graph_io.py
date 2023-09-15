@@ -434,11 +434,13 @@ def update_RNApdb(pdir, file_format='mmcif', nr_only=True, debug=False):
     logger.debug(done_pdbids)
     # If not fully downloaded before, download all structures
     if done_pdbids != rna:
+        logger.info(f"Downloading {len(rna)} PDBs")
         pl.download_pdb_files(rna, pdir=pdir, file_format=file_format, overwrite=True)
     else:
         added, mod, obsolete = pl.get_recent_changes()
         # Download new and modded entries
         new_rna = list(rna.intersection(set(added).union(set(mod))))
+        logger.info(f"Downloading {len(new_rna)} PDBs")
         if debug:
             new_rna = new_rna[:3]
         pl.download_pdb_files(new_rna, pdir=pdir, file_format=file_format, overwrite=True)

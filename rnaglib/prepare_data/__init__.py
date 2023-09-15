@@ -8,7 +8,7 @@ from .annotations import hariboss_filter
 
 from .dssr_2_graphs import one_rna_from_cif
 from .dssr_2_graphs import cif_to_graph
-from .dssr_2_graphs import barnaba_to_graph
+from .barnaba_2_graphs import barnaba_to_graph
 
 
 from .chopper import chop_all

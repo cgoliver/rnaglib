@@ -7,11 +7,11 @@
 
 import sys
 import os
-import pickle
 from itertools import product
 from collections import Counter
 from tqdm import tqdm
 from hashlib import blake2b
+from loguru import logger
 
 import networkx as nx
 from networkx.algorithms.graph_hashing import weisfeiler_lehman_graph_hash as wl
@@ -62,6 +62,15 @@ class Hasher:
         self.label = label
         self.hash_table = None
         self.directed = directed
+
+    def get_params(self):
+        return {'method': self.method, 
+                'string_hash_size': self.string_hash_size,
+                'graphlet_hash_size': self.graphlet_hash_size,
+                'symmetric_edges': self.symmetric_edges,
+                'wl_hops': self.wl_hops,
+                'label': self.label,
+                'directed': self.directed}
 
     def hash(self, graph):
         """
@@ -168,7 +177,7 @@ def build_hash_table(graph_dir,
     if max_graphs:
         graphlist = graphlist[:max_graphs]
     for g in tqdm(graphlist):
-        print(f'getting hashes : doing graph {g}')
+        logger.trace(f'getting hashes : doing graph {g}')
         G = load_json(os.path.join(graph_dir, g))
         if not directed:
             G = G.to_undirected()
@@ -178,15 +187,16 @@ def build_hash_table(graph_dir,
             todo = [G]
         for i, n in enumerate(todo):
             h = hasher.hash(n)
+            n_json = nx.node_link_data(G)
             if h not in hash_table:
                 if mode == 'append':
-                    hash_table[h] = {'graphs': [n]}
+                    hash_table[h] = {'graphs': [n_json]}
                 else:
-                    hash_table[h] = {'graph': n, 'count': 1}
+                    hash_table[h] = {'graph': n_json, 'count': 1}
             else:
                 # see if collision
                 if mode == 'append':
-                    hash_table[h]['graphs'].append(n)
+                    hash_table[h]['graphs'].append(n_json)
                 else:
                     hash_table[h]['count'] += 1
     return hash_table

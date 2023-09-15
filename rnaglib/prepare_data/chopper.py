@@ -45,7 +45,7 @@ def pca_chop(residues):
             s1.append(residues[i])
         else:
             s2.append(residues[i])
-    # print(f"sum check {len(s1) + len(s2)} == {len(residues)}, {len(proj)}")
+        logger.trace(f"sum check {len(s1) + len(s2)} == {len(residues)}, {len(proj)}")
     return s1, s2
 
 def chop(residues, max_size=50):
@@ -97,7 +97,6 @@ def graph_clean(G, subG, thresh=8):
     for cc in nx.connected_components(subG.to_undirected()):
         if len(cc) < thresh:
             subG.remove_nodes_from(cc)
-            # print('removed chunk')
 
     return subG
 
@@ -118,7 +117,7 @@ def chop_one_rna(G):
         except KeyError:
             missing_coords += 1
             continue
-    print(f">>> Graph {G.graph['pdbid']} has {missing_coords} residues with missing coords.")
+    logger.debug(f">>> Graph {G.graph['pdbid']} has {missing_coords} residues with missing coords.")
 
     # glib node format: 3iab.R.83 <pdbid>.<chain>.<pos>
     # residues = [r for r in structure.get_residues() if r.id[0] == ' ' and
@@ -134,7 +133,7 @@ def chop_one_rna(G):
                 subgraphs.append(subgraph)
             else:
                 pass
-        print(f"RNA with {len(residues)} bases chopped to {len(subgraphs)} chops.")
+        logger.debug(f"RNA with {len(residues)} bases chopped to {len(subgraphs)} chops.")
         return subgraphs
     except Exception as e:
         logger.exception("Chop")

@@ -1,6 +1,7 @@
 """
 Functions to take a nx object and return (nx, dict_tree, dict_rings)
 """
+import json
 import sys
 import os
 import argparse
@@ -8,6 +9,7 @@ import argparse
 import pickle
 from collections import defaultdict, Counter, OrderedDict
 import multiprocessing as mlt
+from loguru import logger
 
 import networkx as nx
 from tqdm import tqdm
@@ -131,24 +133,23 @@ def annotate_one(args):
     """
     g, graph_path, dump_path, hasher, re_annotate, hash_table = args
     try:
-        dump_name = os.path.basename(g).split('.')[0] + "_annot.p"
+        dump_name = os.path.basename(g).split('.')[0] + "_annot.json"
         dump_full = os.path.join(dump_path, dump_name)
         for processed in os.listdir(dump_path):
             if processed.startswith(dump_name):
                 return 0, 0
-        if re_annotate:
-            graph = pickle.load(open(os.path.join(graph_path, g), 'rb'))['graph']
-        else:
-            graph = load_json(os.path.join(graph_path, g))
+        graph = load_json(os.path.join(graph_path, g))
         rings = build_ring_tree_from_graph(graph,
                                            depth=5,
                                            hasher=hasher,
                                            hash_table=hash_table)
 
         if dump_path:
-            pickle.dump({'graph': graph,
-                         'rings': rings},
-                        open(dump_full, 'wb'))
+            logger.debug(f"Dumping annots to {dump_path}")
+            with open(dump_full, 'w') as j:
+                j.write(json.dumps({'graph': nx.node_link_data(graph),
+                                    'rings': rings}
+                                   ))
         return 0, g
     except Exception as e:
         print(e)
@@ -177,38 +178,40 @@ def annotate_all(dump_path='../data/annotated/sample_v2',
         pass
 
     if do_hash:
-        print(">>> hashing graphlets.")
+        logger.info(">>> hashing graphlets.")
         hasher = Hasher(wl_hops=wl_hops)
         hash_table = build_hash_table(graph_path,
                                       hasher,
                                       graphlet_size=graphlet_size
                                       )
-        print(f">>> found {len(hash_table)} graphlets.")
+        logger.info(f">>> found {len(hash_table)} graphlets.")
         name = os.path.basename(dump_path)
-        pickle.dump((hasher.__dict__, hash_table),
-                    open(os.path.join(str(dump_path) + "_hash.p"), 'wb'))
+        with open(os.path.join(str(dump_path) + "_hash.json"), "w") as j:
+            j.write(json.dumps(hash_table))
+        with open(os.path.join(str(dump_path) + "_hash_params.json"), "w") as j:
+            j.write(json.dumps(hasher.get_params()))
     else:
         hasher = None
         hash_table = None
 
     graphs = os.listdir(graph_path)
     failed = 0
-    print(">>> annotating all.")
+    logger.info(">>> annotating all.")
     if parallel:
         pool = mlt.Pool()
-        print(">>> going parallel")
+        logger.info(">>> going parallel")
         arguments = [(g, graph_path, dump_path, hasher, re_annotate, hash_table) for g in graphs]
         for res in tqdm(pool.imap_unordered(annotate_one, arguments), total=len(graphs)):
             if res[0]:
                 failed += 1
-                print(f'failed on {res[1]}, this is the {failed}-th one on {len(graphs)}')
-        print(f'failed on {(failed)} on {len(graphs)}')
+                logger.error(f'failed on {res[1]}, this is the {failed}-th one on {len(graphs)}')
+        logger.info(f'failed on {(failed)} on {len(graphs)}')
         return failed
     for graph in tqdm(graphs, total=len(graphs)):
         res = annotate_one((graph, graph_path, dump_path, hasher, re_annotate, hash_table))
         if res[0]:
             failed += 1
-            print(f'failed on {graph}, this is the {failed}-th one on {len(graphs)}')
+            logger.info(f'failed on {graph}, this is the {failed}-th one on {len(graphs)}')
     pass
 
 
