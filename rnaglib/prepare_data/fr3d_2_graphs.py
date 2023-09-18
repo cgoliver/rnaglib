@@ -25,9 +25,17 @@ from rnaglib.config import GRAPH_KEYS
 from rnaglib.config import EDGE_MAP_RGLIB
 
 
-BASES = ["A", "C", "G", "U", "DA", "DC", "DG", "DT"]
-
 logger.add(sys.stderr, level='INFO')
+
+def get_rna_chains(mmcif_dict):
+    """ Return the list of RNA Chain IDs.
+    """
+    rna_chains = [chain for chain, chain_type in zip(mmcif_dict['_entity_poly.pdbx_strand_id'], mmcif_dict['_entity_poly.type']) if chain_type == 'polyribonucleotide']
+    cleaned = []
+    for r in rna_chains:
+        sub = r.split(",")
+        cleaned.extend([s.upper() for s in sub])
+    return cleaned
 
 def nuc_id(raw_label):
     """ Map a raw barnaba nucleotide ID to a glib format one
@@ -41,24 +49,32 @@ def nuc_id(raw_label):
     pdbid,_, chain, _, pos = raw_label.split("|")
     return f"{pdbid.lower()}.{chain}.{pos}"
 
-def get_bb(res):
+def get_residue_list(structure, chain):
+    return sorted([r for r in chain if r.id[0] == ' '], key=lambda x: x.id[1])
+
+def get_bb(structure, rna_chains, pdbid=''):
     """ Get the backbone edges 
     """
     bb = []
-    for i, three_p in enumerate(res):
-        if i == 0:
-            continue
-        five_p = res[i - 1]
-        five_p_chain, five_p_pos = five_p.split(".")[1:]
-        three_p_chain, three_p_pos = five_p.split(".")[1:]
-        # different chains
-        if five_p_chain != three_p_chain:
-            continue
-        if int(five_p_pos) != (int(three_p_pos) + 1):
-            bb.append((five_p, three_p, {'LW': 'B53'}))
-            bb.append((three_p, five_p, {'LW': 'B35'}))
+    print(f"Using {rna_chains}")
+    for chain in structure.get_chains():
+        if chain.id not in rna_chains:
+            continue 
+        reslist = get_residue_list(structure, chain)
+        logger.debug(reslist)
+
+        for i, five_p in enumerate(reslist):
+            if i == 0:
+                continue
+            three_p = reslist[i - 1]
+            if int(five_p.id[1]) == (int(three_p.id[1]) + 1):
+                bb.append((f"{pdbid}.{chain.id}.{five_p.id[1]}", f"{pdbid}.{chain.id}.{three_p.id[1]}", {'LW': 'B53'}))
+                bb.append((f"{pdbid}.{chain.id}.{three_p.id[1]}", f"{pdbid}.{chain.id}.{five_p.id[1]}", {'LW': 'B35'}))
     return bb
 
+def nt_to_rgl(nt):
+    pdbid,_, chain, _, pos = nt.split("|")[:5]
+    return f"{pdbid.lower()}.{chain}.{pos}"
 
 def fr3d_to_graph(rna_path, output_dir=None, return_graph=False,):
     """ Use barnaba to generate networkx annotation graph.
@@ -70,30 +86,29 @@ def fr3d_to_graph(rna_path, output_dir=None, return_graph=False,):
         annot_df = generatePairwiseAnnotation_import(rna_path, category='basepair')
     except Exception as e:
         logger.exception(f"Fr3D error {rna_path}")
-        return None
+        return None, "Fr3d error"
 
-    G = nx.DiGraph()
+    pdbid = rna_path.stem
+    try:
+        rna_chains = get_rna_chains(MMCIF2Dict.MMCIF2Dict(rna_path))
+        logger.debug(f"RNA chains in {pdbid}: {rna_chains}")
+    except KeyError:
+        logger.error(f"Couldn't identify RNA chains in {pdbid}")
+        return None, "Chain error"
+
 
     # add coords with biopython
-    parser = PDBParser(PERMISSIVE=0)
+    parser = MMCIFParser()
     structure = parser.get_structure("", rna_path)[0]
 
-    bbs = get_bb(res)
+    bbs = get_bb(structure, rna_chains, pdbid=pdbid)
     logger.trace(bbs)
+    G = nx.DiGraph()
     G.add_edges_from(bbs)
-
-    for i, r in enumerate(res):
-        try: 
-            nuc = GRAPH_KEYS['modified']['barnaba'][nts[i]]
-            G.add_node(r, nt_code=nuc, is_modified=True, modification=nts[i])
-        except KeyError:
-           G.add_node(r, nt_code=GRAPH_KEYS['nt_code']['barnaba'][nts[i]], is_modified=False, modification=None)
-    logger.trace(G.nodes(data=True))
 
     try:
         coord_dict = {}
         for node in G.nodes():
-            logger.trace(node)
             chain, pos = node.split(".")[1:]
             r = structure[chain][int(pos)]
             try:
@@ -101,28 +116,26 @@ def fr3d_to_graph(rna_path, output_dir=None, return_graph=False,):
             except KeyError:
                 phos_coord = np.mean([a.get_coord() for a in r], axis=0)
                 logger.warning(f"Couldn't find phosphate atom, taking center of atoms in residue instead for {pdbid}.{chain}.{pos} is at {phos_coord}.")
-            logger.trace(phos_coord)
+            logger.debug(f"{node} {phos_coord}")
             coord_dict[node] = {'xyz_P': list(map(float, phos_coord))}
-
         nx.set_node_attributes(G, coord_dict)
     except Exception as e:
         logger.exception(f"Failed to get coordinates for {pdbid}, {e}")
         return pdbid, "PDB Coordinate error"
 
-    for (base_1, base_2), label in zip(basepairs, edge_labels):
-        logger.trace(f"{res[base_1]} {res[base_2]} {label}")
-        elabel = label[-1] + label[0:-1]
+    for pair in annot_df.itertuples():
+        # logger.trace(f"{pair.from} {pair.to} {pair.interaction}")
+        elabel = pair.interaction 
         elabel_flip = elabel[0] + elabel[2]  + elabel[1]
         if elabel not in EDGE_MAP_RGLIB:
             continue
-        G.add_edge(res[base_1], res[base_2], LW=elabel)
-        G.add_edge(res[base_2], res[base_1], LW=elabel_flip)
+        nt1 = nt_to_rgl(pair.source) 
+        nt2 = nt_to_rgl(pair.target) 
+        G.add_edge(nt1,nt2 , LW=elabel)
+        G.add_edge(nt2, nt1, LW=elabel_flip)
 
-    
     G.graph['pdbid'] = pdbid
     
-    logger.trace(G.edges(data=True))
-
     if output_dir is not None:
         dump_json(os.path.join(output_dir, 'graphs', pdbid + '.json'), G)
     if return_graph:

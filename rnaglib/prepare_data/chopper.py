@@ -45,7 +45,6 @@ def pca_chop(residues):
             s1.append(residues[i])
         else:
             s2.append(residues[i])
-        logger.trace(f"sum check {len(s1) + len(s2)} == {len(residues)}, {len(proj)}")
     return s1, s2
 
 def chop(residues, max_size=50):
@@ -117,7 +116,7 @@ def chop_one_rna(G):
         except KeyError:
             missing_coords += 1
             continue
-    logger.debug(f">>> Graph {G.graph['pdbid']} has {missing_coords} residues with missing coords.")
+    logger.debug(f">>> Graph {G.graph['pdbid']} has {missing_coords} of {len(G.nodes())} residues with missing coords.")
 
     # glib node format: 3iab.R.83 <pdbid>.<chain>.<pos>
     # residues = [r for r in structure.get_residues() if r.id[0] == ' ' and

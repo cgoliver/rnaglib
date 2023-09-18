@@ -24,7 +24,7 @@ from rnaglib.utils import get_rna_list
 from rnaglib.utils import update_RNApdb
 
 from rnaglib.prepare_data import cif_to_graph
-from rnaglib.prepare_data import barnaba_to_graph
+from rnaglib.prepare_data import fr3d_to_graph 
 from rnaglib.prepare_data import add_graph_annotations
 from rnaglib.prepare_data import filter_dot_edges, filter_all
 from rnaglib.prepare_data import chop_all
@@ -93,7 +93,7 @@ def cline():
                         help='runs only on --n-debug structures for debug.')
     parser.add_argument('--n-debug', type=int, default=10,
                         help='set number of debug structures.')
-    parser.add_argument('--annotator', type=str, default='barnaba',
+    parser.add_argument('--annotator', type=str, default='fr3d',
                         choices=['barnaba', 'fr3d'],
                         help='Which structure annotator to use.')
     parser.add_argument('--structure-format', type=str, default='mmCif',
@@ -146,7 +146,7 @@ def prepare_data_main():
     total = len(todo)
     logger.info(f">>> Processing {total} RNAs.")
     errors = Parallel(n_jobs=args.num_workers)(
-        delayed(barnaba_to_graph)(*t) for t in tqdm(todo, total=total, desc='Building RNA graphs.'))
+        delayed(fr3d_to_graph)(*t) for t in tqdm(todo, total=total, desc='Building RNA graphs.'))
     with open(Path(build_dir, "errors.csv"), 'w') as err:
         for pdbid, error in errors:
             err.write(f"{pdbid},{error}\n")

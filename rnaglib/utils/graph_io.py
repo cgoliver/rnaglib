@@ -29,7 +29,6 @@ def dump_json(filename, graph):
     :param graph: The graph to dump
     """
     g_json = json_graph.node_link_data(graph)
-    logger.trace(f"Dumping json data {g_json} to {filename}")
     json.dump(g_json, open(filename, 'w'), indent=2)
 
 def load_json(filename):

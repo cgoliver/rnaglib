@@ -24,7 +24,8 @@ def pretrain_unsupervised(model,
                           optimizer,
                           node_sim=None,
                           learning_routine=learning_utils.LearningRoutine(),
-                          rec_params={"similarity": True, "normalize": False, "use_graph": False, "hops": 2}
+                          rec_params={"similarity": True, "normalize": False, "use_graph": False, "hops": 2},
+                          device='cpu'
                           ):
     """
     Perform the pretraining routine to get embeddings from graph nodes, that correlate with a node kernel.
@@ -35,12 +36,14 @@ def pretrain_unsupervised(model,
     :param node_sim: If None, we just rely on the node_sim in the data loader.
     :param learning_routine: A LearningRoutine object, if we want to also use a validation phase and early stopping
     :param rec_params: These are parameters useful for the loss computation and
+    :param device: Which device to train on.
     further explained in learning_utils.rec_loss
 
     :return: The best loss obtained
     """
-    device = model.current_device
     learning_routine.device = device
+    print(f"Training on {device}")
+    model = model.to(device)
 
     start_time = time.time()
     for epoch in range(learning_routine.num_epochs):

@@ -171,6 +171,7 @@ def send_graph_to_device(g, device):
     :param device: a torch device
     :return: the graph on the device
     """
+    g = g.to(torch.device(device))
     g.set_n_initializer(dgl.init.zero_initializer)
     g.set_e_initializer(dgl.init.zero_initializer)
 
