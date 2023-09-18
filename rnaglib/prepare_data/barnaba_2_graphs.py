@@ -24,7 +24,7 @@ from rnaglib.config import GRAPH_KEYS
 from rnaglib.config import EDGE_MAP_RGLIB
 
 
-logger.add(sys.stderr, level='TRACE')
+logger.add(sys.stderr, level='INFO')
 
 def barnaba_nuc_id(raw_label, pdbid):
     """ Map a raw barnaba nucleotide ID to a glib format one

@@ -2,6 +2,7 @@
 import sys
 import os
 import json
+import glob
 import pickle
 import requests
 from collections import defaultdict
@@ -18,7 +19,7 @@ import zipfile
 
 from networkx.readwrite import json_graph
 import networkx as nx
-from Bio.PDB.PDBList import PDBList
+from Bio.PDB import *
 
 def dump_json(filename, graph):
     """
@@ -395,14 +396,20 @@ def get_NRchains(resolution):
     NR_list = get_NRlist(resolution)
     return parse_NRlist(NR_list)
 
-def cleanup_pdb_names(pdir):
-    """ Biopython.PDB downloads pdbs with a weird name (e.g. pdb6jcy.ent) rename this to 6jcy.pdb)
+def mmcif_to_pdb(pdir):
+    """ Convert mmCifs in a directory to PDBs. 
 
     :param pdir: path to structure folder
     """
 
-    for f in os.listdir(pdir):
-        os.rename(Path(pdir, f), Path(pdir, f[3:-4] + ".pdb"))
+    for f in glob.glob(pdir + "/*.cif"): 
+        logger.debug(f"Converting {f} to PDB")
+        parser = MMCIFParser()
+        s = parser.get_structure("", f)
+        io = PDBIO()
+        io.set_structure(s)
+        with open(Path(f).with_suffix(".pdb"), "w") as p:
+            io.save(p)
     pass
 
 def get_pdbids_dir(path):
@@ -412,7 +419,7 @@ def get_pdbids_dir(path):
     """
     return set([Path(p).stem[-4:] for p in os.listdir(path)])
 
-def update_RNApdb(pdir, file_format='mmcif', nr_only=True, debug=False):
+def update_RNApdb(pdir, file_format='mmCif', nr_only=True, debug=False):
     """
     Download a list of RNA containing structures from the PDB
     overwrite exising files
@@ -439,12 +446,13 @@ def update_RNApdb(pdir, file_format='mmcif', nr_only=True, debug=False):
     logger.info(f"Downloading missing {len(diff)} PDBs")
     for pdbid in tqdm(diff, total=len(diff)):
         try:
-            pl.retrieve_pdb_file(pdbid, file_format=file_format, pdir=pdir)
+            pl.retrieve_pdb_file(pdbid, file_format='mmCif', pdir=pdir)
         except Exception as e:
             logger.error(f"Failed to fetch {pdbid}")
 
     if file_format == 'pdb':
-        cleanup_pdb_names(pdir)
+        print("HELLO")
+        mmcif_to_pdb(pdir)
     return rna
 
 def get_Ribochains():
