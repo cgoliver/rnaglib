@@ -50,6 +50,6 @@ GRAPH_KEYS = {'nt_position': {'RGLIB': 'nt_resnum', 'FR3D': 'pdb_pos'},
               'valid_edges': {'RGLIB': EDGE_MAP_RGLIB.keys(), 'FR3D': EDGE_MAP_FR3D.keys()},
               'idf': {'RGLIB': IDF_RGLIB, 'FR3D': IDF},
               'nt_code': {'barnaba': BARNABA_NONSTANDARD_NUC},
-              'modified': {'barnaba': BARNA_MODIFIED_RES}
+              'modified': {'barnaba': BARNABA_MODIFIED_RES}
               }
 TOOL = 'RGLIB'

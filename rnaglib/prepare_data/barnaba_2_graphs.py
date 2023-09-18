@@ -5,9 +5,11 @@ Requires a x3dna-dssr executable to be in $PATH.
 
 """
 import os
+import sys
 import traceback
 from pathlib import Path
 
+import numpy as np
 from collections import defaultdict
 from Bio.PDB import *
 import json
@@ -22,6 +24,7 @@ from rnaglib.config import GRAPH_KEYS
 from rnaglib.config import EDGE_MAP_RGLIB
 
 
+logger.add(sys.stderr, level='TRACE')
 
 def barnaba_nuc_id(raw_label, pdbid):
     """ Map a raw barnaba nucleotide ID to a glib format one
@@ -77,6 +80,7 @@ def barnaba_to_graph(rna_path, output_dir=None, return_graph=False,):
     try:
         pdbid = rna_path.stem
         stackings, pairings, res = bb.annotate(rna_path)
+        logger.trace(res)
         nts = [r.split("_")[0] for r in res]
         res = [barnaba_nuc_id(r, pdbid) for r in res]
         logger.trace(res)
@@ -96,9 +100,9 @@ def barnaba_to_graph(rna_path, output_dir=None, return_graph=False,):
     for i, r in enumerate(res):
         try: 
             nuc = GRAPH_KEYS['modified']['barnaba'][nts[i]]
-            G.add_node(r, {'nt_code': nuc, {'is_modified': True, 'modification': nts[i]}) 
-        except KeyError
-           G.add_node(r, {'nt_code': GRAPH_KEYS['nt_code']['barnaba'][nts[i]], 'is_modified': False, 'modification': None})
+            G.add_node(r, nt_code=nuc, is_modified=True, modification=nts[i])
+        except KeyError:
+           G.add_node(r, nt_code=GRAPH_KEYS['nt_code']['barnaba'][nts[i]], is_modified=False, modification=None)
     logger.trace(G.nodes(data=True))
 
     try:
@@ -107,12 +111,17 @@ def barnaba_to_graph(rna_path, output_dir=None, return_graph=False,):
             logger.trace(node)
             chain, pos = node.split(".")[1:]
             r = structure[chain][int(pos)]
-            phos_coord = list(map(float, r['P'].get_coord()))
-            coord_dict[node] = {'xyz_P': phos_coord}
+            try:
+                phos_coord = list(map(float, r['P'].get_coord()))
+            except KeyError:
+                phos_coord = np.mean([a.get_coord() for a in r], axis=0)
+                logger.warning(f"Couldn't find phosphate atom, taking center of atoms in residue instead for {pdbid}.{chain}.{pos} is at {phos_coord}.")
+            logger.trace(phos_coord)
+            coord_dict[node] = {'xyz_P': list(map(float, phos_coord))}
 
         nx.set_node_attributes(G, coord_dict)
     except Exception as e:
-        logger.error(f"Failed to get coordinates for {pdbid}")
+        logger.exception(f"Failed to get coordinates for {pdbid}, {e}")
         return pdbid, "PDB Coordinate error"
 
     for (base_1, base_2), label in zip(basepairs, edge_labels):
