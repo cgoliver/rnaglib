@@ -15,6 +15,12 @@ BARNABA_NONSTANDARD_NUC = {'dT': 'T', 'DT':'T','DT5':'T','DT3':'T',\
                            'G': 'G', 'U':'U', 'A':'A', 'C':'C'
                            }
 
+BARNABA_MODIFIED_RES = {'1MA':'A','5AA':'A','P5P':'A','2MA':'A',\
+                'OMC':'C','5MC':'C','CBV':'C',\
+                '2MG':'G','YG':'G','7MG':'G','OMG':'G','1MG':'G','M2G':'G',\
+                'H2U':'U','PSU':'U','OMU':'U','UR3':'U','5MU':'U','5BU':'U','4SU':'U'}
+
+
 
 EDGE_MAP_FR3D_REVERSE = {v: k for k, v in EDGE_MAP_FR3D.items()}
 EDGE_MAP_RGLIB_REVERSE = {v: k for k, v in EDGE_MAP_RGLIB.items()}
@@ -43,6 +49,7 @@ GRAPH_KEYS = {'nt_position': {'RGLIB': 'nt_resnum', 'FR3D': 'pdb_pos'},
               'indel_vector': {'RGLIB': INDEL_VECTOR_RGLIB, 'FR3D': INDEL_VECTOR_FR3D},
               'valid_edges': {'RGLIB': EDGE_MAP_RGLIB.keys(), 'FR3D': EDGE_MAP_FR3D.keys()},
               'idf': {'RGLIB': IDF_RGLIB, 'FR3D': IDF},
-              'nt_code': {'barnaba': BARNABA_NONSTANDARD_NUC}
+              'nt_code': {'barnaba': BARNABA_NONSTANDARD_NUC},
+              'modified': {'barnaba': BARNA_MODIFIED_RES}
               }
 TOOL = 'RGLIB'

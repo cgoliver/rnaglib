@@ -67,17 +67,22 @@ def barnaba_bb(res):
             bb.append((three_p, five_p, {'LW': 'B35'}))
     return bb
 
+
 def barnaba_to_graph(rna_path, output_dir=None, return_graph=False,):
     """ Use barnaba to generate networkx annotation graph.
 
     :param rna_path: path to a PDB of the RNA structure
     :returns nx.Graph: networkx graph with annotations
     """
-    pdbid = rna_path.stem
-    stackings, pairings, res = bb.annotate(rna_path)
-    nts = [r.split("_")[0] for r in res]
-    res = [barnaba_nuc_id(r, pdbid) for r in res]
-    logger.trace(res)
+    try:
+        pdbid = rna_path.stem
+        stackings, pairings, res = bb.annotate(rna_path)
+        nts = [r.split("_")[0] for r in res]
+        res = [barnaba_nuc_id(r, pdbid) for r in res]
+        logger.trace(res)
+    except Exception as e:
+        logger.error("Opening structure")
+        return pdbid, "Loading structure fail"
 
     basepairs, edge_labels = pairings[0]
     logger.trace(edge_labels)
@@ -88,7 +93,12 @@ def barnaba_to_graph(rna_path, output_dir=None, return_graph=False,):
     parser = PDBParser(PERMISSIVE=0)
     structure = parser.get_structure("", rna_path)[0]
 
-    G.add_nodes_from([(r, {'nt_code': GRAPH_KEYS['nt_code']['barnaba'][nts[i]]}) for i, r in  enumerate(res)])
+    for i, r in enumerate(res):
+        try: 
+            nuc = GRAPH_KEYS['modified']['barnaba'][nts[i]]
+            G.add_node(r, {'nt_code': nuc, {'is_modified': True, 'modification': nts[i]}) 
+        except KeyError
+           G.add_node(r, {'nt_code': GRAPH_KEYS['nt_code']['barnaba'][nts[i]], 'is_modified': False, 'modification': None})
     logger.trace(G.nodes(data=True))
 
     try:

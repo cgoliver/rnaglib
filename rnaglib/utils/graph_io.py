@@ -8,6 +8,7 @@ from collections import defaultdict
 from pathlib import Path
 
 from loguru import logger
+from tqdm import tqdm
 import requests
 import warnings
 import pandas as pd
@@ -428,30 +429,18 @@ def update_RNApdb(pdir, file_format='mmcif', nr_only=True, debug=False):
     if debug:
         rna = rna[:3]
 
-    pl = PDBList()
-
+    logger.info(f"Found {len(rna)} {'non-redundant' if nr_only else ''} PDBs containing RNA.")
+    pl = PDBList(verbose=False)
     done_pdbids = get_pdbids_dir(pdir)
-    logger.debug(done_pdbids)
+    logger.info(f"Structure db {pdir} already has {len(done_pdbids)} PDBs.")
     # If not fully downloaded before, download all structures
-    if done_pdbids != rna:
-        logger.info(f"Downloading {len(rna)} PDBs")
-        pl.download_pdb_files(rna, pdir=pdir, file_format=file_format, overwrite=True)
-    else:
-        added, mod, obsolete = pl.get_recent_changes()
-        # Download new and modded entries
-        new_rna = list(rna.intersection(set(added).union(set(mod))))
-        logger.info(f"Downloading {len(new_rna)} PDBs")
-        if debug:
-            new_rna = new_rna[:3]
-        pl.download_pdb_files(new_rna, pdir=pdir, file_format=file_format, overwrite=True)
-
-        # Remove Obsolete entries
-        obsolete_dir = os.path.join(pdir, 'obsolete')
-        if not os.path.exists(obsolete_dir):
-            os.mkdir(obsolete_dir)
-        for cif in os.listdir(pdir):
-            if cif[-8:-4].upper() in set(obsolete):
-                os.rename(os.path.join(pdir, cif), os.path.join(obsolete_dir, cif))
+    diff = set(rna) - done_pdbids
+    logger.info(f"Downloading missing {len(diff)} PDBs")
+    for pdbid in tqdm(diff, total=len(diff)):
+        try:
+            pl.retrieve_pdb_file(pdbid, file_format=file_format, pdir=pdir)
+        except Exception as e:
+            logger.error(f"Failed to fetch {pdbid}")
 
     if file_format == 'pdb':
         cleanup_pdb_names(pdir)
