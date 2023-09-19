@@ -119,7 +119,7 @@ def get_nc_weight(graph, hops=2):
 
 
 def rec_loss(embeddings, target_K, similarity=True, normalize=False,
-             use_graph=False, node_ids=None, graph=None, hops=2):
+             use_graph=False, node_ids=None, graph=None, hops=2, device='cpu'):
     """
     This is to compute a reconstruction loss for embeddings.
 
