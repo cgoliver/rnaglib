@@ -57,6 +57,7 @@ def get_bb(structure, rna_chains, pdbid=''):
     """ Get the backbone edges 
     """
     bb = []
+    nt_types = {}
     print(f"Using {rna_chains}")
     for chain in structure.get_chains():
         if chain.id not in rna_chains:
@@ -71,7 +72,10 @@ def get_bb(structure, rna_chains, pdbid=''):
             if int(five_p.id[1]) == (int(three_p.id[1]) + 1):
                 bb.append((f"{pdbid}.{chain.id}.{five_p.id[1]}", f"{pdbid}.{chain.id}.{three_p.id[1]}", {'LW': 'B53'}))
                 bb.append((f"{pdbid}.{chain.id}.{three_p.id[1]}", f"{pdbid}.{chain.id}.{five_p.id[1]}", {'LW': 'B35'}))
-    return bb
+
+                nt_types[f"{pdbid}.{chain.id}.{five_p.id[1]}"] = five_p.get_resname()
+                nt_types[f"{pdbid}.{chain.id}.{three_p.id[1]}"] = three_p.get_resname()
+    return bb, nt_types
 
 def nt_to_rgl(nt):
     pdbid,_, chain, _, pos = nt.split("|")[:5]
@@ -103,10 +107,12 @@ def fr3d_to_graph(rna_path):
     parser = MMCIFParser()
     structure = parser.get_structure("", rna_path)[0]
 
-    bbs = get_bb(structure, rna_chains, pdbid=pdbid)
+    bbs, nt_types = get_bb(structure, rna_chains, pdbid=pdbid)
     logger.trace(bbs)
     G = nx.DiGraph()
     G.add_edges_from(bbs)
+
+    nx.set_node_attributes(G, nt_types, 'nt')
 
     try:
         coord_dict = {}
