@@ -91,7 +91,8 @@ def fr3d_to_graph(rna_path):
         return None
 
     pdbid = rna_path.stem
-    try: rna_chains = get_rna_chains(MMCIF2Dict.MMCIF2Dict(rna_path))
+    try: 
+        rna_chains = get_rna_chains(MMCIF2Dict.MMCIF2Dict(rna_path))
         logger.debug(f"RNA chains in {pdbid}: {rna_chains}")
     except KeyError:
         logger.error(f"Couldn't identify RNA chains in {pdbid}")
