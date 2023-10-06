@@ -103,7 +103,10 @@ class SimFunctionNode():
         :return: None, modify self.
         """
         print(f">>> loading hash table from {hash_init_path}")
-        self.hasher, self.hash_table = pickle.load(open(hash_init_path, 'rb'))
+        try:
+            self.hasher, self.hash_table = pickle.load(open(hash_init_path, 'rb'))
+        except FileNotFoundError:
+            print("No hash table pre-loaded")
 
     def compare(self, rings1, rings2):
         """
@@ -121,7 +124,10 @@ class SimFunctionNode():
         """
         # We only load the hashing table when we make a first computation, a lazy optimization
         if self.method in ['R_ged', 'R_graphlets', 'graphlet'] and self.hasher is None:
-            self.add_hashtable(hash_init_path=self.hash_init_path)
+            try:
+                self.add_hashtable(hash_init_path=self.hash_init_path)
+            except FileNotFoundError:
+                print(f"Hashtable not found in {self.hash_init_path}")
 
         if self.method == 'graphlet':
             return self.graphlet(rings1, rings2)
