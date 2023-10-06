@@ -43,7 +43,18 @@ rnaglib_download='rnaglib.bin.rnaglib_download:main'
 
 [tool.setuptools]
 
-packages = ['rnaglib']
+packages = ['rnaglib', 
+	    'rnaglib.prepare_data', 
+            'rnaglib.data_loading', 
+            'rnaglib.representations',
+	    'rnaglib.drawing',
+	    'rnaglib.ged',
+	    'rnaglib.kernels',
+	    'rnaglib.learning',
+	    'rnaglib.utils'
+	    'rnaglib.config'
+	    ]
 
 [tool.setuptools.package-data]
+
 rnaglib = ["data_loading/graph_index_NR.json"]
