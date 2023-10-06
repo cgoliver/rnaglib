@@ -23,10 +23,7 @@ from rnaglib.utils import dump_json
 from rnaglib.utils import get_rna_list
 from rnaglib.utils import update_RNApdb
 
-from rnaglib.prepare_data import cif_to_graph
 from rnaglib.prepare_data import fr3d_to_graph 
-from rnaglib.prepare_data import add_graph_annotations
-from rnaglib.prepare_data import filter_dot_edges, filter_all
 from rnaglib.prepare_data import chop_all
 from rnaglib.prepare_data import annotate_all
 
@@ -112,7 +109,7 @@ def prepare_data_main():
     args = cline()
 
     if args.one_mmcif is not None:
-        cif_to_graph(cif=args.one_mmcif, output_dir=args.output_dir)
+        fr3d_to_graph(args.one_mmcif, args.output_dir)
         return
     else:
         build_dir = dir_setup(args)
@@ -145,11 +142,11 @@ def prepare_data_main():
     # Build Graphs
     total = len(todo)
     logger.info(f">>> Processing {total} RNAs.")
-    errors = Parallel(n_jobs=args.num_workers)(
+    graphs = Parallel(n_jobs=args.num_workers)(
         delayed(fr3d_to_graph)(*t) for t in tqdm(todo, total=total, desc='Building RNA graphs.'))
-    with open(Path(build_dir, "errors.csv"), 'w') as err:
-        for pdbid, error in errors:
-            err.write(f"{pdbid},{error}\n")
+
+    for g in graphs:
+        dump_json(Path(build_dir, 'graphs', G.graph['pdbid'] + '.json'), G)
 
     chop_dir = Path(build_dir, "chops")
     annot_dir = Path(build_dir, "annot")

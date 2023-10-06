@@ -25,6 +25,7 @@ from rnaglib.config import GRAPH_KEYS
 from rnaglib.config import EDGE_MAP_RGLIB
 
 
+logger.remove()
 logger.add(sys.stderr, level='INFO')
 
 def get_rna_chains(mmcif_dict):
@@ -38,9 +39,9 @@ def get_rna_chains(mmcif_dict):
     return cleaned
 
 def nuc_id(raw_label):
-    """ Map a raw barnaba nucleotide ID to a glib format one
+    """ Map a raw fr3d nucleotide ID to a glib format one
 
-    :param raw_label: raw residue label from barnaba
+    :param raw_label: raw residue label from fr3d 
     :param pdbid: pdbid of rna containing of nucleotide
     :returns str: new string with the format <pdbid>.<chain>.<pos>
      """
@@ -76,25 +77,25 @@ def nt_to_rgl(nt):
     pdbid,_, chain, _, pos = nt.split("|")[:5]
     return f"{pdbid.lower()}.{chain}.{pos}"
 
-def fr3d_to_graph(rna_path, output_dir=None, return_graph=False,):
-    """ Use barnaba to generate networkx annotation graph.
+def fr3d_to_graph(rna_path):
+    """ Use fr3d to generate networkx annotation graph.
 
     :param rna_path: path to a PDB of the RNA structure
     :returns nx.Graph: networkx graph with annotations
     """
+    rna_path = Path(rna_path)
     try:
         annot_df = generatePairwiseAnnotation_import(rna_path, category='basepair')
     except Exception as e:
         logger.exception(f"Fr3D error {rna_path}")
-        return None, "Fr3d error"
+        return None
 
     pdbid = rna_path.stem
-    try:
-        rna_chains = get_rna_chains(MMCIF2Dict.MMCIF2Dict(rna_path))
+    try: rna_chains = get_rna_chains(MMCIF2Dict.MMCIF2Dict(rna_path))
         logger.debug(f"RNA chains in {pdbid}: {rna_chains}")
     except KeyError:
         logger.error(f"Couldn't identify RNA chains in {pdbid}")
-        return None, "Chain error"
+        return None
 
 
     # add coords with biopython
@@ -121,7 +122,7 @@ def fr3d_to_graph(rna_path, output_dir=None, return_graph=False,):
         nx.set_node_attributes(G, coord_dict)
     except Exception as e:
         logger.exception(f"Failed to get coordinates for {pdbid}, {e}")
-        return pdbid, "PDB Coordinate error"
+        return None
 
     for pair in annot_df.itertuples():
         # logger.trace(f"{pair.from} {pair.to} {pair.interaction}")
@@ -136,11 +137,7 @@ def fr3d_to_graph(rna_path, output_dir=None, return_graph=False,):
 
     G.graph['pdbid'] = pdbid
     
-    if output_dir is not None:
-        dump_json(os.path.join(output_dir, 'graphs', pdbid + '.json'), G)
-    if return_graph:
-        return pdbid, error_type, G
-    return pdbid, None
+    return G
 
 
 if __name__ == "__main__":
