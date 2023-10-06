@@ -14,6 +14,7 @@ from .graph_utils import dangle_trim
 from .graph_utils import reorder_nodes 
 from .graph_utils import gap_fill
 from .graph_utils import extract_graphlet
+from .graph_utils import bfs 
 
 from .feature_maps import build_node_feature_parser
 from .feature_maps import build_edge_feature_parser
@@ -28,6 +29,7 @@ from .graphlet_hash import Hasher
 __all__ = ['download_graphs',
            'available_pdbids',
            'get_rna_list',
+           'bfs',
            'graph_from_pdbid',
            'load_graph',
            'dump_json',
