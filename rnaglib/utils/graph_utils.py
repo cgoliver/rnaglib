@@ -189,6 +189,7 @@ def bfs(graph, initial_nodes, nc_block=False, depth=2, label='label'):
 
     :return: list of nodes
     """
+    print("hi")
     if isinstance(initial_nodes, list) or isinstance(initial_nodes, set):
         total_nodes = [list(initial_nodes)]
     else:
