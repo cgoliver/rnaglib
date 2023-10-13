@@ -15,7 +15,7 @@ setuptools.setup(
     long_description_content_type="text/markdown",
     url="https://rnaglib.readthedocs.io/en/latest/index.html",
     packages=setuptools.find_packages(),
-    package_data={'rnaglib': ['data_loading/graph_index_NR.json']},
+    package_data={'rnaglib': ['data_loading/graph_index_NR.json', 'config/rna_smiles.txt']},
     # include_package_data=True,
     install_requires=requirements,
     classifiers=[
