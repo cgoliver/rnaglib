@@ -75,7 +75,6 @@ def get_bb(structure, rna_chains, pdbid=''):
 
                 nt_types[f"{pdbid}.{chain.id}.{five_p.id[1]}"] = five_p.get_resname()
                 nt_types[f"{pdbid}.{chain.id}.{three_p.id[1]}"] = three_p.get_resname()
-    print(bb)
     return bb, nt_types
 
 def nt_to_rgl(nt, pdbid):
