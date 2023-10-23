@@ -78,8 +78,8 @@ def get_bb(structure, rna_chains, pdbid=''):
     print(bb)
     return bb, nt_types
 
-def nt_to_rgl(nt):
-    pdbid,_, chain, _, pos = nt.split("|")[:5]
+def nt_to_rgl(nt, pdbid):
+    _,_, chain, _, pos = nt.split("|")[:5]
     return f"{pdbid.lower()}.{chain}.{pos}"
 
 def fr3d_to_graph(rna_path):
