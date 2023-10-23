@@ -138,8 +138,8 @@ def fr3d_to_graph(rna_path):
         elabel_flip = elabel[0] + elabel[2]  + elabel[1]
         if elabel not in EDGE_MAP_RGLIB:
             continue
-        nt1 = nt_to_rgl(pair.source) 
-        nt2 = nt_to_rgl(pair.target) 
+        nt1 = nt_to_rgl(pair.source, pdbid) 
+        nt2 = nt_to_rgl(pair.target, pdbid) 
         G.add_edge(nt1,nt2 , LW=elabel)
         G.add_edge(nt2, nt1, LW=elabel_flip)
 
