@@ -70,7 +70,7 @@ To build 2.5D graphs from scratch locally, for the moment you need to install a 
 
 ```
 pip install git+https://github.com/cgoliver/fr3d-python.git
-``
+```
 
 
 ## Associated Repositories:
