@@ -55,7 +55,7 @@ def pretrain_unsupervised(model,
             graph = learning_utils.send_graph_to_device(graph, device)
 
             # Do the computations for the forward pass
-            out = model(graph)
+            graph, out = model(graph)
             loss = learning_utils.rec_loss(embeddings=out,
                                            target_K=K,
                                            graph=graph,

@@ -7,7 +7,7 @@ requirements = open("requirements.txt", "r").readlines()
 
 setuptools.setup(
     name="rnaglib",
-    version="2.0.0",
+    version="2.0.1",
     author="Vincent Mallet, Carlos Oliver, Jonathan Broadbent, William L. Hamilton and Jérome Waldispuhl",
     author_email="vincent.mallet96@gmail.com",
     description="RNAglib: Tools for learning on the structure of RNA using 2.5D geometric representations",
