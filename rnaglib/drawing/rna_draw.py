@@ -77,6 +77,7 @@ def process_axis(axis,
         nt_color = []
         for node, d in g.nodes(data=True):
             try:
+                #nt_color.append(NT_COLORS[d['nt_code']])
                 nt_color.append(NT_COLORS[d['nt_code']])
             except:
                 nt_color.append('grey')
