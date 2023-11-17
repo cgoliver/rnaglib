@@ -18,7 +18,7 @@ We use our Embedder object along with the nucleotide ID as features.
 This is passed to an edge loader and a base pair predictor model.
 """
 
-if __name__ == "__main__":
+def main():
     # Get loader for link prediction,
     # use nucleotide identity as input features and base our fixed train/test split
     # on the binding protein one for reproducibility
