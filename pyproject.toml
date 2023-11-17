@@ -1,0 +1,60 @@
+[project]
+
+name="rnaglib"
+readme = "README.md"
+version="2.0.1"
+authors=[{name="Vincent Mallet", email="vincentx15@gmail.com"}, 
+	 {name="Carlos Oliver", email="oliver@biochem.mpg.de"},
+	 {name="Jonathan Broadbent", email="jonathan.broadbent@mail.utoronto.ca"},
+	 {name="William L. Hamilton", email="wlh@cs.mcgill.ca"},
+	 {name="Jérome Waldispuhl", email="jeromew@cs.mcgill.ca"}
+	]
+keywords = ["RNA", "3D", "graph neural network"]
+description="RNAglib: Tools for learning on the structure of RNA using 2.5D geometric representations"
+
+dependencies = ['joblib',
+	    'requests',
+	    'torch',
+	    'networkx',
+	    'numpy',
+	    'seaborn',
+	    'scikit-learn',
+	    'tqdm',
+	    'biopython',
+	    'mdtraj',
+	    'loguru',
+	    'fr3d @ git+https://github.com/cgoliver/fr3d-python.git'
+	    ]
+
+requires-python = ">=3.7"
+license = {text = "MIT License"}
+
+[project.urls]
+"Documentation" = "https://rnaglib.readthedocs.io/en/latest/index.html"
+"GitHub" = "https://github.com/cgoliver/rnaglib"
+
+[project.scripts]
+
+rnaglib_first='rnaglib.examples.rnaglib_first:main'
+rnaglib_second='rnaglib.examples.rnaglib_second:main'
+rnaglib_prepare_data='rnaglib.bin.rnaglib_prepare_data:main'
+rnaglib_tokenize='rnaglib.bin.rnaglib_tokenize:main'
+rnaglib_download='rnaglib.bin.rnaglib_download:main'
+
+[tool.setuptools]
+
+packages = ['rnaglib', 
+	    'rnaglib.prepare_data', 
+            'rnaglib.data_loading', 
+            'rnaglib.representations',
+	    'rnaglib.drawing',
+	    'rnaglib.ged',
+	    'rnaglib.kernels',
+	    'rnaglib.learning',
+	    'rnaglib.utils',
+	    'rnaglib.config'
+	    ]
+
+[tool.setuptools.package-data]
+
+rnaglib = ["data_loading/graph_index_NR.json"]
