@@ -13,7 +13,7 @@ from the nucleotide types and the graph structure
 To do so, we choose our data, create a data loader around it, build a RGCN model and train it.
 """
 
-if __name__ == "__main__":
+def main():
     # Choose the data, features and targets to use and GET THE DATA GOING
     node_features = ['nt_code']
     node_target = ['binding_protein']

@@ -12,7 +12,7 @@ small molecules binding from the nucleotide types and the graph structure
 We also add a pretraining phase based on the R_graphlets kernel
 """
 
-if __name__ == "__main__":
+def main():
     # Choose the data, features and targets to use
     node_features = ['nt_code']
     node_target = ['binding_protein']
