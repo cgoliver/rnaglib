@@ -64,6 +64,14 @@ pip install rnaglib
 
 Then one can start using the packages functionalities by importing them in one's python script.
 
+### Optional Dependencies
+
+To build 2.5D graphs from scratch locally, for the moment you need to install a fork of `fr3d-python` manually.
+
+```
+pip install git+https://github.com/cgoliver/fr3d-python.git
+``
+
 
 ## Associated Repositories:
 
