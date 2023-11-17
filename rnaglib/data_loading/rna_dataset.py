@@ -19,7 +19,7 @@ class RNADataset:
     """
 
     def __init__(self,
-                 data_path=None,
+                 graphs_path=None,
                  version='1.0.0',
                  download_dir=None,
                  redundancy='nr',
@@ -37,7 +37,7 @@ class RNADataset:
 
 
         :param representations: List of `rnaglib.Representation` objects to apply to each item.
-        :param data_path: The path to the folder containing the graphs. If node_sim is not None, this data should be annotated
+        :param graphs_path: The path to the folder containing the graphs. If node_sim is not None, this data should be annotated
         :param version: Version of the dataset to use (default='0.0.0')
         :param redundancy: To use all graphs or just the non redundant set.
         :param all_graphs: In the given directory, one can choose to provide a list of graphs to use
@@ -49,20 +49,20 @@ class RNADataset:
         # the node_sim function.
         # Then if a download occurs and no hashing was provided to the loader, the hashing used is the one
         # fetched by the downloading process to ensure it matches the data we iterate over.
-        self.data_path = data_path
         self.representations = representations
-        if data_path is None:
-            self.data_path = download_graphs(redundancy=redundancy,
+        self.graphs_path = graphs_path
+        if graphs_path is None:
+            data_path = download_graphs(redundancy=redundancy,
                                              version=version,
                                              annotated=annotated,
                                              data_root=download_dir,
                                              )
 
-            self.data_path = os.path.join(self.data_path, 'graphs')
+            self.graphs_path = os.path.join(data_path, 'graphs')
         if all_graphs is not None:
             self.all_graphs = all_graphs
         else:
-            self.all_graphs = sorted(os.listdir(self.data_path))
+            self.all_graphs = sorted(os.listdir(self.graphs_path))
 
         self.rna_features = rna_features
         self.rna_targets = rna_targets
