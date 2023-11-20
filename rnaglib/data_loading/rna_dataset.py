@@ -50,6 +50,7 @@ class RNADataset:
         # Then if a download occurs and no hashing was provided to the loader, the hashing used is the one
         # fetched by the downloading process to ensure it matches the data we iterate over.
         self.representations = representations
+        self.data_path = data_path
 
         if data_path is None:
             self.data_path = download_graphs(redundancy=redundancy,
