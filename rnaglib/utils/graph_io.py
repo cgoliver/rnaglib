@@ -163,7 +163,7 @@ def download_name_generator(
                             version='1.0.0',
                             redundancy='nr',
                             annotated=False,
-                            record='1168342'
+                            record='7624873'
                             ):
     """
     This returns the zenodo URL given dataset choices. 
@@ -177,11 +177,14 @@ def download_name_generator(
     # Generic name
 
     # Find remote url and get download link
-    # url = f'http://rnaglib.cs.mcgill.ca/static/datasets/{version}/{tarball_name}.tar.gz'
+    # full = https://zenodo.org/records/7624873/files/rnaglib-all-1.0.0.tar.gz?download=1
     if annotated:
-        return f"https://sandbox.zenodo.org/record/{record}/files/rnaglib-{redundancy}-{version}-annotated.tar.gz?download=1"
+        if version == '1.0.0': 
+            print("Annotated version for v 1.0.0 not available. Try a higher version")
+            return None
+        return f"https://zenodo.org/records/{record}/files/rnaglib-{redundancy}-{version}-annotated.tar.gz?download=1"
     else:
-        return f"https://sandbox.zenodo.org/record/{record}/files/rnaglib-{redundancy}-{version}.tar.gz?download=1"
+        return f"https://zenodo.org/records/{record}/files/rnaglib-{redundancy}-{version}.tar.gz?download=1"
 
 
 def download_graphs(redundancy='nr',
