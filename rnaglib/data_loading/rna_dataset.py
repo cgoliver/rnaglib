@@ -59,7 +59,7 @@ class RNADataset:
                                              data_root=download_dir,
                                              )
 
-            self.graphs_path = os.path.join(self.data_path, 'graphs')
+            self.data_path = os.path.join(self.data_path, 'graphs')
         if all_graphs is not None:
             self.all_graphs = all_graphs
         else:
