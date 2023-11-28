@@ -31,10 +31,10 @@ To create a dataset using our hosted data simply instantiate the `RNADataset` ob
    dataset = RNADataset()
 
 
-Different datasets can be specified using the following options:
+Different datasets can be specified using the following options in the `RNADataset()` parameters:
 
 * `version='x.x.x'`: which data build to load
-* `nr=False`: by default, we only load non-redundant structures, if you want all structures in the PDB, set this flag to `False`
+* `redundancy`: by default, we only load non-redundant structures `redundancy='nr'` you can also pass `redundancy='all'` to get all RNAs.
 * `all_graphs`: a specific list of pdb ids to iterate through
 
 Datasets can be indexed like a list or you can inspect an individual RNA by its PDBID.
