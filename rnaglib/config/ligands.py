@@ -1,7 +1,7 @@
 import os
-import importlib 
+from importlib import resources
 
-pkg = importlib.resources.files("rnaglib")
+pkg = resources.files("rnaglib")
 smiles_file = pkg / "config" / "rna_smiles.txt"
 
 script_dir = os.path.dirname(os.path.realpath(__file__))
