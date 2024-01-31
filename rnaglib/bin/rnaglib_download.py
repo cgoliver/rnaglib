@@ -23,12 +23,14 @@ def main():
     parser.add_argument("-a", "--annotated", default=False, action='store_true', help="To include graphlets annotations in "
                                                                                       "the graphs for kernel computations.")
     parser.add_argument("-o", "--overwrite", default=False, action='store_true', help='To overwrite existing data.')
+    parser.add_argument("-vs", "--version", default='1.0.0', type=str, help='Which data release to fetch.')
     parser.add_argument("-dl", "--download_dir", default=None, type=str, help='Where to store the downloaded data.')
     args, _ = parser.parse_known_args()
 
     graph_io.download_graphs(redundancy=args.redundancy,
                              chop=args.chop,
                              annotated=args.annotated,
+                             version=args.version,
                              overwrite=args.overwrite,
                              data_root=args.download_dir,
                              verbose=True)
