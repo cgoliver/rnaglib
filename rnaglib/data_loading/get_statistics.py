@@ -58,6 +58,10 @@ def process_graph_dict(dict_to_flatten, prepend=None, counter=False, possible_su
                             hashable_value = True
                         else:
                             hashable_value = inner_value
+                        # PATCH until next release we replace small mol list with tuple
+                        if inner_key == 'node_binding_small-molecule' or inner_key == 'node_binding_ion':
+                            hashable_value = hashable_value[0]
+
                         return_dict[inner_key][hashable_value] += 1
 
                 else:
