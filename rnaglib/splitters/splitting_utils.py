@@ -115,10 +115,7 @@ def random_split(dataset, split_train=0.7, split_valid=0.85, seed=0):
                                                                          split_valid=split_valid,
                                                                          seed=seed)
 
-    train_set = Subset(dataset, train_indices)
-    valid_set = Subset(dataset, valid_indices)
-    test_set = Subset(dataset, test_indices)
-    return train_set, valid_set, test_set
+    return train_indices, valid_indices, test_indices
 
 
 def split_list_in_fractions(list_to_split, split_train=0.7, split_valid=0.85, seed=0):
