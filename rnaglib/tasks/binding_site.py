@@ -11,6 +11,4 @@ class BindingSiteDetection(ResidueClassificationTask):
 
     def build_dataset(self, root):
         dataset = RNADataset()
-        for rna in dataset:
-            print(rna['rna'])
-        pass
+        return dataset

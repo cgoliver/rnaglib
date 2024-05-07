@@ -100,6 +100,9 @@ class RNADataset:
             rna_dict[rep.name] = rep(rna_graph, features_dict)
         return rna_dict
 
+    def to_list(self):
+        return [self[i] for i in range(len(self))]
+
     def add_representation(self, representation):
         self.representations.append(representation)
 

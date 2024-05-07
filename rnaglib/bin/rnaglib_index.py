@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+!/usr/bin/env python3
 
 import os
 import sys
@@ -33,7 +33,6 @@ def main():
     except FileExistsError:
         pass
 
-    print(index.keys())
     with open(f"{args.rnaglib_root}/indexes/rnaglib-{args.redundancy}-{args.version}.json", "w") as js:
         json.dump(index, js)
     pass
