@@ -15,9 +15,14 @@ from collections import defaultdict, Counter
 from rnaglib.utils import load_json
 
 pkg = importlib.resources.files("rnaglib")
-index_file = pkg / "data_loading" / "graph_index_NR.json"
-with importlib.resources.as_file(index_file) as path:
-    DEFAULT_INDEX = pickle.load(open(path, 'rb'))
+#index_file = pkg / "data_loading" / "graph_index_NR.json"
+index_file = f"{os.path.expanduser('~')}/.rnaglib/indexes/rnaglib-nr-1.0.0.json"
+
+with open(index_file, 'r') as indx:
+    DEFAULT_INDEX = json.load(indx)
+
+#with importlib.resources.as_file(index_file) as path:
+#    DEFAULT_INDEX = pickle.load(open(path, 'rb'))
 
 # script_dir = os.path.dirname(os.path.realpath(__file__))
 # DEFAULT_INDEX = pickle.load(open(os.path.join(script_dir, "graph_index_NR.json"), 'rb'))
