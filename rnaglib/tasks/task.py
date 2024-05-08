@@ -73,7 +73,7 @@ class Task:
         h = hashlib.new('sha256')
         for rna in self.dataset.to_list():
             h.update(rna['rna_name'].encode("utf-8"))
-            for nt in rna['rna'].nodes():
+            for nt in sorted(rna['rna'].nodes()):
                 h.update(nt.encode("utf-8"))
         [h.update(str(i).encode("utf-8")) for i in self.train_ind]
         [h.update(str(i).encode("utf-8")) for i in self.val_ind]
