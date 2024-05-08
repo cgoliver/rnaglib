@@ -56,7 +56,10 @@ class Task:
             print(">>> Loading dataset")
             with open(os.path.join(root, "dataset.txt"), 'r') as ds:
                 all_graphs = [g.strip() for g in ds.readlines()]
-            return RNADataset(all_graphs=all_graphs)
+            return RNADataset(all_graphs=all_graphs,
+                              nt_targets=[self.target_var],
+                              nt_features=[self.input_var],
+                              )
         else:
             print(">>> Building dataset")
             return self.build_dataset()
