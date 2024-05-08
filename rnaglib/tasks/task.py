@@ -77,6 +77,7 @@ class Task:
                 h.update(nt.encode("utf-8"))
         [h.update(str(i).encode("utf-8")) for i in self.train_ind]
         [h.update(str(i).encode("utf-8")) for i in self.val_ind]
+        [h.update(str(i).encode("utf-8")) for i in self.test_ind]
         return h.hexdigest()
 
     def __eq__(self, other):
