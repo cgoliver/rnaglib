@@ -24,7 +24,7 @@ class RNADataset:
                  download_dir=None,
                  redundancy='nr',
                  all_graphs=None,
-                 representations=(),
+                 representations=None,
                  rna_features=None,
                  nt_features=None,
                  bp_features=None,
@@ -49,7 +49,11 @@ class RNADataset:
         # the node_sim function.
         # Then if a download occurs and no hashing was provided to the loader, the hashing used is the one
         # fetched by the downloading process to ensure it matches the data we iterate over.
-        self.representations = representations
+        if representations is None:
+            self.representations = []
+        else:
+            self.representations = representations
+
         self.data_path = data_path
 
         if data_path is None:
