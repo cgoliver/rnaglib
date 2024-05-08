@@ -67,7 +67,6 @@ class Task:
     def build_dataset(self, root):
         raise NotImplementedError
 
-
     @cached_property
     def task_id(self):
         """ Task hash is a hash of all RNA ids and node IDs in the dataset"""
@@ -86,6 +85,12 @@ class Task:
 class ResidueClassificationTask(Task):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+
+    def evaluate(self, test_predictions):
+        from sklearn.metrics import matthews_corrcoef
+        true = [matthews_corrcoef(test_predictions[i], self.dataset[idx]['graph']['y']) \
+                for i,idx in enumerate(self.test_ind)]
+        return {'mcc': sum(true) / len(true)}
     pass
 
 class RNAClassificationTask(Task):
