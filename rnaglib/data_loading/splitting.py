@@ -1,10 +1,11 @@
 from collections import defaultdict
 import random
 
-from rnaglib.data_loading import DEFAULT_INDEX
+from rnaglib.utils import load_index
 
+graph_index = load_index()
 
-def get_multitask_split(node_targets, graph_index=DEFAULT_INDEX, fractions=(0.15, 0.15)):
+def get_multitask_split(node_targets, graph_index=graph_index, fractions=(0.15, 0.15)):
     """
     :param node_targets: A subset of {'binding_protein', 'binding_small-molecule', 'is_modified', 'binding_ion'}
     :param graph_index: should be the opened output of the previous function a dict of dict of dict.
@@ -63,7 +64,7 @@ def get_multitask_split(node_targets, graph_index=DEFAULT_INDEX, fractions=(0.15
     return all_splits
 
 
-def get_single_task_split(node_target, graph_index=DEFAULT_INDEX, split_train=0.7, split_valid=0.85):
+def get_single_task_split(node_target, graph_index=graph_index, split_train=0.7, split_valid=0.85):
     all_list = []
     for graph, graph_attrs in graph_index.items():
         if node_target in graph_attrs:

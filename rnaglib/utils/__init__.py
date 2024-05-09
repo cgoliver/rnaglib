@@ -22,6 +22,7 @@ from .feature_maps import EDGE_FEATURE_MAP
 from .feature_maps import NODE_FEATURE_MAP
 
 from .misc import listdir_fullpath
+from .misc import load_index
 
 from .graphlet_hash import build_hash_table
 from .graphlet_hash import Hasher
@@ -47,7 +48,8 @@ __all__ = ['download_graphs',
            'NODE_FEATURE_MAP'
            'listdir_fullpath',
            'build_hash_table',
-           'Hasher'
+           'Hasher',
+           'load_index'
            ]
 
 classes = __all__
