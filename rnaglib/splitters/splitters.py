@@ -22,3 +22,14 @@ class RandomSplitter(Splitter):
                             seed=self.seed
                             )
 
+class BenchmarkBindingSiteSplitter(Splitter):
+    def __init__(self, train_pdbs, val_pdbs, test_pdbs, seed=0,  *args, **kwargs):
+        super().__init__(**kwargs)
+        self.seed = seed
+        self.train_pdbs = train_pdbs 
+        self.val_pdbs =  val_pdbs
+        self.test_pdbs = test_pdbs
+        pass
+
+    def __call__(self, dataset):
+        return dataset.subset(self.train_pdbs), dataset.subset(self.val_pdbs), dataset.subset(self.test_pdbs)
