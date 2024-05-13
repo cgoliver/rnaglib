@@ -6,8 +6,10 @@ from functools import cached_property
 from rnaglib.data_loading import RNADataset
 
 class Task:
-    def __init__(self, root, splitter=None):
+    def __init__(self, root, recompute=False, splitter=None):
         self.root = root
+        self.recompute = recompute
+
         if splitter is None:
             self.splitter = self.default_splitter()
         else:
@@ -36,7 +38,7 @@ class Task:
 
     def split(self):
         """ Sets train, val, and test indices"""
-        if not os.path.exists(os.path.join(self.root, "train_idx.txt")):
+        if not os.path.exists(os.path.join(self.root, "train_idx.txt")) or self.recompute:
             print(">>> Computing splits...")
             train_ind, val_ind, test_ind = self.splitter(self.dataset)
         else:
@@ -52,7 +54,7 @@ class Task:
     
     def _build_dataset(self, root):
         # check if dataset exists and load
-        if os.path.exists(os.path.join(self.root, "dataset.txt")):
+        if os.path.exists(os.path.join(self.root, "dataset.txt")) or self.recompute:
             print(">>> Loading dataset")
             with open(os.path.join(root, "dataset.txt"), 'r') as ds:
                 all_graphs = [g.strip() for g in ds.readlines()]

@@ -8,6 +8,7 @@ import networkx as nx
 from rnaglib.utils import build_node_feature_parser
 from rnaglib.utils import download_graphs
 from rnaglib.utils import load_graph
+from rnaglib.utils import dump_json
 
 
 class RNADataset:
@@ -19,7 +20,8 @@ class RNADataset:
     """
 
     def __init__(self,
-                 data_path=None,
+                 db_path=None,
+                 saved_dataset=None,
                  version='1.0.0',
                  download_dir=None,
                  redundancy='nr',
@@ -32,15 +34,21 @@ class RNADataset:
                  nt_targets=None,
                  bp_targets=None,
                  annotated=False,
-                 verbose=False):
+                 verbose=False,
+                 annotator=None,
+                 nt_filter=None,
+                 rna_filter=None):
         """
 
 
         :param representations: List of `rnaglib.Representation` objects to apply to each item.
-        :param data_path: The path to the folder containing the graphs. If node_sim is not None, this data should be annotated
+        :param db_path: The path to the folder containing the graphs. If node_sim is not None, this data should be annotated
+        :param saved_dataset: Path to an already saved dataset, skips dataset creation if loaded.
         :param version: Version of the dataset to use (default='0.0.0')
         :param redundancy: To use all graphs or just the non redundant set.
         :param all_graphs: In the given directory, one can choose to provide a list of graphs to use
+        :param rna_filter: Callable which accepts an RNA dictionary and returns a new RNA dictionary with fewer nodes.
+        :param annotator: Callable which takes as input an RNA dictionary and adds new key-value pairs.
 
         """
 
@@ -54,20 +62,19 @@ class RNADataset:
         else:
             self.representations = representations
 
-        self.data_path = data_path
+        self.db_path = db_path
+        self.saved_dataset = saved_dataset
 
-        if data_path is None:
-            self.data_path = download_graphs(redundancy=redundancy,
+        if db_path is None:
+            self.db_path = download_graphs(redundancy=redundancy,
                                              version=version,
                                              annotated=annotated,
                                              data_root=download_dir,
                                              )
 
-            self.data_path = os.path.join(self.data_path, 'graphs')
-        if all_graphs is not None:
-            self.all_graphs = all_graphs
-        else:
-            self.all_graphs = sorted(os.listdir(self.data_path))
+            self.db_path = os.path.join(self.db_path, 'graphs')
+
+        self.all_graphs = sorted(os.listdir(self.db_path))
 
         self.rna_features = rna_features
         self.rna_targets = rna_targets
@@ -84,15 +91,58 @@ class RNADataset:
 
         self.available_pdbids = [g.split(".")[0].lower() for g in self.all_graphs]
 
+        if rna_filter is None:
+            self.rna_filter = lambda x: True
+        else:
+            self.rna_filter = rna_filter
+
+        self.nt_filter = nt_filter
+
+        self.annotator = annotator
+
+        self.rnas = self._build_dataset()
+
     def __len__(self):
-        return len(self.all_graphs)
+        return len(self.rnas)
+
+    def _build_dataset(self):
+        if not self.saved_dataset is None:
+            self.rnas = [load_graph(os.path.join(self.saved_dataset, g_name))\
+                         for g_name in os.listdir(self.saved_dataset)]
+        else:
+            self.rnas = self.build_dataset()
+        pass
+
+    def build_dataset(self):
+        """ Iterates through database, applying filters and annotations"""
+        graph_list = []
+        for graph_name in self.all_graphs:
+            g_path = os.path.join(self.db_path, graph_name)
+            g = load_graph(g_path)
+
+            if not self.rna_filter(g):
+                continue
+            if not self.nt_filter is None:
+                g = g.subgraph(filter(self.nt_filter, g.nodes())).copy()
+            if not self.annotator is None:
+                self.annotator(g)
+            graph_list.append(g)
+
+        return graph_list
+
+    def save(self, dump_path):
+        """ Save a local copy of the dataset"""
+        for i, rna in enumerate(self.rnas):
+            dump_json(os.path.join(dump_path, f"{i}.json"), rna)
+        pass
+
 
     def __getitem__(self, idx):
         """ Fetches one RNA and converts it from raw data to a dictionary
         with representations and annotations to be used by loaders """
 
-        g_path = os.path.join(self.data_path, self.all_graphs[idx])
-        rna_graph = load_graph(g_path)
+        rna_graph = self.rnas[idx]
+
         rna_dict = {'rna_name': self.all_graphs[idx],
                     'rna': rna_graph,
                     'path': g_path
@@ -104,7 +154,7 @@ class RNADataset:
             rna_dict[rep.name] = rep(rna_graph, features_dict)
         return rna_dict
 
-    def to_list(self):
+    def select(self):
         return [self[i] for i in range(len(self))]
 
     def add_representation(self, representation):
