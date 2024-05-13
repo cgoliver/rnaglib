@@ -22,9 +22,10 @@ class BindingSiteDetection(ResidueClassificationTask):
             if "node_" + self.target_var in graph_attrs:
                 rnas_keep.append(graph)
 
+
         dataset = RNADataset(nt_targets=[self.target_var],
                              nt_features=[self.input_var],
-                             all_graphs=rnas_keep
+                             rna_filter=lambda x: x['rna']['rna_name'] in rnas_keep
                              )
 
         return dataset
