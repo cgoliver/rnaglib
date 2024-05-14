@@ -59,6 +59,8 @@ class Task:
     
     def _build_dataset(self, root):
         # check if dataset exists and load
+        if os.path.exists(os.path.join(self.root, 'graphs')):
+            return RNADataset(saved_dataset=os.path.join(self.root, 'graphs'))
         return self.build_dataset()
 
     def build_dataset(self, root):
