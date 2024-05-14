@@ -24,8 +24,13 @@ class Task:
         pass
 
     def write(self):
-        with open(os.path.join(self.root, 'dataset.txt'), 'w') as ds:
-            [ds.write("\n".join([rna['rna_name'] for rna in self.dataset.to_list()]))]
+        try:
+            os.mkdir(os.path.join(self.root, 'graphs'))
+        except FileExistsError:
+             pass
+
+        with open(os.path.join(self.root, 'graphs'), 'w') as ds:
+            self.dataset.save(os.path.join(self.root, 'graphs'))
         with open(os.path.join(self.root, 'train_idx.txt'), 'w') as idx:
             [idx.write(str(ind) + "\n") for ind in self.train_ind]
         with open(os.path.join(self.root, 'val_idx.txt'), 'w') as idx:
@@ -54,17 +59,7 @@ class Task:
     
     def _build_dataset(self, root):
         # check if dataset exists and load
-        if os.path.exists(os.path.join(self.root, "dataset.txt")) or self.recompute:
-            print(">>> Loading dataset")
-            with open(os.path.join(root, "dataset.txt"), 'r') as ds:
-                all_graphs = [g.strip() for g in ds.readlines()]
-            return RNADataset(all_graphs=all_graphs,
-                              nt_targets=[self.target_var],
-                              nt_features=[self.input_var],
-                              )
-        else:
-            print(">>> Building dataset")
-            return self.build_dataset()
+        return self.build_dataset()
 
     def build_dataset(self, root):
         raise NotImplementedError
