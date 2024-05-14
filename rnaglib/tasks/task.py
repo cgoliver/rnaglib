@@ -18,19 +18,23 @@ class Task:
         self.dataset = self._build_dataset(root)
         self.split()
 
-        if not os.path.exists(root):
-            os.mkdir(root)
+        if not os.path.exists(root) or recompute:
+            try:
+                os.mkdir(root)
+            except FileExistsError:
+                pass
             self.write()
         pass
 
     def write(self):
+        print(">>> Saving dataset.")
         try:
             os.mkdir(os.path.join(self.root, 'graphs'))
         except FileExistsError:
              pass
+        print("saving")
+        self.dataset.save(os.path.join(self.root, 'graphs'))
 
-        with open(os.path.join(self.root, 'graphs'), 'w') as ds:
-            self.dataset.save(os.path.join(self.root, 'graphs'))
         with open(os.path.join(self.root, 'train_idx.txt'), 'w') as idx:
             [idx.write(str(ind) + "\n") for ind in self.train_ind]
         with open(os.path.join(self.root, 'val_idx.txt'), 'w') as idx:
@@ -59,7 +63,7 @@ class Task:
     
     def _build_dataset(self, root):
         # check if dataset exists and load
-        if os.path.exists(os.path.join(self.root, 'graphs')):
+        if os.path.exists(os.path.join(self.root, 'graphs')) and not self.recompute:
             return RNADataset(saved_dataset=os.path.join(self.root, 'graphs'))
         return self.build_dataset()
 
@@ -70,9 +74,9 @@ class Task:
     def task_id(self):
         """ Task hash is a hash of all RNA ids and node IDs in the dataset"""
         h = hashlib.new('sha256')
-        for rna in self.dataset.to_list():
-            h.update(rna['rna_name'].encode("utf-8"))
-            for nt in sorted(rna['rna'].nodes()):
+        for rna in self.dataset.rnas:
+            h.update(rna.graph['pdbid'][0].encode("utf-8"))
+            for nt in sorted(rna.nodes()):
                 h.update(nt.encode("utf-8"))
         [h.update(str(i).encode("utf-8")) for i in self.train_ind]
         [h.update(str(i).encode("utf-8")) for i in self.val_ind]
