@@ -123,12 +123,16 @@ class RNADataset:
             if not self.rna_filter(g):
                 continue
             if not self.nt_filter is None:
-                g = g.subgraph(filter(self.nt_filter, g.nodes())).copy()
+                subgs = []
+                for subg in self.nt_filter(g):
+                    subgs.append(subgs)
+            else:
+                subgs = [g]
             if not self.annotator is None:
-                self.annotator(g)
-            graph_list.append(g)
+                for subg in subgs:
+                    self.annotator(subg)
+            graph_list.extend(subgs)
 
-        print(graph_list)
         return graph_list
 
     def save(self, dump_path):
