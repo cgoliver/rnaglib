@@ -107,10 +107,10 @@ class RNADataset:
 
     def _build_dataset(self):
         if not self.saved_dataset is None:
-            self.rnas = [load_graph(os.path.join(self.saved_dataset, g_name))\
+            return  [load_graph(os.path.join(self.saved_dataset, g_name))\
                          for g_name in os.listdir(self.saved_dataset)]
         else:
-            self.rnas = self.build_dataset()
+            return self.build_dataset()
         pass
 
     def build_dataset(self):
@@ -128,6 +128,7 @@ class RNADataset:
                 self.annotator(g)
             graph_list.append(g)
 
+        print(graph_list)
         return graph_list
 
     def save(self, dump_path):
@@ -141,11 +142,11 @@ class RNADataset:
         """ Fetches one RNA and converts it from raw data to a dictionary
         with representations and annotations to be used by loaders """
 
+        print(self.rnas)
         rna_graph = self.rnas[idx]
 
-        rna_dict = {'rna_name': self.all_graphs[idx],
-                    'rna': rna_graph,
-                    'path': g_path
+        rna_dict = {
+                    'rna': rna_graph
                     }
         features_dict = self.compute_features(rna_dict)
         # apply representations to the res_dict
