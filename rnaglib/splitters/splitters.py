@@ -28,8 +28,8 @@ class BenchmarkBindingSiteSplitter(Splitter):
         self.seed = seed
         self.train_pdbs = train_pdbs 
         self.val_pdbs =  val_pdbs
-        self.test_pdbs = test_pdbs
+        self.test_pdbs = test_pdbs        
         pass
 
     def __call__(self, dataset):
-        return dataset.subset(self.train_pdbs), dataset.subset(self.val_pdbs), dataset.subset(self.test_pdbs)
+        return self.train_pdbs, self.val_pdbs, self.test_pdbs
