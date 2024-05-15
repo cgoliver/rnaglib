@@ -73,9 +73,12 @@ class RNADataset:
                                              )
 
             self.db_path = os.path.join(self.db_path, 'graphs')
-
-        self.all_graphs = sorted(os.listdir(self.db_path))
-
+        
+        if all_graphs is None:
+            self.all_graphs = sorted(os.listdir(self.db_path))
+        else:
+            self.all_graphs = all_graphs
+ 
         self.rna_features = rna_features
         self.rna_targets = rna_targets
         self.nt_features = nt_features
@@ -124,15 +127,15 @@ class RNADataset:
                 continue
             if not self.nt_filter is None:
                 subgs = []
+
                 for subg in self.nt_filter(g):
-                    subgs.append(subgs)
+                    subgs.append(subg)
             else:
                 subgs = [g]
             if not self.annotator is None:
                 for subg in subgs:
                     self.annotator(subg)
             graph_list.extend(subgs)
-
         return graph_list
 
     def save(self, dump_path):
@@ -146,7 +149,6 @@ class RNADataset:
         """ Fetches one RNA and converts it from raw data to a dictionary
         with representations and annotations to be used by loaders """
 
-        print(self.rnas)
         rna_graph = self.rnas[idx]
 
         rna_dict = {
