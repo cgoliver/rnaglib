@@ -38,16 +38,15 @@ class BenchmarkLigandBindingSiteDetection(ResidueClassificationTask):
             wrong_chain_nodes = [node for node in list(x) if chain not in node]
             subgraph = x.copy()
             subgraph.remove_nodes_from(wrong_chain_nodes)
-            subgraphs.append(subgraph)
-        return subgraphs
-    
+            yield subgraph
+
     def _annotator(self, x):
         binding_sites = {
         node: (not (nodedata.get("binding_small-molecule", None) is None and nodedata.get("binding_ion",None) is None))
         for node, nodedata in x.nodes.items()
         }
         set_node_attributes(x, binding_sites, 'binding_site')
-        return(x)  
+        return x  
 
     
     def build_dataset(self):
@@ -55,8 +54,8 @@ class BenchmarkLigandBindingSiteDetection(ResidueClassificationTask):
         dataset = RNADataset(nt_targets=[self.target_var],
                             nt_features=[self.input_var],
                             rna_filter=lambda x: x.graph['pdbid'][0].lower() in [name[:-1] for name in self.rnaskeep],
-                            nt_filter=lambda x: self._nt_filter(x),
-                            annotator=lambda x: self._annotator(x),
+                            nt_filter=self._nt_filter,
+                            annotator=self._annotator,
                             redundancy='all',
                             all_graphs=[name[:-1] + '.json' for name in self.rnaskeep] #for increased loading speed
                             )
