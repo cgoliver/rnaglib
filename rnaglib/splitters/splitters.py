@@ -32,4 +32,8 @@ class BenchmarkBindingSiteSplitter(Splitter):
         pass
 
     def __call__(self, dataset):
-        return self.train_pdbs, self.val_pdbs, self.test_pdbs
+        dataset_map = {value['rna'].graph['pdbid'][0].lower() + '.json': idx for idx, value in enumerate(dataset)}
+        train_ind = [dataset_map[item] for item in self.train_pdbs if item in dataset_map]
+        val_ind = [dataset_map[item] for item in self.val_pdbs if item in dataset_map]
+        test_ind = [dataset_map[item] for item in self.test_pdbs if item in dataset_map]
+        return train_ind, val_ind, test_ind
