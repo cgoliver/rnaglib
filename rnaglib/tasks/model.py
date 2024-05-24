@@ -5,7 +5,7 @@ from rnaglib.representations import GraphRepresentation
 import torch
 from torch_geometric.loader import DataLoader
 import torch.nn.functional as F
-from torch_geometric.nn import GCNConv, GraphConv, SAGEConv
+from torch_geometric.nn import GCNConv, GraphConv, SAGEConv, RGCNConv
 import torch.optim as optim
 import wandb
 from collections import Counter
@@ -118,27 +118,27 @@ wandb.init(project="gcn-node-classification", config={
 })
 
 class GCN(torch.nn.Module):
-    def __init__(self, num_node_features, num_classes):
+    def __init__(self, num_node_features, num_classes, num_unique_edge_attrs):
         super(GCN, self).__init__()
-        self.conv1 = GraphConv(num_node_features, 16)
+        self.conv1 = RGCNConv(num_node_features, 16, num_unique_edge_attrs)
         #self.conv2 = GCNConv(16, 32) 
         #self.conv3 = GCNConv(32, 16) 
-        self.conv4 = GraphConv(16, num_classes)
+        self.conv4 = RGCNConv(16, num_classes, num_unique_edge_attrs)
 
     def forward(self, data):
-        x, edge_index = data.x, data.edge_index
-        x = self.conv1(x, edge_index)
+        x, edge_index, edge_type= data.x, data.edge_index, data.edge_attr
+        x = self.conv1(x, edge_index, edge_type)
         x = F.relu(x)
         #x = self.conv2(x, edge_index)
         #x = F.relu(x)
         #x = self.conv3(x, edge_index)
         #x = F.relu(x)
-        x = self.conv4(x, edge_index)
+        x = self.conv4(x, edge_index, edge_type)
     
         return F.log_softmax(x, dim=1)
 
 
-model = GCN(num_node_features, num_classes)
+model = GCN(num_node_features, num_classes, num_unique_edge_attrs)
 
 
 # Training
