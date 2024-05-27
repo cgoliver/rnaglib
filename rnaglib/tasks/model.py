@@ -12,7 +12,7 @@ from collections import Counter
 from torch.nn import Linear
 import shutil
 import numpy as np
-from sklearn.metrics import accuracy_score, f1_score, roc_auc_score
+from sklearn.metrics import accuracy_score, f1_score, roc_auc_score, matthews_corrcoef
 from pathlib import Path
 from networkx import get_node_attributes
 
@@ -183,7 +183,8 @@ def calculate_metrics(loader):
     accuracy = accuracy_score(labels, preds)
     f1 = f1_score(labels, preds)
     auc = roc_auc_score(labels, preds)
-    return accuracy, f1, auc, avg_loss
+    mcc = matthews_corrcoef(labels, preds)
+    return accuracy, f1, auc, avg_loss, mcc  
 
 # Training function
 def train():
@@ -200,24 +201,25 @@ def train():
 # Main training loop
 for epoch in range(5000):
     train()
-    train_acc, train_f1, train_auc, train_loss = calculate_metrics(train_loader)
-    val_acc, val_f1, val_auc, val_loss = calculate_metrics(val_loader)
+    train_acc, train_f1, train_auc, train_loss, train_mcc = calculate_metrics(train_loader) 
+    val_acc, val_f1, val_auc, val_loss, val_mcc = calculate_metrics(val_loader)  
     print(f'Epoch: {epoch}, Train Acc: {train_acc:.4f}, Val Acc: {val_acc:.4f}')
     wandb.log({
         "train_acc": train_acc,
         "train_f1": train_f1,
         "train_auc": train_auc,
         "train_loss": train_loss,
+        "train_mcc": train_mcc, 
         "val_acc": val_acc,
         "val_f1": val_f1,
         "val_auc": val_auc,
-        "val_loss": val_loss
+        "val_loss": val_loss,
+        "val_mcc": val_mcc  
     })
 
 # Final evaluation on test set
-test_accuracy, test_f1, test_auc, test_loss = calculate_metrics(test_loader)
-print(f'Test Accuracy: {test_accuracy:.4f}, Test F1 Score: {test_f1:.4f}, Test AUC: {test_auc:.4f}')
-wandb.log({"test_accuracy": test_accuracy, "test_f1": test_f1, "test_auc": test_auc, "test_loss": test_loss})
+test_accuracy, test_f1, test_auc, test_loss, test_mcc = calculate_metrics(test_loader)  
+print(f'Test Accuracy: {test_accuracy:.4f}, Test F1 Score: {test_f1:.4f}, Test AUC: {test_auc:.4f}, Test MCC: {test_mcc:.4f}')  
+wandb.log({"test_accuracy": test_accuracy, "test_f1": test_f1, "test_auc": test_auc, "test_loss": test_loss, "test_mcc": test_mcc})  
 
 wandb.finish()
-
