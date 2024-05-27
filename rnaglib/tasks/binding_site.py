@@ -1,5 +1,5 @@
 from rnaglib.data_loading import RNADataset
-from rnaglib.tasks import ResidueClassificationTask
+from rnaglib.tasks import ResidueClassificationTask, RNAClassificationTask
 from rnaglib.splitters import RandomSplitter
 
 from rnaglib.utils import load_index
@@ -84,3 +84,23 @@ class ProteinBindingSiteDetection(ResidueClassificationTask):
             print(f"Failed to retrieve data: {response.status_code}")
             print(response.text)
             return []
+
+
+class BindingDetection(RNAClassificationTask):
+    target_var = "ligands"  # graph level attribute
+    input_var = "nt_code"  # node level attribute
+
+    def __init__(self, root, splitter=None, **kwargs):
+        super().__init__(root=root, splitter=splitter, **kwargs)
+        pass
+
+    def default_splitter(self):
+        return RandomSplitter()
+
+    def build_dataset(self):
+        graph_index = load_index()
+        dataset = RNADataset(rna_targets=[self.target_var],
+                             rna_features=[self.input_var],
+                             rna_filter=lambda x: x.graph['pdbid'][0].lower()
+                             )
+        return dataset

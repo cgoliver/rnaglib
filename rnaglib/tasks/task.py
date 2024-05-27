@@ -98,5 +98,16 @@ class ResidueClassificationTask(Task):
     pass
 
 class RNAClassificationTask(Task):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+    def evaluate(self, graph_level_attribute, test_predictions):
+        from sklearn.metrics import matthews_corrcoef
+        true = [self.dataset[idx]['graph'][graph_level_attribute] for idx in self.test_ind]
+        mcc_scores = [matthews_corrcoef([true[i]], [test_predictions[i]]) for i in range(len(self.test_ind))]
+        return {'mcc': sum(mcc_scores) / len(mcc_scores)}
+    pass
+
+class RNAClassificationTask(Task):
     pass
 
