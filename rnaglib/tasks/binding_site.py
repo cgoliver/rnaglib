@@ -5,12 +5,15 @@ from rnaglib.splitters import RandomSplitter
 from rnaglib.utils import load_index
 import requests
 
+
 class BindingSiteDetection(ResidueClassificationTask):
     target_var = "binding_small-molecule"
     input_var = "nt_code"
+
     def __init__(self, root, splitter=None, **kwargs):
         super().__init__(root=root, splitter=splitter, **kwargs)
         pass
+
     pass
 
     def default_splitter(self):
@@ -30,6 +33,7 @@ class BindingSiteDetection(ResidueClassificationTask):
 
         return dataset
 
+
 class ProteinBindingSiteDetection(ResidueClassificationTask):
     target_var = "binding_protein"
     input_var = "nt_code"
@@ -38,6 +42,7 @@ class ProteinBindingSiteDetection(ResidueClassificationTask):
         self.ribosomal_rnas = self.get_ribosomal_rnas()
         super().__init__(root=root, splitter=splitter, **kwargs)
         pass
+
     pass
 
     def default_splitter(self):
@@ -49,14 +54,13 @@ class ProteinBindingSiteDetection(ResidueClassificationTask):
         for graph, graph_attrs in graph_index.items():
             rna_id = graph.split(".")[0]
             if "node_" + self.target_var in graph_attrs and rna_id not in self.ribosomal_rnas:
-                rnas_keep.append(rna_id) 
+                rnas_keep.append(rna_id)
 
         dataset = RNADataset(nt_targets=[self.target_var],
                              nt_features=[self.input_var],
                              rna_filter=lambda x: x.graph['pdbid'][0].lower() in rnas_keep
                              )
         return dataset
-
 
     def get_ribosomal_rnas(self):
         url = "https://search.rcsb.org/rcsbsearch/v2/query"

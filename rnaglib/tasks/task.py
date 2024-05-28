@@ -5,6 +5,7 @@ from functools import cached_property
 
 from rnaglib.data_loading import RNADataset
 
+
 class Task:
     def __init__(self, root, recompute=False, splitter=None):
         self.root = root
@@ -31,7 +32,7 @@ class Task:
         try:
             os.mkdir(os.path.join(self.root, 'graphs'))
         except FileExistsError:
-             pass
+            pass
         print("saving")
         self.dataset.save(os.path.join(self.root, 'graphs'))
 
@@ -42,7 +43,7 @@ class Task:
         with open(os.path.join(self.root, 'test_idx.txt'), 'w') as idx:
             [idx.write(str(ind) + "\n") for ind in self.test_ind]
         with open(os.path.join(self.root, "task_id.txt"), "w") as tid:
-                  tid.write(self.task_id)
+            tid.write(self.task_id)
         pass
 
     def split(self):
@@ -60,12 +61,12 @@ class Task:
         self.val_ind = val_ind
         self.test_ind = test_ind
         pass
-    
+
     def _build_dataset(self, root):
         # check if dataset exists and load
         if os.path.exists(os.path.join(self.root, 'graphs')) and not self.recompute:
             return RNADataset(saved_dataset=os.path.join(self.root, 'graphs'))
-        return self.build_dataset()
+        return self.build_dataset(root)
 
     def build_dataset(self, root):
         raise NotImplementedError
@@ -86,6 +87,7 @@ class Task:
     def __eq__(self, other):
         return self.task_id == other.task_id
 
+
 class ResidueClassificationTask(Task):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -93,9 +95,11 @@ class ResidueClassificationTask(Task):
     def evaluate(self, test_predictions):
         from sklearn.metrics import matthews_corrcoef
         true = [matthews_corrcoef(test_predictions[i], self.dataset[idx]['graph']['y']) \
-                for i,idx in enumerate(self.test_ind)]
+                for i, idx in enumerate(self.test_ind)]
         return {'mcc': sum(true) / len(true)}
+
     pass
+
 
 class RNAClassificationTask(Task):
     def __init__(self, **kwargs):
@@ -106,8 +110,5 @@ class RNAClassificationTask(Task):
         true = [self.dataset[idx]['graph'][graph_level_attribute] for idx in self.test_ind]
         mcc_scores = [matthews_corrcoef([true[i]], [test_predictions[i]]) for i in range(len(self.test_ind))]
         return {'mcc': sum(mcc_scores) / len(mcc_scores)}
-    pass
 
-class RNAClassificationTask(Task):
     pass
-
