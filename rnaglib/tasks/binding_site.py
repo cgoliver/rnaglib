@@ -86,6 +86,25 @@ class ProteinBindingSiteDetection(ResidueClassificationTask):
             return []
 
 
+class ProteinBindingDetection(RNAClassificationTask):
+    target_var = "proteins"  # graph level attribute
+    input_var = "nt_code"  # node level attribute
+
+    def __init__(self, root, splitter=None, **kwargs):
+        super().__init__(root=root, splitter=splitter, **kwargs)
+        pass
+
+    def default_splitter(self):
+        return RandomSplitter()
+
+    def build_dataset(self):
+        graph_index = load_index()
+        dataset = RNADataset(rna_targets=[self.target_var],
+                             rna_features=[self.input_var],
+                             rna_filter=lambda x: x.graph['pdbid'][0].lower()
+                             )
+        return dataset
+
 class BindingDetection(RNAClassificationTask):
     target_var = "ligands"  # graph level attribute
     input_var = "nt_code"  # node level attribute
