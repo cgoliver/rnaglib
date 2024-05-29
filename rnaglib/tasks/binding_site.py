@@ -19,7 +19,7 @@ class BindingSiteDetection(ResidueClassificationTask):
     def default_splitter(self):
         return RandomSplitter()
 
-    def build_dataset(self):
+    def build_dataset(self, root):
         graph_index = load_index()
         rnas_keep = []
         for graph, graph_attrs in graph_index.items():
@@ -48,7 +48,7 @@ class ProteinBindingSiteDetection(ResidueClassificationTask):
     def default_splitter(self):
         return RandomSplitter()
 
-    def build_dataset(self):
+    def build_dataset(self, root):
         graph_index = load_index()
         rnas_keep = []
         for graph, graph_attrs in graph_index.items():
@@ -104,7 +104,7 @@ class ProteinBindingDetection(RNAClassificationTask):
     def default_splitter(self):
         return RandomSplitter()
 
-    def build_dataset(self):
+    def build_dataset(self, root):
         graph_index = load_index()
         rnas_keep = []
         for graph, graph_attrs in graph_index.items():
@@ -156,7 +156,7 @@ class BindingDetection(RNAClassificationTask):
     def default_splitter(self):
         return RandomSplitter()
 
-    def build_dataset(self):
+    def build_dataset(self, root):
         dataset = RNADataset(rna_targets=[self.target_var],
                              rna_features=[self.input_var],
                              rna_filter=lambda x: x.graph['pdbid'][0].lower()
