@@ -48,7 +48,7 @@ class MolGraphEncoder:
     Stateful encoder for using cashed computations
     """
 
-    def __init__(self, cache=True):
+    def __init__(self, cache_path=None):
         script_dir = os.path.dirname(__file__)
         with open(os.path.join(script_dir, f'edges_and_nodes_map.p'), "rb") as f:
             self.edge_map = pickle.load(f)
@@ -56,12 +56,10 @@ class MolGraphEncoder:
             self.chi_map = pickle.load(f)
             self.charges_map = pickle.load(f)
 
-        self.cache = cache
-        if cache:
-            cashed_path = os.path.join(script_dir, f'lig_graphs.p')
-            self.cashed_graphs = pickle.load(open(cashed_path, 'rb'))
+        if cache_path is not None:
+            self.cached_graphs = pickle.load(open(cache_path, 'rb'))
         else:
-            self.cashed_graphs = list()
+            self.cached_graphs = list()
 
     @staticmethod
     def set_as_one_hot_feat(graph_nx, edge_map, node_label, default_value=None):
@@ -124,8 +122,8 @@ class MolGraphEncoder:
             return dgl.graph(([], []))
 
     def smiles_to_graph_one(self, smiles):
-        if smiles in self.cashed_graphs:
-            return self.cashed_graphs[smiles]
+        if smiles in self.cached_graphs:
+            return self.cached_graphs[smiles]
         graph_nx = smiles_to_nx(smiles)
         return self.nx_mol_to_dgl(graph_nx)
 
