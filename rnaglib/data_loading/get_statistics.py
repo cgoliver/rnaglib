@@ -5,7 +5,7 @@ This is useful to handcraft encoding functions and to design data splits
 """
 import os
 import sys
-import importlib 
+import importlib
 
 import json
 import pickle
@@ -15,8 +15,8 @@ from collections import defaultdict, Counter
 from rnaglib.utils import load_json
 from rnaglib.utils import load_index
 
-pkg = importlib.resources.files("rnaglib")
-#index_file = pkg / "data_loading" / "graph_index_NR.json"
+# pkg = importlib.resources.files("rnaglib")
+# index_file = pkg / "data_loading" / "graph_index_NR.json"
 index_file = load_index()
 
 

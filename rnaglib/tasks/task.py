@@ -60,7 +60,6 @@ class Task:
         self.train_ind = train_ind
         self.val_ind = val_ind
         self.test_ind = test_ind
-        pass
 
     def _build_dataset(self, root):
         # check if dataset exists and load
