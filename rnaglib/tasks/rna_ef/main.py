@@ -1,11 +1,15 @@
 import os
+import sys
+
 import numpy as np
 import pickle
 import random
-from torch.utils.data import Dataset, IterableDataset, random_split, Sampler, DataLoader
+from torch.utils.data import Dataset, DataLoader
+
+if __name__ == "__main__":
+    sys.path = [os.path.join(os.path.abspath(os.path.dirname(__file__)), "../../..")] + sys.path
 
 from rnaglib.data_loading import RNADataset, Collater
-from rnaglib.tasks import Task
 from rnaglib.tasks.rna_ef.build_data import build_data
 from rnaglib.tasks.rna_ef.ligands import MolGraphEncoder
 
@@ -137,7 +141,7 @@ class EFTask:
         train_groups_keys = set(np.random.choice(list(self.trainval_groups.keys()), size=train_cut, replace=False))
         self.train_groups = {k: v for k, v in self.trainval_groups.items() if k in train_groups_keys}
         self.val_groups = {k: v for k, v in self.trainval_groups.items() if k not in train_groups_keys}
-        self.ligand_encoder = MolGraphEncoder(cache=False)
+        self.ligand_encoder = MolGraphEncoder(cache_path=os.path.join(self.root, 'ligands.p'))
 
     def build_dataset(self):
         # check if dataset exists and load
@@ -195,13 +199,17 @@ if __name__ == '__main__':
                                                                          dataloader_kwargs=rna_loader_args)
 
     for i, elt in enumerate(train_dataset):
-        print(elt)
+        # print(elt)
         a = 1
-        if i > 3:
-            break
+        # if i > 3:
+        #     break
+        if not i % 50:
+            print(i, len(train_dataset))
 
     for i, elt in enumerate(test_dataset):
-        print(elt)
+        # print(elt)
         a = 1
-        if i > 3:
-            break
+        # if i > 3:
+        #     break
+        if not i % 10:
+            print(i, len(test_dataset))

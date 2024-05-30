@@ -6,10 +6,10 @@ import pickle
 from tqdm import tqdm
 
 if __name__ == "__main__":
-    sys.path.append(os.path.join(os.path.dirname(__file__), "../.."))
+    sys.path = [os.path.join(os.path.abspath(os.path.dirname(__file__)), "../../..")] + sys.path
 
-from rnaglib.utils import graph_from_pdbid
-from rnaglib.utils import graph_io
+from rnaglib.tasks.rna_ef.ligands import MolGraphEncoder
+from rnaglib.utils import graph_from_pdbid, graph_io
 
 
 def build_data(root, recompute=False):
@@ -22,6 +22,7 @@ def build_data(root, recompute=False):
     train_groups, test_groups = pickle.load(open(json_dump, 'rb'))
     all_groups = {**train_groups, **test_groups}
 
+    print("Processing graphs...")
     failed_set = set()
     for group in tqdm(all_groups):
         pocket_path = os.path.join(pocket_dir, f"{group}.json")
@@ -41,7 +42,23 @@ def build_data(root, recompute=False):
     print(failed_set)
     print(f"{len(failed_set)}/{len(all_groups)} failed systems")
 
+    print("Processing ligands")
+    all_ligands = set()
+    for group_rep, group in all_groups.items():
+        actives = set(group['actives'])
+        pdb_decoys = set(group['pdb_decoys'])
+        chembl_decoys = set(group['chembl_decoys'])
+        all_ligands = all_ligands.union(actives).union(pdb_decoys).union(chembl_decoys)
+
+    mol_encoder = MolGraphEncoder(cache=False)
+    all_mol_graphs = {}
+    for sm in tqdm(list(all_ligands)):
+        graph = mol_encoder.smiles_to_graph_one(sm)
+        all_mol_graphs[sm] = graph
+    ligand_file = os.path.join(root, 'ligands.p')
+    pickle.dump(all_mol_graphs, open(ligand_file, 'wb'))
+
 
 if __name__ == "__main__":
     default_dir = "../../data/tasks/rna_ef"
-    build_data(root=default_dir, recompute=True)
+    build_data(root=default_dir, recompute=False)
