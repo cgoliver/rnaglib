@@ -51,7 +51,7 @@ class BenchmarkLigandBindingSiteDetection(ResidueClassificationTask):
         set_node_attributes(x, binding_sites, 'binding_site')
         return x
 
-    def build_dataset(self):
+    def build_dataset(self, root):
         dataset = RNADataset(nt_targets=[self.target_var],
                              nt_features=[self.input_var],
                              rna_filter=lambda x: x.graph['pdbid'][0].lower() in [name[:-1] for name in self.rnaskeep],

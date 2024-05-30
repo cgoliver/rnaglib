@@ -9,13 +9,11 @@ from torch_geometric.nn import GCNConv, GraphConv, SAGEConv, RGCNConv
 import torch.optim as optim
 import wandb
 from collections import Counter
-from torch.nn import Linear
+from torch.nn import BatchNorm1d, Dropout
 import shutil
 import numpy as np
 from sklearn.metrics import accuracy_score, f1_score, roc_auc_score, matthews_corrcoef
 from pathlib import Path
-from networkx import get_node_attributes
-
 
 if Path('test_fri').exists():
     shutil.rmtree('test_fri')
@@ -112,31 +110,36 @@ print("Unique edge attributes:", unique_edge_attrs)
 # Model
 
 wandb.init(project="gcn-node-classification", config={
-    "learning_rate": 0.001,
+    "learning_rate": 0.0001,
     "epochs": 5000,
-    "batch_size": 1
+    "batch_size": 1,
+    "dropout_rate": 0.1,  
+    "num_layers": 2, 
+    "batch_norm": True, 
+    "num_node_features": num_node_features,
+    "num_classes": num_classes,
+    "num_unique_edge_attrs": num_unique_edge_attrs
 })
-
 class GCN(torch.nn.Module):
     def __init__(self, num_node_features, num_classes, num_unique_edge_attrs):
         super(GCN, self).__init__()
         self.conv1 = RGCNConv(num_node_features, 16, num_unique_edge_attrs)
-        #self.conv2 = GCNConv(16, 32) 
-        #self.conv3 = GCNConv(32, 16) 
-        self.conv4 = RGCNConv(16, num_classes, num_unique_edge_attrs)
+        self.bn1 = BatchNorm1d(16)  
+        self.dropout1 = Dropout(0.1) 
+        self.conv2 = RGCNConv(16, num_classes, num_unique_edge_attrs)
+        self.bn2 = BatchNorm1d(num_classes)
 
     def forward(self, data):
-        x, edge_index, edge_type= data.x, data.edge_index, data.edge_attr
+        x, edge_index, edge_type = data.x, data.edge_index, data.edge_attr
         x = self.conv1(x, edge_index, edge_type)
+        x = self.bn1(x)
         x = F.relu(x)
-        #x = self.conv2(x, edge_index)
-        #x = F.relu(x)
-        #x = self.conv3(x, edge_index)
-        #x = F.relu(x)
-        x = self.conv4(x, edge_index, edge_type)
+        x = self.dropout1(x)
+        x = self.conv2(x, edge_index, edge_type)
+        x = self.bn2(x)
+        x = F.relu(x) 
     
         return F.log_softmax(x, dim=1)
-
 
 model = GCN(num_node_features, num_classes, num_unique_edge_attrs)
 
@@ -155,7 +158,7 @@ class_weights = {cls: total_samples/count for cls, count in class_counts.items()
 weights = [class_weights[i] for i in range(num_classes)]
 class_weights_tensor = torch.tensor(weights).to(device)
 
-optimizer = optim.Adam(model.parameters(), lr=0.001)
+optimizer = optim.Adam(model.parameters(), lr=0.0001)
 criterion = torch.nn.CrossEntropyLoss(weight=class_weights_tensor)
 
 
