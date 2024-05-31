@@ -19,11 +19,11 @@ class VSCollater:
         self.rna_collater = Collater(vs_dataset.rna_dataset)
         self.ligand_collater = vs_dataset.ligand_embedder.collate_fn
 
-    def collate(self, samples):
+    def __call__(self, samples):
         batch = dict()
         for key in samples[0].keys():
             if key == 'pocket':
-                batch[key] = self.rna_collater.collate([sample[key] for sample in samples])
+                batch[key] = self.rna_collater([sample[key] for sample in samples])
             elif key in ('ligand', "active_ligands", "inactive_ligands"):
                 batch[key] = self.ligand_collater([sample[key] for sample in samples])
             else:
@@ -171,9 +171,9 @@ class EFTask:
         if 'train_dataset' not in self.__dict__:
             self.get_split_datasets(dataset_kwargs=dataset_kwargs)
         if dataloader_kwargs is None:
-            dataloader_kwargs = {'collate_fn': VSCollater(self.train_dataset).collate}
+            dataloader_kwargs = {'collate_fn': VSCollater(self.train_dataset)}
         if 'collate_fn' not in dataloader_kwargs:
-            collater = VSCollater(self.train_dataset).collate
+            collater = VSCollater(self.train_dataset)
             dataloader_kwargs['collate_fn'] = collater
         train_loader = DataLoader(dataset=self.train_dataset, **dataloader_kwargs)
         val_loader = DataLoader(dataset=self.val_dataset, **dataloader_kwargs)

@@ -25,7 +25,7 @@ class Collater:
         """
         self.dataset = dataset
 
-    def collate(self, samples):
+    def __call__(self, samples):
         """
         New format that iterates through the possible keys returned by get_item
 
@@ -71,7 +71,7 @@ def get_loader(dataset,
     collater = Collater(dataset=dataset)
     if not split:
         loader = DataLoader(dataset=dataset, shuffle=True, batch_size=batch_size,
-                            num_workers=num_workers, collate_fn=collater.collate)
+                            num_workers=num_workers, collate_fn=collater)
         return loader
 
     else:
@@ -93,11 +93,11 @@ def get_loader(dataset,
                 return None
 
         train_loader = safe_loader_creation(dataset=train_set, shuffle=True, batch_size=batch_size,
-                                            num_workers=num_workers, collate_fn=collater.collate)
+                                            num_workers=num_workers, collate_fn=collater)
         valid_loader = safe_loader_creation(dataset=valid_set, shuffle=True, batch_size=batch_size,
-                                            num_workers=num_workers, collate_fn=collater.collate)
+                                            num_workers=num_workers, collate_fn=collater)
         test_loader = safe_loader_creation(dataset=test_set, shuffle=True, batch_size=batch_size,
-                                           num_workers=num_workers, collate_fn=collater.collate)
+                                           num_workers=num_workers, collate_fn=collater)
         return train_loader, valid_loader, test_loader
 
 
@@ -119,7 +119,7 @@ def get_inference_loader(list_to_predict,
                               shuffle=False,
                               batch_size=batch_size,
                               num_workers=num_workers,
-                              collate_fn=collater.collate)
+                              collate_fn=collater)
     return train_loader
 
 
@@ -280,11 +280,11 @@ if __name__ == '__main__':
 
     # GET THE DATA GOING
     graph_rep = GraphRepresentation(framework='dgl')
-    ring_rep = RingRepresentation(node_simfunc=node_simfunc, max_size_kernel=None)
+    # ring_rep = RingRepresentation(node_simfunc=node_simfunc, max_size_kernel=None)
 
     toy_dataset = RNADataset(
-        representations=[graph_rep, ring_rep],
-        annotated=True,
+        representations=[graph_rep],
+        annotated=False,
         nt_features=node_features,
         nt_targets=node_target)
     train_loader, validation_loader, test_loader = get_loader(dataset=toy_dataset,

@@ -12,6 +12,8 @@ class RingRepresentation(Representation):
 
     def __init__(self, node_simfunc=None, max_size_kernel=None, hash_path=None, **kwargs):
         super().__init__(**kwargs)
+        if node_simfunc is None:
+            raise ValueError("node_simfunc cannot be None to create a RingRepresentation")
         self.node_simfunc = node_simfunc
         self.max_size_kernel = max_size_kernel
         if node_simfunc.method in ['R_graphlets', 'graphlet', 'R_ged']:
