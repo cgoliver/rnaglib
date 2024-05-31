@@ -20,20 +20,12 @@ class Task:
         self.split()
 
         if not os.path.exists(root) or recompute:
-            try:
-                os.mkdir(root)
-            except FileExistsError:
-                pass
+            os.makedirs(root, exist_ok=True)
             self.write()
-        pass
 
     def write(self):
         print(">>> Saving dataset.")
-        try:
-            os.mkdir(os.path.join(self.root, 'graphs'))
-        except FileExistsError:
-            pass
-        print("saving")
+        os.makedirs(os.path.join(self.root, 'graphs'), exist_ok=True)
         self.dataset.save(os.path.join(self.root, 'graphs'))
 
         with open(os.path.join(self.root, 'train_idx.txt'), 'w') as idx:
@@ -44,7 +36,7 @@ class Task:
             [idx.write(str(ind) + "\n") for ind in self.test_ind]
         with open(os.path.join(self.root, "task_id.txt"), "w") as tid:
             tid.write(self.task_id)
-        pass
+        print(">>> Done")
 
     def split(self):
         """ Sets train, val, and test indices"""
@@ -56,10 +48,10 @@ class Task:
             train_ind = [int(ind) for ind in open(os.path.join(self.root, "train_idx.txt"), 'r').readlines()]
             val_ind = [int(ind) for ind in open(os.path.join(self.root, "val_idx.txt"), 'r').readlines()]
             test_ind = [int(ind) for ind in open(os.path.join(self.root, "test_idx.txt"), 'r').readlines()]
-
         self.train_ind = train_ind
         self.val_ind = val_ind
         self.test_ind = test_ind
+        return train_ind, val_ind, test_ind
 
     def _build_dataset(self, root):
         # check if dataset exists and load
@@ -97,8 +89,6 @@ class ResidueClassificationTask(Task):
                 for i, idx in enumerate(self.test_ind)]
         return {'mcc': sum(true) / len(true)}
 
-    pass
-
 
 class RNAClassificationTask(Task):
     def __init__(self, **kwargs):
@@ -109,5 +99,3 @@ class RNAClassificationTask(Task):
         true = [self.dataset[idx]['graph'][graph_level_attribute] for idx in self.test_ind]
         mcc_scores = [matthews_corrcoef([true[i]], [test_predictions[i]]) for i in range(len(self.test_ind))]
         return {'mcc': sum(mcc_scores) / len(mcc_scores)}
-
-    pass

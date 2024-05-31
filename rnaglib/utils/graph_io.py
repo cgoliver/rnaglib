@@ -217,7 +217,7 @@ def download_graphs(redundancy='nr',
     data_path = os.path.join(data_root, 'datasets')
 
     if not os.path.exists(dl_path) or overwrite:
-        print('Required dataset not found, launching a download. This should take about a minute')
+        print('Required database not found, launching a download. This should take about a minute')
         print(f"Downloading to : {dl_path}")
         print(f"Saving to : {data_path}")
         download(path=dl_path, url=url)
@@ -225,7 +225,7 @@ def download_graphs(redundancy='nr',
         with tarfile.open(dl_path) as tar_file:
             tar_file.extractall(path=data_path)
     else:
-        print(f'Dataset was found and not overwritten')
+        print(f'Database was found and not overwritten')
     return os.path.join(data_root, "datasets", tag)
 
 

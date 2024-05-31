@@ -25,8 +25,6 @@ class BenchmarkLigandBindingSiteDetection(ResidueClassificationTask):
         super().__init__(root=root, splitter=splitter, **kwargs)
         pass
 
-    pass
-
     def default_splitter(self):
         train_names = [name[:-1] + '.json' for name in self.TR60[:-6]]
         val_names = [name[:-1] + '.json' for name in self.TR60[-6:]]
@@ -34,7 +32,6 @@ class BenchmarkLigandBindingSiteDetection(ResidueClassificationTask):
         return BenchmarkBindingSiteSplitter(train_names, val_names, test_names)
 
     def _nt_filter(self, x):
-        subgraphs = []
         chains = ['.' + chain[-1] + '.' for chain in self.rnaskeep if chain.startswith(x.graph['pdbid'][0].lower())]
         for chain in chains:
             wrong_chain_nodes = [node for node in list(x) if chain not in node]
