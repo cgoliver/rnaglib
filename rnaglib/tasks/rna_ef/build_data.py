@@ -50,7 +50,7 @@ def build_data(root, recompute=False):
         chembl_decoys = set(group['chembl_decoys'])
         all_ligands = all_ligands.union(actives).union(pdb_decoys).union(chembl_decoys)
 
-    mol_encoder = MolGraphEncoder(cache=False)
+    mol_encoder = MolGraphEncoder(cache_path=None)
     all_mol_graphs = {}
     for sm in tqdm(list(all_ligands)):
         graph = mol_encoder.smiles_to_graph_one(sm)
