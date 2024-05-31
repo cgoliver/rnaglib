@@ -2,8 +2,10 @@
 # coding: utf-8
 from rnaglib.tasks import BenchmarkLigandBindingSiteDetection, BindingSiteDetection
 from rnaglib.representations import GraphRepresentation
+from rnaglib.data_loading import Collater
 import torch
-from torch_geometric.loader import DataLoader
+#from torch_geometric.loader import DataLoader
+from torch.utils.data import DataLoader
 import torch.nn.functional as F
 from torch_geometric.nn import GCNConv, GraphConv, SAGEConv, RGCNConv
 import torch.optim as optim
@@ -19,10 +21,20 @@ if Path('test_fri').exists():
     shutil.rmtree('test_fri')
 
 ta = BenchmarkLigandBindingSiteDetection('test_fri')
-train_ind, val_ind, test_ind = ta.splitter(ta.dataset)
+#train_ind, val_ind, test_ind = ta.splitter(ta.dataset)
 ta.dataset.add_representation(GraphRepresentation(framework = 'pyg'))
 
+train_ind, val_ind, test_ind = ta.split()
+train_set = ta.dataset.subset(train_ind)
+val_set = ta.dataset.subset(val_ind)
+test_set = ta.dataset.subset(test_ind)
 
+collater = Collater(train_set)
+train_loader = DataLoader(train_set, batch_size=8, shuffle=True, collate_fn=collater)
+val_loader = DataLoader(val_set, batch_size=2, shuffle=False, collate_fn=collater)
+test_loader = DataLoader(test_set, batch_size=2, shuffle=False, collate_fn=collater)
+
+'''
 train_data_list, val_data_list, test_data_list = [], [], []
 for ind in train_ind:
     train_data_list.append(ta.dataset[ind]['graph'])
@@ -46,20 +58,27 @@ pyg_converter(train_loader)
 pyg_converter(val_loader)
 pyg_converter(test_loader)
 
+'''
+
 for batch in train_loader:
+    print(batch)
+    graph = batch['graph']
+    print(f'Batch node features shape: \t{graph.x.shape}')
+    print(f'Batch edge index shape: \t{graph.edge_index.shape}')
+    print(f'Batch labels shape: \t\t{graph.y.shape}')
+    break
+    '''
     print(batch)
     print(f'Batch node features shape: {batch.x.shape}')
     print(f'Batch edge index shape: {batch.edge_index.shape}')
     print(f'Batch labels shape: {batch.y.shape}')
     break
-
-num_node_features = train_data_list[0].num_features
-num_classes = 2 
+    '''
 
 # Printing some statistics
 
 def calculate_length_statistics(loader):
-    lengths = [data.x.shape[0] for data in loader.dataset]
+    lengths = [data['graph'].x.shape[0] for data in loader.dataset]
     
     max_length = np.max(lengths)
     min_length = np.min(lengths)
@@ -84,8 +103,8 @@ def calculate_fraction_of_ones(loader):
     total_ones = 0
     total_elements = 0
     
-    for data in loader.dataset:
-        y = data.y
+    for batch in loader.dataset:
+        y = batch['graph'].y  
         total_ones += (y == 1).sum().item()
         total_elements += y.numel()
     
@@ -98,8 +117,8 @@ print("Fraction of positives:", fraction)
 def count_unique_edge_attrs(train_loader):
     unique_edge_attrs = set()
     
-    for data in train_loader.dataset:
-        unique_edge_attrs.update(data.edge_attr.tolist())
+    for batch in train_loader.dataset:
+        unique_edge_attrs.update(batch['graph'].edge_attr.tolist())
     
     return len(unique_edge_attrs), unique_edge_attrs
 
@@ -116,8 +135,6 @@ wandb.init(project="gcn-node-classification", config={
     "dropout_rate": 0.1,  
     "num_layers": 2, 
     "batch_norm": True, 
-    "num_node_features": num_node_features,
-    "num_classes": num_classes,
     "num_unique_edge_attrs": num_unique_edge_attrs
 })
 class GCN(torch.nn.Module):
@@ -141,7 +158,9 @@ class GCN(torch.nn.Module):
     
         return F.log_softmax(x, dim=1)
 
-model = GCN(num_node_features, num_classes, num_unique_edge_attrs)
+
+num_classes = 2 
+model = GCN(train_set.input_dim, num_classes, num_unique_edge_attrs)
 
 
 # Training
@@ -150,8 +169,9 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 model = model.to(device)
 
 all_labels = []
-for data in train_data_list:
-    all_labels.extend(data.y.tolist())
+for batch in train_loader:
+    batch_labels = batch['graph'].y
+    all_labels.extend(torch.flatten(batch_labels).tolist())
 class_counts = Counter(all_labels)
 total_samples = len(all_labels)
 class_weights = {cls: total_samples/count for cls, count in class_counts.items()}
@@ -169,15 +189,16 @@ def get_predictions_and_loss(loader):
     all_labels = []
     total_loss = 0
     
-    for data in loader:
-        data = data.to(device)
-        out = model(data)
-        loss = criterion(out, data.y)
+    for batch in train_loader:
+        graph = batch['graph']
+        graph = graph.to(device)
+        out = model(graph)
+        loss = criterion(out, torch.flatten(graph.y).long())
         total_loss += loss.item()
         preds = out.argmax(dim=1)
         all_preds.extend(preds.tolist())
-        all_labels.extend(data.y.tolist())
-    
+        all_labels.extend(graph.y.tolist()) 
+
     avg_loss = total_loss / len(loader)
     return all_preds, all_labels, avg_loss
 
@@ -192,11 +213,12 @@ def calculate_metrics(loader):
 # Training function
 def train():
     model.train()
-    for data in train_loader:
-        data = data.to(device)
+    for batch in train_loader:
+        graph = batch['graph']
+        graph = graph.to(device)
         optimizer.zero_grad()
-        out = model(data)
-        loss = criterion(out, data.y)
+        out = model(graph)
+        loss = criterion(out, torch.flatten(graph.y).long())
         loss.backward()
         optimizer.step()
         wandb.log({"train_loss": loss.item()})
