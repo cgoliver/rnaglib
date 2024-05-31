@@ -8,7 +8,7 @@ from tqdm import tqdm
 if __name__ == "__main__":
     sys.path = [os.path.join(os.path.abspath(os.path.dirname(__file__)), "../../..")] + sys.path
 
-from rnaglib.tasks.rna_ef.ligands import MolGraphEncoder
+from rnaglib.tasks.rna_vs.ligands import MolGraphEncoder
 from rnaglib.utils import graph_from_pdbid, graph_io
 
 
@@ -17,7 +17,7 @@ def build_data(root, recompute=False):
     os.makedirs(pocket_dir, exist_ok=True)
 
     script_dir = os.path.dirname(__file__)
-    json_dump = os.path.join(script_dir, "../../data/tasks/rna_ef/dataset_as_json.json")
+    json_dump = os.path.join(script_dir, "../../data/tasks/rna_vs/dataset_as_json.json")
 
     train_groups, test_groups = pickle.load(open(json_dump, 'rb'))
     all_groups = {**train_groups, **test_groups}
@@ -60,5 +60,5 @@ def build_data(root, recompute=False):
 
 
 if __name__ == "__main__":
-    default_dir = "../../data/tasks/rna_ef"
+    default_dir = "../../data/tasks/rna_vs"
     build_data(root=default_dir, recompute=False)
