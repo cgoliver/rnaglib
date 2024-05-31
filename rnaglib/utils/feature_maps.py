@@ -268,6 +268,8 @@ def build_node_feature_parser(asked_features=None, node_feature_map=NODE_FEATURE
     """
     if asked_features is None:
         return {}
+    if not isinstance(asked_features, list):
+        asked_features = [asked_features]
     if any([feature not in node_feature_map for feature in asked_features]):
         problematic_keys = tuple([feature for feature in asked_features if feature not in node_feature_map])
         raise ValueError(f'{problematic_keys} were asked as a feature or target but do not exist')

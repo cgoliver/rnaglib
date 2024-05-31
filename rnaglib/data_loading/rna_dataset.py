@@ -63,22 +63,26 @@ class RNADataset:
             self.representations = representations
 
         self.db_path = db_path
-        self.saved_dataset = saved_dataset
 
+        # DB_path corresponds to all available RNA graphs in rnaglib
         if db_path is None:
             self.db_path = download_graphs(redundancy=redundancy,
-                                             version=version,
-                                             annotated=annotated,
-                                             data_root=download_dir,
-                                             )
+                                           version=version,
+                                           annotated=annotated,
+                                           data_root=download_dir,
+                                           )
 
             self.db_path = os.path.join(self.db_path, 'graphs')
-        
+
+        # One can restrict the number of graphs to use
         if all_graphs is None:
             self.all_graphs = sorted(os.listdir(self.db_path))
         else:
             self.all_graphs = all_graphs
- 
+
+        # Maybe we precomputed subsets of the db already or we want to; this is what saved_dataset is here for
+        self.saved_dataset = saved_dataset
+
         self.rna_features = rna_features
         self.rna_targets = rna_targets
         self.nt_features = nt_features
@@ -110,8 +114,8 @@ class RNADataset:
 
     def _build_dataset(self):
         if not self.saved_dataset is None:
-            return  [load_graph(os.path.join(self.saved_dataset, g_name))\
-                         for g_name in os.listdir(self.saved_dataset)]
+            return [load_graph(os.path.join(self.saved_dataset, g_name)) \
+                    for g_name in os.listdir(self.saved_dataset)]
         else:
             return self.build_dataset()
         pass
@@ -144,16 +148,13 @@ class RNADataset:
             dump_json(os.path.join(dump_path, f"{i}.json"), rna)
         pass
 
-
     def __getitem__(self, idx):
         """ Fetches one RNA and converts it from raw data to a dictionary
         with representations and annotations to be used by loaders """
 
         rna_graph = self.rnas[idx]
 
-        rna_dict = {
-                    'rna': rna_graph
-                    }
+        rna_dict = {'rna': rna_graph}
         features_dict = self.compute_features(rna_dict)
         # apply representations to the res_dict
         # each is a callable that updates the res_dict
