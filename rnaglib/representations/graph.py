@@ -77,7 +77,9 @@ class GraphRepresentation(Representation):
         y = torch.stack(
             [features_dict['nt_targets'][n] for n in sorted(graph.nodes())]) if 'nt_targets' in features_dict else None
         edge_index = [[node_map[u], node_map[v]] for u, v in sorted(graph.edges())]
+        edge_index = torch.tensor(edge_index, dtype=torch.long)
         edge_attrs = [self.edge_map[data[self.etype_key]] for u, v, data in sorted(graph.edges(data=True))]
+        edge_attrs = torch.tensor(edge_attrs)
         return Data(x=x, y=y, edge_attr=edge_attrs, edge_index=edge_index)
 
     @property
@@ -98,4 +100,5 @@ class GraphRepresentation(Representation):
             batched_graph = dgl.batch([sample for sample in samples])
             return batched_graph
         if self.framework == 'pyg':
-            return samples
+            from torch_geometric.data import Batch
+            return Batch.from_data_list(samples)
