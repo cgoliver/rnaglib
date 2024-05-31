@@ -191,8 +191,8 @@ if __name__ == '__main__':
 
     root = "../../data/tasks/rna_ef"
     ef_task = EFTask(root)
-    representations = [GraphRepresentation()]
-    rna_dataset_args = {'representations': representations}
+    representations = [GraphRepresentation(framework='pyg')]
+    rna_dataset_args = {'representations': representations, 'nt_features': 'nt_code'}
     rna_loader_args = {'batch_size': 2}
     # train_dataset, val_dataset, test_dataset = ef_task.get_split_datasets(rna_dataset_args)
     train_dataset, val_dataset, test_dataset = ef_task.get_split_loaders(dataset_kwargs=rna_dataset_args,
