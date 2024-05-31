@@ -2,16 +2,13 @@ import os
 import sys
 
 import numpy as np
-import pickle
 import random
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset
 
 if __name__ == "__main__":
     sys.path = [os.path.join(os.path.abspath(os.path.dirname(__file__)), "../../..")] + sys.path
 
 from rnaglib.data_loading import RNADataset, Collater
-from rnaglib.tasks.rna_ef.build_data import build_data
-from rnaglib.tasks.rna_ef.ligands import MolGraphEncoder
 
 
 class VSCollater:
@@ -80,9 +77,17 @@ class VSRNATrainDataset(Dataset):
     def __len__(self):
         return len(self.num_pos * 2)
 
+    def add_inpocket_flag(self, graph, rna):
+        # TODO also add for point representation and pyg graphs
+        import dgl
+        pocket_graph_dgl = dgl.from_networkx(nx_graph=rna,
+                                             node_attrs=['in_pocket'])
+        graph.ndata['in_pocket'] = pocket_graph_dgl.ndata['in_pocket']
+
     def __getitem__(self, idx):
         group_rep = self.sorted_groups[idx]
         pocket_representations = self.rna_dataset[self.name_id_mapping[group_rep]]
+        self.add_inpocket_flag(pocket_representations['graph'], pocket_representations['rna'])
         group = self.groups[group_rep]
         actives = group['actives']
         inactives = group[f'{self.decoy_mode}_decoys']
@@ -95,7 +100,10 @@ class VSRNATrainDataset(Dataset):
         # Sampler-based solution
         # group_idx, ligand_id, is_active = idx
         # ligand = actives[ligand_id] if is_active else inactives[ligand_id]
-        return {'pocket': pocket_representations, 'ligand': ligand_graph, 'active': is_active}
+        return {'group_rep': group_rep,
+                'pocket': pocket_representations,
+                'ligand': ligand_graph,
+                'active': is_active}
 
 
 class VSRNADataset(Dataset):
@@ -112,104 +120,54 @@ class VSRNADataset(Dataset):
         self.sorted_groups = np.sort(list(groups.keys()))
         self.decoy_mode = decoy_mode
 
+    def add_inpocket_flag(self, graph, rna):
+        # TODO also add for point representation and pyg graphs
+        import dgl
+        pocket_graph_dgl = dgl.from_networkx(nx_graph=rna,
+                                             node_attrs=['in_pocket'])
+        graph.ndata['in_pocket'] = pocket_graph_dgl.ndata['in_pocket']
+
     def __len__(self):
         return len(self.groups)
 
     def __getitem__(self, i):
         group_rep = self.sorted_groups[i]
         pocket_representations = self.rna_dataset[self.name_id_mapping[group_rep]]
+        self.add_inpocket_flag(pocket_representations['graph'], pocket_representations['rna'])
 
         actives = self.groups[group_rep]['actives']
         inactives = self.groups[group_rep][f'{self.decoy_mode}_decoys']
         active_ligands = self.ligand_embedder.smiles_to_graph_list(actives)
         inactive_ligands = self.ligand_embedder.smiles_to_graph_list(inactives)
-        return {'pocket': pocket_representations,
+        return {'group_rep': group_rep,
+                'pocket': pocket_representations,
                 'active_ligands': active_ligands,
                 'inactive_ligands': inactive_ligands}
 
 
-class EFTask:
+if __name__ == '__main__':
+    import pickle
+    from rnaglib.representations.graph import GraphRepresentation
+    from rnaglib.tasks.rna_vs.build_data import build_data
+    from rnaglib.tasks.rna_vs.ligands import MolGraphEncoder
+
     script_dir = os.path.dirname(__file__)
-    json_dump = os.path.join(script_dir, "../../data/tasks/rna_ef/dataset_as_json.json")
+    json_dump = os.path.join(script_dir, "../../data/tasks/rna_vs/dataset_as_json.json")
     trainval_groups, test_groups = pickle.load(open(json_dump, 'rb'))
 
-    def __init__(self, root, recompute=False, **kwargs):
-        self.root = root
-        self.recompute = recompute
-        self.build_dataset()
-        train_cut = int(0.8 * len(self.trainval_groups))
-        train_groups_keys = set(np.random.choice(list(self.trainval_groups.keys()), size=train_cut, replace=False))
-        self.train_groups = {k: v for k, v in self.trainval_groups.items() if k in train_groups_keys}
-        self.val_groups = {k: v for k, v in self.trainval_groups.items() if k not in train_groups_keys}
-        self.ligand_encoder = MolGraphEncoder(cache_path=os.path.join(self.root, 'ligands.p'))
-
-    def build_dataset(self):
-        # check if dataset exists and load
-        if not os.path.exists(os.path.join(self.root, 'graphs')) or self.recompute:
-            build_data(root=self.root)
-
-    def get_split_datasets(self, dataset_kwargs=None):
-        train_dataset = VSRNATrainDataset(groups=self.train_groups,
-                                          ligand_embedder=self.ligand_encoder,
-                                          saved_dataset=os.path.join(self.root, 'graphs'),
-                                          **dataset_kwargs)
-        val_dataset = VSRNATrainDataset(groups=self.val_groups,
-                                        ligand_embedder=self.ligand_encoder,
-                                        saved_dataset=os.path.join(self.root, 'graphs'),
-                                        **dataset_kwargs)
-        test_dataset = VSRNADataset(groups=self.test_groups,
-                                    ligand_embedder=self.ligand_encoder,
-                                    saved_dataset=os.path.join(self.root, 'graphs'),
-                                    **dataset_kwargs)
-        self.train_dataset = train_dataset
-        self.val_dataset = val_dataset
-        self.test_dataset = test_dataset
-        return train_dataset, val_dataset, test_dataset
-
-    def get_split_loaders(self, dataset_kwargs=None, dataloader_kwargs=None):
-        # If datasets were not already precomputed
-        if 'train_dataset' not in self.__dict__:
-            self.get_split_datasets(dataset_kwargs=dataset_kwargs)
-        if dataloader_kwargs is None:
-            dataloader_kwargs = {'collate_fn': VSCollater(self.train_dataset)}
-        if 'collate_fn' not in dataloader_kwargs:
-            collater = VSCollater(self.train_dataset)
-            dataloader_kwargs['collate_fn'] = collater
-        train_loader = DataLoader(dataset=self.train_dataset, **dataloader_kwargs)
-        val_loader = DataLoader(dataset=self.val_dataset, **dataloader_kwargs)
-        test_dataloader_kwargs = dataloader_kwargs.copy()
-        test_dataloader_kwargs['batch_size'] = 1
-        test_loader = DataLoader(dataset=self.test_dataset, **test_dataloader_kwargs)
-        self.train_dataloader = train_loader
-        self.val_dataloader = val_loader
-        self.test_dataloader = test_loader
-        return train_loader, val_loader, test_loader
-
-
-if __name__ == '__main__':
-    from rnaglib.representations.graph import GraphRepresentation
-
-    root = "../../data/tasks/rna_ef"
-    ef_task = EFTask(root)
+    root = "../../data/tasks/rna_vs"
+    build_data(root=root, recompute=False)
+    ligand_encoder = MolGraphEncoder(cache_path=os.path.join(root, 'ligands.p'))
     representations = [GraphRepresentation(framework='pyg')]
     rna_dataset_args = {'representations': representations, 'nt_features': 'nt_code'}
-    rna_loader_args = {'batch_size': 2}
-    # train_dataset, val_dataset, test_dataset = ef_task.get_split_datasets(rna_dataset_args)
-    train_dataset, val_dataset, test_dataset = ef_task.get_split_loaders(dataset_kwargs=rna_dataset_args,
-                                                                         dataloader_kwargs=rna_loader_args)
+    test_dataset = VSRNATrainDataset(groups=test_groups,
+                                     ligand_embedder=ligand_encoder,
+                                     saved_dataset=os.path.join(root, 'graphs'),
+                                     **rna_dataset_args)
 
-    for i, elt in enumerate(train_dataset):
-        # print(elt)
+    for i, elt in enumerate(test_dataset):
         a = 1
         # if i > 3:
         #     break
         if not i % 50:
-            print(i, len(train_dataset))
-
-    for i, elt in enumerate(test_dataset):
-        # print(elt)
-        a = 1
-        # if i > 3:
-        #     break
-        if not i % 10:
             print(i, len(test_dataset))
