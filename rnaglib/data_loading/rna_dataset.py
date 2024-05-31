@@ -146,7 +146,6 @@ class RNADataset:
         """ Save a local copy of the dataset"""
         for i, rna in enumerate(self.rnas):
             dump_json(os.path.join(dump_path, f"{i}.json"), rna)
-        pass
 
     def __getitem__(self, idx):
         """ Fetches one RNA and converts it from raw data to a dictionary
@@ -172,7 +171,7 @@ class RNADataset:
         self.representations = [representation for representation in self.representations if
                                 representation.name != name]
 
-    def subset(self, list_of_graphs):
+    def subset(self, list_of_ids):
         """
         Create another dataset with only the specified graphs
 
@@ -180,7 +179,7 @@ class RNADataset:
         :return: A graphdataset
         """
         subset = copy.deepcopy(self)
-        subset.all_graphs = list(set(list_of_graphs).intersection(set(self.all_graphs)))
+        subset.rnas = [self.rnas[i] for i in list_of_ids]
         return subset
 
     def get_pdbid(self, pdbid):
