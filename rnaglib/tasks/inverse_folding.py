@@ -1,15 +1,16 @@
 from rnaglib.data_loading import RNADataset
 from rnaglib.tasks import RNAClassificationTask
-from rnaglib.splitters import RandomSplitter
+from rnaglib.splitters import DasSplitter
 
 from rnaglib.utils import load_index
 import pandas as pd
 import ast
+import os
 
 
 class gRNAde(RNAClassificationTask):
     target_var = "nt_code" #in rna graph
-    input_var = "index" #this is wrong and should be the graph. needs rework of task superclass
+    input_var = "nt_code" #this is wrong and should be the graph. needs rework of task superclass
 
     def __init__(self, root, splitter=None, **kwargs):
         super().__init__(root=root, splitter=splitter, **kwargs)
@@ -35,14 +36,15 @@ class gRNAde(RNAClassificationTask):
         return average_srr
     
     def default_splitter(self):
-        return RandomSplitter()
+        return DasSplitter()
         # SingleStateSplit
         # MultiStateSplit
 
     def build_dataset(self, root):
         #load metadata from gRNAde if it fails, print link
         try:
-            metadata = pd.read_csv('data/gRNAde_metadata.csv')
+            current_dir = os.path.dirname(__file__)
+            metadata = pd.read_csv(os.path.join(current_dir, 'data/gRNAde_metadata.csv'))
         except FileNotFoundError:
             print('Download the metadata from https://drive.google.com/file/d/1lbdiE1LfWPReo5VnZy0zblvhVl5QhaF4/ and place it in the ./data dir')
 
@@ -54,6 +56,7 @@ class gRNAde(RNAClassificationTask):
             rnas_keep.extend(per_sample_list)
         #remove extra info from strings
         rnas_keep = [x.split('_')[0] for x in rnas_keep]
+
 
         dataset = RNADataset(nt_targets=[self.target_var],
                              nt_features=[self.input_var],
