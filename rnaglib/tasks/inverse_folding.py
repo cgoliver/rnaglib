@@ -1,16 +1,39 @@
 from rnaglib.data_loading import RNADataset
-from rnaglib.tasks import RNAClassificationTask
-from rnaglib.splitters import DasSplitter
+from rnaglib.tasks import ResidueClassificationTask
+from rnaglib.splitters import DasSplitter, RandomSplitter
 
 from rnaglib.utils import load_index
 import pandas as pd
 import ast
 import os
 
-
-class gRNAde(RNAClassificationTask):
+class InverseFolding(ResidueClassificationTask):
     target_var = "nt_code" #in rna graph
-    input_var = "nt_code" #this is wrong and should be the graph. needs rework of task superclass
+    input_var = "nt_code" #in rna graph
+
+    def __init__(self, root, splitter=None, **kwargs):
+        super().__init__(root=root, splitter=splitter, **kwargs)
+        pass
+    pass
+    
+    def evaluate(self, data, predictions):
+        return NotImplementedError
+    
+    def default_splitter(self):
+        return RandomSplitter()
+
+    def build_dataset(self, root):
+
+        dataset = RNADataset(nt_targets=[self.target_var],
+                             nt_features=[self.input_var],
+                             rna_filter=lambda x: x.graph['pdbid'][0]
+                             )
+        return dataset
+
+
+class gRNAde(ResidueClassificationTask):
+    target_var = "nt_code" #in rna graph
+    input_var = "nt_code" #in rna graph
 
     def __init__(self, root, splitter=None, **kwargs):
         super().__init__(root=root, splitter=splitter, **kwargs)
@@ -24,11 +47,13 @@ class gRNAde(RNAClassificationTask):
         return recovery
     
     def evaluate(self, data, predictions):
+        '''
         sequence_recovery_rates = []
         for pred, true in zip(predictions , data.y):
             result = self.sequence_recovery(true, pred)
             sequence_recovery_rates.append(result)
         average_srr = sum(sequence_recovery_rates) / len(sequence_recovery_rates)
+        '''
         
         # at one point, evaluate on these rnas:['1CSL', '1ET4', '1F27', '1L2X', '1LNT', '1Q9A', '1U8D', '1X9C', '1XPE', '2GCS', '2GDI', '2OEU', '2R8S', '354D'] to compare to gRNAde
 
