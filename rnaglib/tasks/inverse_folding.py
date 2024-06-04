@@ -1,6 +1,7 @@
 from rnaglib.data_loading import RNADataset
 from rnaglib.tasks import ResidueClassificationTask
 from rnaglib.splitters import DasSplitter, RandomSplitter
+from networkx import set_node_attributes
 
 from rnaglib.utils import load_index
 import pandas as pd
@@ -9,7 +10,7 @@ import os
 
 class InverseFolding(ResidueClassificationTask):
     target_var = "nt_code" #in rna graph
-    input_var = "nt_code" #in rna graph
+    input_var = "dbn" # should be dummy variable
 
     def __init__(self, root, splitter=None, **kwargs):
         super().__init__(root=root, splitter=splitter, **kwargs)
@@ -21,12 +22,21 @@ class InverseFolding(ResidueClassificationTask):
     
     def default_splitter(self):
         return RandomSplitter()
+    
+    def _annotator(self, x):
+        dummy = {
+            node: 1
+            for node, nodedata in x.nodes.items()
+        }
+        set_node_attributes(x, dummy, 'dummy')
+        return x
 
     def build_dataset(self, root):
 
         dataset = RNADataset(nt_targets=[self.target_var],
                              nt_features=[self.input_var],
-                             rna_filter=lambda x: x.graph['pdbid'][0]
+                             rna_filter=lambda x: x.graph['pdbid'][0],
+                             annotator=self._annotator
                              )
         return dataset
 
@@ -58,12 +68,14 @@ class gRNAde(ResidueClassificationTask):
         # at one point, evaluate on these rnas:['1CSL', '1ET4', '1F27', '1L2X', '1LNT', '1Q9A', '1U8D', '1X9C', '1XPE', '2GCS', '2GDI', '2OEU', '2R8S', '354D'] to compare to gRNAde
 
 
-        return average_srr
+        return NotImplementedError
     
     def default_splitter(self):
         return DasSplitter()
         # SingleStateSplit
         # MultiStateSplit
+
+    # include annotator
 
     def build_dataset(self, root):
         #load metadata from gRNAde if it fails, print link
