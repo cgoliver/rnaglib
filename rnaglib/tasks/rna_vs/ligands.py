@@ -136,4 +136,6 @@ class MolGraphEncoder:
         return batch
 
     def collate_fn(self, samples):
-        return samples
+        # TODO unDGL it
+        batched_graph = dgl.batch([sample for sample in samples])
+        return batched_graph
