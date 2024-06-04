@@ -111,9 +111,7 @@ class Decoder(nn.Module):
             output = self.layers[layer](output)
             if self.batch_norm:
                 output = self.batch_norms[layer](output)
-            if layer == self.num_layers - 1:
-                output = F.dropout(output, self.dropout, training=self.training)
-            else:
+            if layer < self.num_layers - 1:
                 output = F.dropout(F.relu(output), self.dropout, training=self.training)
         if self.activation is not None:
             output = self.activation(output)
@@ -322,5 +320,4 @@ if __name__ == '__main__':
     model.eval()
     actives_scores = model.predict_ligands(pocket, actives)[:, 0].numpy()
     inactives_scores = model.predict_ligands(pocket, inactives)[:, 0].numpy()
-    a=1
-
+    a = 1
