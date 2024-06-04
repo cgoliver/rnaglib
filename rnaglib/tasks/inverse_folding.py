@@ -10,7 +10,7 @@ import os
 
 class InverseFolding(ResidueClassificationTask):
     target_var = "nt_code" #in rna graph
-    input_var = "dbn" # should be dummy variable
+    input_var = "is_modified" # should be dummy variable
 
     def __init__(self, root, splitter=None, **kwargs):
         super().__init__(root=root, splitter=splitter, **kwargs)
@@ -32,11 +32,10 @@ class InverseFolding(ResidueClassificationTask):
         return x
 
     def build_dataset(self, root):
-
         dataset = RNADataset(nt_targets=[self.target_var],
                              nt_features=[self.input_var],
                              rna_filter=lambda x: x.graph['pdbid'][0],
-                             annotator=self._annotator
+                             #annotator=self._annotator
                              )
         return dataset
 
