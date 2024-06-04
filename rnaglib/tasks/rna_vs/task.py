@@ -10,6 +10,7 @@ if __name__ == "__main__":
 
 from rnaglib.tasks.rna_vs.build_data import build_data
 from rnaglib.tasks.rna_vs.data import VSRNADataset, VSRNATrainDataset, VSCollater
+from rnaglib.tasks.rna_vs.evaluate import run_virtual_screen
 from rnaglib.tasks.rna_vs.ligands import MolGraphEncoder
 
 
@@ -22,13 +23,12 @@ class VSTask:
         self.root = root
         self.recompute = recompute
         self.build_dataset()
-        train_cut = int(0.8 * len(self.trainval_groups))
+        train_cut = int(0.9 * len(self.trainval_groups))
         train_groups_keys = set(np.random.choice(list(self.trainval_groups.keys()), size=train_cut, replace=False))
         self.train_groups = {k: v for k, v in self.trainval_groups.items() if k in train_groups_keys}
         self.val_groups = {k: v for k, v in self.trainval_groups.items() if k not in train_groups_keys}
         # TODO: add support for pyg ligand graphs
         self.ligand_encoder = MolGraphEncoder(cache_path=os.path.join(self.root, 'ligands.p'))
-
 
     def build_dataset(self):
         # check if dataset exists and load
@@ -71,6 +71,9 @@ class VSTask:
         self.val_dataloader = val_loader
         self.test_dataloader = test_loader
         return train_loader, val_loader, test_loader
+
+    def evaluate(self, model):
+        return run_virtual_screen(model, self.test_dataloader)
 
 
 if __name__ == '__main__':

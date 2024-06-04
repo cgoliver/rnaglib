@@ -18,37 +18,16 @@ class VSCollater:
 
     def __call__(self, samples):
         batch = dict()
+        # TODO make this better by falling back to default collate_fn on other keys
         for key in samples[0].keys():
             if key == 'pocket':
                 batch[key] = self.rna_collater([sample[key] for sample in samples])
-            elif key in ('ligand', "active_ligands", "inactive_ligands"):
+            elif key == 'ligand':
                 batch[key] = self.ligand_collater([sample[key] for sample in samples])
             else:
                 batch[key] = [sample[key] for sample in samples]
         return batch
 
-
-# class VSTrainSampler(Sampler):
-#     def __init__(self, num_pos, num_neg):
-#         super().__init__(data_source=None)
-#         self.num_pos = num_pos
-#         self.num_neg = num_neg
-#
-#     def __iter__(self):
-#         # Sample active/inactive indices and put them all in a complex list
-#         selected_pos = np.random.randint(0, self.num_pos)
-#         selected_neg = np.random.randint(0, self.num_neg)
-#         pocket_idx = np.array(range(len(selected_pos)))
-#         actives = np.ones(len(pocket_idx))
-#         inactives = np.zeros(len(pocket_idx))
-#         pos_stacked = np.stack((pocket_idx, selected_pos, actives), axis=-1)
-#         neg_stacked = np.stack((pocket_idx, selected_neg, inactives), axis=-1)
-#         systems = np.concatenate((pos_stacked, neg_stacked))
-#         np.random.shuffle(systems)
-#         yield from systems
-#
-#     def __len__(self) -> int:
-#         return len(self.num_pos) * 2
 
 class VSRNATrainDataset(Dataset):
     def __init__(self, groups, ligand_embedder, saved_dataset, decoy_mode='pdb', **kwargs):
