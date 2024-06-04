@@ -28,7 +28,8 @@ class BindingSiteDetection(ResidueClassificationTask):
 
         dataset = RNADataset(nt_targets=[self.target_var],
                              nt_features=[self.input_var],
-                             rna_filter=lambda x: x.graph['pdbid'][0].lower() in rnas_keep
+                             rna_filter=lambda x: x.graph['pdbid'][0].lower() in rnas_keep,
+                             db_path=root
                              )
 
         return dataset
@@ -161,4 +162,33 @@ class BindingDetection(RNAClassificationTask):
                              rna_features=[self.input_var],
                              rna_filter=lambda x: x.graph['pdbid'][0].lower()
                              )
+        return dataset
+
+
+class ChemicalModification(ResidueClassificationTask):
+    target_var = "is_modified"
+    input_var = "nt_code"
+
+    def __init__(self, root, splitter=None, **kwargs):
+        super().__init__(root=root, splitter=splitter, **kwargs)
+        pass
+
+    pass
+
+    def default_splitter(self):
+        return RandomSplitter()
+
+    def build_dataset(self, root):
+        graph_index = load_index()
+        rnas_keep = []
+        for graph, graph_attrs in graph_index.items():
+            if "node_" + self.target_var in graph_attrs:
+                rnas_keep.append(graph.split(".")[0])
+
+        dataset = RNADataset(nt_targets=[self.target_var],
+                             nt_features=[self.input_var],
+                             rna_filter=lambda x: x.graph['pdbid'][0].lower() in rnas_keep,
+                             db_path=root
+                             )
+
         return dataset
