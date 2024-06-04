@@ -48,7 +48,8 @@ def run_virtual_screen(model, dataloader):
         scores = np.concatenate((actives_scores, inactives_scores), axis=0)
         is_active = [1 for _ in range(len(actives_scores))] + [0 for _ in range(len(inactives_scores))]
         efs.append(mean_active_rank(scores, is_active))
-    print(f"VS failed on {failed_set}")
+    if len(failed_set) > 0:
+        print(f"VS failed on {failed_set}")
     print('Mean EF :', np.mean(efs))
     return efs
 

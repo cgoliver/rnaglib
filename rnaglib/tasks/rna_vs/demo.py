@@ -1,42 +1,56 @@
 import os
 import sys
 
+import time
+import torch
+import torch.optim as optim
+
 if __name__ == "__main__":
     sys.path = [os.path.join(os.path.abspath(os.path.dirname(__file__)), "../../..")] + sys.path
 
 from rnaglib.tasks.rna_vs.task import VSTask
+from rnaglib.tasks.rna_vs.model import RNAEncoder, LigandGraphEncoder, Decoder, VSModel
 from rnaglib.representations.graph import GraphRepresentation
 
 # Create a task
 root = "../../data/tasks/rna_vs"
-framework = 'pyg'
+framework = 'dgl'
 ef_task = VSTask(root)
 
 # Build corresponding datasets and dataloader
 representations = [GraphRepresentation(framework=framework)]
 rna_dataset_args = {'representations': representations, 'nt_features': 'nt_code'}
-rna_loader_args = {'batch_size': 2}
+rna_loader_args = {'batch_size': 32, 'shuffle': True, 'num_workers': 0}
 train_dataloader, val_dataloader, test_dataloader = ef_task.get_split_loaders(dataset_kwargs=rna_dataset_args,
                                                                               dataloader_kwargs=rna_loader_args)
 
-# Check both models work well
-for i, elt in enumerate(train_dataloader):
-    # print(elt)
-    a = 1
-    # if i > 3:
-    #     break
-    if not i % 50:
-        print(i, len(train_dataloader))
+# Create an encoding model. This example one is compatible with DGL.
+# This model must implement a predict_ligands(pocket, ligands) methods
+rna_encoder = RNAEncoder()
+lig_encoder = LigandGraphEncoder()
+decoder = Decoder()
+model = VSModel(encoder=rna_encoder, lig_encoder=lig_encoder, decoder=decoder)
+assert hasattr(model, 'predict_ligands') and callable(getattr(model, 'predict_ligands'))
 
-for i, elt in enumerate(test_dataloader):
-    # print(elt)
-    a = 1
-    # if i > 3:
-    #     break
-    if not i % 10:
-        print(i, len(train_dataloader))
+optimizer = optim.Adam(model.parameters(), lr=0.001)
+criterion = torch.nn.BCELoss()
+epochs = 50
+t0 = time.time()
+for k in range(epochs):
+    for i, batch in enumerate(train_dataloader):
+        pockets = batch['pocket']
+        ligands = batch['ligand']
+        actives = torch.tensor(batch['active'], dtype=torch.float32)
 
-# train.loss=bce
-# train.num_epochs=1000
-# train.early_stop=100
+        optimizer.zero_grad()
+        out = model(pockets, ligands)
+        loss = criterion(input=torch.flatten(out), target=actives)
+        loss.backward()
+        optimizer.step()
+        # if i > 3:
+        #     break
+        if not i % 5:
+            print(f'Epoch {k}, batch {i}/{len(train_dataloader)}: {loss.item():.4f}, time: {time.time() - t0:.1f}s')
 
+model = model.eval()
+final_vs = ef_task.evaluate(model)
