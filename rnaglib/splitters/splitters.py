@@ -49,6 +49,7 @@ class BenchmarkBindingSiteSplitter(Splitter):
 class DasSplitter(Splitter):
     def __init__(self, seed=0, *args, **kwargs):
         super().__init__(**kwargs)
+        print('Initialising DasSplitter')
         self.seed = seed
 
         current_dir = os.path.dirname(__file__)
@@ -68,14 +69,15 @@ class DasSplitter(Splitter):
         self.train_pdbs = train_pdbs
         self.val_pdbs = val_pdbs
         self.test_pdbs = test_pdbs
+        pass
 
 
     def __call__(self, dataset):
-        dataset_map = {value['rna'].graph['pdbid'][0] + '.json': idx for idx, value in enumerate(dataset)}
+        print('Generating split indices')
+        dataset_map = {value['rna'].graph['pdbid'][0] : idx for idx, value in enumerate(dataset)}
         train_ind = [dataset_map[item] for item in self.train_pdbs if item in dataset_map]
         val_ind = [dataset_map[item] for item in self.val_pdbs if item in dataset_map]
         test_ind = [dataset_map[item] for item in self.test_pdbs if item in dataset_map]
-
         return train_ind, val_ind, test_ind
     
     def _process_split(self, metadata_ids, indices):
