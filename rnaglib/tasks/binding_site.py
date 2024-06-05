@@ -171,7 +171,6 @@ class ChemicalModification(ResidueClassificationTask):
     def __init__(self, root, splitter=None, **kwargs):
         super().__init__(root=root, splitter=splitter, **kwargs)
         pass
-
     pass
 
     def default_splitter(self):

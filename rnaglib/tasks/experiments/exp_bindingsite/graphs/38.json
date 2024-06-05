@@ -1,0 +1,2563 @@
+{
+  "directed": true,
+  "multigraph": false,
+  "graph": {
+    "dbn": {
+      "all_chains": {
+        "num_nts": 40,
+        "num_chars": 41,
+        "bseq": "GGAUCGCAUUUGGACUUCUGCC&CGGCACCACGGUCGGAUC",
+        "sstr": ".((((.(.....(((..(((((&.))))....)))))))))",
+        "form": "AAAA.Z......AA....AAA-&AAAA.....AAA.AAAA-"
+      },
+      "single_chains": {
+        "m1_chain_A": {
+          "num_nts": 22,
+          "num_chars": 22,
+          "bseq": "GGAUCGCAUUUGGACUUCUGCC",
+          "sstr": ".((((.(.....(((..(((((",
+          "form": "AAAA.Z......AA....AAA-"
+        },
+        "m1_chain_B": {
+          "num_nts": 18,
+          "num_chars": 18,
+          "bseq": "CGGCACCACGGUCGGAUC",
+          "sstr": ".))))....)))))))))",
+          "form": "AAAA.....AAA.AAAA-"
+        }
+      }
+    },
+    "proteins": [],
+    "resolution_low": [
+      "25.0"
+    ],
+    "resolution_high": [
+      "2.85"
+    ],
+    "pdbid": [
+      "1NTB"
+    ],
+    "ligands": [
+      {
+        "id": [
+          "H_SRY",
+          25,
+          " "
+        ],
+        "name": "SRY",
+        "rna_neighs": [
+          "1ntb.A.11",
+          "1ntb.A.12",
+          "1ntb.A.14",
+          "1ntb.A.15",
+          "1ntb.A.16",
+          "1ntb.A.17",
+          "1ntb.A.18",
+          "1ntb.A.6",
+          "1ntb.A.8",
+          "1ntb.B.107",
+          "1ntb.B.108",
+          "1ntb.B.109",
+          "1ntb.B.110",
+          "1ntb.B.111",
+          "1ntb.B.112"
+        ]
+      }
+    ],
+    "ions": [
+      {
+        "id": [
+          "H_NA",
+          23,
+          " "
+        ],
+        "name": "NA",
+        "rna_neighs": [
+          "1ntb.A.10",
+          "1ntb.A.12",
+          "1ntb.A.6",
+          "1ntb.A.7",
+          "1ntb.A.8",
+          "1ntb.A.9",
+          "1ntb.B.109"
+        ]
+      },
+      {
+        "id": [
+          "H_NA",
+          24,
+          " "
+        ],
+        "name": "NA",
+        "rna_neighs": [
+          "1ntb.A.12",
+          "1ntb.A.14",
+          "1ntb.A.15",
+          "1ntb.A.16"
+        ]
+      },
+      {
+        "id": [
+          "H_MG",
+          1,
+          " "
+        ],
+        "name": "MG",
+        "rna_neighs": [
+          "1ntb.A.10",
+          "1ntb.A.11",
+          "1ntb.B.108",
+          "1ntb.B.109"
+        ]
+      }
+    ]
+  },
+  "nodes": [
+    {
+      "index": 1,
+      "index_chain": 1,
+      "chain_name": "A",
+      "nt_resnum": 1,
+      "nt_name": "G",
+      "nt_code": "G",
+      "nt_id": "A.G1",
+      "nt_type": "RNA",
+      "dbn": ".",
+      "summary": "anti,~C3'-endo,BI,non-pair-contact,ss-non-loop",
+      "alpha": null,
+      "beta": null,
+      "gamma": -9.217,
+      "delta": 90.033,
+      "epsilon": -142.517,
+      "zeta": -63.79,
+      "epsilon_zeta": -78.727,
+      "bb_type": "BI",
+      "chi": 175.45,
+      "glyco_bond": "anti",
+      "C5prime_xyz": [
+        -1.087,
+        8.006,
+        2.002
+      ],
+      "P_xyz": [
+        null,
+        null,
+        null
+      ],
+      "form": "A",
+      "ssZp": 4.626,
+      "Dp": 4.648,
+      "splay_angle": 25.891,
+      "splay_distance": 3.98,
+      "splay_ratio": 0.228,
+      "eta": null,
+      "theta": null,
+      "eta_prime": null,
+      "theta_prime": null,
+      "eta_base": null,
+      "theta_base": null,
+      "v0": 16.189,
+      "v1": -33.247,
+      "v2": 37.115,
+      "v3": -28.642,
+      "v4": 7.823,
+      "amplitude": 37.354,
+      "phase_angle": 353.522,
+      "puckering": "C2'-exo",
+      "sugar_class": "~C3'-endo",
+      "bin": "inc",
+      "cluster": "__",
+      "suiteness": 0.0,
+      "filter_rmsd": 0.01,
+      "frame": {
+        "rmsd": 0.01,
+        "origin": [
+          28.11,
+          20.064,
+          -3.712
+        ],
+        "x_axis": [
+          -0.229,
+          0.015,
+          -0.973
+        ],
+        "y_axis": [
+          -0.826,
+          -0.533,
+          0.186
+        ],
+        "z_axis": [
+          -0.516,
+          0.846,
+          0.134
+        ],
+        "quaternion": [
+          0.305,
+          -0.541,
+          0.375,
+          0.688
+        ]
+      },
+      "sse": {
+        "sse": null
+      },
+      "binding_protein": null,
+      "binding_ion": null,
+      "binding_small-molecule": null,
+      "binding_site": false,
+      "id": "1ntb.A.1"
+    },
+    {
+      "index": 10,
+      "index_chain": 10,
+      "chain_name": "A",
+      "nt_resnum": 10,
+      "nt_name": "U",
+      "nt_code": "U",
+      "nt_id": "A.U10",
+      "nt_type": "RNA",
+      "dbn": ".",
+      "summary": "anti,~C2'-endo,non-pair-contact,bulge,phosphate,splayed-apart",
+      "alpha": 68.919,
+      "beta": 134.823,
+      "gamma": 50.358,
+      "delta": 125.897,
+      "epsilon": -84.686,
+      "zeta": 106.398,
+      "epsilon_zeta": 168.916,
+      "bb_type": "--",
+      "chi": -137.537,
+      "glyco_bond": "anti",
+      "C5prime_xyz": [
+        -2.067,
+        8.916,
+        -0.68
+      ],
+      "P_xyz": [
+        0.56,
+        9.353,
+        -0.266
+      ],
+      "form": ".",
+      "ssZp": 1.266,
+      "Dp": 1.255,
+      "splay_angle": 47.005,
+      "splay_distance": 7.853,
+      "splay_ratio": 0.403,
+      "eta": -68.348,
+      "theta": 135.209,
+      "eta_prime": -5.339,
+      "theta_prime": 132.687,
+      "eta_base": 27.717,
+      "theta_base": 149.008,
+      "v0": -31.013,
+      "v1": 34.503,
+      "v2": -24.82,
+      "v3": 7.545,
+      "v4": 14.539,
+      "amplitude": 34.221,
+      "phase_angle": 136.491,
+      "puckering": "C1'-exo",
+      "sugar_class": "~C2'-endo",
+      "bin": "trig",
+      "cluster": "!!",
+      "suiteness": 0.0,
+      "filter_rmsd": 0.108,
+      "frame": {
+        "rmsd": 0.011,
+        "origin": [
+          14.808,
+          43.612,
+          -1.54
+        ],
+        "x_axis": [
+          0.783,
+          0.501,
+          -0.368
+        ],
+        "y_axis": [
+          -0.44,
+          0.029,
+          -0.898
+        ],
+        "z_axis": [
+          -0.439,
+          0.865,
+          0.243
+        ],
+        "quaternion": [
+          0.717,
+          -0.615,
+          -0.025,
+          0.328
+        ]
+      },
+      "sse": {
+        "sse": "bulge_4"
+      },
+      "binding_protein": null,
+      "binding_ion": [
+        "H_MG",
+        1,
+        " "
+      ],
+      "binding_small-molecule": null,
+      "binding_site": true,
+      "id": "1ntb.A.10"
+    },
+    {
+      "index": 11,
+      "index_chain": 11,
+      "chain_name": "A",
+      "nt_resnum": 11,
+      "nt_name": "U",
+      "nt_code": "U",
+      "nt_id": "A.U11",
+      "nt_type": "RNA",
+      "dbn": ".",
+      "summary": "anti,~C2'-endo,non-pair-contact,bulge,cap-donor",
+      "alpha": 145.465,
+      "beta": -159.317,
+      "gamma": 144.358,
+      "delta": 151.042,
+      "epsilon": -92.109,
+      "zeta": 94.097,
+      "epsilon_zeta": 173.794,
+      "bb_type": "--",
+      "chi": -157.849,
+      "glyco_bond": "anti",
+      "C5prime_xyz": [
+        -2.144,
+        8.522,
+        1.098
+      ],
+      "P_xyz": [
+        0.433,
+        9.035,
+        1.116
+      ],
+      "form": ".",
+      "ssZp": 0.908,
+      "Dp": 0.614,
+      "splay_angle": 35.72,
+      "splay_distance": 5.867,
+      "splay_ratio": 0.335,
+      "eta": -150.209,
+      "theta": 86.621,
+      "eta_prime": -152.209,
+      "theta_prime": 83.3,
+      "eta_base": -150.12,
+      "theta_base": 65.931,
+      "v0": -18.479,
+      "v1": 38.513,
+      "v2": -42.243,
+      "v3": 32.37,
+      "v4": -8.999,
+      "amplitude": 42.547,
+      "phase_angle": 173.148,
+      "puckering": "C2'-endo",
+      "sugar_class": "~C2'-endo",
+      "bin": "22t",
+      "cluster": "!!",
+      "suiteness": 0.0,
+      "filter_rmsd": 0.106,
+      "frame": {
+        "rmsd": 0.011,
+        "origin": [
+          9.531,
+          38.296,
+          0.816
+        ],
+        "x_axis": [
+          0.454,
+          0.876,
+          0.162
+        ],
+        "y_axis": [
+          -0.315,
+          0.327,
+          -0.891
+        ],
+        "z_axis": [
+          -0.834,
+          0.353,
+          0.424
+        ],
+        "quaternion": [
+          0.743,
+          -0.419,
+          -0.335,
+          0.401
+        ]
+      },
+      "sse": {
+        "sse": "bulge_4"
+      },
+      "binding_protein": null,
+      "binding_small-molecule": [
+        "H_SRY",
+        25,
+        " "
+      ],
+      "binding_ion": [
+        "H_MG",
+        1,
+        " "
+      ],
+      "binding_site": true,
+      "id": "1ntb.A.11"
+    },
+    {
+      "index": 12,
+      "index_chain": 12,
+      "chain_name": "A",
+      "nt_resnum": 12,
+      "nt_name": "G",
+      "nt_code": "G",
+      "nt_id": "A.G12",
+      "nt_type": "RNA",
+      "dbn": ".",
+      "summary": "anti,~C2'-endo,non-canonical,non-pair-contact,bulge,cap-acceptor,phosphate",
+      "alpha": -102.409,
+      "beta": 164.501,
+      "gamma": 61.659,
+      "delta": 158.904,
+      "epsilon": -125.956,
+      "zeta": -79.32,
+      "epsilon_zeta": -46.637,
+      "bb_type": "--",
+      "chi": -63.053,
+      "glyco_bond": "anti",
+      "C5prime_xyz": [
+        -2.671,
+        6.586,
+        -3.067
+      ],
+      "P_xyz": [
+        -0.134,
+        6.508,
+        -3.719
+      ],
+      "form": ".",
+      "ssZp": 0.353,
+      "Dp": 0.913,
+      "splay_angle": 63.251,
+      "splay_distance": 10.848,
+      "splay_ratio": 0.525,
+      "eta": 169.815,
+      "theta": -60.778,
+      "eta_prime": -154.676,
+      "theta_prime": -121.75,
+      "eta_base": 178.152,
+      "theta_base": -97.301,
+      "v0": -8.598,
+      "v1": 31.208,
+      "v2": -40.91,
+      "v3": 36.993,
+      "v4": -17.959,
+      "amplitude": 41.205,
+      "phase_angle": 186.859,
+      "puckering": "C3'-exo",
+      "sugar_class": "~C2'-endo",
+      "bin": "22p",
+      "cluster": "0b",
+      "suiteness": 0.358,
+      "filter_rmsd": 0.007,
+      "frame": {
+        "rmsd": 0.007,
+        "origin": [
+          10.428,
+          37.51,
+          -4.928
+        ],
+        "x_axis": [
+          -0.028,
+          -0.485,
+          0.874
+        ],
+        "y_axis": [
+          -0.632,
+          -0.669,
+          -0.392
+        ],
+        "z_axis": [
+          0.775,
+          -0.563,
+          -0.288
+        ],
+        "quaternion": [
+          0.062,
+          0.694,
+          -0.402,
+          0.594
+        ]
+      },
+      "sse": {
+        "sse": "bulge_4"
+      },
+      "binding_protein": null,
+      "binding_small-molecule": [
+        "H_SRY",
+        25,
+        " "
+      ],
+      "binding_ion": [
+        "H_NA",
+        24,
+        " "
+      ],
+      "binding_site": true,
+      "id": "1ntb.A.12"
+    },
+    {
+      "index": 13,
+      "index_chain": 13,
+      "chain_name": "A",
+      "nt_resnum": 13,
+      "nt_name": "G",
+      "nt_code": "G",
+      "nt_id": "A.G13",
+      "nt_type": "RNA",
+      "dbn": "(",
+      "summary": "anti,~C3'-endo,canonical,non-canonical,non-pair-contact,helix,stem-end,coaxial-stack,multiplet,bulge",
+      "alpha": -74.922,
+      "beta": -168.023,
+      "gamma": -59.113,
+      "delta": 82.833,
+      "epsilon": -122.087,
+      "zeta": -97.641,
+      "epsilon_zeta": -24.445,
+      "bb_type": "--",
+      "chi": 169.308,
+      "glyco_bond": "anti",
+      "C5prime_xyz": [
+        -1.68,
+        7.987,
+        2.229
+      ],
+      "P_xyz": [
+        -1.351,
+        9.458,
+        4.352
+      ],
+      "form": "A",
+      "ssZp": 4.737,
+      "Dp": 4.785,
+      "splay_angle": 26.578,
+      "splay_distance": 4.024,
+      "splay_ratio": 0.236,
+      "eta": 61.98,
+      "theta": 177.721,
+      "eta_prime": 84.936,
+      "theta_prime": -164.799,
+      "eta_base": 125.785,
+      "theta_base": -116.55,
+      "v0": 10.243,
+      "v1": -32.628,
+      "v2": 41.419,
+      "v3": -36.734,
+      "v4": 16.763,
+      "amplitude": 41.563,
+      "phase_angle": 4.765,
+      "puckering": "C3'-endo",
+      "sugar_class": "~C3'-endo",
+      "bin": "23m",
+      "cluster": "!!",
+      "suiteness": 0.0,
+      "filter_rmsd": 0.007,
+      "frame": {
+        "rmsd": 0.007,
+        "origin": [
+          11.143,
+          27.184,
+          -8.177
+        ],
+        "x_axis": [
+          0.556,
+          0.629,
+          0.543
+        ],
+        "y_axis": [
+          -0.136,
+          0.714,
+          -0.687
+        ],
+        "z_axis": [
+          -0.82,
+          0.308,
+          0.483
+        ],
+        "quaternion": [
+          0.83,
+          -0.3,
+          -0.411,
+          0.231
+        ]
+      },
+      "sse": {
+        "sse": "bulge_4"
+      },
+      "binding_protein": null,
+      "binding_ion": null,
+      "binding_small-molecule": null,
+      "binding_site": false,
+      "id": "1ntb.A.13"
+    },
+    {
+      "index": 14,
+      "index_chain": 14,
+      "chain_name": "A",
+      "nt_resnum": 14,
+      "nt_name": "A",
+      "nt_code": "A",
+      "nt_id": "A.A14",
+      "nt_type": "RNA",
+      "dbn": "(",
+      "summary": "anti,~C3'-endo,BI,canonical,non-pair-contact,helix,stem,coaxial-stack,phosphate",
+      "alpha": -37.736,
+      "beta": 160.384,
+      "gamma": 37.396,
+      "delta": 83.398,
+      "epsilon": -151.964,
+      "zeta": -77.602,
+      "epsilon_zeta": -74.362,
+      "bb_type": "BI",
+      "chi": -170.004,
+      "glyco_bond": "anti",
+      "C5prime_xyz": [
+        -1.235,
+        8.529,
+        1.101
+      ],
+      "P_xyz": [
+        1.416,
+        8.769,
+        1.405
+      ],
+      "form": "A",
+      "ssZp": 4.723,
+      "Dp": 4.71,
+      "splay_angle": 25.365,
+      "splay_distance": 4.047,
+      "splay_ratio": 0.227,
+      "eta": 168.449,
+      "theta": -147.324,
+      "eta_prime": -179.558,
+      "theta_prime": -145.351,
+      "eta_base": -137.032,
+      "theta_base": -128.233,
+      "v0": 9.565,
+      "v1": -31.435,
+      "v2": 39.979,
+      "v3": -35.513,
+      "v4": 16.382,
+      "amplitude": 40.136,
+      "phase_angle": 5.06,
+      "puckering": "C3'-endo",
+      "sugar_class": "~C3'-endo",
+      "bin": "33p",
+      "cluster": "1a",
+      "suiteness": 0.124,
+      "filter_rmsd": 0.036,
+      "frame": {
+        "rmsd": 0.009,
+        "origin": [
+          9.279,
+          27.25,
+          -4.611
+        ],
+        "x_axis": [
+          0.311,
+          0.951,
+          0.003
+        ],
+        "y_axis": [
+          -0.459,
+          0.153,
+          -0.875
+        ],
+        "z_axis": [
+          -0.832,
+          0.27,
+          0.484
+        ],
+        "quaternion": [
+          0.698,
+          -0.41,
+          -0.299,
+          0.505
+        ]
+      },
+      "sse": {
+        "sse": null
+      },
+      "binding_protein": null,
+      "binding_small-molecule": [
+        "H_SRY",
+        25,
+        " "
+      ],
+      "binding_ion": [
+        "H_NA",
+        24,
+        " "
+      ],
+      "binding_site": true,
+      "id": "1ntb.A.14"
+    },
+    {
+      "index": 15,
+      "index_chain": 15,
+      "chain_name": "A",
+      "nt_resnum": 15,
+      "nt_name": "C",
+      "nt_code": "C",
+      "nt_id": "A.C15",
+      "nt_type": "RNA",
+      "dbn": "(",
+      "summary": "anti,~C3'-endo,canonical,non-pair-contact,helix,stem-end,coaxial-stack,bulge,phosphate",
+      "alpha": -58.869,
+      "beta": 169.839,
+      "gamma": 56.584,
+      "delta": 82.449,
+      "epsilon": -126.279,
+      "zeta": -62.084,
+      "epsilon_zeta": -64.194,
+      "bb_type": "--",
+      "chi": -165.644,
+      "glyco_bond": "anti",
+      "C5prime_xyz": [
+        -1.52,
+        8.861,
+        0.84
+      ],
+      "P_xyz": [
+        1.101,
+        9.313,
+        1.084
+      ],
+      "form": ".",
+      "ssZp": 4.432,
+      "Dp": 4.649,
+      "splay_angle": 38.229,
+      "splay_distance": 5.931,
+      "splay_ratio": 0.328,
+      "eta": -178.716,
+      "theta": -112.321,
+      "eta_prime": -168.989,
+      "theta_prime": -99.375,
+      "eta_base": -142.446,
+      "theta_base": -41.341,
+      "v0": 1.405,
+      "v1": -24.899,
+      "v2": 37.867,
+      "v3": -37.617,
+      "v4": 22.837,
+      "amplitude": 39.459,
+      "phase_angle": 16.332,
+      "puckering": "C3'-endo",
+      "sugar_class": "~C3'-endo",
+      "bin": "33p",
+      "cluster": "1a",
+      "suiteness": 0.928,
+      "filter_rmsd": 0.065,
+      "frame": {
+        "rmsd": 0.006,
+        "origin": [
+          7.852,
+          28.305,
+          -0.973
+        ],
+        "x_axis": [
+          0.109,
+          0.886,
+          -0.45
+        ],
+        "y_axis": [
+          -0.594,
+          -0.305,
+          -0.744
+        ],
+        "z_axis": [
+          -0.797,
+          0.348,
+          0.494
+        ],
+        "quaternion": [
+          0.57,
+          -0.48,
+          -0.152,
+          0.65
+        ]
+      },
+      "sse": {
+        "sse": "bulge_2"
+      },
+      "binding_protein": null,
+      "binding_small-molecule": [
+        "H_SRY",
+        25,
+        " "
+      ],
+      "binding_ion": [
+        "H_NA",
+        24,
+        " "
+      ],
+      "binding_site": true,
+      "id": "1ntb.A.15"
+    },
+    {
+      "index": 16,
+      "index_chain": 16,
+      "chain_name": "A",
+      "nt_resnum": 16,
+      "nt_name": "U",
+      "nt_code": "U",
+      "nt_id": "A.U16",
+      "nt_type": "RNA",
+      "dbn": ".",
+      "summary": "anti,~C2'-endo,BII,non-canonical,non-pair-contact,multiplet,bulge",
+      "alpha": -52.796,
+      "beta": 164.926,
+      "gamma": 62.776,
+      "delta": 145.648,
+      "epsilon": -129.961,
+      "zeta": 160.869,
+      "epsilon_zeta": 69.17,
+      "bb_type": "BII",
+      "chi": -114.61,
+      "glyco_bond": "anti",
+      "C5prime_xyz": [
+        -1.762,
+        8.471,
+        -1.349
+      ],
+      "P_xyz": [
+        0.821,
+        8.723,
+        -1.085
+      ],
+      "form": ".",
+      "ssZp": 1.355,
+      "Dp": 1.394,
+      "splay_angle": 54.838,
+      "splay_distance": 8.897,
+      "splay_ratio": 0.465,
+      "eta": 176.666,
+      "theta": 152.026,
+      "eta_prime": -130.802,
+      "theta_prime": 143.999,
+      "eta_base": -64.293,
+      "theta_base": 165.31,
+      "v0": -16.03,
+      "v1": 32.612,
+      "v2": -35.717,
+      "v3": 27.494,
+      "v4": -7.206,
+      "amplitude": 36.003,
+      "phase_angle": 172.772,
+      "puckering": "C2'-endo",
+      "sugar_class": "~C2'-endo",
+      "bin": "32p",
+      "cluster": "1b",
+      "suiteness": 0.716,
+      "filter_rmsd": 0.107,
+      "frame": {
+        "rmsd": 0.01,
+        "origin": [
+          4.841,
+          31.729,
+          -4.766
+        ],
+        "x_axis": [
+          -0.274,
+          -0.145,
+          -0.951
+        ],
+        "y_axis": [
+          -0.671,
+          -0.68,
+          0.297
+        ],
+        "z_axis": [
+          -0.689,
+          0.719,
+          0.089
+        ],
+        "quaternion": [
+          0.184,
+          -0.574,
+          0.355,
+          0.715
+        ]
+      },
+      "sse": {
+        "sse": "bulge_2"
+      },
+      "binding_protein": null,
+      "binding_small-molecule": [
+        "H_SRY",
+        25,
+        " "
+      ],
+      "binding_ion": [
+        "H_NA",
+        24,
+        " "
+      ],
+      "binding_site": true,
+      "id": "1ntb.A.16"
+    },
+    {
+      "index": 17,
+      "index_chain": 17,
+      "chain_name": "A",
+      "nt_resnum": 17,
+      "nt_name": "U",
+      "nt_code": "U",
+      "nt_id": "A.U17",
+      "nt_type": "RNA",
+      "dbn": ".",
+      "summary": "turn,anti,~C2'-endo,non-canonical,non-pair-contact,helix-end,bulge,cap-donor",
+      "alpha": -78.391,
+      "beta": 156.844,
+      "gamma": 68.956,
+      "delta": 150.054,
+      "epsilon": -72.665,
+      "zeta": 82.129,
+      "epsilon_zeta": 205.206,
+      "bb_type": "--",
+      "chi": -133.056,
+      "glyco_bond": "anti",
+      "C5prime_xyz": [
+        -1.741,
+        8.708,
+        -0.363
+      ],
+      "P_xyz": [
+        0.805,
+        8.879,
+        0.117
+      ],
+      "form": ".",
+      "ssZp": 0.165,
+      "Dp": 0.206,
+      "splay_angle": 16.309,
+      "splay_distance": 3.259,
+      "splay_ratio": 0.18,
+      "eta": -131.816,
+      "theta": 137.926,
+      "eta_prime": -133.18,
+      "theta_prime": 87.011,
+      "eta_base": -136.514,
+      "theta_base": 91.078,
+      "v0": -19.239,
+      "v1": 37.754,
+      "v2": -41.049,
+      "v3": 31.113,
+      "v4": -7.621,
+      "amplitude": 41.475,
+      "phase_angle": 171.776,
+      "puckering": "C2'-endo",
+      "sugar_class": "~C2'-endo",
+      "bin": "22p",
+      "cluster": "4b",
+      "suiteness": 0.219,
+      "filter_rmsd": 0.103,
+      "frame": {
+        "rmsd": 0.005,
+        "origin": [
+          6.431,
+          33.932,
+          3.706
+        ],
+        "x_axis": [
+          -0.481,
+          0.433,
+          -0.763
+        ],
+        "y_axis": [
+          -0.685,
+          -0.728,
+          0.018
+        ],
+        "z_axis": [
+          -0.548,
+          0.531,
+          0.647
+        ],
+        "quaternion": [
+          0.331,
+          -0.388,
+          0.162,
+          0.845
+        ]
+      },
+      "sse": {
+        "sse": "bulge_2"
+      },
+      "binding_protein": null,
+      "binding_small-molecule": [
+        "H_SRY",
+        25,
+        " "
+      ],
+      "binding_ion": null,
+      "binding_site": true,
+      "id": "1ntb.A.17"
+    },
+    {
+      "index": 18,
+      "index_chain": 18,
+      "chain_name": "A",
+      "nt_resnum": 18,
+      "nt_name": "C",
+      "nt_code": "C",
+      "nt_id": "A.C18",
+      "nt_type": "RNA",
+      "dbn": "(",
+      "summary": "turn,syn,~C3'-endo,isolated-canonical,non-canonical,non-pair-contact,helix,multiplet,bulge,cap-acceptor",
+      "alpha": 84.283,
+      "beta": -167.158,
+      "gamma": 160.183,
+      "delta": 86.596,
+      "epsilon": -104.224,
+      "zeta": -44.601,
+      "epsilon_zeta": -59.623,
+      "bb_type": "--",
+      "chi": 73.467,
+      "glyco_bond": "syn",
+      "C5prime_xyz": [
+        -5.128,
+        4.696,
+        2.33
+      ],
+      "P_xyz": [
+        -4.813,
+        4.231,
+        4.868
+      ],
+      "form": ".",
+      "ssZp": -0.667,
+      "Dp": 4.085,
+      "splay_angle": 74.205,
+      "splay_distance": 10.665,
+      "splay_ratio": 0.604,
+      "eta": 145.733,
+      "theta": -85.752,
+      "eta_prime": 122.936,
+      "theta_prime": -83.122,
+      "eta_base": 142.682,
+      "theta_base": -71.82,
+      "v0": -11.294,
+      "v1": -8.698,
+      "v2": 24.099,
+      "v3": -31.287,
+      "v4": 27.138,
+      "amplitude": 31.207,
+      "phase_angle": 39.445,
+      "puckering": "C4'-exo",
+      "sugar_class": "~C3'-endo",
+      "bin": "23t",
+      "cluster": "6n",
+      "suiteness": 0.362,
+      "filter_rmsd": 0.065,
+      "frame": {
+        "rmsd": 0.006,
+        "origin": [
+          7.047,
+          30.746,
+          3.409
+        ],
+        "x_axis": [
+          -0.449,
+          0.462,
+          -0.765
+        ],
+        "y_axis": [
+          -0.372,
+          -0.875,
+          -0.31
+        ],
+        "z_axis": [
+          -0.813,
+          0.145,
+          0.564
+        ],
+        "quaternion": [
+          0.245,
+          -0.464,
+          -0.048,
+          0.85
+        ]
+      },
+      "sse": {
+        "sse": "bulge_3"
+      },
+      "binding_protein": null,
+      "binding_small-molecule": [
+        "H_SRY",
+        25,
+        " "
+      ],
+      "binding_ion": null,
+      "binding_site": true,
+      "id": "1ntb.A.18"
+    },
+    {
+      "index": 19,
+      "index_chain": 19,
+      "chain_name": "A",
+      "nt_resnum": 19,
+      "nt_name": "U",
+      "nt_code": "U",
+      "nt_id": "A.U19",
+      "nt_type": "RNA",
+      "dbn": "(",
+      "summary": "anti,~C3'-endo,BI,non-stack,canonical,non-pair-contact,helix-end,stem-end,bulge",
+      "alpha": -138.969,
+      "beta": -174.919,
+      "gamma": 142.93,
+      "delta": 91.253,
+      "epsilon": -136.312,
+      "zeta": -82.655,
+      "epsilon_zeta": -53.657,
+      "bb_type": "BI",
+      "chi": -177.29,
+      "glyco_bond": "anti",
+      "C5prime_xyz": [
+        -0.885,
+        8.089,
+        1.731
+      ],
+      "P_xyz": [
+        1.447,
+        9.031,
+        1.218
+      ],
+      "form": "A",
+      "ssZp": 4.496,
+      "Dp": 4.515,
+      "splay_angle": 24.048,
+      "splay_distance": 3.729,
+      "splay_ratio": 0.211,
+      "eta": 175.48,
+      "theta": -157.973,
+      "eta_prime": -145.82,
+      "theta_prime": -155.704,
+      "eta_base": -102.747,
+      "theta_base": -144.344,
+      "v0": 13.083,
+      "v1": -28.935,
+      "v2": 33.295,
+      "v3": -27.006,
+      "v4": 8.399,
+      "amplitude": 33.364,
+      "phase_angle": 356.307,
+      "puckering": "C2'-exo",
+      "sugar_class": "~C3'-endo",
+      "bin": "33t",
+      "cluster": "!!",
+      "suiteness": 0.0,
+      "filter_rmsd": 0.106,
+      "frame": {
+        "rmsd": 0.012,
+        "origin": [
+          9.061,
+          30.126,
+          13.864
+        ],
+        "x_axis": [
+          -0.728,
+          -0.595,
+          0.341
+        ],
+        "y_axis": [
+          0.051,
+          -0.544,
+          -0.838
+        ],
+        "z_axis": [
+          0.684,
+          -0.592,
+          0.426
+        ],
+        "quaternion": [
+          -0.197,
+          0.312,
+          -0.435,
+          0.821
+        ]
+      },
+      "sse": {
+        "sse": "bulge_3"
+      },
+      "binding_protein": null,
+      "binding_ion": null,
+      "binding_small-molecule": null,
+      "binding_site": false,
+      "id": "1ntb.A.19"
+    },
+    {
+      "index": 2,
+      "index_chain": 2,
+      "chain_name": "A",
+      "nt_resnum": 2,
+      "nt_name": "G",
+      "nt_code": "G",
+      "nt_id": "A.G2",
+      "nt_type": "RNA",
+      "dbn": "(",
+      "summary": "anti,~C3'-endo,BI,canonical,non-pair-contact,helix-end,stem-end,coaxial-stack",
+      "alpha": -77.344,
+      "beta": -159.781,
+      "gamma": 46.649,
+      "delta": 82.914,
+      "epsilon": -173.146,
+      "zeta": -52.173,
+      "epsilon_zeta": -120.974,
+      "bb_type": "BI",
+      "chi": -163.672,
+      "glyco_bond": "anti",
+      "C5prime_xyz": [
+        -1.213,
+        8.631,
+        0.785
+      ],
+      "P_xyz": [
+        1.158,
+        8.846,
+        1.842
+      ],
+      "form": "A",
+      "ssZp": 4.412,
+      "Dp": 4.495,
+      "splay_angle": 20.668,
+      "splay_distance": 3.25,
+      "splay_ratio": 0.181,
+      "eta": 165.172,
+      "theta": -143.659,
+      "eta_prime": -177.88,
+      "theta_prime": -140.901,
+      "eta_base": -133.722,
+      "theta_base": -110.153,
+      "v0": 8.838,
+      "v1": -31.615,
+      "v2": 40.657,
+      "v3": -36.613,
+      "v4": 17.773,
+      "amplitude": 40.908,
+      "phase_angle": 6.354,
+      "puckering": "C3'-endo",
+      "sugar_class": "~C3'-endo",
+      "bin": "33p",
+      "cluster": "1a",
+      "suiteness": 0.54,
+      "filter_rmsd": 0.008,
+      "frame": {
+        "rmsd": 0.008,
+        "origin": [
+          27.638,
+          23.912,
+          -4.615
+        ],
+        "x_axis": [
+          -0.643,
+          -0.432,
+          -0.633
+        ],
+        "y_axis": [
+          -0.45,
+          -0.455,
+          0.768
+        ],
+        "z_axis": [
+          -0.62,
+          0.779,
+          0.098
+        ],
+        "quaternion": [
+          0.006,
+          -0.423,
+          0.522,
+          0.741
+        ]
+      },
+      "sse": {
+        "sse": null
+      },
+      "binding_protein": null,
+      "binding_ion": null,
+      "binding_small-molecule": null,
+      "binding_site": false,
+      "id": "1ntb.A.2"
+    },
+    {
+      "index": 20,
+      "index_chain": 20,
+      "chain_name": "A",
+      "nt_resnum": 20,
+      "nt_name": "G",
+      "nt_code": "G",
+      "nt_id": "A.G20",
+      "nt_type": "RNA",
+      "dbn": "(",
+      "summary": "anti,~C3'-endo,BI,canonical,non-pair-contact,helix,stem",
+      "alpha": -69.196,
+      "beta": 173.378,
+      "gamma": 60.822,
+      "delta": 84.087,
+      "epsilon": -150.434,
+      "zeta": -71.093,
+      "epsilon_zeta": -79.341,
+      "bb_type": "BI",
+      "chi": -159.817,
+      "glyco_bond": "anti",
+      "C5prime_xyz": [
+        -1.312,
+        8.694,
+        0.572
+      ],
+      "P_xyz": [
+        1.281,
+        9.034,
+        0.541
+      ],
+      "form": "A",
+      "ssZp": 4.37,
+      "Dp": 4.582,
+      "splay_angle": 21.313,
+      "splay_distance": 3.36,
+      "splay_ratio": 0.186,
+      "eta": 169.138,
+      "theta": -142.372,
+      "eta_prime": -176.694,
+      "theta_prime": -142.896,
+      "eta_base": -153.927,
+      "theta_base": -110.708,
+      "v0": 7.97,
+      "v1": -29.946,
+      "v2": 39.554,
+      "v3": -35.893,
+      "v4": 17.663,
+      "amplitude": 39.879,
+      "phase_angle": 7.321,
+      "puckering": "C3'-endo",
+      "sugar_class": "~C3'-endo",
+      "bin": "33p",
+      "cluster": "1a",
+      "suiteness": 0.639,
+      "filter_rmsd": 0.006,
+      "frame": {
+        "rmsd": 0.006,
+        "origin": [
+          11.494,
+          30.046,
+          16.689
+        ],
+        "x_axis": [
+          -0.569,
+          -0.822,
+          0.016
+        ],
+        "y_axis": [
+          0.417,
+          -0.305,
+          -0.856
+        ],
+        "z_axis": [
+          0.708,
+          -0.481,
+          0.517
+        ],
+        "quaternion": [
+          -0.401,
+          0.234,
+          -0.432,
+          0.773
+        ]
+      },
+      "sse": {
+        "sse": null
+      },
+      "binding_protein": null,
+      "binding_ion": null,
+      "binding_small-molecule": null,
+      "binding_site": false,
+      "id": "1ntb.A.20"
+    },
+    {
+      "index": 21,
+      "index_chain": 21,
+      "chain_name": "A",
+      "nt_resnum": 21,
+      "nt_name": "C",
+      "nt_code": "C",
+      "nt_id": "A.C21",
+      "nt_type": "RNA",
+      "dbn": "(",
+      "summary": "anti,~C3'-endo,BI,canonical,non-pair-contact,helix,stem",
+      "alpha": -73.509,
+      "beta": 174.379,
+      "gamma": 59.136,
+      "delta": 81.243,
+      "epsilon": -143.454,
+      "zeta": -75.921,
+      "epsilon_zeta": -67.533,
+      "bb_type": "BI",
+      "chi": -159.851,
+      "glyco_bond": "anti",
+      "C5prime_xyz": [
+        -1.321,
+        8.829,
+        0.517
+      ],
+      "P_xyz": [
+        1.275,
+        9.118,
+        0.389
+      ],
+      "form": "A",
+      "ssZp": 4.477,
+      "Dp": 4.722,
+      "splay_angle": 25.574,
+      "splay_distance": 3.989,
+      "splay_ratio": 0.221,
+      "eta": 165.426,
+      "theta": -141.43,
+      "eta_prime": 179.224,
+      "theta_prime": -140.745,
+      "eta_base": -132.483,
+      "theta_base": -104.483,
+      "v0": 4.404,
+      "v1": -28.321,
+      "v2": 40.074,
+      "v3": -38.436,
+      "v4": 21.577,
+      "amplitude": 41.043,
+      "phase_angle": 12.476,
+      "puckering": "C3'-endo",
+      "sugar_class": "~C3'-endo",
+      "bin": "33p",
+      "cluster": "1a",
+      "suiteness": 0.891,
+      "filter_rmsd": 0.068,
+      "frame": {
+        "rmsd": 0.009,
+        "origin": [
+          12.398,
+          27.781,
+          19.0
+        ],
+        "x_axis": [
+          -0.269,
+          -0.797,
+          -0.542
+        ],
+        "y_axis": [
+          0.758,
+          0.173,
+          -0.629
+        ],
+        "z_axis": [
+          0.595,
+          -0.579,
+          0.557
+        ],
+        "quaternion": [
+          0.604,
+          -0.021,
+          0.47,
+          -0.643
+        ]
+      },
+      "sse": {
+        "sse": null
+      },
+      "binding_protein": null,
+      "binding_ion": null,
+      "binding_small-molecule": null,
+      "binding_site": false,
+      "id": "1ntb.A.21"
+    },
+    {
+      "index": 22,
+      "index_chain": 22,
+      "chain_name": "A",
+      "nt_resnum": 22,
+      "nt_name": "C",
+      "nt_code": "C",
+      "nt_id": "A.C22",
+      "nt_type": "RNA",
+      "dbn": "(",
+      "summary": "anti,~C3'-endo,canonical,non-pair-contact,helix-end,stem-end",
+      "alpha": -60.373,
+      "beta": 158.592,
+      "gamma": 57.846,
+      "delta": 82.443,
+      "epsilon": null,
+      "zeta": null,
+      "epsilon_zeta": null,
+      "bb_type": "--",
+      "chi": -170.848,
+      "glyco_bond": "anti",
+      "C5prime_xyz": [
+        -1.261,
+        8.615,
+        1.186
+      ],
+      "P_xyz": [
+        1.368,
+        8.85,
+        1.02
+      ],
+      "form": "-",
+      "ssZp": null,
+      "Dp": null,
+      "splay_angle": null,
+      "splay_distance": null,
+      "splay_ratio": null,
+      "eta": null,
+      "theta": null,
+      "eta_prime": null,
+      "theta_prime": null,
+      "eta_base": null,
+      "theta_base": null,
+      "v0": 7.59,
+      "v1": -29.873,
+      "v2": 39.391,
+      "v3": -35.974,
+      "v4": 18.023,
+      "amplitude": 39.756,
+      "phase_angle": 7.766,
+      "puckering": "C3'-endo",
+      "sugar_class": "~C3'-endo",
+      "bin": "33p",
+      "cluster": "1a",
+      "suiteness": 0.861,
+      "filter_rmsd": 0.066,
+      "frame": {
+        "rmsd": 0.005,
+        "origin": [
+          13.626,
+          24.111,
+          19.963
+        ],
+        "x_axis": [
+          0.185,
+          -0.404,
+          -0.896
+        ],
+        "y_axis": [
+          0.774,
+          0.622,
+          -0.121
+        ],
+        "z_axis": [
+          0.606,
+          -0.671,
+          0.428
+        ],
+        "quaternion": [
+          0.748,
+          0.184,
+          0.502,
+          -0.394
+        ]
+      },
+      "sse": {
+        "sse": null
+      },
+      "binding_protein": null,
+      "binding_ion": null,
+      "binding_small-molecule": null,
+      "binding_site": false,
+      "id": "1ntb.A.22"
+    },
+    {
+      "index": 3,
+      "index_chain": 3,
+      "chain_name": "A",
+      "nt_resnum": 3,
+      "nt_name": "A",
+      "nt_code": "A",
+      "nt_id": "A.A3",
+      "nt_type": "RNA",
+      "dbn": "(",
+      "summary": "anti,~C3'-endo,BI,canonical,non-pair-contact,helix,stem,coaxial-stack",
+      "alpha": -91.729,
+      "beta": -169.561,
+      "gamma": 64.382,
+      "delta": 80.174,
+      "epsilon": -150.477,
+      "zeta": -66.442,
+      "epsilon_zeta": -84.035,
+      "bb_type": "BI",
+      "chi": -156.198,
+      "glyco_bond": "anti",
+      "C5prime_xyz": [
+        -1.284,
+        8.767,
+        0.342
+      ],
+      "P_xyz": [
+        1.306,
+        9.09,
+        0.618
+      ],
+      "form": "A",
+      "ssZp": 4.252,
+      "Dp": 4.586,
+      "splay_angle": 23.191,
+      "splay_distance": 3.751,
+      "splay_ratio": 0.202,
+      "eta": 170.032,
+      "theta": -140.799,
+      "eta_prime": -175.367,
+      "theta_prime": -139.747,
+      "eta_base": -131.664,
+      "theta_base": -110.884,
+      "v0": 3.649,
+      "v1": -26.989,
+      "v2": 38.89,
+      "v3": -37.752,
+      "v4": 21.639,
+      "amplitude": 39.996,
+      "phase_angle": 13.508,
+      "puckering": "C3'-endo",
+      "sugar_class": "~C3'-endo",
+      "bin": "33p",
+      "cluster": "1a",
+      "suiteness": 0.234,
+      "filter_rmsd": 0.038,
+      "frame": {
+        "rmsd": 0.007,
+        "origin": [
+          25.909,
+          26.361,
+          -5.871
+        ],
+        "x_axis": [
+          -0.805,
+          -0.59,
+          -0.063
+        ],
+        "y_axis": [
+          -0.05,
+          -0.038,
+          0.998
+        ],
+        "z_axis": [
+          -0.591,
+          0.806,
+          0.002
+        ],
+        "quaternion": [
+          -0.199,
+          -0.241,
+          0.664,
+          0.679
+        ]
+      },
+      "sse": {
+        "sse": null
+      },
+      "binding_protein": null,
+      "binding_ion": null,
+      "binding_small-molecule": null,
+      "binding_site": false,
+      "id": "1ntb.A.3"
+    },
+    {
+      "index": 4,
+      "index_chain": 4,
+      "chain_name": "A",
+      "nt_resnum": 4,
+      "nt_name": "U",
+      "nt_code": "U",
+      "nt_id": "A.U4",
+      "nt_type": "RNA",
+      "dbn": "(",
+      "summary": "anti,~C3'-endo,BI,canonical,non-pair-contact,helix,stem,coaxial-stack",
+      "alpha": -72.792,
+      "beta": 176.74,
+      "gamma": 57.659,
+      "delta": 76.169,
+      "epsilon": -150.911,
+      "zeta": -72.493,
+      "epsilon_zeta": -78.417,
+      "bb_type": "BI",
+      "chi": -160.309,
+      "glyco_bond": "anti",
+      "C5prime_xyz": [
+        -1.493,
+        8.839,
+        0.496
+      ],
+      "P_xyz": [
+        1.063,
+        9.399,
+        0.506
+      ],
+      "form": "A",
+      "ssZp": 4.449,
+      "Dp": 4.661,
+      "splay_angle": 22.264,
+      "splay_distance": 3.635,
+      "splay_ratio": 0.198,
+      "eta": 163.245,
+      "theta": -151.275,
+      "eta_prime": 178.76,
+      "theta_prime": -150.078,
+      "eta_base": -135.846,
+      "theta_base": -131.486,
+      "v0": 0.362,
+      "v1": -26.828,
+      "v2": 41.531,
+      "v3": -42.472,
+      "v4": 26.513,
+      "amplitude": 43.695,
+      "phase_angle": 18.107,
+      "puckering": "C3'-endo",
+      "sugar_class": "~C3'-endo",
+      "bin": "33p",
+      "cluster": "1a",
+      "suiteness": 0.879,
+      "filter_rmsd": 0.107,
+      "frame": {
+        "rmsd": 0.009,
+        "origin": [
+          22.808,
+          28.23,
+          -6.85
+        ],
+        "x_axis": [
+          -0.603,
+          -0.631,
+          0.488
+        ],
+        "y_axis": [
+          0.356,
+          0.335,
+          0.872
+        ],
+        "z_axis": [
+          -0.714,
+          0.7,
+          0.022
+        ],
+        "quaternion": [
+          -0.434,
+          -0.099,
+          0.692,
+          0.568
+        ]
+      },
+      "sse": {
+        "sse": null
+      },
+      "binding_protein": null,
+      "binding_ion": null,
+      "binding_small-molecule": null,
+      "binding_site": false,
+      "id": "1ntb.A.4"
+    },
+    {
+      "index": 5,
+      "index_chain": 5,
+      "chain_name": "A",
+      "nt_resnum": 5,
+      "nt_name": "C",
+      "nt_code": "C",
+      "nt_id": "A.C5",
+      "nt_type": "RNA",
+      "dbn": "(",
+      "summary": "anti,~C3'-endo,BI,canonical,non-pair-contact,helix,stem-end,coaxial-stack,bulge",
+      "alpha": -64.153,
+      "beta": 179.642,
+      "gamma": 52.632,
+      "delta": 81.446,
+      "epsilon": -129.028,
+      "zeta": -85.146,
+      "epsilon_zeta": -43.882,
+      "bb_type": "BI",
+      "chi": -158.084,
+      "glyco_bond": "anti",
+      "C5prime_xyz": [
+        -1.463,
+        8.867,
+        0.38
+      ],
+      "P_xyz": [
+        1.051,
+        9.514,
+        0.626
+      ],
+      "form": ".",
+      "ssZp": 4.226,
+      "Dp": 4.647,
+      "splay_angle": 36.739,
+      "splay_distance": 6.761,
+      "splay_ratio": 0.326,
+      "eta": 177.8,
+      "theta": -116.883,
+      "eta_prime": -175.323,
+      "theta_prime": -120.07,
+      "eta_base": -149.758,
+      "theta_base": -126.384,
+      "v0": -1.572,
+      "v1": -21.954,
+      "v2": 35.706,
+      "v3": -37.671,
+      "v4": 24.9,
+      "amplitude": 38.247,
+      "phase_angle": 21.002,
+      "puckering": "C3'-endo",
+      "sugar_class": "~C3'-endo",
+      "bin": "33p",
+      "cluster": "1a",
+      "suiteness": 0.908,
+      "filter_rmsd": 0.065,
+      "frame": {
+        "rmsd": 0.005,
+        "origin": [
+          19.516,
+          29.328,
+          -7.932
+        ],
+        "x_axis": [
+          -0.179,
+          -0.554,
+          0.813
+        ],
+        "y_axis": [
+          0.511,
+          0.654,
+          0.558
+        ],
+        "z_axis": [
+          -0.841,
+          0.515,
+          0.166
+        ],
+        "quaternion": [
+          0.641,
+          0.017,
+          -0.645,
+          -0.416
+        ]
+      },
+      "sse": {
+        "sse": "bulge_1"
+      },
+      "binding_protein": null,
+      "binding_ion": null,
+      "binding_small-molecule": null,
+      "binding_site": false,
+      "id": "1ntb.A.5"
+    },
+    {
+      "index": 6,
+      "index_chain": 6,
+      "chain_name": "A",
+      "nt_resnum": 6,
+      "nt_name": "G",
+      "nt_code": "G",
+      "nt_id": "A.G6",
+      "nt_type": "RNA",
+      "dbn": ".",
+      "summary": "turn,anti,~C2'-endo,non-canonical,non-pair-contact,multiplet,bulge,cap-donor",
+      "alpha": 83.855,
+      "beta": -179.642,
+      "gamma": -70.07,
+      "delta": 145.093,
+      "epsilon": -36.516,
+      "zeta": 75.505,
+      "epsilon_zeta": 247.979,
+      "bb_type": "--",
+      "chi": -97.319,
+      "glyco_bond": "anti",
+      "C5prime_xyz": [
+        -2.855,
+        7.952,
+        -2.135
+      ],
+      "P_xyz": [
+        -3.23,
+        10.352,
+        -3.116
+      ],
+      "form": "Z",
+      "ssZp": 0.254,
+      "Dp": 0.824,
+      "splay_angle": 18.58,
+      "splay_distance": 3.231,
+      "splay_ratio": 0.166,
+      "eta": -120.853,
+      "theta": 109.147,
+      "eta_prime": -108.825,
+      "theta_prime": 104.287,
+      "eta_base": -122.098,
+      "theta_base": 68.096,
+      "v0": -27.063,
+      "v1": 39.93,
+      "v2": -36.547,
+      "v3": 22.411,
+      "v4": 2.573,
+      "amplitude": 39.628,
+      "phase_angle": 157.255,
+      "puckering": "C2'-endo",
+      "sugar_class": "~C2'-endo",
+      "bin": "32m",
+      "cluster": "7r",
+      "suiteness": 0.375,
+      "filter_rmsd": 0.015,
+      "frame": {
+        "rmsd": 0.015,
+        "origin": [
+          12.861,
+          30.252,
+          -7.171
+        ],
+        "x_axis": [
+          -0.081,
+          -0.571,
+          0.817
+        ],
+        "y_axis": [
+          0.447,
+          0.712,
+          0.541
+        ],
+        "z_axis": [
+          -0.891,
+          0.409,
+          0.198
+        ],
+        "quaternion": [
+          0.676,
+          0.049,
+          -0.631,
+          -0.376
+        ]
+      },
+      "sse": {
+        "sse": "bulge_1"
+      },
+      "binding_protein": null,
+      "binding_small-molecule": [
+        "H_SRY",
+        25,
+        " "
+      ],
+      "binding_ion": [
+        "H_NA",
+        23,
+        " "
+      ],
+      "binding_site": true,
+      "id": "1ntb.A.6"
+    },
+    {
+      "index": 7,
+      "index_chain": 7,
+      "chain_name": "A",
+      "nt_resnum": 7,
+      "nt_name": "C",
+      "nt_code": "C",
+      "nt_id": "A.C7",
+      "nt_type": "RNA",
+      "dbn": "(",
+      "summary": "turn,anti,~C2'-endo,isolated-canonical,non-pair-contact,helix,bulge,phosphate",
+      "alpha": -136.287,
+      "beta": -165.636,
+      "gamma": 29.437,
+      "delta": 147.755,
+      "epsilon": -101.56,
+      "zeta": -76.669,
+      "epsilon_zeta": -24.892,
+      "bb_type": "--",
+      "chi": -164.752,
+      "glyco_bond": "anti",
+      "C5prime_xyz": [
+        -2.277,
+        8.718,
+        1.073
+      ],
+      "P_xyz": [
+        -1.616,
+        9.331,
+        3.539
+      ],
+      "form": ".",
+      "ssZp": 0.303,
+      "Dp": 1.103,
+      "splay_angle": 39.593,
+      "splay_distance": 6.611,
+      "splay_ratio": 0.339,
+      "eta": 157.697,
+      "theta": -33.91,
+      "eta_prime": 152.229,
+      "theta_prime": -57.326,
+      "eta_base": 117.898,
+      "theta_base": -57.149,
+      "v0": -28.239,
+      "v1": 43.237,
+      "v2": -41.364,
+      "v3": 26.271,
+      "v4": 1.004,
+      "amplitude": 44.004,
+      "phase_angle": 160.05,
+      "puckering": "C2'-endo",
+      "sugar_class": "~C2'-endo",
+      "bin": "trig",
+      "cluster": "!!",
+      "suiteness": 0.0,
+      "filter_rmsd": 0.067,
+      "frame": {
+        "rmsd": 0.008,
+        "origin": [
+          15.396,
+          28.759,
+          -8.51
+        ],
+        "x_axis": [
+          0.359,
+          -0.179,
+          0.916
+        ],
+        "y_axis": [
+          0.457,
+          0.889,
+          -0.005
+        ],
+        "z_axis": [
+          -0.814,
+          0.42,
+          0.401
+        ],
+        "quaternion": [
+          0.814,
+          -0.131,
+          -0.531,
+          -0.195
+        ]
+      },
+      "sse": {
+        "sse": "bulge_4"
+      },
+      "binding_protein": null,
+      "binding_ion": [
+        "H_NA",
+        23,
+        " "
+      ],
+      "binding_small-molecule": null,
+      "binding_site": true,
+      "id": "1ntb.A.7"
+    },
+    {
+      "index": 8,
+      "index_chain": 8,
+      "chain_name": "A",
+      "nt_resnum": 8,
+      "nt_name": "A",
+      "nt_code": "A",
+      "nt_id": "A.A8",
+      "nt_type": "RNA",
+      "dbn": ".",
+      "summary": "anti,~C2'-endo,BII,non-pair-contact,bulge,splayed-apart",
+      "alpha": 108.246,
+      "beta": -153.137,
+      "gamma": 175.954,
+      "delta": 125.504,
+      "epsilon": -78.386,
+      "zeta": -151.91,
+      "epsilon_zeta": 73.523,
+      "bb_type": "BII",
+      "chi": -86.154,
+      "glyco_bond": "anti",
+      "C5prime_xyz": [
+        -3.905,
+        7.723,
+        -2.22
+      ],
+      "P_xyz": [
+        -3.472,
+        7.879,
+        -4.663
+      ],
+      "form": ".",
+      "ssZp": 1.005,
+      "Dp": 0.874,
+      "splay_angle": 109.849,
+      "splay_distance": 16.525,
+      "splay_ratio": 0.818,
+      "eta": 141.568,
+      "theta": -116.447,
+      "eta_prime": -178.362,
+      "theta_prime": -139.474,
+      "eta_base": -160.136,
+      "theta_base": -170.14,
+      "v0": -41.77,
+      "v1": 46.913,
+      "v2": -34.516,
+      "v3": 10.946,
+      "v4": 19.402,
+      "amplitude": 46.771,
+      "phase_angle": 137.56,
+      "puckering": "C1'-exo",
+      "sugar_class": "~C2'-endo",
+      "bin": "22t",
+      "cluster": "!!",
+      "suiteness": 0.0,
+      "filter_rmsd": 0.04,
+      "frame": {
+        "rmsd": 0.009,
+        "origin": [
+          10.452,
+          32.954,
+          -7.218
+        ],
+        "x_axis": [
+          0.441,
+          0.124,
+          0.889
+        ],
+        "y_axis": [
+          0.451,
+          0.826,
+          -0.339
+        ],
+        "z_axis": [
+          -0.776,
+          0.55,
+          0.308
+        ],
+        "quaternion": [
+          0.802,
+          -0.277,
+          -0.519,
+          -0.102
+        ]
+      },
+      "sse": {
+        "sse": "bulge_4"
+      },
+      "binding_protein": null,
+      "binding_small-molecule": [
+        "H_SRY",
+        25,
+        " "
+      ],
+      "binding_ion": [
+        "H_NA",
+        23,
+        " "
+      ],
+      "binding_site": true,
+      "id": "1ntb.A.8"
+    },
+    {
+      "index": 9,
+      "index_chain": 9,
+      "chain_name": "A",
+      "nt_resnum": 9,
+      "nt_name": "U",
+      "nt_code": "U",
+      "nt_id": "A.U9",
+      "nt_type": "RNA",
+      "dbn": ".",
+      "summary": "turn,anti,non-stack,non-pair-contact,bulge,splayed-apart",
+      "alpha": 32.026,
+      "beta": 77.923,
+      "gamma": -173.8,
+      "delta": 149.747,
+      "epsilon": -153.25,
+      "zeta": -12.752,
+      "epsilon_zeta": -140.498,
+      "bb_type": "--",
+      "chi": -163.899,
+      "glyco_bond": "anti",
+      "C5prime_xyz": [
+        -0.917,
+        7.695,
+        1.472
+      ],
+      "P_xyz": [
+        -0.141,
+        10.016,
+        0.646
+      ],
+      "form": ".",
+      "ssZp": 2.453,
+      "Dp": 2.436,
+      "splay_angle": 139.627,
+      "splay_distance": 18.049,
+      "splay_ratio": 0.939,
+      "eta": 14.855,
+      "theta": -83.082,
+      "eta_prime": 35.814,
+      "theta_prime": -98.878,
+      "eta_base": 74.318,
+      "theta_base": -137.004,
+      "v0": 14.23,
+      "v1": 5.97,
+      "v2": -22.346,
+      "v3": 31.254,
+      "v4": -28.941,
+      "amplitude": 31.529,
+      "phase_angle": 224.867,
+      "puckering": "C4'-endo",
+      "sugar_class": "--",
+      "bin": "22t",
+      "cluster": "!!",
+      "suiteness": 0.0,
+      "filter_rmsd": 0.102,
+      "frame": {
+        "rmsd": 0.01,
+        "origin": [
+          2.615,
+          45.416,
+          -14.726
+        ],
+        "x_axis": [
+          -0.523,
+          -0.671,
+          -0.525
+        ],
+        "y_axis": [
+          0.818,
+          -0.569,
+          -0.087
+        ],
+        "z_axis": [
+          -0.241,
+          -0.475,
+          0.847
+        ],
+        "quaternion": [
+          -0.434,
+          -0.223,
+          -0.164,
+          0.857
+        ]
+      },
+      "sse": {
+        "sse": "bulge_4"
+      },
+      "binding_protein": null,
+      "binding_ion": [
+        "H_NA",
+        23,
+        " "
+      ],
+      "binding_small-molecule": null,
+      "binding_site": true,
+      "id": "1ntb.A.9"
+    }
+  ],
+  "links": [
+    {
+      "LW": "B53",
+      "backbone": true,
+      "source": "1ntb.A.1",
+      "target": "1ntb.A.2"
+    },
+    {
+      "LW": "B53",
+      "backbone": true,
+      "source": "1ntb.A.10",
+      "target": "1ntb.A.11"
+    },
+    {
+      "LW": "B35",
+      "backbone": true,
+      "source": "1ntb.A.10",
+      "target": "1ntb.A.9"
+    },
+    {
+      "LW": "B53",
+      "backbone": true,
+      "source": "1ntb.A.11",
+      "target": "1ntb.A.12"
+    },
+    {
+      "LW": "B35",
+      "backbone": true,
+      "source": "1ntb.A.11",
+      "target": "1ntb.A.10"
+    },
+    {
+      "LW": "B53",
+      "backbone": true,
+      "source": "1ntb.A.12",
+      "target": "1ntb.A.13"
+    },
+    {
+      "LW": "B35",
+      "backbone": true,
+      "source": "1ntb.A.12",
+      "target": "1ntb.A.11"
+    },
+    {
+      "LW": "B53",
+      "backbone": true,
+      "source": "1ntb.A.13",
+      "target": "1ntb.A.14"
+    },
+    {
+      "LW": "B35",
+      "backbone": true,
+      "source": "1ntb.A.13",
+      "target": "1ntb.A.12"
+    },
+    {
+      "index": 5,
+      "nt1": "A.G13",
+      "nt2": "A.G6",
+      "bp": "G+G",
+      "name": "--",
+      "Saenger": "06-VI",
+      "LW": "cHW",
+      "DSSR": "cW+M",
+      "source": "1ntb.A.13",
+      "target": "1ntb.A.6"
+    },
+    {
+      "LW": "B53",
+      "backbone": true,
+      "source": "1ntb.A.14",
+      "target": "1ntb.A.15"
+    },
+    {
+      "LW": "B35",
+      "backbone": true,
+      "source": "1ntb.A.14",
+      "target": "1ntb.A.13"
+    },
+    {
+      "LW": "B53",
+      "backbone": true,
+      "source": "1ntb.A.15",
+      "target": "1ntb.A.16"
+    },
+    {
+      "LW": "B35",
+      "backbone": true,
+      "source": "1ntb.A.15",
+      "target": "1ntb.A.14"
+    },
+    {
+      "LW": "B53",
+      "backbone": true,
+      "source": "1ntb.A.16",
+      "target": "1ntb.A.17"
+    },
+    {
+      "LW": "B35",
+      "backbone": true,
+      "source": "1ntb.A.16",
+      "target": "1ntb.A.15"
+    },
+    {
+      "index": 12,
+      "nt1": "A.U16",
+      "nt2": "A.C18",
+      "bp": "U+C",
+      "name": "--",
+      "Saenger": "--",
+      "LW": "cSH",
+      "DSSR": "cm+M",
+      "source": "1ntb.A.16",
+      "target": "1ntb.A.18"
+    },
+    {
+      "LW": "B53",
+      "backbone": true,
+      "source": "1ntb.A.17",
+      "target": "1ntb.A.18"
+    },
+    {
+      "LW": "B35",
+      "backbone": true,
+      "source": "1ntb.A.17",
+      "target": "1ntb.A.16"
+    },
+    {
+      "LW": "B53",
+      "backbone": true,
+      "source": "1ntb.A.18",
+      "target": "1ntb.A.19"
+    },
+    {
+      "LW": "B35",
+      "backbone": true,
+      "source": "1ntb.A.18",
+      "target": "1ntb.A.17"
+    },
+    {
+      "index": 12,
+      "nt1": "A.C18",
+      "nt2": "A.U16",
+      "bp": "C+U",
+      "name": "--",
+      "Saenger": "--",
+      "LW": "cHS",
+      "DSSR": "cm+M",
+      "source": "1ntb.A.18",
+      "target": "1ntb.A.16"
+    },
+    {
+      "LW": "B53",
+      "backbone": true,
+      "source": "1ntb.A.19",
+      "target": "1ntb.A.20"
+    },
+    {
+      "LW": "B35",
+      "backbone": true,
+      "source": "1ntb.A.19",
+      "target": "1ntb.A.18"
+    },
+    {
+      "LW": "B53",
+      "backbone": true,
+      "source": "1ntb.A.2",
+      "target": "1ntb.A.3"
+    },
+    {
+      "LW": "B35",
+      "backbone": true,
+      "source": "1ntb.A.2",
+      "target": "1ntb.A.1"
+    },
+    {
+      "LW": "B53",
+      "backbone": true,
+      "source": "1ntb.A.20",
+      "target": "1ntb.A.21"
+    },
+    {
+      "LW": "B35",
+      "backbone": true,
+      "source": "1ntb.A.20",
+      "target": "1ntb.A.19"
+    },
+    {
+      "LW": "B53",
+      "backbone": true,
+      "source": "1ntb.A.21",
+      "target": "1ntb.A.22"
+    },
+    {
+      "LW": "B35",
+      "backbone": true,
+      "source": "1ntb.A.21",
+      "target": "1ntb.A.20"
+    },
+    {
+      "LW": "B35",
+      "backbone": true,
+      "source": "1ntb.A.22",
+      "target": "1ntb.A.21"
+    },
+    {
+      "LW": "B53",
+      "backbone": true,
+      "source": "1ntb.A.3",
+      "target": "1ntb.A.4"
+    },
+    {
+      "LW": "B35",
+      "backbone": true,
+      "source": "1ntb.A.3",
+      "target": "1ntb.A.2"
+    },
+    {
+      "LW": "B53",
+      "backbone": true,
+      "source": "1ntb.A.4",
+      "target": "1ntb.A.5"
+    },
+    {
+      "LW": "B35",
+      "backbone": true,
+      "source": "1ntb.A.4",
+      "target": "1ntb.A.3"
+    },
+    {
+      "LW": "B53",
+      "backbone": true,
+      "source": "1ntb.A.5",
+      "target": "1ntb.A.6"
+    },
+    {
+      "LW": "B35",
+      "backbone": true,
+      "source": "1ntb.A.5",
+      "target": "1ntb.A.4"
+    },
+    {
+      "LW": "B53",
+      "backbone": true,
+      "source": "1ntb.A.6",
+      "target": "1ntb.A.7"
+    },
+    {
+      "LW": "B35",
+      "backbone": true,
+      "source": "1ntb.A.6",
+      "target": "1ntb.A.5"
+    },
+    {
+      "index": 5,
+      "nt1": "A.G6",
+      "nt2": "A.G13",
+      "bp": "G+G",
+      "name": "--",
+      "Saenger": "06-VI",
+      "LW": "cWH",
+      "DSSR": "cW+M",
+      "source": "1ntb.A.6",
+      "target": "1ntb.A.13"
+    },
+    {
+      "LW": "B53",
+      "backbone": true,
+      "source": "1ntb.A.7",
+      "target": "1ntb.A.8"
+    },
+    {
+      "LW": "B35",
+      "backbone": true,
+      "source": "1ntb.A.7",
+      "target": "1ntb.A.6"
+    },
+    {
+      "LW": "B53",
+      "backbone": true,
+      "source": "1ntb.A.8",
+      "target": "1ntb.A.9"
+    },
+    {
+      "LW": "B35",
+      "backbone": true,
+      "source": "1ntb.A.8",
+      "target": "1ntb.A.7"
+    },
+    {
+      "LW": "B53",
+      "backbone": true,
+      "source": "1ntb.A.9",
+      "target": "1ntb.A.10"
+    },
+    {
+      "LW": "B35",
+      "backbone": true,
+      "source": "1ntb.A.9",
+      "target": "1ntb.A.8"
+    }
+  ]
+}
