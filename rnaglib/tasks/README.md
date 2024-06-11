@@ -19,7 +19,7 @@ from rnaglib.representations import GraphRepresentation
 ```
 
 ```
-task = BindingSiteDetection(root='tutorial) # You can pass arguments to use a custom splitter or dataset etc. if desired.
+task = BindingSiteDetection(root='tutorial') # You can pass arguments to use a custom splitter or dataset etc. if desired.
 ```
 
 2.) Add the representation used by your model to the task object. Voxel grid or point cloud are also possible representations; here we use a graph representation in the `pytorch-geometric` framework.
