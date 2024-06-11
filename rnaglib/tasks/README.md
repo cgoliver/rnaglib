@@ -14,7 +14,7 @@ Code to reproduce the results included in the correspoding submission can be fou
 1.) Choose the task appropriate to your model. Here, we chose _RNA-Site_, a task instance called `LigandBindindSite` for illustration.
 When instantiating the task, custom splitters or other arguments can be passed if needed.
  ```
-from rnaglib.tasks import LigandBindingSite
+from rnaglib.tasks import BindingSiteDetection
 from rnaglib.representations import GraphRepresentation
 ```
 
