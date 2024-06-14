@@ -11,7 +11,7 @@ __all__ = ['RNADataset',
            'split_dataset',
            'Collater',
            'split_dataset',
-           'get_graph_indexes'
+           'get_graph_indexes',
            ]
 
 
