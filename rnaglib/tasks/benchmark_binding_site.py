@@ -1,6 +1,7 @@
 from rnaglib.data_loading import RNADataset
 from rnaglib.tasks import ResidueClassificationTask
 from rnaglib.splitters import BenchmarkBindingSiteSplitter, RandomSplitter
+from rnaglib.utils import ListEncoder
 
 from networkx import set_node_attributes
 
@@ -46,11 +47,13 @@ class BenchmarkLigandBindingSiteDetection(ResidueClassificationTask):
             for node, nodedata in x.nodes.items()
         }
         set_node_attributes(x, binding_sites, 'binding_site')
+        set_node_attributes(x, {n:[0,0,0] for n in x.nodes()}, 'custom')
         return x
 
     def build_dataset(self, root):
         dataset = RNADataset(nt_targets=[self.target_var],
-                             nt_features=[self.input_var],
+                             nt_features=[self.input_var, 'custom'],
+                             custom_encoders={'custom': ListEncoder(3)},
                              rna_filter=lambda x: x.graph['pdbid'][0].lower() in [name[:-1] for name in self.rnaskeep],
                              nt_filter=self._nt_filter,
                              annotator=self._annotator,

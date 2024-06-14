@@ -20,6 +20,9 @@ from .feature_maps import build_node_feature_parser
 from .feature_maps import build_edge_feature_parser
 from .feature_maps import EDGE_FEATURE_MAP
 from .feature_maps import NODE_FEATURE_MAP
+from .feature_maps import ListEncoder
+from .feature_maps import FloatEncoder
+from .feature_maps import OneHotEncoder
 
 from .misc import listdir_fullpath
 from .misc import load_index
@@ -49,7 +52,10 @@ __all__ = ['download_graphs',
            'listdir_fullpath',
            'build_hash_table',
            'Hasher',
-           'load_index'
+           'load_index',
+           'ListEncoder',
+           'FloatEncoder',
+           'OneHotEncoder'
            ]
 
 classes = __all__

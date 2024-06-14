@@ -33,11 +33,13 @@ class RNADataset:
                  rna_targets=None,
                  nt_targets=None,
                  bp_targets=None,
+                 custom_encoders=None,
                  annotated=False,
                  verbose=False,
                  annotator=None,
                  nt_filter=None,
-                 rna_filter=None):
+                 rna_filter=None,
+                 ):
         """
 
 
@@ -90,7 +92,9 @@ class RNADataset:
         self.bp_features = bp_features
         self.bp_targets = bp_targets
 
-        self.node_features_parser = build_node_feature_parser(self.nt_features)
+        self.node_features_parser = build_node_feature_parser(self.nt_features,
+                                                              custom_encoders=custom_encoders
+                                                              )
         self.node_target_parser = build_node_feature_parser(self.nt_targets)
 
         self.input_dim = self.compute_dim(self.node_features_parser)
