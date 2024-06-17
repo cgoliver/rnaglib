@@ -84,7 +84,7 @@ Tutorials
 
 * :doc:`Working with 2.5D graphs datasets <tuto_2.5d>`
 * :doc:`Training machine learning models <tuto_ml>`
-* :doc: `Using and building machine learning tasks <tasks>`
+* :doc:`Using and building machine learning tasks <tasks>`
 
 Package Structure
 -----------------
