@@ -5,6 +5,7 @@ from rnaglib.utils import load_index
 
 graph_index = load_index()
 
+
 def get_multitask_split(node_targets, graph_index=graph_index, fractions=(0.15, 0.15)):
     """
     :param node_targets: A subset of {'binding_protein', 'binding_small-molecule', 'is_modified', 'binding_ion'}
@@ -102,7 +103,7 @@ def split_dataset(dataset, split_train=0.7, split_valid=0.85):
     return train_set, validation_set, test_set
 
 
-def split_dataset_in_fractions(dataset, split_train=0.7, split_valid=0.85):
+def random_split(dataset, split_train=0.7, split_valid=0.85, seed=0):
     """
     Just randomly split a dataset
     :param dataset:
@@ -113,17 +114,15 @@ def split_dataset_in_fractions(dataset, split_train=0.7, split_valid=0.85):
     indices = list(range(len(dataset)))
     train_indices, valid_indices, test_indices = split_list_in_fractions(indices,
                                                                          split_train=split_train,
-                                                                         split_valid=split_valid)
+                                                                         split_valid=split_valid,
+                                                                         seed=seed)
 
-    train_set = Subset(dataset, train_indices)
-    valid_set = Subset(dataset, valid_indices)
-    test_set = Subset(dataset, test_indices)
-    return train_set, valid_set, test_set
+    return train_indices, valid_indices, test_indices
 
 
-def split_list_in_fractions(list_to_split, split_train=0.7, split_valid=0.85):
+def split_list_in_fractions(list_to_split, split_train=0.7, split_valid=0.85, seed=0):
     copy_list = list_to_split.copy()
-    random.shuffle(copy_list)
+    random.Random(seed).shuffle(copy_list)
 
     train_index, valid_index = int(split_train * len(copy_list)), int(split_valid * len(copy_list))
 

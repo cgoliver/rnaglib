@@ -1,4 +1,5 @@
 import os
+import json
 from torch.utils.data import Subset
 
 
@@ -31,3 +32,13 @@ def get_dataset(loader):
         return loader.dataset.dataset
     else:
         return loader.dataset
+
+def load_index(redundancy='nr', version='1.0.0', glib_path=f"{os.path.expanduser('~')}/.rnaglib"):
+    index_file = os.path.join(glib_path, f"indexes/rnaglib-{redundancy}-{version}.json")
+
+    try:
+        with open(index_file, 'r') as indx:
+            return json.load(indx)
+    except FileNotFoundError:
+        print(f"Index file not found at {index_file}. Run rnaglib_index")
+        return None

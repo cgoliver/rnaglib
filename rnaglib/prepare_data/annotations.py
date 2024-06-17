@@ -135,7 +135,7 @@ def get_small_partners(cif, mmcif_dict=None, radius=6, mass_lower_limit=160, mas
                                        mass_lower_limit=mass_lower_limit,
                                        mass_upper_limit=mass_upper_limit)
             if selected is not None:  # ion or ligand
-                interaction_dict = {'id': res_1.id, 'name': res_1.id[0][2:]}
+                interaction_dict = {'id': tuple(res_1.id), 'name': res_1.id[0][2:]}
                 found_rna_neighbors = set()
                 for atom in res_1:
                     # print(atom)
