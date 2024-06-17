@@ -7,6 +7,8 @@ build:
 
 sphinx:
   configuration: docs/source/conf.py
-  extensions:
-    - myst_parser
+
+python:
+  install:
+    - requirements: docs/requirements.txt
   
