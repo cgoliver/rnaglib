@@ -255,7 +255,7 @@ EDGE_FEATURE_MAP = {
 }
 
 
-def build_node_feature_parser(asked_features=None, node_feature_map=NODE_FEATURE_MAP):
+def build_node_feature_parser(asked_features=None, custom_encoders=None, node_feature_map=NODE_FEATURE_MAP):
     """
     This function will load the predefined feature maps available globally.
     Then for each of the features in 'asked feature', it will return an encoder object for each of the asked features
@@ -268,6 +268,10 @@ def build_node_feature_parser(asked_features=None, node_feature_map=NODE_FEATURE
     """
     if asked_features is None:
         return {}
+    if not isinstance(asked_features, list):
+        asked_features = [asked_features]
+    if not custom_encoders is None:
+        node_feature_map.update(custom_encoders)
     if any([feature not in node_feature_map for feature in asked_features]):
         problematic_keys = tuple([feature for feature in asked_features if feature not in node_feature_map])
         raise ValueError(f'{problematic_keys} were asked as a feature or target but do not exist')

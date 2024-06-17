@@ -5,7 +5,7 @@ This is useful to handcraft encoding functions and to design data splits
 """
 import os
 import sys
-import importlib 
+import importlib
 
 import json
 import pickle
@@ -13,14 +13,11 @@ from tqdm import tqdm
 from collections import defaultdict, Counter
 
 from rnaglib.utils import load_json
+from rnaglib.utils import load_index
 
-pkg = importlib.resources.files("rnaglib")
-index_file = pkg / "data_loading" / "graph_index_NR.json"
-with importlib.resources.as_file(index_file) as path:
-    DEFAULT_INDEX = pickle.load(open(path, 'rb'))
-
-# script_dir = os.path.dirname(os.path.realpath(__file__))
-# DEFAULT_INDEX = pickle.load(open(os.path.join(script_dir, "graph_index_NR.json"), 'rb'))
+# pkg = importlib.resources.files("rnaglib")
+# index_file = pkg / "data_loading" / "graph_index_NR.json"
+index_file = load_index()
 
 
 def process_graph_dict(dict_to_flatten, prepend=None, counter=False, possible_supervisions=None):
@@ -58,6 +55,10 @@ def process_graph_dict(dict_to_flatten, prepend=None, counter=False, possible_su
                             hashable_value = True
                         else:
                             hashable_value = inner_value
+                        # PATCH until next release we replace small mol list with tuple
+                        if inner_key == 'node_binding_small-molecule' or inner_key == 'node_binding_ion':
+                            hashable_value = hashable_value[0]
+
                         return_dict[inner_key][hashable_value] += 1
 
                 else:

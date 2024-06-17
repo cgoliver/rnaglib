@@ -79,7 +79,7 @@ from rnaglib.data_loading import split_dataset, Collater
 
 train_set, valid_set, test_set = split_dataset(dataset, split_train=0.7, split_valid=0.85)
 collater = Collater(dataset=dataset)
-train_loader = DataLoader(dataset=train_set, shuffle=True, batch_size=2, num_workers=0, collate_fn=collater.collate)
+train_loader = DataLoader(dataset=train_set, shuffle=True, batch_size=2, num_workers=0, collate_fn=collater)
 
 for batch in train_loader:
     print(batch.keys())
