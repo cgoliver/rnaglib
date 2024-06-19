@@ -45,7 +45,7 @@ When instantiating the task, custom splitters or other arguments can be passed i
 	
 	test_set = task.dataset.subset(test_ind)
 
-Here you go, these splits are now ready to be used by your model of choice and can for example be passed to a `DataLoader`.
+Here you go, these splits are now ready to be used by your model of choice and can for example be passed to a `DataLoader`. For an example of a model trainig on these splits have a look at this  `simple model <https://github.com/cgoliver/rnaglib/blob/master/rnaglib/tasks/models/binding_site_model.py>`_.
 
 Tutorial 2: Creating a new task
 -------
