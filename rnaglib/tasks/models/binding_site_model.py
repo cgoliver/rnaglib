@@ -33,32 +33,6 @@ train_loader = DataLoader(train_set, batch_size=8, shuffle=True, collate_fn=coll
 val_loader = DataLoader(val_set, batch_size=2, shuffle=False, collate_fn=collater)
 test_loader = DataLoader(test_set, batch_size=2, shuffle=False, collate_fn=collater)
 
-'''
-train_data_list, val_data_list, test_data_list = [], [], []
-for ind in train_ind:
-    train_data_list.append(ta.dataset[ind]['graph'])
-for ind in val_ind:
-    val_data_list.append(ta.dataset[ind]['graph'])
-for ind in test_ind:
-    test_data_list.append(ta.dataset[ind]['graph'])
-
-train_loader = DataLoader(train_data_list, batch_size=8, shuffle=True)
-val_loader = DataLoader(val_data_list, batch_size=2, shuffle=False)
-test_loader = DataLoader(test_data_list, batch_size=2, shuffle=False)
-
-# rnaglib converter provides right format for pyg objects but its contents are lists or lists of lists, not tensors.
-def pyg_converter(loader):
-    for data in loader.dataset:
-        data.edge_index =  torch.tensor(data.edge_index).t()
-        data.edge_attr =  torch.tensor(data.edge_attr)
-        data.y = data.y.squeeze().long()
-
-pyg_converter(train_loader)
-pyg_converter(val_loader)
-pyg_converter(test_loader)
-
-'''
-
 for batch in train_loader:
     print(batch)
     graph = batch['graph']
@@ -66,13 +40,6 @@ for batch in train_loader:
     print(f'Batch edge index shape: \t{graph.edge_index.shape}')
     print(f'Batch labels shape: \t\t{graph.y.shape}')
     break
-    '''
-    print(batch)
-    print(f'Batch node features shape: {batch.x.shape}')
-    print(f'Batch edge index shape: {batch.edge_index.shape}')
-    print(f'Batch labels shape: {batch.y.shape}')
-    break
-    '''
 
 # Printing some statistics
 
