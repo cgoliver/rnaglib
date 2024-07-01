@@ -1,13 +1,14 @@
+import numpy as np
+from networkx import set_node_attributes
+
 from rnaglib.data_loading import RNADataset
 from rnaglib.tasks import ResidueClassificationTask
 from rnaglib.splitters import BenchmarkBindingSiteSplitter, RandomSplitter
-import numpy as np
-
-from networkx import set_node_attributes
+from rnaglib.utils import ListEncoder, BoolEncoder
 
 
 class BenchmarkLigandBindingSiteDetection(ResidueClassificationTask):
-    target_var = 'binding_small-molecule'  # "binding_site" needs to be replaced once dataset modifiable.
+    target_var = 'binding_site'  # 'custom' #'binding_small-molecule'  # "binding_site" needs to be replaced once dataset modifiable.
     input_var = "nt_code"
 
     TR60 = ['3sktA', '5u3gB', '5j02A', '2yieZ', '2fcyA', '3gx3A', '4nybA', '1hr2A', '4mgmB', '3oxeB',
@@ -46,12 +47,15 @@ class BenchmarkLigandBindingSiteDetection(ResidueClassificationTask):
                                                                                               None) is None))
             for node, nodedata in x.nodes.items()
         }
+
         set_node_attributes(x, binding_sites, 'binding_site')
+        # set_node_attributes(x, {n:[0,0,0] for n in x.nodes()}, 'custom')
         return x
 
     def build_dataset(self, root):
         dataset = RNADataset(nt_targets=[self.target_var],
-                             nt_features=[self.input_var],
+                             nt_features=[self.input_var],  # 'custom'],
+                             custom_encoders={self.target_var: BoolEncoder()},  # ,{'custom': ListEncoder(3)},
                              rna_filter=lambda x: x.graph['pdbid'][0].lower() in [name[:-1] for name in self.rnaskeep],
                              nt_filter=self._nt_filter,
                              annotator=self._annotator,
@@ -59,7 +63,6 @@ class BenchmarkLigandBindingSiteDetection(ResidueClassificationTask):
                              all_graphs=[name[:-1] + '.json' for name in self.rnaskeep]  # for increased loading speed
                              )
         return dataset
-
 
 
 class BenchmarkLigandBindingSiteDetectionEmbeddings(ResidueClassificationTask):
@@ -103,7 +106,8 @@ class BenchmarkLigandBindingSiteDetectionEmbeddings(ResidueClassificationTask):
             for node, nodedata in x.nodes.items()
         }
         embeddings = {
-            node: np.load("../../../chain_embs/" + node.rsplit('.', 1)[0] + ".npz")[node].tolist() #needs to be list or won't be json serialisable
+            node: np.load("../../../chain_embs/" + node.rsplit('.', 1)[0] + ".npz")[node].tolist()
+            # needs to be list or won't be json serialisable
             for node, nodedata in x.nodes.items()
         }
 
@@ -122,9 +126,10 @@ class BenchmarkLigandBindingSiteDetectionEmbeddings(ResidueClassificationTask):
                              all_graphs=[name[:-1] + '.json' for name in self.rnaskeep]  # for increased loading speed
                              )
         return dataset
-    
+
+
 ##############################################################################################################
-  
+
 class BenchmarkProteinBindingSiteDetection(ResidueClassificationTask):
     target_var = 'binding_protein'  # "binding_site" needs to be replaced once dataset modifiable.
     input_var = "nt_code"
@@ -178,7 +183,8 @@ class BenchmarkProteinBindingSiteDetection(ResidueClassificationTask):
                              all_graphs=[name[:-1] + '.json' for name in self.rnaskeep]  # for increased loading speed
                              )
         return dataset
-    
+
+
 class BenchmarkProteinBindingSiteDetectionEmbeddings(ResidueClassificationTask):
     target_var = 'binding_protein'  # "binding_site" needs to be replaced once dataset modifiable.
     input_var = "nt_code"
@@ -220,7 +226,8 @@ class BenchmarkProteinBindingSiteDetectionEmbeddings(ResidueClassificationTask):
             for node, nodedata in x.nodes.items()
         }
         embeddings = {
-            node: np.load("../../../chain_embs/" + node.rsplit('.', 1)[0] + ".npz")[node].tolist() #needs to be list or won't be json serialisable
+            node: np.load("../../../chain_embs/" + node.rsplit('.', 1)[0] + ".npz")[node].tolist()
+            # needs to be list or won't be json serialisable
             for node, nodedata in x.nodes.items()
         }
 
@@ -239,9 +246,10 @@ class BenchmarkProteinBindingSiteDetectionEmbeddings(ResidueClassificationTask):
                              all_graphs=[name[:-1] + '.json' for name in self.rnaskeep]  # for increased loading speed
                              )
         return dataset
-    
+
+
 ##############################################################################################################
-  
+
 class BenchmarkChemicalModification(ResidueClassificationTask):
     target_var = 'is_modified'  # "binding_site" needs to be replaced once dataset modifiable.
     input_var = "nt_code"
@@ -295,7 +303,8 @@ class BenchmarkChemicalModification(ResidueClassificationTask):
                              all_graphs=[name[:-1] + '.json' for name in self.rnaskeep]  # for increased loading speed
                              )
         return dataset
-    
+
+
 class BenchmarkChemicalModificationEmbeddings(ResidueClassificationTask):
     target_var = 'is_modified'  # "binding_site" needs to be replaced once dataset modifiable.
     input_var = "nt_code"
@@ -337,7 +346,8 @@ class BenchmarkChemicalModificationEmbeddings(ResidueClassificationTask):
             for node, nodedata in x.nodes.items()
         }
         embeddings = {
-            node: np.load("../../../chain_embs/" + node.rsplit('.', 1)[0] + ".npz")[node].tolist() #needs to be list or won't be json serialisable
+            node: np.load("../../../chain_embs/" + node.rsplit('.', 1)[0] + ".npz")[node].tolist()
+            # needs to be list or won't be json serialisable
             for node, nodedata in x.nodes.items()
         }
 

@@ -145,6 +145,7 @@ class ProteinBindingDetection(RNAClassificationTask):
             print(response.text)
             return []
 
+
 class BindingDetection(RNAClassificationTask):
     target_var = "ligands"  # graph level attribute
     input_var = "nt_code"  # node level attribute
@@ -171,6 +172,7 @@ class ChemicalModification(ResidueClassificationTask):
     def __init__(self, root, splitter=None, **kwargs):
         super().__init__(root=root, splitter=splitter, **kwargs)
         pass
+
     pass
 
     def default_splitter(self):
