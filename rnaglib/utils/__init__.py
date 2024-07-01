@@ -31,6 +31,8 @@ from .misc import load_index
 from .graphlet_hash import build_hash_table
 from .graphlet_hash import Hasher
 
+from .task_utils import print_statistics
+
 __all__ = ['download_graphs',
            'bfs',
            'available_pdbids',
@@ -57,7 +59,8 @@ __all__ = ['download_graphs',
            'ListEncoder',
            'FloatEncoder',
            'OneHotEncoder',
-           'BoolEncoder'
+           'BoolEncoder',
+           'print_statistics'
            ]
 
 classes = __all__
