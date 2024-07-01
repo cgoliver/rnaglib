@@ -12,7 +12,7 @@ from rnaglib.utils import dump_json
 
 
 class RNADataset:
-    """ 
+    """
         This class is the main object to hold the core RNA data annotations.
         The ``RNAglibDataset.all_rnas`` object is a generator networkx objects that hold all the annotations for each RNA in the dataset.
         You can also access individual RNAs on-disk with ``RNAGlibDataset()[idx]`` or ``RNAGlibDataset().get_pdbid('1b23')``
@@ -33,7 +33,8 @@ class RNADataset:
                  rna_targets=None,
                  nt_targets=None,
                  bp_targets=None,
-                 custom_encoders=None,
+                 custom_encoders_features=None,
+                 custom_encoders_targets=None,
                  annotated=False,
                  verbose=False,
                  annotator=None,
@@ -93,9 +94,10 @@ class RNADataset:
         self.bp_targets = bp_targets
 
         self.node_features_parser = build_node_feature_parser(self.nt_features,
-                                                              custom_encoders=custom_encoders
+                                                              custom_encoders=custom_encoders_features
                                                               )
-        self.node_target_parser = build_node_feature_parser(self.nt_targets)
+        self.node_target_parser = build_node_feature_parser(self.nt_targets,
+                                                            custom_encoders=custom_encoders_targets)
 
         self.input_dim = self.compute_dim(self.node_features_parser)
         self.output_dim = self.compute_dim(self.node_target_parser)
@@ -126,8 +128,10 @@ class RNADataset:
 
     def build_dataset(self):
         """ Iterates through database, applying filters and annotations"""
+        from tqdm import tqdm as tqdm
         graph_list = []
-        for graph_name in self.all_graphs:
+
+        for graph_name in tqdm(self.all_graphs):
             g_path = os.path.join(self.db_path, graph_name)
             g = load_graph(g_path)
 

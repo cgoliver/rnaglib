@@ -53,4 +53,4 @@ for k in range(epochs):
             print(f'Epoch {k}, batch {i}/{len(train_dataloader)}: {loss.item():.4f}, time: {time.time() - t0:.1f}s')
 
 model = model.eval()
-final_vs = ef_task.evaluate(model)
+final_vs = ef_task.validate(model)
