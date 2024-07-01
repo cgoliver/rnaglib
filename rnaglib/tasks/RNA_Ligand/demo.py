@@ -1,7 +1,18 @@
-from rnaglib.tasks import GMSM 
-from rnaglib.representations import GraphRepresentation
-from rnaglib.learning.task_models import RGCN_graph
+import os
+import sys
+
+import argparse
+from collections import Counter
+import dill as pickle
+import numpy as np
+from pathlib import Path
+import shutil
+from sklearn.metrics import accuracy_score, f1_score, roc_auc_score, matthews_corrcoef
+
 import torch
+import torch.optim as optim
+import torch.nn.functional as F
+from torch.nn import Linear, BatchNorm1d, Dropout
 from torch_geometric.loader import DataLoader as PygLoader
 import torch.optim as optim
 from pathlib import Path
@@ -16,7 +27,7 @@ args = parser.parse_args()
 
 # Creating task
 
-if  args.frompickle is True:
+if args.frompickle is True:
     print('loading task from pickle')
     file_path = Path(__file__).parent / 'data' / 'gmsm.pkl'
 
@@ -26,7 +37,7 @@ if  args.frompickle is True:
 else:
     print('generating task')
     ta = GMSM('gmsm')
-    ta.dataset.add_representation(GraphRepresentation(framework = 'pyg'))
+    ta.dataset.add_representation(GraphRepresentation(framework='pyg'))
 
 # Splitting data
 
@@ -41,31 +52,30 @@ train_graphs = list((d['graph'] for d in train_set))
 val_graphs = list((d['graph'] for d in val_set))
 test_graphs = list((d['graph'] for d in test_set))
 
-# Creating node level labels
 
-#convert node levels to graph levels]
+# Creating node level labels
 def node_to_graph_label(dataset):
+    # convert node levels to graph levels
     for data in dataset:
         data.y = data.y[0].argmax().unsqueeze(0)  # Convert to tensor of shape [1], otherwise batching will cause issues
     return dataset
-        
+
+
 train_graphs = node_to_graph_label(train_graphs)
 val_graphs = node_to_graph_label(val_graphs)
 test_graphs = node_to_graph_label(test_graphs)
 
 # Creating loaders
-
 pyg_train_loader = PygLoader(train_graphs, batch_size=8, shuffle=True)
 pyg_val_loader = PygLoader(val_graphs, batch_size=8, shuffle=False)
 pyg_test_loader = PygLoader(test_graphs, batch_size=8, shuffle=False)
 
+
 def count_unique_edge_attrs(train_loader):
     all_edge_attrs = []
-    
     for data in train_loader.dataset:
         if data.edge_attr is not None:
             all_edge_attrs.append(data.edge_attr)
-    
     if all_edge_attrs:
         all_edge_attrs = torch.cat(all_edge_attrs, dim=0)
         return all_edge_attrs.unique().numel()
@@ -74,36 +84,24 @@ def count_unique_edge_attrs(train_loader):
 
 
 # Extract dimension information
-num_node_features = train_set[0]['graph'].x.shape[1] # Number of node-level classes
-num_classes = train_set[0]['graph'].y.shape[1] # Number of graph-level classes
-
-def count_unique_edge_attrs(train_loader):
-    all_edge_attrs = []
-    for data in train_loader.dataset:
-        all_edge_attrs.append(data.edge_attr)
-    all_edge_attrs = torch.cat(all_edge_attrs, dim=0)
-    return all_edge_attrs.unique().numel()
-   
-num_unique_edge_attrs =  count_unique_edge_attrs(pyg_train_loader) # Number of unique edge attributes
-
-print(f"# node featuers {num_node_features}, # classes {num_classes}, # edge attributes {num_unique_edge_attrs}")
+num_node_features = train_set[0]['graph'].x.shape[1]  # Number of node-level classes
+num_classes = train_set[0]['graph'].y.shape[1]  # Number of graph-level classes
+num_unique_edge_attrs = count_unique_edge_attrs(pyg_train_loader)  # Number of unique edge attributes
+print(f"# node features {num_node_features}, # classes {num_classes}, # edge attributes {num_unique_edge_attrs}")
 
 # Define model and parameters
-
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print(f"Using device: {device}")
-
 model = RGCN_graph(num_node_features, num_classes, num_unique_edge_attrs).to(device)
 
 learning_rate = 0.01
 epochs = 10
-
 optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 criterion = torch.nn.CrossEntropyLoss()
 
-# Evaluate function
 
-def evaluate(model, loader, criterion):
+# Evaluate function
+def validate(model, loader, criterion):
     model.eval()
     val_loss = 0
     correct = 0
@@ -117,8 +115,8 @@ def evaluate(model, loader, criterion):
             correct += (pred == data.y).sum().item()
     return val_loss / len(loader), correct / len(loader.dataset)
 
-# Training loop
 
+# Training loop
 model.train()
 print('Training model')
 for epoch in range(epochs):
@@ -134,13 +132,12 @@ for epoch in range(epochs):
         total_loss += loss.item()
     avg_train_loss = total_loss / len(pyg_train_loader)
     # Evaluate on validation set
-    val_loss, val_acc = evaluate(model, pyg_val_loader, criterion)
+    val_loss, val_acc = validate(model, pyg_val_loader, criterion)
     print(f"Epoch {epoch + 1}, Train Loss: {avg_train_loss:.4f}, Val Loss: {val_loss:.4f}, Val Acc: {val_acc:.4f}")
 print("Training complete")
 
 test_loss, test_accuracy, test_mcc, test_f1 = ta.evaluate(model, pyg_test_loader, criterion, device)
 
-#Further improvements:
+# Further improvements:
 # - make RGCN more parametrisable
 # - make the same thing with pytorch lightning
-# - yay 
