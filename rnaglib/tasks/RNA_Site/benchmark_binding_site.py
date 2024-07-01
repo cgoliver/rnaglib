@@ -54,7 +54,7 @@ class BenchmarkLigandBindingSiteDetection(ResidueClassificationTask):
     def build_dataset(self, root):
         dataset = RNADataset(nt_targets=[self.target_var],
                              nt_features=[self.input_var], # 'custom'],
-                             custom_encoders= {self.target_var: BoolEncoder()}, #,{'custom': ListEncoder(3)}, 
+                             custom_encoders_targets= {self.target_var: BoolEncoder()}, #,{'custom': ListEncoder(3)},
                              rna_filter=lambda x: x.graph['pdbid'][0].lower() in [name[:-1] for name in self.rnaskeep],
                              nt_filter=self._nt_filter,
                              annotator=self._annotator,
