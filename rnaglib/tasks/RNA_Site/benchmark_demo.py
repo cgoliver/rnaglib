@@ -1,4 +1,4 @@
-from rnaglib.tasks import BindingSiteDetection
+from rnaglib.tasks import BenchmarkLigandBindingSiteDetection
 from rnaglib.representations import GraphRepresentation
 from rnaglib.data_loading import Collater
 from rnaglib.learning.task_models import RGCN_node
@@ -27,8 +27,9 @@ if  args.frompickle is True:
         ta = pickle.load(file)
 else:
     print('generating task')
-    ta = BindingSiteDetection('RNA-Site')
+    ta = BenchmarkLigandBindingSiteDetection('RNA-Site-Benchmark')
     ta.dataset.add_representation(GraphRepresentation(framework = 'pyg'))
+
 
 # Splitting dataset
 
