@@ -28,7 +28,7 @@ class BindingSiteDetection(ResidueClassificationTask):
 
         dataset = RNADataset(nt_targets=[self.target_var],
                              nt_features=[self.input_var],
-                             rna_filter=lambda x: x.graph['pdbid'][0].lower() in rnas_keep
+                             rna_filter=lambda x: x.graph['pdbid'][0].lower() in rnas_keep,
                              )
 
         return dataset
@@ -145,6 +145,7 @@ class ProteinBindingDetection(RNAClassificationTask):
             print(response.text)
             return []
 
+
 class BindingDetection(RNAClassificationTask):
     target_var = "ligands"  # graph level attribute
     input_var = "nt_code"  # node level attribute
@@ -185,7 +186,7 @@ class ChemicalModification(ResidueClassificationTask):
 
         dataset = RNADataset(nt_targets=[self.target_var],
                              nt_features=[self.input_var],
-                             rna_filter=lambda x: x.graph['pdbid'][0].lower() in rnas_keep
+                             rna_filter=lambda x: x.graph['pdbid'][0].lower() in rnas_keep,
                              )
 
         return dataset
