@@ -5,7 +5,7 @@ from functools import cached_property
 
 import torch
 import numpy as np
-from sklearn.metrics import matthews_corrcoef, f1_score
+from sklearn.metrics import matthews_corrcoef, f1_score, accuracy_score, roc_auc_score
 
 from rnaglib.data_loading import RNADataset
 
@@ -87,11 +87,35 @@ class ResidueClassificationTask(Task):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-    def evaluate(self, test_predictions):
-        from sklearn.metrics import matthews_corrcoef
-        true = [matthews_corrcoef(test_predictions[i], self.dataset[idx]['graph']['y']) \
-                for i, idx in enumerate(self.test_ind)]
-        return {'mcc': sum(true) / len(true)}
+    def evaluate(self, model, loader, criterion, device):
+        model.eval()
+        all_preds = []
+        all_labels = []
+        total_loss = 0
+        
+        for batch in loader:
+            graph = batch['graph']
+            graph = graph.to(device)
+            out = model(graph)
+            loss = criterion(out, torch.flatten(graph.y).long())
+            total_loss += loss.item()
+            preds = out.argmax(dim=1)
+            all_preds.extend(preds.tolist())
+            all_labels.extend(graph.y.tolist()) 
+        
+        avg_loss = total_loss / len(loader)
+        
+        accuracy = accuracy_score(all_labels, all_preds)
+        f1 = f1_score(all_labels, all_preds)
+        auc = roc_auc_score(all_labels, all_preds)
+        mcc = matthews_corrcoef(all_labels, all_preds)
+
+        print(f'Test Accuracy: {accuracy:.4f}')
+        print(f'Test F1 Score: {f1:.4f}')
+        print(f'Test AUC: {auc:.4f}')
+        print(f'Test MCC: {mcc:.4f}')  
+        
+        return accuracy, f1, auc, avg_loss, mcc
 
 
 class RNAClassificationTask(Task):
