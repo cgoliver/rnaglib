@@ -6,7 +6,7 @@ from rnaglib.utils import load_index
 import requests
 
 class ProteinBindingDetection(RNAClassificationTask):
-    target_var = "proteins"  # graph level attribute
+    target_var = "binding_protein"  # graph level attribute
     input_var = "nt_code"  # node level attribute
 
     def __init__(self, root, splitter=None, **kwargs):

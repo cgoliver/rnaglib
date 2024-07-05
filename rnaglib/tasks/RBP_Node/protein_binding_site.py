@@ -3,6 +3,7 @@ from rnaglib.tasks import ResidueClassificationTask
 from rnaglib.splitters import RandomSplitter
 
 from rnaglib.utils import load_index
+import requests
 
 class ProteinBindingSiteDetection(ResidueClassificationTask):
     target_var = "binding_protein"
@@ -32,6 +33,7 @@ class ProteinBindingSiteDetection(ResidueClassificationTask):
                              )
         return dataset
 
+
     def get_ribosomal_rnas(self):
         url = "https://search.rcsb.org/rcsbsearch/v2/query"
         query = {
@@ -49,4 +51,12 @@ class ProteinBindingSiteDetection(ResidueClassificationTask):
                 "return_all_hits": True
             }
         }
-   
+        response = requests.post(url, json=query)
+        if response.status_code == 200:
+            data = response.json()
+            ribosomal_rnas = [result['identifier'] for result in data['result_set']]
+            return ribosomal_rnas
+        else:
+            print(f"Failed to retrieve data: {response.status_code}")
+            print(response.text)
+            return []
