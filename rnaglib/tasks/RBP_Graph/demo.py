@@ -11,7 +11,7 @@ import torch.nn.functional as F
 from torch_geometric.loader import DataLoader as PygLoader
 
 
-from rnaglib.tasks import GMSM
+from rnaglib.tasks import ProteinBindingDetection
 from rnaglib.representations import GraphRepresentation
 from rnaglib.learning.task_models import RGCN_graph
 
@@ -23,14 +23,14 @@ args = parser.parse_args()
 
 if args.frompickle is True:
     print('loading task from pickle')
-    file_path = Path(__file__).parent / 'data' / 'gmsm.pkl'
+    file_path = Path(__file__).parent / 'data' / 'protein_binding.pkl'
 
     with open(file_path, 'rb') as file:
         ta = pickle.load(file)
 
 else:
     print('generating task')
-    ta = GMSM('gmsm')
+    ta = ProteinBindingDetection('RBP-Graph')
     ta.dataset.add_representation(GraphRepresentation(framework='pyg'))
 
 # Splitting data
@@ -47,13 +47,14 @@ val_graphs = list((d['graph'] for d in val_set))
 test_graphs = list((d['graph'] for d in test_set))
 
 
-# Creating node level labels
 def node_to_graph_label(dataset):
     # convert node levels to graph levels
     for data in dataset:
-        data.y = data.y[0].argmax().unsqueeze(0)  # Convert to tensor of shape [1], otherwise batching will cause issues
+        # Check if any node label is 1
+        has_positive_label = torch.any(data.y == 1)
+        # Convert to tensor of shape [1], 1 if any node is 1, 0 otherwise
+        data.y = torch.tensor([1 if has_positive_label else 0], dtype=torch.long)
     return dataset
-
 
 train_graphs = node_to_graph_label(train_graphs)
 val_graphs = node_to_graph_label(val_graphs)
@@ -79,7 +80,7 @@ def count_unique_edge_attrs(train_loader):
 
 # Extract dimension information
 num_node_features = train_set[0]['graph'].x.shape[1]  # Number of node-level classes
-num_classes = train_set[0]['graph'].y.shape[1]  # Number of graph-level classes
+num_classes = 2  # Number of graph-level classes
 num_unique_edge_attrs = count_unique_edge_attrs(pyg_train_loader)  # Number of unique edge attributes
 print(f"# node features {num_node_features}, # classes {num_classes}, # edge attributes {num_unique_edge_attrs}")
 
@@ -89,7 +90,7 @@ print(f"Using device: {device}")
 model = RGCN_graph(num_node_features, num_classes, num_unique_edge_attrs).to(device)
 
 learning_rate = 0.01
-epochs = 10
+epochs = 100
 optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 criterion = torch.nn.CrossEntropyLoss()
 
