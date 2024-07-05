@@ -8,7 +8,7 @@ from tqdm import tqdm
 if __name__ == "__main__":
     sys.path = [os.path.join(os.path.abspath(os.path.dirname(__file__)), "../../..")] + sys.path
 
-from rnaglib.tasks.rna_vs.ligands import MolGraphEncoder
+from rnaglib.tasks.RNA_VS.ligands import MolGraphEncoder
 from rnaglib.utils import graph_from_pdbid, graph_io
 
 

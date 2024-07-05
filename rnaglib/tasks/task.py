@@ -3,6 +3,10 @@ import hashlib
 import json
 from functools import cached_property
 
+import torch
+import numpy as np
+from sklearn.metrics import matthews_corrcoef, f1_score, accuracy_score, roc_auc_score
+
 from rnaglib.data_loading import RNADataset
 
 
@@ -86,19 +90,85 @@ class ResidueClassificationTask(Task):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-    def evaluate(self, test_predictions):
-        from sklearn.metrics import matthews_corrcoef
-        true = [matthews_corrcoef(test_predictions[i], self.dataset[idx]['graph']['y']) \
-                for i, idx in enumerate(self.test_ind)]
-        return {'mcc': sum(true) / len(true)}
+    def evaluate(self, model, loader, criterion, device):
+        model.eval()
+        all_preds = []
+        all_labels = []
+        total_loss = 0
+        
+        for batch in loader:
+            graph = batch['graph']
+            graph = graph.to(device)
+            out = model(graph)
+            loss = criterion(out, torch.flatten(graph.y).long())
+            total_loss += loss.item()
+            preds = out.argmax(dim=1)
+            all_preds.extend(preds.tolist())
+            all_labels.extend(graph.y.tolist()) 
+        
+        avg_loss = total_loss / len(loader)
+        
+        accuracy = accuracy_score(all_labels, all_preds)
+        f1 = f1_score(all_labels, all_preds)
+        auc = roc_auc_score(all_labels, all_preds)
+        mcc = matthews_corrcoef(all_labels, all_preds)
+
+        print(f'Test Accuracy: {accuracy:.4f}')
+        print(f'Test F1 Score: {f1:.4f}')
+        print(f'Test AUC: {auc:.4f}')
+        print(f'Test MCC: {mcc:.4f}')  
+        
+        return accuracy, f1, auc, avg_loss, mcc
 
 
 class RNAClassificationTask(Task):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-
+    '''
     def evaluate(self, graph_level_attribute, test_predictions):
         from sklearn.metrics import matthews_corrcoef
         true = [self.dataset[idx]['graph'][graph_level_attribute] for idx in self.test_ind]
         mcc_scores = [matthews_corrcoef([true[i]], [test_predictions[i]]) for i in range(len(self.test_ind))]
         return {'mcc': sum(mcc_scores) / len(mcc_scores)}
+    '''
+    def evaluate(self, model, test_loader, criterion, device):
+        model.eval()  
+        
+        all_preds = []
+        all_labels = []
+        all_probs = []
+        test_loss = 0
+        
+        with torch.no_grad():
+            for data in test_loader:
+                data = data.to(device)
+                outputs = model(data)
+                loss = criterion(outputs, data.y)
+                test_loss += loss.item()
+                
+                probs = torch.nn.functional.softmax(outputs, dim=1)
+                _, predicted = torch.max(outputs.data, 1)
+                
+                all_preds.extend(predicted.cpu().numpy())
+                all_labels.extend(data.y.cpu().numpy())
+                all_probs.extend(probs.cpu().numpy())
+        
+        all_preds = np.array(all_preds)
+        all_labels = np.array(all_labels)
+        all_probs = np.array(all_probs)
+        
+        accuracy = (all_preds == all_labels).mean()
+        avg_loss = test_loss / len(test_loader)
+        
+        # Calculate MCC
+        mcc = matthews_corrcoef(all_labels, all_preds)
+        
+        # Calculate F1 score
+        f1 = f1_score(all_labels, all_preds, average='macro')
+        
+        print(f'Test Loss: {avg_loss:.4f}')
+        print(f'Test Accuracy: {accuracy:.4f}')
+        print(f'Matthews Correlation Coefficient: {mcc:.4f}')
+        print(f'F1 Score: {f1:.4f}')
+        
+        return avg_loss, accuracy, mcc, f1

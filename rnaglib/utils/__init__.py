@@ -23,12 +23,15 @@ from .feature_maps import NODE_FEATURE_MAP
 from .feature_maps import ListEncoder
 from .feature_maps import FloatEncoder
 from .feature_maps import OneHotEncoder
+from .feature_maps import BoolEncoder
 
 from .misc import listdir_fullpath
 from .misc import load_index
 
 from .graphlet_hash import build_hash_table
 from .graphlet_hash import Hasher
+
+from .task_utils import print_statistics
 
 __all__ = ['download_graphs',
            'bfs',
@@ -55,7 +58,9 @@ __all__ = ['download_graphs',
            'load_index',
            'ListEncoder',
            'FloatEncoder',
-           'OneHotEncoder'
+           'OneHotEncoder',
+           'BoolEncoder',
+           'print_statistics'
            ]
 
 classes = __all__
