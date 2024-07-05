@@ -16,7 +16,7 @@ class OneHotEncoder:
         self.mapping = mapping
         self.reverse_mapping = {value: key for key, value in mapping.items()}
         if num_values is None:
-            num_values = max(mapping.values())
+            num_values = len(mapping.values()) #max(mapping.values())
         self.num_values = num_values
 
     def encode(self, value):

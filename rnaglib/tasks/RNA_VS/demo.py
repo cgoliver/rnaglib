@@ -8,8 +8,8 @@ import torch.optim as optim
 if __name__ == "__main__":
     sys.path = [os.path.join(os.path.abspath(os.path.dirname(__file__)), "../../..")] + sys.path
 
-from rnaglib.tasks.rna_vs.task import VSTask
-from rnaglib.tasks.rna_vs.model import RNAEncoder, LigandGraphEncoder, Decoder, VSModel
+from rnaglib.tasks.RNA_VS.task import VSTask
+from rnaglib.tasks.RNA_VS.model import RNAEncoder, LigandGraphEncoder, Decoder, VSModel
 from rnaglib.representations.graph import GraphRepresentation
 
 # Create a task
@@ -53,4 +53,4 @@ for k in range(epochs):
             print(f'Epoch {k}, batch {i}/{len(train_dataloader)}: {loss.item():.4f}, time: {time.time() - t0:.1f}s')
 
 model = model.eval()
-final_vs = ef_task.evaluate(model)
+final_vs = ef_task.validate(model)

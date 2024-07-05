@@ -2,6 +2,9 @@
 # `rnaglib`'s task module
 
 The new tasks module allows the use and creation of a variety of machine learning tasks on RNA structure. 
+
+Each task definition is found in its named directory ([RNA_CM](./RNA_CM), [RNA_IF](./RNA_IF), [RNA_VS](./RNA_VS), [RNA_Site](./RNA_Site), [RNA_Ligand](./RNA_Ligand), [RBP_Graph](./RBP_Graph), [RBP_Node](./RBP_Node)). Each contains a brief description as well as a `demo.py` script which trains a simple model on the task and outputs relevant metrics.
+
 We provide a short tutorial on (1) using an existing tasks to assess model perfomance and (2) building custom tasks using modular `rnaglib` functionality.
 
 Code to reproduce the results included in the correspoding submission can be found in the `experiments/` directory.
