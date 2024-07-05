@@ -8,10 +8,10 @@ from torch.utils.data import Dataset, DataLoader
 if __name__ == "__main__":
     sys.path = [os.path.join(os.path.abspath(os.path.dirname(__file__)), "../../..")] + sys.path
 
-from rnaglib.tasks.rna_vs.build_data import build_data
-from rnaglib.tasks.rna_vs.data import VSRNADataset, VSRNATrainDataset, VSCollater
-from rnaglib.tasks.rna_vs.evaluate import run_virtual_screen
-from rnaglib.tasks.rna_vs.ligands import MolGraphEncoder
+from rnaglib.tasks.RNA_VS.build_data import build_data
+from rnaglib.tasks.RNA_VS.data import VSRNADataset, VSRNATrainDataset, VSCollater
+from rnaglib.tasks.RNA_VS.evaluate import run_virtual_screen
+from rnaglib.tasks.RNA_VS.ligands import MolGraphEncoder
 
 
 class VSTask:
