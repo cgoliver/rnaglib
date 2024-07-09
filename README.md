@@ -51,19 +51,19 @@ We currently support the following 6 prediction tasks and the ability to create 
 ### [Small Molecule Ligand Classification](https://github.com/cgoliver/rnaglib/tree/master/src/rnaglib/tasks/RNA_Ligand)
 
 
-**Input:**: Small molecule binding site
+**Input:** Small molecule binding site
 
 **Output:** Multi-class variable corresponding to the chemical family of the native ligand.
 
 ### [Small Molecule Binding Site Detection](https://github.com/cgoliver/rnaglib/tree/master/src/rnaglib/tasks/RNA_Site)
 
-**Input:**: A full RNA 3D structure
+**Input:** A full RNA 3D structure
 
 **Output:** Binary variable at each residue corresponding to the likelihood of belonging to a binding pocket.
 
 ### [RNA Virtual Screening](https://github.com/cgoliver/rnaglib/tree/master/src/rnaglib/tasks/RNA_VS)
 
-**Input:**: Small molecule binding site + list of chemical compounds.
+**Input:** Small molecule binding site + list of chemical compounds.
 
 **Output:** Sort the list of chemical compounds by likelihood of binding to the given site.
 
