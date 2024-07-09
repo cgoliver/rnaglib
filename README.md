@@ -21,6 +21,10 @@ We host RNAs annotated with molecule, base pair, and nucleotide level attributes
 
 ![Example graph](https://raw.githubusercontent.com/cgoliver/rnaglib/master/images/rgl_fig.png)
 
+❗**New Feature**: Full ML Tasks API!
+
+See [docs](https://rnaglib.readthedocs.io/en/latest/tasks.html) for more info.
+
 ## Cite
 
 ```
