@@ -257,15 +257,18 @@ pip install git+https://github.com/cgoliver/fr3d-python.git
 
 ## Associated Repositories:
 
-[VeRNAl](https://github.com/cgoliver/vernal)
+If you use rnaglib in one of your projects, please cite and feel free to make a pull request so we can list your project here.
 
-[RNAMigos](https://github.com/cgoliver/RNAmigos)
+* [RNAMigos2](https://github.com/cgoliver/RNAmigos2)
+* [Structure-and Function-Aware Substitution Matrices](https://github.com/BorgwardtLab/GraphMatchingSubstitutionMatrices)
+* [MultiModRLBP: A Deep Learning Approach for RNA-Small Molecule Ligand Binding Site Prediction using Multi-modal features](https://github.com/lennylv/MultiModRLBP)
+* [VeRNAl](https://github.com/cgoliver/vernal)
+* [RNAMigos](https://github.com/cgoliver/RNAmigos)
 
 
 ## Resources
 
 * [Documentation](https://rnaglib.readthedocs.io/en/latest/?badge=latest)
-* [Homepage](https://rnaglib.cs.mcgill.ca/)
 * [Twitter](https://twitter.com/rnaglib)
 * Contact: `rnaglib@cs.mcgill.ca`
 
