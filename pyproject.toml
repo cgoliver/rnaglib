@@ -44,6 +44,8 @@ rnaglib_index='rnaglib.bin.rnaglib_index:main'
 [tool.setuptools]
 
 packages = ['rnaglib', 
+	    'rnaglib.tasks', 
+	    'rnaglib.splitters', 
 	    'rnaglib.prepare_data', 
             'rnaglib.data_loading', 
             'rnaglib.representations',
