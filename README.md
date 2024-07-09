@@ -110,6 +110,12 @@ val_set = ta.dataset.subset(val_ind)
 test_set = ta.dataset.subset(test_ind)
 
 
+```
+
+The above was the only code you need from rnaglib. What follows is boilerplate pytorch and DGL for the loading and training which you can customize according to your own needs.
+
+```python
+
 # Create loaders
 
 print('Creating loaders')
@@ -189,13 +195,13 @@ for epoch in range(epochs):
 
 # Evaluate on test set
 
-test_accuracy, test_f1, test_auc, test_loss, test_mcc = ta.evaluate(model, test_loader, criterion, device)  
+test_accuracy, test_f1, test_auc, test_loss, test_mcc = ta.evaluate(model, test_loader, criterion, device)
 
 print(f'Test Accuracy: {test_accuracy:.4f}, Test F1 Score: {test_f1:.4f}, Test AUC: {test_auc:.4f}, Test MCC: {test_mcc:.4f}')
 
 ```
 
-
+This feature is in beta so please raise issues if you need help or have feedback.
 
 ## Cite
 
