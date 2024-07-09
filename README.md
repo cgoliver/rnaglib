@@ -32,33 +32,39 @@ We currently support the following 6 prediction tasks and the ability to create 
 ### [Reidue-Level RNA-Protein Binding](https://github.com/cgoliver/rnaglib/tree/master/src/rnaglib/tasks/RBP_Node)
 
 **Input:** A full RNA 3D structure
+
 **Output:** Binary variable at each residue representing protein-binding likelihood
 
 ### [Chemical Modification](https://github.com/cgoliver/rnaglib/tree/master/src/rnaglib/tasks/RBP_Node)
 
 **Input:** A full RNA 3D structure
+
 **Output:** Binary variable at each residue with likelihood of covalent modification.
 
 ### [Inverse Folding](https://github.com/cgoliver/rnaglib/tree/master/src/rnaglib/tasks/RNA_IF)
 
 
 **Input:** A full RNA 3D structure
+
 **Output:** The nulceotide identity at each position for the native structure.
 
 ### [Small Molecule Ligand Classification](https://github.com/cgoliver/rnaglib/tree/master/src/rnaglib/tasks/RNA_Ligand)
 
 
 **Input:**: Small molecule binding site
+
 **Output:** Multi-class variable corresponding to the chemical family of the native ligand.
 
 ### [Small Molecule Binding Site Detection](https://github.com/cgoliver/rnaglib/tree/master/src/rnaglib/tasks/RNA_Site)
 
 **Input:**: A full RNA 3D structure
+
 **Output:** Binary variable at each residue corresponding to the likelihood of belonging to a binding pocket.
 
 ### [RNA Virtual Screening](https://github.com/cgoliver/rnaglib/tree/master/src/rnaglib/tasks/RNA_VS)
 
 **Input:**: Small molecule binding site + list of chemical compounds.
+
 **Output:** Sort the list of chemical compounds by likelihood of binding to the given site.
 
 ![Example graph](https://raw.githubusercontent.com/cgoliver/rnaglib/master/images/rgl_fig.png)
