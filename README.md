@@ -20,6 +20,9 @@ We host RNAs annotated with molecule, base pair, and nucleotide level attributes
 * Leontis-westhof base pair geometry classification
 
 
+![Example graph](https://raw.githubusercontent.com/cgoliver/rnaglib/master/images/rgl_fig.png)
+
+
 ## ❗**New Feature**: Full Support for ML Tasks!
 
 We now support fully implemented prediction tasks. With the `rnaglib.tasks` subpackage you can load annotated RNA datasets with train/val/test splits for various biologically relevant prediction tasks.
@@ -67,7 +70,6 @@ We currently support the following 6 prediction tasks and the ability to create 
 
 **Output:** Sort the list of chemical compounds by likelihood of binding to the given site.
 
-![Example graph](https://raw.githubusercontent.com/cgoliver/rnaglib/master/images/rgl_fig.png)
 
 See [docs](https://rnaglib.readthedocs.io/en/latest/tasks.html) for more info on usage.
 
