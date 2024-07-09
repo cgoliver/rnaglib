@@ -5,7 +5,7 @@ from .benchmark_binding_site import BenchmarkLigandBindingSiteDetectionEmbedding
 # from .binding_site import BindingSiteDetection, ProteinBindingSiteDetection, BindingDetection, ProteinBindingDetection, ChemicalModification
 # from .inverse_folding import InverseFolding, gRNAde
 
-#from .RBP_Node.protein_binding_site import ProteinBindingSiteDetection
+from .RBP_Node.protein_binding_site import ProteinBindingSiteDetection
 from .RBP_Graph.protein_binding import ProteinBindingDetection
 from .RNA_CM.chemical_modification import ChemicalModification
 from .RNA_Site.binding_site import BindingSiteDetection

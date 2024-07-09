@@ -2,7 +2,7 @@
 
 name="rnaglib"
 readme = "README.md"
-version="2.2.4"
+version="2.2.5"
 authors=[{name="Vincent Mallet", email="vincentx15@gmail.com"}, 
 	 {name="Carlos Oliver", email="oliver@biochem.mpg.de"},
 	 {name="Jonathan Broadbent", email="jonathan.broadbent@mail.utoronto.ca"},
@@ -41,23 +41,6 @@ rnaglib_tokenize='rnaglib.bin.rnaglib_tokenize:main'
 rnaglib_download='rnaglib.bin.rnaglib_download:main'
 rnaglib_index='rnaglib.bin.rnaglib_index:main'
 
-[tool.setuptools]
-
-packages = ['rnaglib', 
-	    'rnaglib.tasks', 
-	    'rnaglib.splitters', 
-	    'rnaglib.prepare_data', 
-            'rnaglib.data_loading', 
-            'rnaglib.representations',
-	    'rnaglib.drawing',
-	    'rnaglib.ged',
-	    'rnaglib.kernels',
-	    'rnaglib.learning',
-	    'rnaglib.utils',
-	    'rnaglib.config',
-	    'rnaglib.bin',
- 	    'rnaglib.examples'
-	    ]
 
 [tool.setuptools.package-data]
 
