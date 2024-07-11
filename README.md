@@ -22,213 +22,6 @@ We host RNAs annotated with molecule, base pair, and nucleotide level attributes
 
 ![Example graph](https://raw.githubusercontent.com/cgoliver/rnaglib/master/images/rgl_fig.png)
 
-
-## ❗**New Feature**: Full Support for ML Tasks!
-
-We now support fully implemented prediction tasks. With the `rnaglib.tasks` subpackage you can load annotated RNA datasets with train/val/test splits for various biologically relevant prediction tasks.
-
-All tasks take as input an RNA 3D structure and have as output either residue or whole RNA-level properties.
-
-We currently support the following 6 prediction tasks and the ability to create [new tasks](https://rnaglib.readthedocs.io/en/latest/tasks.html#tutorial-2-creating-a-new-task):
-
-
-### [Reidue-Level RNA-Protein Binding](https://github.com/cgoliver/rnaglib/tree/master/src/rnaglib/tasks/RBP_Node)
-
-**Input:** A full RNA 3D structure
-
-**Output:** Binary variable at each residue representing protein-binding likelihood
-
-### [Chemical Modification](https://github.com/cgoliver/rnaglib/tree/master/src/rnaglib/tasks/RBP_Node)
-
-**Input:** A full RNA 3D structure
-
-**Output:** Binary variable at each residue with likelihood of covalent modification.
-
-### [Inverse Folding](https://github.com/cgoliver/rnaglib/tree/master/src/rnaglib/tasks/RNA_IF)
-
-
-**Input:** A full RNA 3D structure
-
-**Output:** The nulceotide identity at each position for the native structure.
-
-### [Small Molecule Ligand Classification](https://github.com/cgoliver/rnaglib/tree/master/src/rnaglib/tasks/RNA_Ligand)
-
-
-**Input:** Small molecule binding site
-
-**Output:** Multi-class variable corresponding to the chemical family of the native ligand.
-
-### [Small Molecule Binding Site Detection](https://github.com/cgoliver/rnaglib/tree/master/src/rnaglib/tasks/RNA_Site)
-
-**Input:** A full RNA 3D structure
-
-**Output:** Binary variable at each residue corresponding to the likelihood of belonging to a binding pocket.
-
-### [RNA Virtual Screening](https://github.com/cgoliver/rnaglib/tree/master/src/rnaglib/tasks/RNA_VS)
-
-**Input:** Small molecule binding site + list of chemical compounds.
-
-**Output:** Sort the list of chemical compounds by likelihood of binding to the given site.
-
-
-See [docs](https://rnaglib.readthedocs.io/en/latest/tasks.html) for more info on usage.
-
-
-Each link for the tasks above takes you to a `demo.py` file with example usage for each task.
-
-Here is a snippet for a full data loading and model training of the **RNA Binding Site Detection** task. All tasks follow a similar pattern.
-
-```python
-
-from rnaglib.tasks import BindingSiteDetection
-from rnaglib.representations import GraphRepresentation
-
-from rnaglib.tasks import BindingSiteDetection
-from rnaglib.representations import GraphRepresentation
-from rnaglib.data_loading import Collater
-from rnaglib.learning.task_models import RGCN_node
-
-from torch.utils.data import DataLoader
-import torch.optim as optim
-import torch
-from sklearn.metrics import accuracy_score, f1_score, roc_auc_score, matthews_corrcoef
-import argparse
-from pathlib import Path
-
-# Load the task data and annotations
-ta = BindingSiteDetection('RNA-Site')
-
-# Select a data representation and framework (see docs for support of other data modalities and deep learning frameworks)
-
-ta.dataset.add_representation(GraphRepresentation(framework = 'pyg'))
-
-# Access the predefined splits
-
-train_ind, val_ind, test_ind = ta.split()
-train_set = ta.dataset.subset(train_ind)
-val_set = ta.dataset.subset(val_ind)
-test_set = ta.dataset.subset(test_ind)
-
-
-```
-
-The above was the only code you need from rnaglib. What follows is boilerplate pytorch and DGL for the loading and training which you can customize according to your own needs.
-
-```python
-
-# Create loaders
-
-print('Creating loaders')
-collater = Collater(train_set)
-train_loader = DataLoader(train_set, batch_size=8, shuffle=True, collate_fn=collater)
-val_loader = DataLoader(val_set, batch_size=2, shuffle=False, collate_fn=collater)
-test_loader = DataLoader(test_set, batch_size=2, shuffle=False, collate_fn=collater)
-
-def count_unique_edge_attrs(train_loader):
-    unique_edge_attrs = set()
-    for batch in train_loader.dataset:
-        unique_edge_attrs.update(batch['graph'].edge_attr.tolist())
-    return len(unique_edge_attrs)
-
-num_unique_edge_attrs = count_unique_edge_attrs(train_loader)
-num_node_features = train_set[0]['graph'].x.shape[1]
-num_classes = 2
-
-print(f"# node features {num_node_features}, # classes {num_classes}, # edge attributes {num_unique_edge_attrs}")
-
-# Define model
-learning_rate = 0.0001
-epochs = 100
-
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-model = RGCN_node(num_node_features, num_classes, num_unique_edge_attrs)
-model = model.to(device)
-optimizer = optim.Adam(model.parameters(), lr=learning_rate)
-criterion = torch.nn.CrossEntropyLoss()
-
-# Evaluate function
-
-def evaluate(loader):
-    model.eval()
-    all_preds = []
-    all_labels = []
-    total_loss = 0
-    
-    for batch in loader:
-        graph = batch['graph']
-        graph = graph.to(device)
-        out = model(graph)
-        loss = criterion(out, torch.flatten(graph.y).long())
-        total_loss += loss.item()
-        preds = out.argmax(dim=1)
-        all_preds.extend(preds.tolist())
-        all_labels.extend(graph.y.tolist()) 
-    
-    avg_loss = total_loss / len(loader)
-    
-    accuracy = accuracy_score(all_labels, all_preds)
-    f1 = f1_score(all_labels, all_preds)
-    auc = roc_auc_score(all_labels, all_preds)
-    mcc = matthews_corrcoef(all_labels, all_preds)
-    
-    return accuracy, f1, auc, avg_loss, mcc
-
-
-# Training
-
-def train():
-    model.train()
-    for batch in train_loader:
-        graph = batch['graph']
-        graph = graph.to(device)
-        optimizer.zero_grad()
-        out = model(graph)
-        loss = criterion(out, torch.flatten(graph.y).long())
-        loss.backward()
-        optimizer.step()
-
-for epoch in range(epochs):
-    train()
-    train_acc, train_f1, train_auc, train_loss, train_mcc = evaluate(train_loader) 
-    val_acc, val_f1, val_auc, val_loss, val_mcc = evaluate(val_loader)  
-    print(f"Epoch {epoch + 1}, Train Loss: {train_loss:.4f}, Val Loss: {val_loss:.4f}, TrainAcc {train_acc:.4f} Val Acc: {val_acc:.4f}")
-
-# Evaluate on test set
-
-test_accuracy, test_f1, test_auc, test_loss, test_mcc = ta.evaluate(model, test_loader, criterion, device)
-
-print(f'Test Accuracy: {test_accuracy:.4f}, Test F1 Score: {test_f1:.4f}, Test AUC: {test_auc:.4f}, Test MCC: {test_mcc:.4f}')
-
-```
-
-This feature is in beta so please raise issues if you need help or have feedback.
-
-## Cite
-
-```
-@article{mallet2022rnaglib,
-  title={RNAglib: a python package for RNA 2.5 D graphs},
-  author={Mallet, Vincent and Oliver, Carlos and Broadbent, Jonathan and Hamilton, William L and Waldisp{\"u}hl, J{\'e}r{\^o}me},
-  journal={Bioinformatics},
-  volume={38},
-  number={5},
-  pages={1458--1459},
-  year={2022},
-  publisher={Oxford University Press}
-}
-```
-
-## Data
-
-Data can be downloaded directrly from [Zenodo](https://sandbox.zenodo.org/record/1168342) or through the provided command 
-line utility `$ rnaglib_download`.
-
-| Version | Date | Total RNAs | Total Non-Redundant | Non-redundant version | `rnaglib` commit  |
-----------|------|------------|---------------------|-----------------------|-------------------|
-1.0.0    | 15-02-23 | 5759   | 1176                | 3.269                 |  5446ae2c         |
-0.0.0     | 20-07-21 | 3739   | 899                 | 3.186                 |  eb25dabd         |
-
-
 ## Installation
 
 The package can be cloned and the source code used directly. We also deploy it as a pip package and recommend using this
@@ -245,6 +38,155 @@ pip install rnaglib
 ```
 
 Then one can start using the packages functionalities by importing them in one's python script.
+
+
+## What can you do with `rnaglib`?
+
+### Benchmark ML models on RNA 3D structures (**new**)
+
+Datasets of RNA 3D structures ready-to-use for machine learning model benchmarking in various biologically relevant tasks.
+
+* One line to fetch annotated dataset and splits loading
+* Encode structures as graphs, voxels and point clouds
+
+All tasks take as input an RNA 3D structure and have as output either residue or whole RNA-level properties.
+
+We currently support the following 6 prediction tasks and the ability to create [new tasks](https://rnaglib.readthedocs.io/en/latest/tasks.html#tutorial-2-creating-a-new-task):
+
+
+* [Reidue-Level RNA-Protein Binding](https://github.com/cgoliver/rnaglib/tree/master/src/rnaglib/tasks/RBP_Node)
+* [Chemical Modification](https://github.com/cgoliver/rnaglib/tree/master/src/rnaglib/tasks/RBP_Node)
+* [Inverse Folding](https://github.com/cgoliver/rnaglib/tree/master/src/rnaglib/tasks/RNA_IF)
+* [Small Molecule Ligand Classification](https://github.com/cgoliver/rnaglib/tree/master/src/rnaglib/tasks/RNA_Ligand)
+* [Small Molecule Binding Site Detection](https://github.com/cgoliver/rnaglib/tree/master/src/rnaglib/tasks/RNA_Site)
+* [RNA Virtual Screening](https://github.com/cgoliver/rnaglib/tree/master/src/rnaglib/tasks/RNA_VS)
+
+
+See [docs](https://rnaglib.readthedocs.io/en/latest/tasks.html) for more info on usage.
+
+Each link for the tasks above takes you to a `demo.py` file with example usage for each task.
+
+Here is a snippet for a full data loading and model training of the **RNA Binding Site Detection** task. All tasks follow a similar pattern.
+
+```python
+
+from rnaglib.tasks import BindingSiteDetection
+from rnaglib.representations import GraphRepresentation
+
+# Load the task data and annotations
+ta = BindingSiteDetection('my_root')
+
+# Select a data representation and framework (see docs for support of other data modalities and deep learning frameworks)
+
+ta.dataset.add_representation(GraphRepresentation(framework = 'pyg'))
+
+# Access the predefined splits
+
+train_ind, val_ind, test_ind = ta.split()
+train_set = ta.dataset.subset(train_ind)
+val_set = ta.dataset.subset(val_ind)
+test_set = ta.dataset.subset(test_ind)
+
+```
+
+All you need after this to implement a full training and evaluation loop is standard ML boilerplate. Have a look at one of the [demos](https://github.com/cgoliver/rnaglib/blob/master/src/rnaglib/tasks/RNA_Site/demo.py) for a full example.
+
+
+### Create your own ML tasks (**new**)
+
+The `rnaglib.tasks` subpackage defines an abstract class to quickly implement machine learning tasks.
+You can create a task from the databases available through rnaglib as well as custom annotations to open up your challenge to the rest of the community.
+If you implement a task we encourage you to submit a pull request.
+
+To implement a task you must subclass `rnaglib.tasks.Task` and define the following methods:
+
+* `default_splitter()`: a method that takes as input a dataset and returns train, validation, and test indices.
+* `build_dataset()`: a method that returns a `rnaglib.RNADataset` object containing the RNAs needed for the task. 
+
+See [here](https://github.com/cgoliver/rnaglib/blob/master/src/rnaglib/tasks/RNA_Site/binding_site.py) for an example of a full custom task implementation.
+
+### Fetch and browse annotated RNA 3D structures
+
+Current release contains annotations generated by x3dna-dssr as well as some additional ones that we added for all available PDBs at the time of release.
+
+Each RNA is stored as a networkx graph where nodes are residues and edges are backbone and base pairing edges.
+The networkx graph object has graph-level, node-level and edge-level attributes.
+[Here](https://rnaglib.readthedocs.io/en/latest/rna_ref.html) is a reference for all the annotations currently available.
+
+```python
+
+from rnaglib.utils import available_pdbids
+from rnaglib.utils import graph_from_pdbid
+
+# load a graph containing annotations from a PDBID
+rna = graph_from_pdbid('4v9i')
+
+# you can get list of pdbids currently available in RNAglib
+pdbids = available_pdbids()
+
+# print(rna.graph)
+{'dbn': {'all_chains': {'num_nts': 143, 'num_chars': 144, 'bseq': 'GCCCGGAUAGCUCAGUCGGUAGAGCAGGGGAUUGAAAAUCCCCGUGUCCUUGGUUCGAUUCCGAGUCUGGGCAC&CGGAUAGCUCAGUCGGUAGAGCAGGGGAUUGAAAAUCCCCGUGUCCUUGGUUCGAUUCCGAGUCCGGGC', 'sstr': '(((((((..((((.....[..)))).(((((.......))))).....(((((..]....))))))))))))..&((((..((((.....[..)))).(((((.......))))).....(.(((..]....))).)))))...', 'form': 'AAAAAA...AA...A.......AAA.AAAA.......A.AAA......AAAAA..A....AAAAAAAAAAAA.-&.AA...AA...A.......AAA.AAAA.......A.AAA......AAAAA..A....A...AAAA.A.-'}...,
+
+```
+
+Databases of annotated structures can be downloaded directly from [Zenodo](https://sandbox.zenodo.org/record/1168342) or through the provided command 
+line utility `$ rnaglib_download`.
+
+| Version | Date | Total RNAs | Total Non-Redundant | Non-redundant version | `rnaglib` commit  |
+----------|------|------------|---------------------|-----------------------|-------------------|
+1.0.0    | 15-02-23 | 5759   | 1176                | 3.269                 |  5446ae2c         |
+0.0.0     | 20-07-21 | 3739   | 899                 | 3.186                 |  eb25dabd         |
+
+
+### Annotate your own structures 
+
+You can extract Leontis-Westhof interactions and convert 3D structures to 2.5D graphs.
+We wrap a fork of [fr3d-python](https://github.com/cgoliver/fr3d-python) to support this functionality.
+
+```python
+from rnaglib.prepare_data import fr3d_to_graph
+
+G = build_one("../data/structures/1fmn.cif")
+```
+
+Warning: this method currently does not support non-standard residues. Support coming soon. Up to version 1.0.0 of the RNA database were created using x3dna-dssr which do contain non-standard residues.
+
+### Quick visualization of 2.5D graphs
+
+We customize networkx graph drawing functionalities to give some convenient visualization of 2.5D base pairing networks.
+
+```python
+from rnaglib.drawing import rna_draw
+rna_draw(G, show=True, layout="spring")
+```
+
+### 2.5D graph comparison and alignment
+
+When dealing with 3D structures as 2.5D graphs we support graph-level comparison through the graph edit distance.
+
+```
+from rnaglib.ged import graph_edit_distance
+from rnaglib.utils import graph_from_pdbid
+G = graph_from_pdbid("4nlf")
+print(graph_edit_distance(G, G)) # 0.0
+```
+
+
+## Cite
+
+```
+@article{mallet2022rnaglib,
+  title={RNAglib: a python package for RNA 2.5 D graphs},
+  author={Mallet, Vincent and Oliver, Carlos and Broadbent, Jonathan and Hamilton, William L and Waldisp{\"u}hl, J{\'e}r{\^o}me},
+  journal={Bioinformatics},
+  volume={38},
+  number={5},
+  pages={1458--1459},
+  year={2022},
+  publisher={Oxford University Press}
+}
+```
+
 
 ### Optional Dependencies
 
