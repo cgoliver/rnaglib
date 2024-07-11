@@ -154,17 +154,20 @@ Warning: this method currently does not support non-standard residues. Support c
 ### Quick visualization of 2.5D graphs
 
 We customize networkx graph drawing functionalities to give some convenient visualization of 2.5D base pairing networks.
+This is not a dedicated visualization tool, it is only intended for quick debugging. We point you to [VARNA]()https://varna.lisn.upsaclay.fr/ or [RNAscape](https://academic.oup.com/nar/article/52/W1/W354/7648766) for a full-featured visualizer.
 
 ```python
 from rnaglib.drawing import rna_draw
 rna_draw(G, show=True, layout="spring")
 ```
 
+![](https://raw.githubusercontent.com/cgoliver/rnaglib/master/images/g.png)
+
 ### 2.5D graph comparison and alignment
 
 When dealing with 3D structures as 2.5D graphs we support graph-level comparison through the graph edit distance.
 
-```
+```python
 from rnaglib.ged import graph_edit_distance
 from rnaglib.utils import graph_from_pdbid
 G = graph_from_pdbid("4nlf")
@@ -187,17 +190,7 @@ print(graph_edit_distance(G, G)) # 0.0
 }
 ```
 
-
-### Optional Dependencies
-
-To build 2.5D graphs from scratch locally, for the moment you need to install a fork of `fr3d-python` manually.
-
-```
-pip install git+https://github.com/cgoliver/fr3d-python.git
-```
-
-
-## Associated Repositories:
+## Projects using `rnaglib` 
 
 If you use rnaglib in one of your projects, please cite and feel free to make a pull request so we can list your project here.
 
