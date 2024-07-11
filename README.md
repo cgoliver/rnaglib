@@ -54,7 +54,7 @@ All tasks take as input an RNA 3D structure and have as output either residue or
 We currently support the following 6 prediction tasks and the ability to create [new tasks](https://rnaglib.readthedocs.io/en/latest/tasks.html#tutorial-2-creating-a-new-task):
 
 
-* [Reidue-Level RNA-Protein Binding](https://github.com/cgoliver/rnaglib/tree/master/src/rnaglib/tasks/RBP_Node)
+* [Residue-Level RNA-Protein Binding](https://github.com/cgoliver/rnaglib/tree/master/src/rnaglib/tasks/RBP_Node)
 * [Chemical Modification](https://github.com/cgoliver/rnaglib/tree/master/src/rnaglib/tasks/RBP_Node)
 * [Inverse Folding](https://github.com/cgoliver/rnaglib/tree/master/src/rnaglib/tasks/RNA_IF)
 * [Small Molecule Ligand Classification](https://github.com/cgoliver/rnaglib/tree/master/src/rnaglib/tasks/RNA_Ligand)
