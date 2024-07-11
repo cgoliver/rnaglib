@@ -146,7 +146,7 @@ We wrap a fork of [fr3d-python](https://github.com/cgoliver/fr3d-python) to supp
 ```python
 from rnaglib.prepare_data import fr3d_to_graph
 
-G = build_one("../data/structures/1fmn.cif")
+G = fr3d_to_graph("../data/structures/1fmn.cif")
 ```
 
 Warning: this method currently does not support non-standard residues. Support coming soon. Up to version 1.0.0 of the RNA database were created using x3dna-dssr which do contain non-standard residues.
