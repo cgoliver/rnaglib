@@ -13,14 +13,18 @@ from rnaglib.utils import graph_from_pdbid, graph_io
 
 
 def build_data(root, recompute=False):
-    pocket_dir = os.path.join(root, 'graphs')
-    os.makedirs(pocket_dir, exist_ok=True)
-
     script_dir = os.path.dirname(__file__)
     json_dump = os.path.join(script_dir, "../../data/tasks/rna_vs/dataset_as_json.json")
-
     train_groups, test_groups = pickle.load(open(json_dump, 'rb'))
     all_groups = {**train_groups, **test_groups}
+
+    # Check data was properly downloaded by getting one graph
+    if graph_from_pdbid("1k73", redundancy='all') is None:
+        raise FileNotFoundError("We could not fetch graphs, please be sure that you have downloaded all rna graphs. "
+                                "If you didn't, you can run: rnaglib_download -r all")
+
+    pocket_dir = os.path.join(root, 'graphs')
+    os.makedirs(pocket_dir, exist_ok=True)
 
     print("Processing graphs...")
     failed_set = set()
