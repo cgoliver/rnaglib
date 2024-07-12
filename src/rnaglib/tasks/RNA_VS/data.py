@@ -5,9 +5,6 @@ import numpy as np
 import random
 from torch.utils.data import Dataset
 
-if __name__ == "__main__":
-    sys.path = [os.path.join(os.path.abspath(os.path.dirname(__file__)), "../../..")] + sys.path
-
 from rnaglib.data_loading import RNADataset, Collater
 
 
@@ -127,8 +124,8 @@ class VSRNADataset(Dataset):
 if __name__ == '__main__':
     import pickle
     from rnaglib.representations.graph import GraphRepresentation
-    from rnaglib.tasks.rna_vs.build_data import build_data
-    from rnaglib.tasks.rna_vs.ligands import MolGraphEncoder
+    from rnaglib.tasks.RNA_VS.build_data import build_data
+    from rnaglib.tasks.RNA_VS.ligands import MolGraphEncoder
 
     script_dir = os.path.dirname(__file__)
     json_dump = os.path.join(script_dir, "../../data/tasks/rna_vs/dataset_as_json.json")
