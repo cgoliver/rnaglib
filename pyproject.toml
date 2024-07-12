@@ -1,32 +1,37 @@
 [project]
 
-name="rnaglib"
+name = "rnaglib"
 readme = "README.md"
-version="2.2.6"
-authors=[{name="Vincent Mallet", email="vincentx15@gmail.com"}, 
-	 {name="Carlos Oliver", email="oliver@biochem.mpg.de"},
-	 {name="Jonathan Broadbent", email="jonathan.broadbent@mail.utoronto.ca"},
-	 {name="William L. Hamilton", email="wlh@cs.mcgill.ca"},
-	 {name="Jérome Waldispuhl", email="jeromew@cs.mcgill.ca"}
-	]
+version = "2.2.6"
+authors = [{ name = "Vincent Mallet", email = "vincent.mallet96@gmail.com" },
+    { name = "Carlos Oliver", email = "oliver@biochem.mpg.de" },
+    { name = "Jonathan Broadbent", email = "jonathan.broadbent@mail.utoronto.ca" },
+    { name = "William L. Hamilton", email = "wlh@cs.mcgill.ca" },
+    { name = "Jérome Waldispuhl", email = "jeromew@cs.mcgill.ca" }
+]
 keywords = ["RNA", "3D", "graph neural network"]
-description="RNAglib: Tools for learning on the structure of RNA using 2.5D geometric representations"
+description = "RNAglib: Tools for learning on the structure of RNA using 2.5D geometric representations"
 
-dependencies = ['joblib',
-	    'requests',
-	    'torch',
-	    'networkx',
-	    'numpy',
-	    'seaborn',
-	    'scikit-learn',
-	    'tqdm',
-	    'biopython',
-	    'loguru',
-	    'fr3d @ git+https://github.com/cgoliver/fr3d-python.git'
-	    ]
+dependencies = [
+    'biopython',
+    'dill',
+    'joblib',
+    'loguru',
+    'networkx',
+    'numpy',
+    'pydantic',
+    'rdkit',
+    'requests',
+    'scikit-learn',
+    'seaborn',
+    'torch',
+    'torchdata',
+    'tqdm',
+    'fr3d @ git+https://github.com/cgoliver/fr3d-python.git'
+]
 
 requires-python = ">=3.7"
-license = {text = "MIT License"}
+license = { text = "MIT License" }
 
 [project.urls]
 "Documentation" = "https://rnaglib.readthedocs.io/en/latest/index.html"
@@ -34,13 +39,13 @@ license = {text = "MIT License"}
 
 [project.scripts]
 
-rnaglib_first='rnaglib.examples.rnaglib_first:main'
-rnaglib_second='rnaglib.examples.rnaglib_second:main'
-rnaglib_third='rnaglib.examples.third_example:main'
-rnaglib_prepare_data='rnaglib.bin.rnaglib_prepare_data:main'
-rnaglib_tokenize='rnaglib.bin.rnaglib_tokenize:main'
-rnaglib_download='rnaglib.bin.rnaglib_download:main'
-rnaglib_index='rnaglib.bin.rnaglib_index:main'
+rnaglib_first = 'rnaglib.examples.rnaglib_first:main'
+rnaglib_second = 'rnaglib.examples.rnaglib_second:main'
+rnaglib_third = 'rnaglib.examples.third_example:main'
+rnaglib_prepare_data = 'rnaglib.bin.rnaglib_prepare_data:main'
+rnaglib_tokenize = 'rnaglib.bin.rnaglib_tokenize:main'
+rnaglib_download = 'rnaglib.bin.rnaglib_download:main'
+rnaglib_index = 'rnaglib.bin.rnaglib_index:main'
 
 
 [tool.setuptools.package-data]
