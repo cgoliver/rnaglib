@@ -23,9 +23,13 @@ from rnaglib.utils import dump_json
 from rnaglib.config import GRAPH_KEYS
 from rnaglib.config import EDGE_MAP_RGLIB
 
+from rnaglib.config import get_modifications_cache
+
 
 logger.remove()
 logger.add(sys.stderr, level='INFO')
+
+modifications = get_modifications_cache()
 
 def get_rna_chains(mmcif_dict):
     """ Return the list of RNA Chain IDs.
@@ -53,6 +57,18 @@ def get_residue_list(chain, XNA_linking):
     # return sorted([r for r in chain if r.id[0] == ' '], key=lambda x: x.id[1])
     return sorted([r for r in chain.get_residues() if r.id[0] == ' ' or r.id[0][2:] in XNA_linking], key=lambda x: x.id[1])
 
+def rna_letters_3to1(three_letter_code: str) -> str:
+    """Convert RNA nucleic acid `three_letter_code` to `one_letter_code`.
+
+    Args:
+        three_letter_code (str): Three letter code to check.
+
+    Returns:
+    str: one_letter_code of RNA nucleic acid, "N" if cannot be found.
+    """
+    return modifications["rna"].get(three_letter_code, "N")
+
+
 def get_bb(structure, rna_chains, XNA_linking, pdbid=''):
     """ Get the backbone edges 
     """
@@ -74,8 +90,8 @@ def get_bb(structure, rna_chains, XNA_linking, pdbid=''):
                 bb.append((f"{pdbid}.{chain.id}.{five_p.id[1]}", f"{pdbid}.{chain.id}.{three_p.id[1]}", {'LW': 'B53'}))
                 bb.append((f"{pdbid}.{chain.id}.{three_p.id[1]}", f"{pdbid}.{chain.id}.{five_p.id[1]}", {'LW': 'B35'}))
 
-                nt_types[f"{pdbid}.{chain.id}.{five_p.id[1]}"] = five_p.get_resname()
-                nt_types[f"{pdbid}.{chain.id}.{three_p.id[1]}"] = three_p.get_resname()
+                nt_types[f"{pdbid}.{chain.id}.{five_p.id[1]}"] = rna_letters_3to1(five_p.get_resname())
+                nt_types[f"{pdbid}.{chain.id}.{three_p.id[1]}"] = rna_letters_3to1(three_p.get_resname())
     return bb, nt_types
 
 def nt_to_rgl(nt, pdbid):
@@ -120,6 +136,7 @@ def fr3d_to_graph(rna_path):
 
     # bbs, nt_types = get_bb(structure, rna_chains, pdbid=pdbid)
     bbs, nt_types = get_bb(structure, rna_chains, XNA_linking, pdbid=pdbid)
+    print(f"rna chain residues: {nt_types}")
     logger.trace(bbs)
     G = nx.DiGraph()
     G.add_edges_from(bbs)
