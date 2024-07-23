@@ -62,7 +62,6 @@ def rna_letters_3to1(three_letter_code: str) -> str:
 
     Args:
         three_letter_code (str): Three letter code to check.
-
     Returns:
     str: one_letter_code of RNA nucleic acid, "N" if cannot be found.
     """
@@ -136,7 +135,7 @@ def fr3d_to_graph(rna_path):
 
     # bbs, nt_types = get_bb(structure, rna_chains, pdbid=pdbid)
     bbs, nt_types = get_bb(structure, rna_chains, XNA_linking, pdbid=pdbid)
-    print(f"rna chain residues: {nt_types}")
+    # print(f"rna chain residues: {nt_types}")
     logger.trace(bbs)
     G = nx.DiGraph()
     G.add_edges_from(bbs)
