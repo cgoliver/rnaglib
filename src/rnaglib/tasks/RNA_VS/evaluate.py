@@ -4,9 +4,6 @@ import sys
 import numpy as np
 from sklearn import metrics
 
-if __name__ == "__main__":
-    sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
-
 
 def run_virtual_screen(model, dataloader):
     """

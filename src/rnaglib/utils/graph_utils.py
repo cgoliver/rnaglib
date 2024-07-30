@@ -164,19 +164,19 @@ def bfs_generator(graph, initial_node):
     :return: The successive rings
     """
     if isinstance(initial_node, list) or isinstance(initial_node, set):
-        previous_ring = [list(initial_node)]
+        previous_ring = [set(initial_node)]
     else:
-        previous_ring = [[initial_node]]
+        previous_ring = [set(initial_node)]
     visited = set()
     while len(visited) < len(graph):
-        depth_ring = []
+        depth_ring = set()
         for n in previous_ring:
             visited.add(n)
             for nei in graph.neighbors(n):
                 if nei not in visited:
                     depth_ring.add(nei)
         previous_ring = depth_ring
-        yield depth_ring
+        yield list(depth_ring)
 
 
 def bfs(graph, initial_nodes, nc_block=False, depth=2, label='label'):
@@ -190,21 +190,22 @@ def bfs(graph, initial_nodes, nc_block=False, depth=2, label='label'):
     :return: list of nodes
     """
     if isinstance(initial_nodes, list) or isinstance(initial_nodes, set):
-        total_nodes = [list(initial_nodes)]
+        total_nodes = [set(initial_nodes)]
     else:
-        total_nodes = [[initial_nodes]]
+        total_nodes = [set(initial_nodes)]
     for d in range(depth):
-        depth_ring = []
+        depth_ring = set()
         e_labels = set()
         for n in total_nodes[d]:
             for nei in graph.neighbors(n):
-                depth_ring.append(nei)
+                depth_ring.add(nei)
                 e_labels.add(graph[n][nei][label])
         if nc_block and e_labels.issubset({'CWW', 'B53', ''}):
             break
         else:
             total_nodes.append(depth_ring)
-    return set(itertools.chain(*total_nodes))
+    total_nodes = set().union(*total_nodes)
+    return total_nodes
 
 
 def extract_graphlet(graph, n, size=1, label='LW'):
@@ -631,31 +632,32 @@ def weisfeiler_lehman_graph_hash(
     h = h.hexdigest()
     return h
 
+
 def fix_buggy_edges(graph,
                     label='LW',
                     strategy='remove',
                     edge_map=GRAPH_KEYS['edge_map'][TOOL]
                     ):
-        """
-        Sometimes some edges have weird names such as t.W representing a fuzziness.
-        We just remove those as they don't deliver a good information
+    """
+    Sometimes some edges have weird names such as t.W representing a fuzziness.
+    We just remove those as they don't deliver a good information
 
-        :param graph:
-        :param strategy: How to deal with it : for now just remove them.
-        In the future maybe add an edge type in the edge map ?
-        :return:
-        """
-        if strategy == 'remove':
-            # Filter weird edges for now
-            to_remove = list()
-            for start_node, end_node, nodedata in graph.edges(data=True):
-                if nodedata[label] not in edge_map:
-                    to_remove.append((start_node, end_node))
-            for start_node, end_node in to_remove:
-                graph.remove_edge(start_node, end_node)
-        else:
-            raise ValueError(f'The edge fixing strategy : {strategy} was not implemented yet')
-        return graph
+    :param graph:
+    :param strategy: How to deal with it : for now just remove them.
+    In the future maybe add an edge type in the edge map ?
+    :return:
+    """
+    if strategy == 'remove':
+        # Filter weird edges for now
+        to_remove = list()
+        for start_node, end_node, nodedata in graph.edges(data=True):
+            if nodedata[label] not in edge_map:
+                to_remove.append((start_node, end_node))
+        for start_node, end_node in to_remove:
+            graph.remove_edge(start_node, end_node)
+    else:
+        raise ValueError(f'The edge fixing strategy : {strategy} was not implemented yet')
+    return graph
 
 
 if __name__ == "__main__":
