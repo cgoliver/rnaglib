@@ -175,7 +175,8 @@ def get_graph_indexes(graph_dir, possible_supervisions=None, dump_name='graph_in
         for inner_key, inner_dict_value in dict_value.items():
             dict_value[inner_key] = dict(inner_dict_value)
         dict_all[key] = dict(dict_value)
-    pickle.dump(dict_all, open(dump_name, 'wb'))
+    with open(dump_name, "w") as js:
+        json.dump(dict_all, js)
     return dict_all
 
 

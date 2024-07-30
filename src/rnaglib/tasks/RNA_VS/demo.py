@@ -5,9 +5,6 @@ import time
 import torch
 import torch.optim as optim
 
-if __name__ == "__main__":
-    sys.path = [os.path.join(os.path.abspath(os.path.dirname(__file__)), "../../..")] + sys.path
-
 from rnaglib.tasks.RNA_VS.task import VSTask
 from rnaglib.tasks.RNA_VS.model import RNAEncoder, LigandGraphEncoder, Decoder, VSModel
 from rnaglib.representations.graph import GraphRepresentation
@@ -20,12 +17,12 @@ ef_task = VSTask(root)
 # Build corresponding datasets and dataloader
 representations = [GraphRepresentation(framework=framework)]
 rna_dataset_args = {'representations': representations, 'nt_features': 'nt_code'}
-rna_loader_args = {'batch_size': 32, 'shuffle': True, 'num_workers': 0}
+rna_loader_args = {'batch_size': 16, 'shuffle': True, 'num_workers': 0}
 train_dataloader, val_dataloader, test_dataloader = ef_task.get_split_loaders(dataset_kwargs=rna_dataset_args,
                                                                               dataloader_kwargs=rna_loader_args)
 
 # Create an encoding model. This example one is compatible with DGL.
-# This model must implement a predict_ligands(pocket, ligands) methods
+# This model must implement a predict_ligands(pocket, ligands) method
 rna_encoder = RNAEncoder()
 lig_encoder = LigandGraphEncoder()
 decoder = Decoder()
@@ -34,7 +31,7 @@ assert hasattr(model, 'predict_ligands') and callable(getattr(model, 'predict_li
 
 optimizer = optim.Adam(model.parameters(), lr=0.001)
 criterion = torch.nn.BCELoss()
-epochs = 50
+epochs = 10
 t0 = time.time()
 for k in range(epochs):
     for i, batch in enumerate(train_dataloader):
@@ -50,7 +47,8 @@ for k in range(epochs):
         # if i > 3:
         #     break
         if not i % 5:
-            print(f'Epoch {k}, batch {i}/{len(train_dataloader)}: {loss.item():.4f}, time: {time.time() - t0:.1f}s')
+            print(f'Epoch {k}, batch {i}/{len(train_dataloader)}, '
+                  f'loss: {loss.item():.4f}, time: {time.time() - t0:.1f}s')
 
 model = model.eval()
-final_vs = ef_task.validate(model)
+final_vs = ef_task.evaluate(model)

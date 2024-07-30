@@ -5,9 +5,6 @@ import numpy as np
 import pickle
 from torch.utils.data import Dataset, DataLoader
 
-if __name__ == "__main__":
-    sys.path = [os.path.join(os.path.abspath(os.path.dirname(__file__)), "../../..")] + sys.path
-
 from rnaglib.tasks.RNA_VS.build_data import build_data
 from rnaglib.tasks.RNA_VS.data import VSRNADataset, VSRNATrainDataset, VSCollater
 from rnaglib.tasks.RNA_VS.evaluate import run_virtual_screen
@@ -33,7 +30,7 @@ class VSTask:
     def build_dataset(self):
         # check if dataset exists and load
         if not os.path.exists(os.path.join(self.root, 'graphs')) or self.recompute:
-            build_data(root=self.root)
+            build_data(root=self.root, recompute=self.recompute)
 
     def get_split_datasets(self, dataset_kwargs=None):
         train_dataset = VSRNATrainDataset(groups=self.train_groups,
