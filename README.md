@@ -38,7 +38,7 @@ pip install rnaglib
 
 Then one can start using the packages functionalities by importing them in one's python script.
 
-## Updating RNA structure database
+## Setup: updating RNA structure database
 
 Run the `rnaglib_download` script to fetch the database of annotated structures. By default it will download to `~/.rnaglib`.
 Use the `--help` flag for more options.
