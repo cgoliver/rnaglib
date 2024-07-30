@@ -38,6 +38,15 @@ pip install rnaglib
 
 Then one can start using the packages functionalities by importing them in one's python script.
 
+## Updating RNA structure database
+
+Run the `rnaglib_download` script to fetch the database of annotated structures. By default it will download to `~/.rnaglib`.
+Use the `--help` flag for more options.
+
+```
+$ rnaglib_download
+```
+
 In addition to analysing RNA data, RNAglib also distributes available parsed RNA structures.
 Databases of annotated structures can be downloaded directly from Zenodo, either the non-redundant subset
 [link](https://zenodo.org/records/7624873/files/rnaglib-all-1.0.0.tar.gz)
@@ -48,6 +57,13 @@ They can also be obtained through the provided command line utility `$ rnaglib_d
 ---------|----------|------------|---------------------|-----------------------|------------------|
  1.0.0   | 15-02-23 | 5759       | 1176                | 3.269                 | 5446ae2c         |
  0.0.0   | 20-07-21 | 3739       | 899                 | 3.186                 | eb25dabd         |
+
+
+To speed up some functions we also build an efficient index of the data. This is needed for the `rnaglib.tasks` functionality.
+
+```
+$ rnaglib_index
+```
 
 ## What can you do with `rnaglib`?
 
