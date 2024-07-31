@@ -2,7 +2,7 @@
 
 name = "rnaglib"
 readme = "README.md"
-version="2.2.9"
+version="2.2.10"
 authors=[{name="Vincent Mallet", email="vincentx15@gmail.com"}, 
 	 {name="Carlos Oliver", email="oliver@biochem.mpg.de"},
 	 {name="Jonathan Broadbent", email="jonathan.broadbent@mail.utoronto.ca"},
@@ -15,22 +15,22 @@ description = "RNAglib: Tools for learning on the structure of RNA using 2.5D ge
 requires-python = ">=3.7"
 license = { text = "MIT License" }
 
-[project.dependencies]
-
-biopython = "*"
-dill = "*"
-joblib = "*"
-loguru = "*"
-networkx = "*"
-numpy = "*"
-pydantic = "*"
-rdkit = "*"
-requests = "*"
-scikit-learn = "*"
-seaborn = "*"
-torch = "*"
-torchdata = "*"
-tqdm = "*"
+dependencies = [
+    "biopython==1.0.2",
+    "dill",
+    "joblib",
+    "loguru",
+    "networkx",
+    "numpy",
+    "pydantic",
+    "rdkit",
+    "requests",
+    "scikit-learn",
+    "seaborn",
+    "torch",
+    "torchdata",
+    "tqdm"
+]
 
 [project.optional-dependencies]
 dev = [
