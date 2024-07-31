@@ -38,6 +38,27 @@ pip install rnaglib
 
 Then one can start using the packages functionalities by importing them in one's python script.
 
+**Optional Dependencies**
+
+We use `fr3d-python` to [build 2.5D annotations from PDBs and mmCIFs](https://rnaglib.readthedocs.io/en/latest/rnaglib.prepare_data.html#rnaglib.prepare_data.fr3d_to_graph). This has to be installed manually with:
+
+```
+pip install git+https://github.com/cgoliver/fr3d-python.git
+```
+
+To load graphs and train with dgl:
+
+```
+pip install dgl
+```
+
+To load graphs and train with pytorch geometric:
+
+```
+pip install torch_geometric
+```
+
+
 ## Setup: updating RNA structure database
 
 Run the `rnaglib_download` script to fetch the database of annotated structures. By default it will download to `~/.rnaglib`.
