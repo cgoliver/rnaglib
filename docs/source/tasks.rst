@@ -18,11 +18,11 @@ The new tasks module allows the use and creation of a variety of machine learnin
    * - RNA_IF
      - Prediction of nucleotide identity (sequence) at each residue.
      - ``InverseFolding``
-     - Source Y
+     - 
    * - 
      - Prediction of nucleotide identiy at each residue using data and splits from ``gRNAde``.
      - ``gRNAde``
-     - Source Y
+     - [Joshi_et_al_2024]_
    * - RNA_VS
      - Scoring of candidates in virtual screening scenario based on ``RNAmigos 2.0``.
      - ``VSTask``
@@ -206,3 +206,5 @@ A simple annotator could add a dummy variable to each node:::
 
 8.) Don't forget to add your task name to the ``__init__.py`` file. (And if you feel like it, submit a pull request ;) )
 
+
+.. [Joshi_et_al_2024] Chaitanya K Joshi, Arian R Jamasb, Ramon Viñas, Charles Harris, Simon V Mathis, Alex Morehead, and Pietro Liò. gRNAde: Geometric deep learning for 3d rna inverse design. bioRxiv, pages 2024–03, 2024.
