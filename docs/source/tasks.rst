@@ -26,19 +26,19 @@ The new tasks module allows the use and creation of a variety of machine learnin
    * - RNA_VS
      - Scoring of candidates in virtual screening scenario based on ``RNAmigos 2.0``.
      - ``VSTask``
-     - Source Z
+     - [Carvajal-Patino_2023]_
    * - RNA_Site
      - Prediction of whether a residue is part of a binding site.
      - ``BindingSiteDetection``
-     - Source W
+     - 
    * - 
      - Prediction of whether a residue is part of a binding site using data and splits from ``RNASite``
      - ``BenchmarkLigandBindingSiteDetection``
-     - Source W
+     - [Su_et_al_2021]_
    * - RNA_Ligand
      - Prediction of ligand identity given a binding pocket (RNA structure subgraph) using data and splits from ``GMSM``.
      - ``GMSM``
-     - Source V
+     - [Pellizzoni_et_al_2024]_
    * - RBP_Graph
      - Prediction of protein binding at the RNA level.
      - ``ProteinBindingDetection``
@@ -46,7 +46,7 @@ The new tasks module allows the use and creation of a variety of machine learnin
    * - RBP_Node
      - Prediction of whether a residue is part of a protein binding site.
      - ``ProteinBindingSiteDetection``
-     - Source T
+     - [Wang_et_al_2018]_
 
 We provide a short tutorial on (1) using an existing tasks to assess model perfomance and (2) building custom tasks using modular `rnaglib` functionality.
 
@@ -207,4 +207,14 @@ A simple annotator could add a dummy variable to each node:::
 8.) Don't forget to add your task name to the ``__init__.py`` file. (And if you feel like it, submit a pull request ;) )
 
 
+.. [Carvajal-Patino_2023] Semi-supervised learning and large-scale docking data accelerate rna virtual screening. bioRxiv, pages 2023–11, 2023.
+
 .. [Joshi_et_al_2024] Chaitanya K Joshi, Arian R Jamasb, Ramon Viñas, Charles Harris, Simon V Mathis, Alex Morehead, and Pietro Liò. gRNAde: Geometric deep learning for 3d rna inverse design. bioRxiv, pages 2024–03, 2024.
+
+.. [Pellizzoni_et_al_2024] Paolo Pellizzoni, Carlos Oliver, and Karsten Borgwardt. Structure- and function-aware substitution matrices via learnable graph matching. In Research in Computational Molecular Biology, 2024.
+
+.. [Su_et_al_2021] Hong Su, Zhenling Peng, and Jianyi Yang. Recognition of small molecule–rna binding sites using
+RNA sequence and structure. Bioinformatics, 37(1):36–42, 2021.
+
+.. [Wang_et_al_2018] Kaili Wang, Yiren Jian, Huiwen Wang, Chen Zeng, and Yunjie Zhao. Rbind: computational network method to predict rna binding sites. Bioinformatics, 34(18):3131–3136, 2018.
+
