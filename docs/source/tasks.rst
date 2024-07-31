@@ -17,7 +17,7 @@ The new tasks module allows the use and creation of a variety of machine learnin
      - Source X
    * - RNA_IF
      - Dummy description for RNA_IF (part 1)
-     - Class B
+     - ``InverseFolding``
      - Source Y
    * - 
      - Dummy description for RNA_IF (part 2)
