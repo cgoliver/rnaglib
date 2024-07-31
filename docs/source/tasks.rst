@@ -1,7 +1,52 @@
 ``rnaglib``'s Task Module
 =======================
 
-The new tasks module allows the use and creation of a variety of machine learning tasks on RNA structure. 
+The new tasks module allows the use and creation of a variety of machine learning tasks on RNA structure. The list and description of the task is found below, followed by tutorials on using existing tasks, as well as on developing new tasks.
+
+.. list-table::
+   :header-rows: 1
+   :widths: 20 40 20 20
+
+   * - Task Name
+     - Description
+     - Class
+     - Source
+   * - RNA_CM
+     - Dummy description for RNA_CM
+     - Class A
+     - Source X
+   * - RNA_IF
+     - Dummy description for RNA_IF (part 1)
+     - Class B
+     - Source Y
+   * - 
+     - Dummy description for RNA_IF (part 2)
+     - Class B
+     - Source Y
+   * - RNA_VS
+     - Dummy description for RNA_VS
+     - Class C
+     - Source Z
+   * - RNA_Site
+     - Dummy description for RNA_Site (part 1)
+     - Class D
+     - Source W
+   * - 
+     - Dummy description for RNA_Site (part 2)
+     - Class D
+     - Source W
+   * - RNA_Ligand
+     - Dummy description for RNA_Ligand
+     - Class E
+     - Source V
+   * - RBP_Graph
+     - Dummy description for RBP_Graph
+     - Class F
+     - Source U
+   * - RBP_Node
+     - Dummy description for RBP_Node
+     - Class G
+     - Source T
 
 We provide a short tutorial on (1) using an existing tasks to assess model perfomance and (2) building custom tasks using modular `rnaglib` functionality.
 
