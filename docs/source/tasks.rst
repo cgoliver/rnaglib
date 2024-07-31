@@ -13,7 +13,7 @@ The new tasks module allows the use and creation of a variety of machine learnin
      - Source
    * - RNA_CM
      - Dummy description for RNA_CM
-     - Class A
+     - ``ChemicalModification``
      - Source X
    * - RNA_IF
      - Dummy description for RNA_IF (part 1)
@@ -21,31 +21,31 @@ The new tasks module allows the use and creation of a variety of machine learnin
      - Source Y
    * - 
      - Dummy description for RNA_IF (part 2)
-     - Class B
+     - ``gRNAde``
      - Source Y
    * - RNA_VS
      - Dummy description for RNA_VS
-     - Class C
+     - ``VSTask``
      - Source Z
    * - RNA_Site
      - Dummy description for RNA_Site (part 1)
-     - Class D
+     - ``BindingSiteDetection``
      - Source W
    * - 
      - Dummy description for RNA_Site (part 2)
-     - Class D
+     - ``BenchmarkLigandBindingSiteDetection``
      - Source W
    * - RNA_Ligand
      - Dummy description for RNA_Ligand
-     - Class E
+     - ``GMSM``
      - Source V
    * - RBP_Graph
      - Dummy description for RBP_Graph
-     - Class F
+     - ``ProteinBindingDetection``
      - Source U
    * - RBP_Node
      - Dummy description for RBP_Node
-     - Class G
+     - ``ProteinBindingSiteDetection``
      - Source T
 
 We provide a short tutorial on (1) using an existing tasks to assess model perfomance and (2) building custom tasks using modular `rnaglib` functionality.
