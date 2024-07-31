@@ -12,39 +12,39 @@ The new tasks module allows the use and creation of a variety of machine learnin
      - Class
      - Source
    * - RNA_CM
-     - Dummy description for RNA_CM
+     - Prediction of chemical modifications at the residue level.
      - ``ChemicalModification``
-     - Source X
+     - No published instance
    * - RNA_IF
-     - Dummy description for RNA_IF (part 1)
+     - Prediction of nucleotide identity (sequence) at each residue.
      - ``InverseFolding``
      - Source Y
    * - 
-     - Dummy description for RNA_IF (part 2)
+     - Prediction of nucleotide identiy at each residue using data and splits from ``gRNAde``.
      - ``gRNAde``
      - Source Y
    * - RNA_VS
-     - Dummy description for RNA_VS
+     - Scoring of candidates in virtual screening scenario based on ``RNAmigos 2.0``.
      - ``VSTask``
      - Source Z
    * - RNA_Site
-     - Dummy description for RNA_Site (part 1)
+     - Prediction of whether a residue is part of a binding site.
      - ``BindingSiteDetection``
      - Source W
    * - 
-     - Dummy description for RNA_Site (part 2)
+     - Prediction of whether a residue is part of a binding site using data and splits from ``RNASite``
      - ``BenchmarkLigandBindingSiteDetection``
      - Source W
    * - RNA_Ligand
-     - Dummy description for RNA_Ligand
+     - Prediction of ligand identity given a binding pocket (RNA structure subgraph) using data and splits from ``GMSM``.
      - ``GMSM``
      - Source V
    * - RBP_Graph
-     - Dummy description for RBP_Graph
+     - Prediction of protein binding at the RNA level.
      - ``ProteinBindingDetection``
-     - Source U
+     - No published instance
    * - RBP_Node
-     - Dummy description for RBP_Node
+     - Prediction of whether a residue is part of a protein binding site.
      - ``ProteinBindingSiteDetection``
      - Source T
 
