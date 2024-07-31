@@ -2,7 +2,7 @@
 
 name = "rnaglib"
 readme = "README.md"
-version="2.2.8"
+version="2.2.9"
 authors=[{name="Vincent Mallet", email="vincentx15@gmail.com"}, 
 	 {name="Carlos Oliver", email="oliver@biochem.mpg.de"},
 	 {name="Jonathan Broadbent", email="jonathan.broadbent@mail.utoronto.ca"},
@@ -12,26 +12,31 @@ authors=[{name="Vincent Mallet", email="vincentx15@gmail.com"},
 keywords = ["RNA", "3D", "graph neural network"]
 description = "RNAglib: Tools for learning on the structure of RNA using 2.5D geometric representations"
 
-dependencies = [
-    'biopython',
-    'dill',
-    'joblib',
-    'loguru',
-    'networkx',
-    'numpy',
-    'pydantic',
-    'rdkit',
-    'requests',
-    'scikit-learn',
-    'seaborn',
-    'torch',
-    'torchdata',
-    'tqdm',
-    'fr3d @ git+https://github.com/cgoliver/fr3d-python.git'
-]
-
 requires-python = ">=3.7"
 license = { text = "MIT License" }
+
+[project.dependencies]
+
+biopython = "*"
+dill = "*"
+joblib = "*"
+loguru = "*"
+networkx = "*"
+numpy = "*"
+pydantic = "*"
+rdkit = "*"
+requests = "*"
+scikit-learn = "*"
+seaborn = "*"
+torch = "*"
+torchdata = "*"
+tqdm = "*"
+
+[project.optional-dependencies]
+dev = [
+    "fr3d @ git+https://github.com/cgoliver/fr3d-python.git"
+]
+
 
 [project.urls]
 "Documentation" = "https://rnaglib.readthedocs.io/en/latest/index.html"
