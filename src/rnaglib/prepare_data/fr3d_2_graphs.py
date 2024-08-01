@@ -1,7 +1,6 @@
 """
 
-Build 2.5D graphs using [x3dna DSSR](http://docs.x3dna.org/dssr-manual.pdf).
-Requires a x3dna-dssr executable to be in $PATH.
+Build 2.5D graphs using [fr3d-python].
 
 """
 import os
@@ -24,9 +23,13 @@ from rnaglib.utils import dump_json
 from rnaglib.config import GRAPH_KEYS
 from rnaglib.config import EDGE_MAP_RGLIB
 
+from rnaglib.config import get_modifications_cache
+
 
 logger.remove()
 logger.add(sys.stderr, level='INFO')
+
+modifications = get_modifications_cache()
 
 def get_rna_chains(mmcif_dict):
     """ Return the list of RNA Chain IDs.
@@ -50,10 +53,22 @@ def nuc_id(raw_label):
     pdbid,_, chain, _, pos = raw_label.split("|")
     return f"{pdbid.lower()}.{chain}.{pos}"
 
-def get_residue_list(structure, chain):
-    return sorted([r for r in chain if r.id[0] == ' '], key=lambda x: x.id[1])
+def get_residue_list(chain, XNA_linking):
+    # return sorted([r for r in chain if r.id[0] == ' '], key=lambda x: x.id[1])
+    return sorted([r for r in chain.get_residues() if r.id[0] == ' ' or r.id[0][2:] in XNA_linking], key=lambda x: x.id[1])
 
-def get_bb(structure, rna_chains, pdbid=''):
+def rna_letters_3to1(three_letter_code: str) -> str:
+    """Convert RNA nucleic acid `three_letter_code` to `one_letter_code`.
+
+    Args:
+        three_letter_code (str): Three letter code to check.
+    Returns:
+    str: one_letter_code of RNA nucleic acid, "N" if cannot be found.
+    """
+    return modifications["rna"].get(three_letter_code, "N")
+
+
+def get_bb(structure, rna_chains, XNA_linking, pdbid=''):
     """ Get the backbone edges 
     """
     bb = []
@@ -61,8 +76,9 @@ def get_bb(structure, rna_chains, pdbid=''):
     print(f"Using {rna_chains}")
     for chain in structure.get_chains():
         if chain.id not in rna_chains:
-            continue 
-        reslist = get_residue_list(structure, chain)
+            continue
+        # reslist = get_residue_list(structure, chain) 
+        reslist = get_residue_list(chain, XNA_linking)
         logger.debug(reslist)
 
         for i, five_p in enumerate(reslist):
@@ -73,8 +89,8 @@ def get_bb(structure, rna_chains, pdbid=''):
                 bb.append((f"{pdbid}.{chain.id}.{five_p.id[1]}", f"{pdbid}.{chain.id}.{three_p.id[1]}", {'LW': 'B53'}))
                 bb.append((f"{pdbid}.{chain.id}.{three_p.id[1]}", f"{pdbid}.{chain.id}.{five_p.id[1]}", {'LW': 'B35'}))
 
-                nt_types[f"{pdbid}.{chain.id}.{five_p.id[1]}"] = five_p.get_resname()
-                nt_types[f"{pdbid}.{chain.id}.{three_p.id[1]}"] = three_p.get_resname()
+                nt_types[f"{pdbid}.{chain.id}.{five_p.id[1]}"] = rna_letters_3to1(five_p.get_resname())
+                nt_types[f"{pdbid}.{chain.id}.{three_p.id[1]}"] = rna_letters_3to1(three_p.get_resname())
     return bb, nt_types
 
 def nt_to_rgl(nt, pdbid):
@@ -101,13 +117,25 @@ def fr3d_to_graph(rna_path):
     except KeyError:
         logger.error(f"Couldn't identify RNA chains in {pdbid}")
         return None
+    
+    # load mmCIF structure
+    struc_dict = MMCIF2Dict.MMCIF2Dict(rna_path)
 
+    # find all XNA linking, including standard and non-standard
+    chem_comp = {}
+    chem_comp['chem_code'] = struc_dict['_chem_comp.id']
+    chem_comp['chem_type'] = struc_dict['_chem_comp.type']
+    XNA_linking = [chem_comp['chem_code'][idx] for idx, tp in enumerate(chem_comp['chem_type']) if tp =='RNA linking' or tp =='DNA linking']
+    # XNA_linking = [chem_comp['chem_code'][idx] for idx, tp in enumerate(chem_comp['chem_type']) if tp =='RNA linking']
+    print(f"pdbid: {pdbid}, XNA linking: {XNA_linking}")
 
     # add coords with biopython
     parser = MMCIFParser()
     structure = parser.get_structure("", rna_path)[0]
 
-    bbs, nt_types = get_bb(structure, rna_chains, pdbid=pdbid)
+    # bbs, nt_types = get_bb(structure, rna_chains, pdbid=pdbid)
+    bbs, nt_types = get_bb(structure, rna_chains, XNA_linking, pdbid=pdbid)
+    # print(f"rna chain residues: {nt_types}")
     logger.trace(bbs)
     G = nx.DiGraph()
     G.add_edges_from(bbs)
@@ -118,7 +146,12 @@ def fr3d_to_graph(rna_path):
         coord_dict = {}
         for node in G.nodes():
             chain, pos = node.split(".")[1:]
-            r = structure[chain][int(pos)]
+            try:
+                r = structure[chain][int(pos)] # in this index-way only standard residue got
+            except KeyError:
+                for res in structure[chain]:
+                    if int(pos) == res.id[1]: # got non-standard residue
+                        r =res
             try:
                 phos_coord = list(map(float, r['P'].get_coord()))
             except KeyError:
@@ -139,9 +172,13 @@ def fr3d_to_graph(rna_path):
             continue
         nt1 = nt_to_rgl(pair.source, pdbid) 
         nt2 = nt_to_rgl(pair.target, pdbid) 
-        G.add_edge(nt1,nt2 , LW=elabel)
-        G.add_edge(nt2, nt1, LW=elabel_flip)
-
+        # G.add_edge(nt1,nt2 , LW=elabel)
+        # G.add_edge(nt2, nt1, LW=elabel_flip)
+        # avoid getting nodes with no attributes
+        if G.has_node(nt1) and G.has_node(nt2):
+            G.add_edge(nt1, nt2, LW=elabel)
+            G.add_edge(nt2, nt1, LW=elabel_flip)    
+    
     G.graph['pdbid'] = pdbid
     
     return G
