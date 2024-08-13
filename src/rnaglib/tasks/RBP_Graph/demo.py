@@ -23,7 +23,7 @@ args = parser.parse_args()
 
 if args.frompickle is True:
     print('loading task from pickle')
-    file_path = Path(__file__).parent / 'data' / 'protein_binding.pkl'
+    file_path = Path(__file__).parent / 'data' / 'task_rfam.pkl'
 
     with open(file_path, 'rb') as file:
         ta = pickle.load(file)
@@ -48,12 +48,9 @@ test_graphs = list((d['graph'] for d in test_set))
 
 
 def node_to_graph_label(dataset):
-    # convert node levels to graph levels
     for data in dataset:
-        # Check if any node label is 1
-        has_positive_label = torch.any(data.y == 1)
-        # Convert to tensor of shape [1], 1 if any node is 1, 0 otherwise
-        data.y = torch.tensor([1 if has_positive_label else 0], dtype=torch.long)
+        positive_index = torch.where(data.y[0] == 1)[0][0]
+        data.y = torch.tensor([positive_index], dtype=torch.long)
     return dataset
 
 train_graphs = node_to_graph_label(train_graphs)
@@ -76,11 +73,10 @@ def count_unique_edge_attrs(train_loader):
         return all_edge_attrs.unique().numel()
     else:
         return 0
-
-
+    
 # Extract dimension information
 num_node_features = train_set[0]['graph'].x.shape[1]  # Number of node-level classes
-num_classes = 2  # Number of graph-level classes
+num_classes = train_set[0]['graph'].y.shape[1]  # Number of graph-level classes
 num_unique_edge_attrs = count_unique_edge_attrs(pyg_train_loader)  # Number of unique edge attributes
 print(f"# node features {num_node_features}, # classes {num_classes}, # edge attributes {num_unique_edge_attrs}")
 
@@ -90,7 +86,7 @@ print(f"Using device: {device}")
 model = RGCN_graph(num_node_features, num_classes, num_unique_edge_attrs).to(device)
 
 learning_rate = 0.01
-epochs = 100
+epochs = 10
 optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 criterion = torch.nn.CrossEntropyLoss()
 
@@ -136,3 +132,4 @@ test_loss, test_accuracy, test_mcc, test_f1 = ta.evaluate(model, pyg_test_loader
 # Further improvements:
 # - make RGCN more parametrisable
 # - make the same thing with pytorch lightning
+
