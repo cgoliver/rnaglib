@@ -5,10 +5,11 @@ import pandas as pd
 import ast
 
 class Splitter:
-    def __init__(self, split_train=0.7, split_valid=0.85):
+    def __init__(self, split_train=0.7, split_valid=0.15, split_test=0.15):
+        assert sum([split_train, split_valid, split_test]) == 1, "Splits don't sum to 1."
         self.split_train = split_train
         self.split_valid = split_valid
-        self.split_test = 1 - (split_train + split_valid)
+        self.split_test = split_test
         pass
 
     def __call__(self, dataset):
