@@ -109,7 +109,7 @@ class BenchmarkLigandBindingSiteDetectionEmbeddings(ResidueClassificationTask):
             for node, nodedata in x.nodes.items()
         }
         embeddings = {
-            node: np.load("../../../chain_embs/" + node.rsplit('.', 1)[0] + ".npz")[node].tolist() #needs to be list or won't be json serialisable
+            node: np.load("../../../../chain_embs/" + node.rsplit('.', 1)[0] + ".npz")[node].tolist() #needs to be list or won't be json serialisable
             for node, nodedata in x.nodes.items()
         }
 
