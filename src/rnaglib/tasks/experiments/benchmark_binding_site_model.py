@@ -153,13 +153,14 @@ criterion = torch.nn.CrossEntropyLoss(weight=class_weights_tensor)
 
 
 # Evaluation function to get predictions and calculate metrics
+
 def get_predictions_and_loss(loader):
     model.eval()
     all_preds = []
     all_labels = []
     total_loss = 0
     
-    for batch in train_loader:
+    for batch in loader:
         graph = batch['graph']
         graph = graph.to(device)
         out = model(graph)
