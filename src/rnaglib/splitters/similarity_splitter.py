@@ -12,41 +12,49 @@ from rnaglib.splitters import Splitter
 from rnaglib.data_loading import RNADataset
 from rnaglib.utils import rna_align_wrapper, cdhit_wrapper
 
-class ClusterSplitter(Splitter):
-    """ Split RNAs based on a pairwise similarity function.
-    for a given threshold.
+class CDHitSplitter(Splitter):
+    """ Splits based on sequence similarity using CDHit.
+    NOTE: Make sure cd-hit is in your PATH.
     """
-    def __init__(self,
-                 similarity_threshold: float,
-                 seed: int =0,
-                 cluster_algorithm: Literal['fast'] = 'fast',
-                 *args,
-                 **kwargs):
-        """
-        """
-
-        super().__init__(**kwargs)
-        self.similarity_threshold = similarity_threshold
-        pass
-
-    def __call__(self, dataset: RNADataset):
-        train, test = self.cluster_split(dataset)
-        val, test = self.cluster_split(test)
-        pass
-
-    def get_neighbors(self, query, threshold):
-        raise NotImplementedError
-
-class SequenceSimilaritySplitter(ClusterSplitter):
     def __init__(self, *args, **kwargs):
         pass
 
     def __call__(self, dataset):
-
         pass
+
+    def cluster_split(self, dataset, frac, n=0.05, ids=None):
+        """ Fast cluster-based splitting adapted from ProteinShake (https://github.com/BorgwardtLab/proteinshake_release/blob/main/structure_split.py).
+        """
+        test_size = int(len(dataset) * frac)
+        random.seed(self.seed)
+        test = set()
+        print(test_size, n)
+        n = max(1, int(test_size*n))
+        print(f"Got test frac {frac}, test set of size {test_size} from {len(dataset)} samples. Max cluster size {n}")
+        pool = list(range(len(dataset)))
+        with tqdm(total=test_size, desc='Sampling split') as pbar:
+            while len(test) < test_size:
+                query = random.choice(pool)
+                cluster = set(neighbors[query])
+                pool = list(set(pool) - cluster)
+                # if cluster is too big, subsample it
+                if len(cluster) > n: cluster = random.sample(cluster, n)
+                if len(cluster) > (test_size-len(test)): cluster = random.sample(cluster, (test_size-len(test)))
+                test.update(cluster)
+                pbar.update(len(cluster))
+        pool = sorted(list(pool))
+        test = sorted(list(test))
+        if ids is None:
+            return pool, test
+        else:
+            return [ids[i] for i in pool], [ids[i] for i in test]
+
     
 class RNAalignSplitter(Splitter):
-    """ Splits based on structural similarity using RNAalign."""
+    """ Splits based on structural similarity using RNAalign.
+    NOTE: running this splitter requires that you have the
+    RNAalign executable in your PATH. You can install it by 
+    following these instructions: https://zhanggroup.org/RNA-align/download.html."""
     def __init__(self,
                  structures_dir: Union[str, os.PathLike],
                  similarity_threshold: float = 0.3,
