@@ -28,6 +28,7 @@ from .feature_maps import BoolEncoder
 
 from .misc import listdir_fullpath
 from .misc import load_index
+from .misc import cif_remove_residues 
 
 from .graphlet_hash import build_hash_table
 from .graphlet_hash import Hasher
@@ -66,7 +67,8 @@ __all__ = ['download_graphs',
            'print_statistics',
            'rna_align_wrapper',
            'cd_hit_wrapper',
-           'get_sequences'
+           'get_sequences',
+           'cif_remove_residues'
            ]
 
 classes = __all__

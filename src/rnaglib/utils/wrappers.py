@@ -5,22 +5,36 @@ import re
 import shutil
 from pathlib import Path
 from collections import defaultdict
-from typing import Union
+from typing import Union, Optional
 import tempfile
 import subprocess
 
+from rnaglib.utils import cif_remove_residues
+
 def rna_align_wrapper(cif_path_1: Union[str, os.PathLike],
                       cif_path_2: Union[str, os.PathLike],
-                      flags:  tuple = ('-a', 'T')
+                      flags:  tuple = ('-a', 'T'),
+                      reslist_1: Optional[list] = None,
+                      reslist_2: Optional[list] = None
                       ):
     """ Calls RNAalign on two mmCIF files and returns the output.
     Must have RNAalign (https://zhanggroup.org/RNA-align/download.html) in your executable path."""
 
-    command = ['RNAalign',
-               *flags, 
-               cif_path_1,
-               cif_path_2,
-              ]
+    with tempfile.TemporaryDirectory() as tmpdir:
+        if not reslist_1 is None:
+            new_cif_1 = Path(tmpdir) / 'rna_1.cif'
+            cif_remove_residues(cif_path_1, reslist_1, new_cif_1)
+            cif_path_1 = new_cif_1
+        if not reslist_2 is None:
+            new_cif_2 = Path(tmpdir) / 'rna_1.cif'
+            cif_remove_residues(cif_path_2, reslist_2, new_cif_2)
+            cif_path_2 = new_cif_2
+
+        command = ['RNAalign',
+                   *flags,
+                   cif_path_1,
+                   cif_path_2,
+                  ]
 
     result = subprocess.run(command, capture_output=True, text=True)
     if '-a' in flags:

@@ -1,5 +1,7 @@
 import os
 import json
+from typing import Union, Optional
+import gemmi
 from torch.utils.data import Subset
 
 
@@ -42,3 +44,28 @@ def load_index(redundancy='nr', version='1.0.0', glib_path=f"{os.path.expanduser
     except FileNotFoundError:
         print(f"Index file not found at {index_file}. Run rnaglib_index")
         return None
+
+def cif_remove_residues(cif_path: Union[str, os.PathLike],
+                        keep_residues: Optional[list],
+                        out_path: Union[str, os.PathLike]
+                        ):
+    """ Remove all residues from a cif file except for those in `keep_residues` list.
+    Save the new cif to `out_path`.
+
+    :param cif_path: path to input cif
+    :param keep_residues: list of residue IDs in format (chain_id, position) to keep.
+    :param out_path: path to write new cif file
+    """
+    # Load the mmCIF file
+    cif_model = gemmi.read_structure(str(cif_path))
+
+    # Iterate through models and chains
+    for model in cif_model:
+        for chain in model:
+            for res in chain:
+                if (chain.name, res.seqid.num) not in keep_residues:
+                    del res
+
+    # Save the modified structure to a new mmCIF file
+    cif_model.make_mmcif_document().write_file(str(out_path))
+    pass
