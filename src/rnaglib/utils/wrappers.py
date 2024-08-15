@@ -2,6 +2,9 @@
 
 import os
 import re
+import shutil
+from pathlib import Path
+from collections import defaultdict
 from typing import Union
 import tempfile
 import subprocess
@@ -51,7 +54,7 @@ def locarna_wrapper(seq_1: str,
     pass
 
 def cdhit_wrapper(ids, sequences, sim_thresh=0.6, n_jobs=1):
-    """ Cluster sequences using CD-hit
+    """ Cluster sequences using CD-hit. Adapted from ProteinShake.
 
     Choose of word size:
     -n 5 for thresholds 0.7 ~ 1.0
@@ -104,10 +107,11 @@ def cdhit_wrapper(ids, sequences, sim_thresh=0.6, n_jobs=1):
                     stdout=subprocess.PIPE,
                     stderr=subprocess.STDOUT
                     )
+
         # parse cluster assignments
         pdb2cluster = {}
         cluster2pdb = defaultdict(list)
-        with open(out_file + ".clstr", "r") as out:
+        with open(str(out_file) + ".clstr", "r") as out:
             for line in out:
                 if line.startswith(">"):
                     clust_id = int(line.split()[1])
