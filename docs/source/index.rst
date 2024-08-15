@@ -21,15 +21,7 @@
    :hidden:
 
    A tour of RNA 2.5D graphs <tuto_2.5d>
-   Machine Learning on Benchmark Datasets <tuto_ml>
-
-.. toctree::
-   :maxdepth: 2
-   :caption: Advanced Examples
-   :hidden:
-
-   Machine Learning Examples <rnaglib.examples>
-   Tasks for RNA 3D Structure Analysis <tasks>
+   Machine Learning on Benchmark Datasets <tuto_tasks>
 
 .. toctree::
    :maxdepth: 2
@@ -46,6 +38,8 @@
    Data Building <rnaglib.prepare_data>
    Data Loading <rnaglib.data_loading>
    Data Representations <rnaglib.representations>
+   Prediction Tasks <rnaglib.tasks>
+   Data Splitters <rnaglib.splitters>
    Visualization <rnaglib.drawing>
    RNA Graph Edit Distance <rnaglib.ged>
    RNA Graph Kernels <rnaglib.kernels>
@@ -84,7 +78,7 @@ Tutorials
 
 * :doc:`Working with 2.5D graphs datasets <tuto_2.5d>`
 * :doc:`Training machine learning models <tuto_ml>`
-* :doc:`Using and building machine learning tasks <tasks>`
+* :doc:`Using and building machine learning tasks <tuto_tasks>`
 
 Package Structure
 -----------------
