@@ -1,5 +1,6 @@
 import os
 import random
+import tempfile
 from typing import Optional, Union, Callable, Literal
 from collections import defaultdict
 from pathlib import Path
@@ -11,7 +12,8 @@ from sklearn.neighbors import NearestNeighbors
 from tqdm import tqdm
 from rnaglib.splitters import Splitter
 from rnaglib.data_loading import RNADataset
-from rnaglib.utils import rna_align_wrapper, cdhit_wrapper, get_sequences
+from rnaglib.utils import rna_align_wrapper, cdhit_wrapper, get_sequences, cif_remove_residues
+
 
 class ClusterSplitter(Splitter):
     """ Abstract class for splitting by clustering with a
@@ -23,6 +25,7 @@ class ClusterSplitter(Splitter):
                  seed : int = 0,
                  *args, **kwargs):
         self.similarity_threshold = similarity_threshold
+        self.n_jobs = n_jobs
         self.seed = seed
         super().__init__(**kwargs)
         pass
@@ -119,10 +122,19 @@ class RNAalignSplitter(ClusterSplitter):
     def __init__(self,
                  structures_dir: Union[str, os.PathLike],
                  seed: int = 0,
+                 use_substructures: bool = False,
                  *args,
                  **kwargs
                 ):
+        """ Use RNAalign to split structures.
 
+        :param structures_dir: path to folder containing mmCIF files for all elements in dataset.
+        :param seed: random seed for reproducibility.
+        :param use_substructures: if True only uses residues in the dataset item's graph.nodes(). Useful for pocket tasks. Otherwise uses the full mmCIF file from the PDB.
+
+        """
+
+        self.use_substructures = use_substructures
         self.structures_dir = structures_dir
         super().__init__(**kwargs)
 
@@ -135,8 +147,22 @@ class RNAalignSplitter(ClusterSplitter):
         """
         pdbids = [rna['rna'].graph['pdbid'][0] for rna in dataset]
         pdb_paths = (Path(self.structures_dir) / f"{pdbid.lower()}.cif" for pdbid in pdbids)
-        todo = list(itertools.combinations(pdb_paths, 2))
-        sims = Parallel(n_jobs=self.n_jobs)(delayed(rna_align_wrapper)(pdbid1, pdbid2)
+
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            if self.use_substructures:
+                reslists = [[(n.split(".")[1], n.split(".")[2]) for n in rna['rna'].nodes()]
+                                for rna in dataset]
+                new_paths = []
+                for idx, (cif_path, reslist) in enumerate(zip(pdb_paths, reslists)):
+                    new_cif = Path(tmpdir) / f'{idx}.cif'
+                    cif_remove_residues(cif_path, reslist, new_cif)
+                    new_paths.append(new_cif)
+
+                pdb_paths = new_paths
+
+            todo = list(itertools.combinations(pdb_paths, 2))
+            sims = Parallel(n_jobs=self.n_jobs)(delayed(rna_align_wrapper)(pdbid1, pdbid2)
                                                     for pdbid1, pdbid2 in tqdm(todo, total=len(todo)))
         sim_mat = np.zeros((len(pdbids), len(pdbids)))
         sim_mat[np.triu_indices(len(pdbids), 1)] = sims
