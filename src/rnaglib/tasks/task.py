@@ -11,6 +11,12 @@ from rnaglib.data_loading import RNADataset
 
 
 class Task:
+    """ Abstract class for a benchmarking task using the rnaglib datasets. This class handles the logic for building the underlying dataset which is held in an rnaglib.data_loading.RNADataset object. Onc e the dataset is created, the splitter is invoked to create the train/val/test indices. Tasks also define an evaluate() function to yield appropriate model performance metrics.
+
+    :param root: path to a folder where the task information will be stored for fast loading.
+    :param recompute: whether to recompute the task info from scratch or use what is stored in root.
+    :param splitter: rnaglib.splitters.Splitter object that handles splitting of data into train/val/test indices. If None uses task's default_splitter() attribute.
+    """
     def __init__(self, root, recompute=False, splitter=None):
         self.root = root
         self.recompute = recompute

@@ -12,7 +12,8 @@
 #
 import os
 import sys
-sys.path.insert(0, os.path.abspath('../../'))
+
+import rnaglib
 
 print(sys.path)
 
@@ -63,7 +64,7 @@ autodoc_member_order = 'bysource'
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-html_theme = 'sphinx_rtd_theme'
+html_theme = 'nature'
 html_logo = 'https://jwgitlab.cs.mcgill.ca/cgoliver/rnaglib/-/raw/zenodo/images/rgl.png'
 html_sidebars = { '**': ['globaltoc.html', 'relations.html', 'sourcelink.html', 'searchbox.html'] }
 
