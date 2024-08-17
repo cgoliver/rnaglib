@@ -163,7 +163,7 @@ def get_predictions_and_loss(loader):
     all_labels = []
     total_loss = 0
     
-    for batch in train_loader:
+    for batch in loader:
         graph = batch['graph']
         graph = graph.to(device)
         out = model(graph)

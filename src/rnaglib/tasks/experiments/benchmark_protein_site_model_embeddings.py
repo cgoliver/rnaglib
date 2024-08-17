@@ -187,7 +187,7 @@ def calculate_metrics(loader):
 # Training function
 def train():
     model.train()
-    for batch in train_loader:
+    for batch in loader:
         graph = batch['graph']
         graph = graph.to(device)
         optimizer.zero_grad()
