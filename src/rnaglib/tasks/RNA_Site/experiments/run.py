@@ -85,7 +85,7 @@ print(f"# node features {num_node_features}, # classes {num_classes}, # edge att
 
 # Define model
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-model = RGCN_node(num_node_features, num_classes, num_unique_edge_attrs, num_layers=args.layers, dropout_rate=0.5)
+model = RGCN_node(num_node_features, num_classes, num_unique_edge_attrs, num_layers=args.layers, dropout_rate=0.1, hidden_channels=128)
 model = model.to(device)
 optimizer = optim.Adam(model.parameters(), lr=args.lr)
 criterion = torch.nn.CrossEntropyLoss()
@@ -135,8 +135,8 @@ def train():
 
 for epoch in range(args.epochs):
     train_loss = train()
-    train_acc, train_f1, train_auc, _, train_mcc = evaluate(train_loader) 
-    val_acc, val_f1, val_auc, val_loss, val_mcc = evaluate(val_loader)  
+    train_acc, train_f1, train_auc, _, train_mcc = ta.evaluate(model, train_loader, criterion, device) 
+    val_acc, val_f1, val_auc, val_loss, val_mcc = ta.evaluate(model, val_loader, criterion, device)  
     print(f"Epoch {epoch + 1}, "
       f"Train Loss: {train_loss:.4f}, Val Loss: {val_loss:.4f}, "
       f"Train Acc: {train_acc:.4f}, Val Acc: {val_acc:.4f}, "
