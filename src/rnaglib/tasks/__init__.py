@@ -1,7 +1,9 @@
 from .task import Task
 from .task import ResidueClassificationTask, RNAClassificationTask
 
-from .benchmark_binding_site import BenchmarkLigandBindingSiteDetectionEmbeddings, BenchmarkProteinBindingSiteDetection, BenchmarkChemicalModification, BenchmarkProteinBindingSiteDetectionEmbeddings, BenchmarkChemicalModificationEmbeddings
+from .benchmark_tasks import BenchmarkLigandBindingSiteDetectionEmbeddings
+from .benchmark_tasks import BenchmarkChemicalModification, BenchmarkChemicalModificationEmbeddings
+from .benchmark_tasks import BenchmarkProteinBindingSiteDetection, BenchmarkProteinBindingSiteDetectionEmbeddings
 # from .binding_site import BindingSiteDetection, ProteinBindingSiteDetection, BindingDetection, ProteinBindingDetection, ChemicalModification
 # from .inverse_folding import InverseFolding, gRNAde
 

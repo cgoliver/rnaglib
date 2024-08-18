@@ -6,6 +6,7 @@ from rnaglib.tasks import ResidueClassificationTask
 from rnaglib.splitters import BenchmarkBindingSiteSplitter, RandomSplitter
 from rnaglib.utils import ListEncoder, BoolEncoder
 import numpy as np
+import os
 
 from networkx import set_node_attributes
 
@@ -109,7 +110,7 @@ class BenchmarkLigandBindingSiteDetectionEmbeddings(ResidueClassificationTask):
             for node, nodedata in x.nodes.items()
         }
         embeddings = {
-            node: np.load("../../../../chain_embs/" + node.rsplit('.', 1)[0] + ".npz")[node].tolist() #needs to be list or won't be json serialisable
+            node: np.load("../../../../../chain_embs/" + node.rsplit('.', 1)[0] + ".npz")[node].tolist() #needs to be list or won't be json serialisable
             for node, nodedata in x.nodes.items()
         }
 
@@ -226,7 +227,7 @@ class BenchmarkProteinBindingSiteDetectionEmbeddings(ResidueClassificationTask):
             for node, nodedata in x.nodes.items()
         }
         embeddings = {
-            node: np.load("../../../chain_embs/" + node.rsplit('.', 1)[0] + ".npz")[node].tolist() #needs to be list or won't be json serialisable
+            node: np.load("../../../../../chain_embs/" + node.rsplit('.', 1)[0] + ".npz")[node].tolist() #needs to be list or won't be json serialisable
             for node, nodedata in x.nodes.items()
         }
 
@@ -347,7 +348,7 @@ class BenchmarkChemicalModificationEmbeddings(ResidueClassificationTask):
             for node, nodedata in x.nodes.items()
         }
         embeddings = {
-            node: np.load("../../../chain_embs/" + node.rsplit('.', 1)[0] + ".npz")[node].tolist() #needs to be list or won't be json serialisable
+            node: np.load("../../../../../chain_embs/" + node.rsplit('.', 1)[0] + ".npz")[node].tolist() #needs to be list or won't be json serialisable
             for node, nodedata in x.nodes.items()
         }
 
