@@ -113,7 +113,7 @@ def nc_clean_dir(graph_dir, dump_dir):
 
 def incident_nodes(graph, nodes):
     """
-    Returns set of nodes in $graph \ nodes$ incident to nodes.
+    Returns set of nodes in $graph - nodes$ incident to nodes.
 
     :param graph: A networkx graph
     :param nodes: set of nodes in graph

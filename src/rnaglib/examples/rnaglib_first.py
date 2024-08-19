@@ -13,12 +13,17 @@ from the nucleotide types and the graph structure
 To do so, we choose our data, create a data loader around it, build a RGCN model and train it.
 """
 
+
 def main():
     # Choose the data, features and targets to use and GET THE DATA GOING
     node_features = ['nt_code']
     node_target = ['binding_protein']
     graph_rep = GraphRepresentation(framework='dgl')
-    supervised_dataset = rna_dataset.RNADataset(nt_features=node_features, nt_targets=node_target,
+    all_graphs = ['1a9n.json', '1b23.json', '1b7f.json', '1csl.json', '1d4r.json', '1dfu.json', '1duq.json',
+                  '1e8o.json', '1ec6.json', '1et4.json']
+    supervised_dataset = rna_dataset.RNADataset(all_graphs=all_graphs,
+                                                nt_features=node_features,
+                                                nt_targets=node_target,
                                                 representations=[graph_rep])
     train_loader, validation_loader, test_loader = rna_loader.get_loader(dataset=supervised_dataset)
 
@@ -32,3 +37,6 @@ def main():
     learn.train_supervised(model=classifier_model,
                            optimizer=optimizer,
                            train_loader=train_loader)
+
+
+main()

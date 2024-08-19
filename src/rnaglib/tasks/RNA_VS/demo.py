@@ -10,7 +10,7 @@ from rnaglib.tasks.RNA_VS.model import RNAEncoder, LigandGraphEncoder, Decoder, 
 from rnaglib.representations.graph import GraphRepresentation
 
 # Create a task
-root = "../../data/tasks/rna_vs"
+root = "../data/rna_vs"
 framework = 'dgl'
 ef_task = VSTask(root)
 
