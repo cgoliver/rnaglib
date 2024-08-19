@@ -60,13 +60,7 @@ class RNADataset:
         # the node_sim function.
         # Then if a download occurs and no hashing was provided to the loader, the hashing used is the one
         # fetched by the downloading process to ensure it matches the data we iterate over.
-        if representations is None:
-            self.representations = []
-        else:
-            self.representations = representations
-
         self.db_path = db_path
-
         # DB_path corresponds to all available RNA graphs in rnaglib
         if db_path is None:
             self.db_path = download_graphs(redundancy=redundancy,
@@ -82,38 +76,39 @@ class RNADataset:
             self.all_graphs = sorted(os.listdir(self.db_path))
         else:
             self.all_graphs = all_graphs
+        #     TODO make the role of all_graphs clearer/refactor the dataset saving to make it more explicit
 
         # Maybe we precomputed subsets of the db already or we want to; this is what saved_dataset is here for
-        self.saved_dataset = saved_dataset
-
-        self.rna_features = rna_features
-        self.rna_targets = rna_targets
-        self.nt_features = nt_features
-        self.nt_targets = nt_targets
-        self.bp_features = bp_features
-        self.bp_targets = bp_targets
-
-        self.node_features_parser = build_node_feature_parser(self.nt_features,
-                                                              custom_encoders=custom_encoders_features
-                                                              )
-        self.node_target_parser = build_node_feature_parser(self.nt_targets,
-                                                            custom_encoders=custom_encoders_targets)
-
-        self.input_dim = self.compute_dim(self.node_features_parser)
-        self.output_dim = self.compute_dim(self.node_target_parser)
-
         self.available_pdbids = [g.split(".")[0].lower() for g in self.all_graphs]
-
+        self.saved_dataset = saved_dataset
         if rna_filter is None:
             self.rna_filter = lambda x: True
         else:
             self.rna_filter = rna_filter
 
         self.nt_filter = nt_filter
-
         self.annotator = annotator
-
         self.rnas = self._build_dataset()
+
+        # Now that we have the raw data setup, let's setup the features we want to be using:
+        self.rna_features = rna_features
+        self.rna_targets = rna_targets
+        self.nt_features = nt_features
+        self.nt_targets = nt_targets
+        self.bp_features = bp_features
+        self.bp_targets = bp_targets
+        self.node_features_parser = build_node_feature_parser(self.nt_features,
+                                                              custom_encoders=custom_encoders_features)
+        self.node_target_parser = build_node_feature_parser(self.nt_targets,
+                                                            custom_encoders=custom_encoders_targets)
+        self.input_dim = self.compute_dim(self.node_features_parser)
+        self.output_dim = self.compute_dim(self.node_target_parser)
+
+        # Finally, let's setup the list of representations that we will be using
+        if representations is None:
+            self.representations = []
+        else:
+            self.representations = representations
 
     def __len__(self):
         return len(self.rnas)
@@ -124,7 +119,6 @@ class RNADataset:
                     for g_name in os.listdir(self.saved_dataset)]
         else:
             return self.build_dataset()
-        pass
 
     def build_dataset(self):
         """ Iterates through database, applying filters and annotations"""
@@ -178,6 +172,31 @@ class RNADataset:
     def remove_representation(self, name):
         self.representations = [representation for representation in self.representations if
                                 representation.name != name]
+
+    def add_feature(self, feature_names=None, custom_encoders=None, input_feature=True):
+        """
+        Update the input/output feature selector with either an extra available named feature or a custom encoder
+        :param feature_names: Name of the input feature to add
+        :param custom_encoders: A dict containing {named_feature: custom encoder}
+        :param input_feature: Set to true to modify the input feature encoder, false for the target one
+        :return: None
+        """
+        # Select the right node_parser and update it
+        node_parser = self.node_features_parser if input_feature else self.node_target_parser
+        new_node_parser = build_node_feature_parser(asked_features=feature_names,
+                                                    custom_encoders=custom_encoders)
+        node_parser.update(new_node_parser)
+
+    def remove_feature(self, feature_name=None, input_feature=True):
+        """
+        Update the input/output feature selector with either an extra available named feature or a custom encoder
+        :param feature_name: Name of the input feature to remove
+        :param input_feature: Set to true to modify the input feature encoder, false for the target one
+        :return: None
+        """
+        # Select the right node_parser and update it
+        node_parser = self.node_features_parser if input_feature else self.node_target_parser
+        node_parser = {k: node_parser[k] for k in node_parser}
 
     def subset(self, list_of_ids):
         """

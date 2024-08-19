@@ -266,21 +266,29 @@ def build_node_feature_parser(asked_features=None, custom_encoders=None, node_fe
     :param asked_features: A list of string keys that are present in the encoder
     :return: A dict {asked_feature : EncoderObject}
     """
-    if asked_features is None:
-        return {}
+    # Build an asked list of features, with no redundancies
+    asked_features = [] if asked_features is None else asked_features
     if not isinstance(asked_features, list):
         asked_features = [asked_features]
-    if not custom_encoders is None:
+    if custom_encoders is not None:
+        asked_features.extend(list(custom_encoders.keys()))
+    asked_features = list(set(asked_features))
+
+    # Update the map {key:encoder} and ensure every asked feature is in this encoding map.
+    node_feature_map = node_feature_map.copy()
+    if custom_encoders is not None:
         node_feature_map.update(custom_encoders)
     if any([feature not in node_feature_map for feature in asked_features]):
         problematic_keys = tuple([feature for feature in asked_features if feature not in node_feature_map])
         raise ValueError(f'{problematic_keys} were asked as a feature or target but do not exist')
 
-    # filter out the None, we don't know how to encode those...
+    # Filter out None encoder functions, we don't know how to encode those...
     encoding_features = [feature for feature in asked_features if node_feature_map[feature] is not None]
     if len(encoding_features) < len(asked_features):
         unencodable_keys = [feature for feature in asked_features if node_feature_map[feature] is None]
         print(f'{unencodable_keys} were asked as a feature or target but do not exist')
+
+    # Finally, keep only the relevant keys to include in the encoding dict.
     subset_dict = {k: node_feature_map[k] for k in encoding_features}
     return subset_dict
 
