@@ -1,5 +1,7 @@
 import os
 import sys
+from pathlib import Path
+from typing import Optional, Union, Literal
 
 import copy
 import torch
@@ -20,11 +22,11 @@ class RNADataset:
     """
 
     def __init__(self,
-                 db_path=None,
-                 saved_dataset=None,
-                 version='1.0.0',
-                 download_dir=None,
-                 redundancy='nr',
+                 db_path: Optional[Union[str, os.PathLike]] = None,
+                 saved_dataset : Optional[Union[str, os.PathLike]] = None,
+                 version : str = '1.0.0',
+                 download_dir : Optional[Union[str, os.PathLike]] = None,
+                 redundancy : Literal['nr', 'all'] = 'nr',
                  all_graphs=None,
                  representations=None,
                  rna_features=None,
@@ -75,7 +77,7 @@ class RNADataset:
                                            data_root=download_dir,
                                            )
 
-            self.db_path = os.path.join(self.db_path, 'graphs')
+            self.db_path = Path(self.db_path) / 'graphs'
 
         # One can restrict the number of graphs to use
         if all_graphs is None:
@@ -120,7 +122,7 @@ class RNADataset:
 
     def _build_dataset(self):
         if not self.saved_dataset is None:
-            return [load_graph(os.path.join(self.saved_dataset, g_name)) \
+            return [load_graph(Path(self.saved_dataset) / g_name) \
                     for g_name in os.listdir(self.saved_dataset)]
         else:
             return self.build_dataset()

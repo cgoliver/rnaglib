@@ -2,12 +2,14 @@ import os
 import hashlib
 import json
 from functools import cached_property
+from typing import Union, Optional
 
 import torch
 import numpy as np
 from sklearn.metrics import matthews_corrcoef, f1_score, accuracy_score, roc_auc_score
 
 from rnaglib.data_loading import RNADataset
+from rnaglib.splitters import Splitter
 
 
 class Task:
@@ -17,7 +19,10 @@ class Task:
     :param recompute: whether to recompute the task info from scratch or use what is stored in root.
     :param splitter: rnaglib.splitters.Splitter object that handles splitting of data into train/val/test indices. If None uses task's default_splitter() attribute.
     """
-    def __init__(self, root, recompute=False, splitter=None):
+    def __init__(self, 
+                 root: Union[str, os.PathLike],
+                 recompute: bool = False,
+                 splitter: Optional[Splitter] = None):
         self.root = root
         self.recompute = recompute
 
@@ -34,6 +39,11 @@ class Task:
             self.write()
 
     def write(self):
+        """ Save task data and splits to root. Creates a folder in ``root`` called
+        ``'graphs'`` which stores the RNAs that form the dataset, and three `.txt` files (`'{train, val, test}_idx.txt'`,
+        one for each split with a list of indices.
+
+        """
         print(">>> Saving dataset.")
         os.makedirs(os.path.join(self.root, 'graphs'), exist_ok=True)
         self.dataset.save(os.path.join(self.root, 'graphs'))
@@ -49,7 +59,10 @@ class Task:
         print(">>> Done")
 
     def split(self):
-        """ Sets train, val, and test indices"""
+        """ Sets train, val, and test indices as attributes of the task. Can be accessed
+        as ``self.train_ind``, etc. Will load splits if they are saved in `root` otherwise,
+        recomputes from scratch by invoking ``self.splitter()``.
+        """
         if not os.path.exists(os.path.join(self.root, "train_idx.txt")) or self.recompute:
             print(">>> Computing splits...")
             train_ind, val_ind, test_ind = self.splitter(self.dataset)
@@ -90,6 +103,10 @@ class Task:
 
     def __eq__(self, other):
         return self.task_id == other.task_id
+
+
+    def evaluate(self, model, test_loader, criterion, device):
+        raise NotImplementedError
 
 
 class ResidueClassificationTask(Task):
