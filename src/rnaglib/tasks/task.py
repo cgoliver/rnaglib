@@ -5,8 +5,10 @@ from functools import cached_property
 from typing import Union, Optional
 
 import torch
+import torch.nn.functional as F
 import numpy as np
 from sklearn.metrics import matthews_corrcoef, f1_score, accuracy_score, roc_auc_score
+
 
 from rnaglib.data_loading import RNADataset
 from rnaglib.splitters import Splitter
@@ -115,31 +117,36 @@ class ResidueClassificationTask(Task):
 
     def evaluate(self, model, loader, criterion, device):
         model.eval()
+        all_probs = []
         all_preds = []
         all_labels = []
         total_loss = 0
         
-        for batch in loader:
-            graph = batch['graph']
-            graph = graph.to(device)
-            out = model(graph)
-            loss = criterion(out, torch.flatten(graph.y).long())
-            total_loss += loss.item()
-            preds = out.argmax(dim=1)
-            all_preds.extend(preds.tolist())
-            all_labels.extend(graph.y.tolist()) 
+        with torch.no_grad():
+            for batch in loader:
+                graph = batch['graph']
+                graph = graph.to(device)
+                out = model(graph)
+                loss = criterion(out, torch.flatten(graph.y).long())
+                total_loss += loss.item()
+
+                probs = F.softmax(out, dim=1)
+                preds = out.argmax(dim=1)
+                all_probs.extend(probs[:, 1].cpu().tolist())
+                all_preds.extend(preds.cpu().tolist())
+                all_labels.extend(graph.cpu().y.tolist()) 
         
         avg_loss = total_loss / len(loader)
         
         accuracy = accuracy_score(all_labels, all_preds)
         f1 = f1_score(all_labels, all_preds)
-        auc = roc_auc_score(all_labels, all_preds)
+        auc = roc_auc_score(all_labels, all_probs)
         mcc = matthews_corrcoef(all_labels, all_preds)
 
-        print(f'Test Accuracy: {accuracy:.4f}')
-        print(f'Test F1 Score: {f1:.4f}')
-        print(f'Test AUC: {auc:.4f}')
-        print(f'Test MCC: {mcc:.4f}')  
+        #print(f'Accuracy: {accuracy:.4f}')
+        #print(f'F1 Score: {f1:.4f}')
+        #print(f'AUC: {auc:.4f}')
+        #print(f'MCC: {mcc:.4f}')  
         
         return accuracy, f1, auc, avg_loss, mcc
 
@@ -189,8 +196,8 @@ class RNAClassificationTask(Task):
         # Calculate F1 score
         f1 = f1_score(all_labels, all_preds, average='macro')
         
-        print(f'Test Loss: {avg_loss:.4f}')
-        print(f'Test Accuracy: {accuracy:.4f}')
+        print(f'Loss: {avg_loss:.4f}')
+        print(f'Accuracy: {accuracy:.4f}')
         print(f'Matthews Correlation Coefficient: {mcc:.4f}')
         print(f'F1 Score: {f1:.4f}')
         

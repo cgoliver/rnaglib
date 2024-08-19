@@ -32,7 +32,7 @@ class RGCN_graph(torch.nn.Module):
         return x
 
 class RGCN_node(torch.nn.Module):
-    def __init__(self, num_node_features, num_classes, num_unique_edge_attrs, num_layers=2, hidden_channels=16, dropout_rate=0.1):
+    def __init__(self, num_node_features, num_classes, num_unique_edge_attrs, num_layers=2, hidden_channels=16, dropout_rate=0.5):
         super().__init__()
         self.num_layers = num_layers
         self.convs = torch.nn.ModuleList()
