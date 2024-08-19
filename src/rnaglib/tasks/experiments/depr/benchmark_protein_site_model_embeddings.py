@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 # coding: utf-8
-from rnaglib.tasks import BenchmarkLigandBindingSiteDetection, BenchmarkProteinBindingSiteDetection, BenchmarkChemicalModification
+from rnaglib.tasks import BenchmarkLigandBindingSiteDetection, BenchmarkProteinBindingSiteDetection, BenchmarkChemicalModification, BenchmarkLigandBindingSiteDetectionEmbeddings, BenchmarkProteinBindingSiteDetectionEmbeddings, BenchmarkChemicalModificationEmbeddings
 from rnaglib.representations import GraphRepresentation
 from rnaglib.data_loading import Collater
 import torch
-#from torch_geometric.loader import DataLoader
+from rnaglib.utils.feature_maps import ListEncoder
 from torch.utils.data import DataLoader
 import torch.nn.functional as F
 from torch_geometric.nn import GCNConv, GraphConv, SAGEConv, RGCNConv
@@ -17,10 +17,14 @@ import numpy as np
 from sklearn.metrics import accuracy_score, f1_score, roc_auc_score, matthews_corrcoef
 from pathlib import Path
 
-if Path('exp_proteinsite').exists():
-    shutil.rmtree('exp_proteinsite')
+if Path('exp_proteinsite_embeddings').exists():
+    shutil.rmtree('exp_proteinsite_embeddings')
 
-ta = BenchmarkProteinBindingSiteDetection('exp_proteinsite')
+ta = BenchmarkProteinBindingSiteDetectionEmbeddings('exp_proteinsite_embeddings')
+
+encoder = ListEncoder(list_length=640)
+ta.dataset.node_features_parser['embeddings'] = encoder
+
 ta.dataset.add_representation(GraphRepresentation(framework = 'pyg'))
 
 train_ind, val_ind, test_ind = ta.split()
@@ -97,14 +101,14 @@ print("Unique edge attributes:", unique_edge_attrs)
 # Model
 
 wandb.init(project="paper-experiments", config={
-    "learning_rate": 0.001,
+    "learning_rate": 0.0001,
     "epochs": 500,
     "batch_size": 1,
     "dropout_rate": 0.1,  
     "num_layers": 2, 
     "batch_norm": True, 
     "num_unique_edge_attrs": num_unique_edge_attrs,
-    "name": "protein"
+    "name": "ligand"
 })
 
 class GCN(torch.nn.Module):
@@ -130,7 +134,7 @@ class GCN(torch.nn.Module):
 
 
 num_classes = 2 
-model = GCN(train_set.input_dim, num_classes, num_unique_edge_attrs)
+model = GCN(644, num_classes, num_unique_edge_attrs)
 
 
 # Training
@@ -148,7 +152,7 @@ class_weights = {cls: total_samples/count for cls, count in class_counts.items()
 weights = [class_weights[i] for i in range(num_classes)]
 class_weights_tensor = torch.tensor(weights).to(device)
 
-optimizer = optim.Adam(model.parameters(), lr=0.001)
+optimizer = optim.Adam(model.parameters(), lr=0.0001)
 criterion = torch.nn.CrossEntropyLoss(weight=class_weights_tensor)
 
 
@@ -183,7 +187,7 @@ def calculate_metrics(loader):
 # Training function
 def train():
     model.train()
-    for batch in train_loader:
+    for batch in loader:
         graph = batch['graph']
         graph = graph.to(device)
         optimizer.zero_grad()

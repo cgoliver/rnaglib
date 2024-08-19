@@ -1,10 +1,9 @@
 import wandb
-from rnaglib.tasks import BindingSiteDetection
 from rnaglib.representations import GraphRepresentation
 from rnaglib.data_loading import Collater
 from rnaglib.learning.task_models import RGCN_node
 
-from rnaglib.tasks import BenchmarkLigandBindingSiteDetection
+from rnaglib.tasks import BenchmarkProteinBindingSiteDetection, BenchmarkProteinBindingSiteDetectionEmbeddings
 
 from torch.utils.data import DataLoader
 import torch.optim as optim
@@ -19,13 +18,19 @@ parser.add_argument('-p', '--frompickle', action='store_true', help="To load tas
 parser.add_argument('--layers', type=int, default=2, help="Number of RGCN layers")
 parser.add_argument('--lr', type=float, default=0.001, help="Learning rate")
 parser.add_argument('--epochs', type=int, default=100, help="Number of epochs")
-parser.add_argument('--task', type=str, default='RNA-Site', help="Name of the task")
+parser.add_argument('--root', type=str, default='root', help="Name of the task root")
 parser.add_argument('--run_name', type=str, default=None, help="Name for this run")
+parser.add_argument('--experiment_name', type=str, default='rebuttal-experiments', help="Name of experiments for wandb")
+parser.add_argument('--hidden_layers', type=int, default=128, help="Model size")
+parser.add_argument('--dropout', type=int, default=0.3, help="Dropout for model")
+parser.add_argument('--task', type=str, default=None, help="Task to run")
+
+
 args = parser.parse_args()
 
 # Initialize wandb
 wandb.init(
-    project="rebuttal-experiments",
+    project=args.experiment_name,
     config=args,
     name=args.run_name
 )
@@ -35,7 +40,9 @@ wandb.config.update({
     "layers": args.layers,
     "learning_rate": args.lr,
     "epochs": args.epochs,
-    "task": args.task,
+    "hidden_layers": args.hidden_layers,
+    "dropout": args.dropout,
+    "root": args.root,
     "from_pickle": args.frompickle
 })
 
@@ -47,7 +54,9 @@ if args.frompickle:
         ta = pickle.load(file)
 else:
     print('generating task')
-    ta =  BenchmarkLigandBindingSiteDetection(args.task) #BindingSiteDetection(args.task)
+    if args.task in globals():
+        ta =  globals()[args.task](args.root, recompute=True) 
+    else: print('Specify correct task name')
     ta.dataset.add_representation(GraphRepresentation(framework='pyg'))
 
 # Splitting dataset
@@ -85,7 +94,7 @@ print(f"# node features {num_node_features}, # classes {num_classes}, # edge att
 
 # Define model
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-model = RGCN_node(num_node_features, num_classes, num_unique_edge_attrs, num_layers=args.layers, dropout_rate=0.1, hidden_channels=128)
+model = RGCN_node(num_node_features, num_classes, num_unique_edge_attrs, num_layers=args.layers, dropout_rate=args.dropout, hidden_channels=args.hidden_layers)
 model = model.to(device)
 optimizer = optim.Adam(model.parameters(), lr=args.lr)
 criterion = torch.nn.CrossEntropyLoss()

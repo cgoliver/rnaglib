@@ -17,10 +17,10 @@ import numpy as np
 from sklearn.metrics import accuracy_score, f1_score, roc_auc_score, matthews_corrcoef
 from pathlib import Path
 
-if Path('exp_proteinsite_embeddings').exists():
-    shutil.rmtree('exp_proteinsite_embeddings')
+if Path('exp_chemical_embeddings').exists():
+    shutil.rmtree('exp_chemical_embeddings')
 
-ta = BenchmarkProteinBindingSiteDetectionEmbeddings('exp_proteinsite_embeddings')
+ta = BenchmarkProteinBindingSiteDetectionEmbeddings('exp_chemical_embeddings')
 
 encoder = ListEncoder(list_length=640)
 ta.dataset.node_features_parser['embeddings'] = encoder
@@ -163,7 +163,7 @@ def get_predictions_and_loss(loader):
     all_labels = []
     total_loss = 0
     
-    for batch in train_loader:
+    for batch in loader:
         graph = batch['graph']
         graph = graph.to(device)
         out = model(graph)

@@ -17,10 +17,10 @@ import numpy as np
 from sklearn.metrics import accuracy_score, f1_score, roc_auc_score, matthews_corrcoef
 from pathlib import Path
 
-if Path('exp_chemical').exists():
-    shutil.rmtree('exp_chemical')
+if Path('exp_proteinsite').exists():
+    shutil.rmtree('exp_proteinsite')
 
-ta = BenchmarkChemicalModification('exp_chemical')
+ta = BenchmarkProteinBindingSiteDetection('exp_proteinsite')
 ta.dataset.add_representation(GraphRepresentation(framework = 'pyg'))
 
 train_ind, val_ind, test_ind = ta.split()
@@ -104,7 +104,7 @@ wandb.init(project="paper-experiments", config={
     "num_layers": 2, 
     "batch_norm": True, 
     "num_unique_edge_attrs": num_unique_edge_attrs,
-    "name": "chemical"
+    "name": "protein"
 })
 
 class GCN(torch.nn.Module):
@@ -159,7 +159,7 @@ def get_predictions_and_loss(loader):
     all_labels = []
     total_loss = 0
     
-    for batch in train_loader:
+    for batch in loader:
         graph = batch['graph']
         graph = graph.to(device)
         out = model(graph)
