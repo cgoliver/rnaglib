@@ -132,4 +132,11 @@ class FeaturesComputer:
             features_dict['nt_targets'] = target_encoding
         return features_dict
 
-
+    def remove_useless_keys(self, rna_graph):
+        useful_keys = set(self.node_features_parser.keys()).union(set(self.node_target_parser.keys()))
+        cleaned_graph = nx.DiGraph()  # or whatever type of graph `G` is
+        cleaned_graph.add_edges_from(rna_graph.edges())
+        for key, val in cleaned_graph.nodes(data=True):
+            if key in useful_keys:
+                nx.set_node_attributes(cleaned_graph, name=key, values=val)
+        return cleaned_graph
