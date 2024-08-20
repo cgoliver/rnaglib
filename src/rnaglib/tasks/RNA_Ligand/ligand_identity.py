@@ -1,6 +1,6 @@
 from rnaglib.tasks import RNAClassificationTask
 from rnaglib.splitters import RandomSplitter
-from rnaglib.data_loading import RNADataset
+from rnaglib.data_loading import RNADataset, FeaturesComputer
 from rnaglib.utils import OneHotEncoder, FloatEncoder
 
 import pandas as pd
@@ -43,11 +43,13 @@ class GMSM(RNAClassificationTask):
         return [x]
 
     def build_dataset(self, root):
-        dataset = RNADataset(nt_targets=[self.target_var],
-                             nt_features=[self.input_var],
+        features_computer = FeaturesComputer(nt_features=self.input_var, nt_targets=self.target_var,
+                                             custom_encoders_targets={
+                                                 self.target_var: OneHotEncoder(mapping=self.mapping)},
+                                             )
+        dataset = RNADataset(features_computer=features_computer,
                              annotator=self._annotator,
                              nt_filter=self._nt_filter,
-                             custom_encoders_targets={self.target_var: OneHotEncoder(mapping=self.mapping)},
                              rna_filter=lambda x: x.graph['pdbid'][0].lower() in self.rnas_keep,
                              all_graphs=[name + '.json' for name in self.rnas_keep],  # for testing [0:10]
                              redundancy='all'

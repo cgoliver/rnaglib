@@ -1,4 +1,4 @@
-from rnaglib.data_loading import RNADataset
+from rnaglib.data_loading import RNADataset, FeaturesComputer
 from rnaglib.tasks import ResidueClassificationTask
 from rnaglib.splitters import BenchmarkBindingSiteSplitter 
 from rnaglib.utils import BoolEncoder
@@ -52,9 +52,10 @@ class BenchmarkLigandBindingSiteDetection(ResidueClassificationTask):
         return x
 
     def build_dataset(self, root):
-        dataset = RNADataset(nt_targets=[self.target_var],
-                             nt_features=[self.input_var], # 'custom'],
-                             custom_encoders_targets= {self.target_var: BoolEncoder()}, #,{'custom': ListEncoder(3)},
+        features_computer = FeaturesComputer(nt_features=self.input_var, nt_targets=self.target_var,
+                                             custom_encoders_targets= {self.target_var: BoolEncoder()})
+
+        dataset = RNADataset(features_computer=features_computer,
                              rna_filter=lambda x: x.graph['pdbid'][0].lower() in [name[:-1] for name in self.rnaskeep],
                              nt_filter=self._nt_filter,
                              annotator=self._annotator,

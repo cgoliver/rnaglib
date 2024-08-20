@@ -25,9 +25,8 @@ When instantiating the task, custom splitters or other arguments can be passed i
  ```python
 from rnaglib.tasks import BindingSiteDetection
 from rnaglib.representations import GraphRepresentation
-```
+from rnaglib.data_loading import RNADataset, FeaturesComputer
 
-```python
 task = BindingSiteDetection(root='tutorial') # You can pass arguments to use a custom splitter or dataset etc. if desired.
 ```
 
@@ -60,8 +59,8 @@ class TutorialTask(ResidueClassificationTask):
 2.) Specify your input and target variables, which in the case of a residue classification task should be node attributes.
 
 ```python
- target_var = 'binding_ion'  # for example
- input_var = "nt_code" # if sequence information should be used. 
+input_var = "nt_code" # if sequence information should be used. 
+target_var = 'binding_ion'  # for example
 ```
 3.) Next, you can define a splitter you want to use for your task. This can always be overwritten at instantiation. You can chose any available splitter object, write your own splitter object and call it here, or simply have the default_splitter return three lists of indices.
 
@@ -70,7 +69,7 @@ class TutorialTask(ResidueClassificationTask):
         return DasSplitter()
 ```
 
-4.) It is not mandatory but we recommend you include a static `evaluate` method with your task which you can call when training your model. In this example we will use Matthew's correlation coefficient.
+4.) It is not mandatory, but we recommend you include a static `evaluate` method with your task which you can call when training your model. In this example we will use Matthew's correlation coefficient.
 
 ```python
 
@@ -85,10 +84,9 @@ def evaluate(data, predictions):
 5.) In the simplest case, you just need to include the code to create the dataset and your new task is ready to go.
 
 ```python
-def build_dataset(self, root)
-    dataset = RNADataset(nt_targets=[self.target_var],
-                        nt_features=[self.input_var]
-                        )
+def build_dataset(self, root):
+    features_computer = FeaturesComputer(nt_features=self.input_var, nt_targets=self.target_var)
+    dataset = RNADataset(features_computer=features_computer)
     return dataset
 ```
 

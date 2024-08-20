@@ -3,7 +3,7 @@
 import torch
 
 from rnaglib.learning import models, learn
-from rnaglib.data_loading import rna_dataset, rna_loader
+from rnaglib.data_loading import rna_dataset, rna_loader, FeaturesComputer
 from rnaglib.representations import GraphRepresentation
 
 """
@@ -15,16 +15,25 @@ To do so, we choose our data, create a data loader around it, build a RGCN model
 
 
 def main():
-    # Choose the data, features and targets to use and GET THE DATA GOING
-    node_features = ['nt_code']
-    node_target = ['binding_protein']
+    # Choose the Features and Representation to use, and get the data going !
+    features_computer = FeaturesComputer(nt_features='nt_code', nt_targets='binding_protein')
     graph_rep = GraphRepresentation(framework='dgl')
     all_graphs = ['1a9n.json', '1b23.json', '1b7f.json', '1csl.json', '1d4r.json', '1dfu.json', '1duq.json',
                   '1e8o.json', '1ec6.json', '1et4.json']
     supervised_dataset = rna_dataset.RNADataset(all_graphs=all_graphs,
-                                                nt_features=node_features,
-                                                nt_targets=node_target,
+                                                features_computer=features_computer,
                                                 representations=[graph_rep])
+    features_computer = FeaturesComputer(nt_features='nt_code', nt_targets='binding_protein')
+    features_computer.add_feature('alpha')
+    a = features_computer.input_dim
+
+    # features_computer.add_feature('dbn')
+    # a = features_computer.node_features_parser.copy()
+    # features_computer.add_feature(custom_encoders={"is_modified": lambda x: torch.tensor([x], dtype=torch.float)})
+    # b = features_computer.node_features_parser.copy()
+    # features_computer.remove_feature("is_modified")
+    # c = features_computer.node_features_parser.copy()
+
     train_loader, validation_loader, test_loader = rna_loader.get_loader(dataset=supervised_dataset)
 
     # Define a model, we first embed our data in 10 dimensions, and then add one classification

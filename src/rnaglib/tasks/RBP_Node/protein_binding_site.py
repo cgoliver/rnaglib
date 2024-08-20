@@ -1,9 +1,10 @@
-from rnaglib.data_loading import RNADataset
+from rnaglib.data_loading import RNADataset, FeaturesComputer
 from rnaglib.tasks import ResidueClassificationTask
 from rnaglib.splitters import RandomSplitter
 
 from rnaglib.utils import load_index
 import requests
+
 
 class ProteinBindingSiteDetection(ResidueClassificationTask):
     target_var = "binding_protein"
@@ -27,12 +28,11 @@ class ProteinBindingSiteDetection(ResidueClassificationTask):
             if "node_" + self.target_var in graph_attrs and rna_id not in self.ribosomal_rnas:
                 rnas_keep.append(rna_id)
 
-        dataset = RNADataset(nt_targets=[self.target_var],
-                             nt_features=[self.input_var],
+        features_computer = FeaturesComputer(nt_features=self.input_var, nt_targets=self.target_var)
+        dataset = RNADataset(features_computer=features_computer,
                              rna_filter=lambda x: x.graph['pdbid'][0].lower() in rnas_keep
                              )
         return dataset
-
 
     def get_ribosomal_rnas(self):
         url = "https://search.rcsb.org/rcsbsearch/v2/query"
