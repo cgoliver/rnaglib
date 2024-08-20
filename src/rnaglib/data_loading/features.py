@@ -19,11 +19,9 @@ class FeaturesComputer:
                  bp_features=None,
                  bp_targets=None):
 
-        self.nt_features = nt_features
-        self.nt_targets = nt_targets
-        self.node_features_parser = build_node_feature_parser(self.nt_features,
+        self.node_features_parser = build_node_feature_parser(nt_features,
                                                               custom_encoders=custom_encoders_features)
-        self.node_target_parser = build_node_feature_parser(self.nt_targets,
+        self.node_target_parser = build_node_feature_parser(nt_targets,
                                                             custom_encoders=custom_encoders_targets)
         # experimental
         self.rna_features = rna_features
@@ -86,7 +84,7 @@ class FeaturesComputer:
 
     @property
     def output_dim(self):
-        return self.compute_dim(self.node_target_parser_parser)
+        return self.compute_dim(self.node_target_parser)
 
     @staticmethod
     def encode_nodes(g, node_parser):
@@ -95,6 +93,7 @@ class FeaturesComputer:
         Then use torch.cat over the result to get a tensor for each node in the graph.
 
         :param g: a nx graph
+        :param node_parser: {feature_name : encoder}
         :return: A dict that maps nodes to encodings
 
         """
@@ -115,10 +114,10 @@ class FeaturesComputer:
         return node_encodings
 
     def compute_features(self, rna_dict):
-        """ Add 3 dictionaries to the `rna_dict` wich maps nts, edges, and the whole graph
+        """
+        Add 3 dictionaries to the `rna_dict` wich maps nts, edges, and the whole graph
         to a feature vector each. The final converter uses these to include the data in the
         framework-specific object.
-
         """
 
         graph = rna_dict['rna']
