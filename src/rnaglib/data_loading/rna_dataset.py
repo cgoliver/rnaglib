@@ -5,12 +5,12 @@ import copy
 import torch
 import networkx as nx
 
-from rnaglib.utils import download_graphs
-from rnaglib.utils import load_graph
-from rnaglib.utils import dump_json
+from rnaglib.utils import download_graphs, load_graph, dump_json
+from rnaglib.data_loading import FeaturesComputer
 
 
-def build_dataset_loop(all_graphs, db_path, rna_filter=None, nt_filter=None, annotator=None):
+def build_dataset_loop(all_graphs, db_path, rna_filter=None, nt_filter=None, annotator=None,
+                       features_computer: FeaturesComputer = None):
     """ Iterates through database, applying filters and annotations"""
     from tqdm import tqdm as tqdm
     graph_list = []
@@ -19,8 +19,11 @@ def build_dataset_loop(all_graphs, db_path, rna_filter=None, nt_filter=None, ann
         g_path = os.path.join(db_path, graph_name)
         g = load_graph(g_path)
 
+        # Remove whole systems
         if not rna_filter(g):
             continue
+
+        # Apply a chunking function to whole RNAs
         if not nt_filter is None:
             subgs = []
 
@@ -28,15 +31,22 @@ def build_dataset_loop(all_graphs, db_path, rna_filter=None, nt_filter=None, ann
                 subgs.append(subg)
         else:
             subgs = [g]
+
+        # Apply a per graph/subgraph function
         if not annotator is None:
             for subg in subgs:
                 annotator(subg)
+
+        # Remove useless keys
+        if features_computer is not None:
+            subgs = [features_computer.remove_useless_keys(subg) for subg in subgs]
+
         graph_list.extend(subgs)
     return graph_list
 
 
 def build_dataset(dataset_path=None, recompute=False, all_graphs=None,
-                  annotator=None, nt_filter=None, rna_filter=None,
+                  annotator=None, nt_filter=None, rna_filter=None, features_computer=None,
                   db_path=None, version='1.0.0', download_dir=None, redundancy='nr', annotated=False):
     """
     Function to
@@ -136,7 +146,7 @@ class RNADataset:
 
     @classmethod
     def from_args(cls, representations=None, features_computer=None, **dataset_build_params):
-        data = build_dataset(**dataset_build_params)
+        data = build_dataset(features_computer=features_computer, **dataset_build_params)
         return cls(representations=representations,
                    features_computer=features_computer,
                    dataset_path=data.dataset_path,
@@ -182,7 +192,6 @@ class RNADataset:
         subset.rnas = [self.rnas[i] for i in list_of_ids]
         # TODO: also subset available pdbids and all graphs
         return subset
-
 
     def get_pdbid(self, pdbid):
         """ Grab an RNA by its pdbid """
