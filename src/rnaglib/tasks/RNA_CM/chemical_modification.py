@@ -1,8 +1,9 @@
-from rnaglib.data_loading import RNADataset
+from rnaglib.data_loading import RNADataset, FeaturesComputer
 from rnaglib.tasks import ResidueClassificationTask
 from rnaglib.splitters import RandomSplitter
 
 from rnaglib.utils import load_index
+
 
 class ChemicalModification(ResidueClassificationTask):
     """ Residue-level binary classification task to predict whether or not a given
@@ -27,9 +28,8 @@ class ChemicalModification(ResidueClassificationTask):
             if "node_" + self.target_var in graph_attrs:
                 rnas_keep.append(graph.split(".")[0])
 
-        dataset = RNADataset(nt_targets=[self.target_var],
-                             nt_features=[self.input_var],
-                             rna_filter=lambda x: x.graph['pdbid'][0].lower() in rnas_keep
-                             )
+        features_computer = FeaturesComputer(nt_features=self.input_var, nt_targets=self.target_var)
+        dataset = RNADataset.from_args(features_computer=features_computer,
+                                       rna_filter=lambda x: x.graph['pdbid'][0].lower() in rnas_keep)
 
         return dataset

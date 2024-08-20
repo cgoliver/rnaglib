@@ -1,7 +1,7 @@
 import numpy as np
 from networkx import set_node_attributes
 
-from rnaglib.data_loading import RNADataset
+from rnaglib.data_loading import RNADataset, FeaturesComputer
 from rnaglib.tasks import ResidueClassificationTask
 from rnaglib.splitters import BenchmarkBindingSiteSplitter, RandomSplitter
 from rnaglib.utils import ListEncoder, BoolEncoder
@@ -57,15 +57,18 @@ class BenchmarkLigandBindingSiteDetection(ResidueClassificationTask):
         return x
 
     def build_dataset(self, root):
-        dataset = RNADataset(nt_targets=[self.target_var],
-                             nt_features=[self.input_var],  # 'custom'],
-                             custom_encoders_targets={self.target_var: BoolEncoder()},  # ,{'custom': ListEncoder(3)},
-                             rna_filter=lambda x: x.graph['pdbid'][0].lower() in [name[:-1] for name in self.rnaskeep],
-                             nt_filter=self._nt_filter,
-                             annotator=self._annotator,
-                             redundancy='all',
-                             all_graphs=[name[:-1] + '.json' for name in self.rnaskeep]  # for increased loading speed
-                             )
+        features_computer = FeaturesComputer(nt_targets=[self.target_var],
+                                             nt_features=[self.input_var],
+                                             custom_encoders_targets={self.target_var: BoolEncoder()})
+        dataset = RNADataset.from_args(features_computer=features_computer,
+                                       rna_filter=lambda x: x.graph['pdbid'][0].lower() in [name[:-1] for name in
+                                                                                            self.rnaskeep],
+                                       nt_filter=self._nt_filter,
+                                       annotator=self._annotator,
+                                       redundancy='all',
+                                       all_graphs=[name[:-1] + '.json' for name in self.rnaskeep]
+                                       # for increased loading speed
+                                       )
         return dataset
 
 
@@ -110,7 +113,8 @@ class BenchmarkLigandBindingSiteDetectionEmbeddings(ResidueClassificationTask):
             for node, nodedata in x.nodes.items()
         }
         embeddings = {
-            node: np.load("../../../../../chain_embs/" + node.rsplit('.', 1)[0] + ".npz")[node].tolist() #needs to be list or won't be json serialisable
+            node: np.load("../../../../../chain_embs/" + node.rsplit('.', 1)[0] + ".npz")[node].tolist()
+            # needs to be list or won't be json serialisable
             for node, nodedata in x.nodes.items()
         }
 
@@ -120,18 +124,22 @@ class BenchmarkLigandBindingSiteDetectionEmbeddings(ResidueClassificationTask):
         return x
 
     def build_dataset(self, root):
-        dataset = RNADataset(nt_targets=[self.target_var],
-                             nt_features=[self.input_var],
-                             rna_filter=lambda x: x.graph['pdbid'][0].lower() in [name[:-1] for name in self.rnaskeep],
-                             nt_filter=self._nt_filter,
-                             annotator=self._annotator,
-                             redundancy='all',
-                             all_graphs=[name[:-1] + '.json' for name in self.rnaskeep]  # for increased loading speed
-                             )
+        features_computer = FeaturesComputer(nt_targets=[self.target_var],
+                                             nt_features=[self.input_var])
+        dataset = RNADataset.from_args(features_computer=features_computer,
+                                       rna_filter=lambda x: x.graph['pdbid'][0].lower() in [name[:-1] for name in
+                                                                                            self.rnaskeep],
+                                       nt_filter=self._nt_filter,
+                                       annotator=self._annotator,
+                                       redundancy='all',
+                                       all_graphs=[name[:-1] + '.json' for name in self.rnaskeep]
+                                       # for increased loading speed
+                                       )
         return dataset
-    
+
+
 ##############################################################################################################
-  
+
 class BenchmarkProteinBindingSiteDetection(ResidueClassificationTask):
     target_var = 'binding_protein'  # "binding_site" needs to be replaced once dataset modifiable.
     input_var = "nt_code"
@@ -176,16 +184,20 @@ class BenchmarkProteinBindingSiteDetection(ResidueClassificationTask):
         return x
 
     def build_dataset(self, root):
-        dataset = RNADataset(nt_targets=[self.target_var],
-                             nt_features=[self.input_var],
-                             rna_filter=lambda x: x.graph['pdbid'][0].lower() in [name[:-1] for name in self.rnaskeep],
-                             nt_filter=self._nt_filter,
-                             annotator=self._annotator,
-                             redundancy='all',
-                             all_graphs=[name[:-1] + '.json' for name in self.rnaskeep]  # for increased loading speed
-                             )
+        features_computer = FeaturesComputer(nt_targets=[self.target_var],
+                                             nt_features=[self.input_var])
+        dataset = RNADataset.from_args(features_computer=features_computer,
+                                       rna_filter=lambda x: x.graph['pdbid'][0].lower() in [name[:-1] for name in
+                                                                                            self.rnaskeep],
+                                       nt_filter=self._nt_filter,
+                                       annotator=self._annotator,
+                                       redundancy='all',
+                                       all_graphs=[name[:-1] + '.json' for name in self.rnaskeep]
+                                       # for increased loading speed
+                                       )
         return dataset
-    
+
+
 class BenchmarkProteinBindingSiteDetectionEmbeddings(ResidueClassificationTask):
     target_var = 'binding_protein'  # "binding_site" needs to be replaced once dataset modifiable.
     input_var = "nt_code"
@@ -227,7 +239,8 @@ class BenchmarkProteinBindingSiteDetectionEmbeddings(ResidueClassificationTask):
             for node, nodedata in x.nodes.items()
         }
         embeddings = {
-            node: np.load("../../../../../chain_embs/" + node.rsplit('.', 1)[0] + ".npz")[node].tolist() #needs to be list or won't be json serialisable
+            node: np.load("../../../../../chain_embs/" + node.rsplit('.', 1)[0] + ".npz")[node].tolist()
+            # needs to be list or won't be json serialisable
             for node, nodedata in x.nodes.items()
         }
 
@@ -237,18 +250,22 @@ class BenchmarkProteinBindingSiteDetectionEmbeddings(ResidueClassificationTask):
         return x
 
     def build_dataset(self, root):
-        dataset = RNADataset(nt_targets=[self.target_var],
-                             nt_features=[self.input_var],
-                             rna_filter=lambda x: x.graph['pdbid'][0].lower() in [name[:-1] for name in self.rnaskeep],
-                             nt_filter=self._nt_filter,
-                             annotator=self._annotator,
-                             redundancy='all',
-                             all_graphs=[name[:-1] + '.json' for name in self.rnaskeep]  # for increased loading speed
-                             )
+        features_computer = FeaturesComputer(nt_targets=[self.target_var],
+                                             nt_features=[self.input_var])
+        dataset = RNADataset.from_args(features_computer=features_computer,
+                                       rna_filter=lambda x: x.graph['pdbid'][0].lower() in [name[:-1] for name in
+                                                                                            self.rnaskeep],
+                                       nt_filter=self._nt_filter,
+                                       annotator=self._annotator,
+                                       redundancy='all',
+                                       all_graphs=[name[:-1] + '.json' for name in self.rnaskeep]
+                                       # for increased loading speed
+                                       )
         return dataset
-    
+
+
 ##############################################################################################################
-  
+
 class BenchmarkChemicalModification(ResidueClassificationTask):
     target_var = 'is_modified'  # "binding_site" needs to be replaced once dataset modifiable.
     input_var = "nt_code"
@@ -291,19 +308,23 @@ class BenchmarkChemicalModification(ResidueClassificationTask):
         }
 
         set_node_attributes(x, binding_sites, 'binding_site')
-        #set_node_attributes(x, {n:[0,0,0] for n in x.nodes()}, 'custom')
+        # set_node_attributes(x, {n:[0,0,0] for n in x.nodes()}, 'custom')
         return x
 
     def build_dataset(self, root):
-        dataset = RNADataset(nt_targets=[self.target_var],
-                             nt_features=[self.input_var],
-                             rna_filter=lambda x: x.graph['pdbid'][0].lower() in [name[:-1] for name in self.rnaskeep],
-                             nt_filter=self._nt_filter,
-                             annotator=self._annotator,
-                             redundancy='all',
-                             all_graphs=[name[:-1] + '.json' for name in self.rnaskeep]  # for increased loading speed
-                             )
+        features_computer = FeaturesComputer(nt_targets=[self.target_var],
+                                             nt_features=[self.input_var])
+        dataset = RNADataset.from_args(features_computer=features_computer,
+                                       rna_filter=lambda x: x.graph['pdbid'][0].lower() in [name[:-1] for name in
+                                                                                            self.rnaskeep],
+                                       nt_filter=self._nt_filter,
+                                       annotator=self._annotator,
+                                       redundancy='all',
+                                       all_graphs=[name[:-1] + '.json' for name in self.rnaskeep]
+                                       # for increased loading speed
+                                       )
         return dataset
+
 
 ##############################################################################################################
 
@@ -340,7 +361,7 @@ class BenchmarkChemicalModificationEmbeddings(ResidueClassificationTask):
             subgraph = x.copy()
             subgraph.remove_nodes_from(wrong_chain_nodes)
             yield subgraph
-    
+
     def _annotator(self, x):
         binding_sites = {
             node: (not (nodedata.get("binding_small-molecule", None) is None and nodedata.get("binding_ion",
@@ -348,7 +369,8 @@ class BenchmarkChemicalModificationEmbeddings(ResidueClassificationTask):
             for node, nodedata in x.nodes.items()
         }
         embeddings = {
-            node: np.load("../../../../../chain_embs/" + node.rsplit('.', 1)[0] + ".npz")[node].tolist() #needs to be list or won't be json serialisable
+            node: np.load("../../../../../chain_embs/" + node.rsplit('.', 1)[0] + ".npz")[node].tolist()
+            # needs to be list or won't be json serialisable
             for node, nodedata in x.nodes.items()
         }
 
@@ -356,12 +378,15 @@ class BenchmarkChemicalModificationEmbeddings(ResidueClassificationTask):
         set_node_attributes(x, embeddings, 'embeddings')
 
     def build_dataset(self, root):
-        dataset = RNADataset(nt_targets=[self.target_var],
-                             nt_features=[self.input_var],
-                             rna_filter=lambda x: x.graph['pdbid'][0].lower() in [name[:-1] for name in self.rnaskeep],
-                             nt_filter=self._nt_filter,
-                             annotator=self._annotator,
-                             redundancy='all',
-                             all_graphs=[name[:-1] + '.json' for name in self.rnaskeep]  # for increased loading speed
-                             )
+        features_computer = FeaturesComputer(nt_targets=[self.target_var],
+                                             nt_features=[self.input_var])
+        dataset = RNADataset.from_args(features_computer=features_computer,
+                                       rna_filter=lambda x: x.graph['pdbid'][0].lower() in [name[:-1] for name in
+                                                                                            self.rnaskeep],
+                                       nt_filter=self._nt_filter,
+                                       annotator=self._annotator,
+                                       redundancy='all',
+                                       all_graphs=[name[:-1] + '.json' for name in self.rnaskeep]
+                                       # for increased loading speed
+                                       )
         return dataset
