@@ -145,3 +145,7 @@ class FeaturesComputer:
             val = nx.get_node_attributes(rna_graph, key)
             nx.set_node_attributes(cleaned_graph, name=key, values=val)
         return cleaned_graph
+
+
+# def get_default_feature_computer():
+#     return FeaturesComputer(nt_features='nt_code')
