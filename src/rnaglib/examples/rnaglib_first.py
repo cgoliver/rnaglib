@@ -37,7 +37,7 @@ def main():
     train_loader, validation_loader, test_loader = rna_loader.get_loader(dataset=supervised_dataset)
 
     # Define a model, we first embed our data in 10 dimensions, and then add one classification
-    input_dim, target_dim = supervised_dataset.input_dim, supervised_dataset.output_dim
+    input_dim, target_dim = features_computer.input_dim, features_computer.output_dim
     embedder_model = models.Embedder(dims=[10, 10], infeatures_dim=input_dim)
     classifier_model = models.Classifier(embedder=embedder_model, classif_dims=[target_dim])
 

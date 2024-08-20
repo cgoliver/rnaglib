@@ -108,10 +108,9 @@ class ProteinBindingDetection(RNAClassificationTask):
                                              custom_encoders_features={self.input_var: BoolEncoder()},
                                              custom_encoders_targets={
                                                  self.target_var: OneHotEncoder(mapping=self.mapping)})
-        dataset = RNADataset(features_computer=features_computer,
-                             annotator=self._annotator,
-                             rna_filter=lambda x: x.graph['pdbid'][0].lower() in rnas_keep,
-                             )
+        dataset = RNADataset.from_args(features_computer=features_computer,
+                                       annotator=self._annotator,
+                                       rna_filter=lambda x: x.graph['pdbid'][0].lower() in rnas_keep)
         return dataset
 
     def get_ribosomal_rnas(self):

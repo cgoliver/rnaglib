@@ -13,9 +13,6 @@ class ProteinBindingSiteDetection(ResidueClassificationTask):
     def __init__(self, root, splitter=None, **kwargs):
         self.ribosomal_rnas = self.get_ribosomal_rnas()
         super().__init__(root=root, splitter=splitter, **kwargs)
-        pass
-
-    pass
 
     def default_splitter(self):
         return RandomSplitter()
@@ -29,9 +26,8 @@ class ProteinBindingSiteDetection(ResidueClassificationTask):
                 rnas_keep.append(rna_id)
 
         features_computer = FeaturesComputer(nt_features=self.input_var, nt_targets=self.target_var)
-        dataset = RNADataset(features_computer=features_computer,
-                             rna_filter=lambda x: x.graph['pdbid'][0].lower() in rnas_keep
-                             )
+        dataset = RNADataset.from_args(features_computer=features_computer,
+                                       rna_filter=lambda x: x.graph['pdbid'][0].lower() in rnas_keep)
         return dataset
 
     def get_ribosomal_rnas(self):

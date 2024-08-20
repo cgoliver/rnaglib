@@ -275,18 +275,15 @@ if __name__ == '__main__':
     torch.random.manual_seed(42)
 
     from rnaglib.representations import GraphRepresentation, RingRepresentation
-    from rnaglib.data_loading import RNADataset
+    from rnaglib.data_loading import RNADataset, FeaturesComputer
     from rnaglib.kernels import node_sim
 
     # GET THE DATA GOING
+    features_computer = FeaturesComputer(nt_features=node_features, nt_targets=node_target)
     graph_rep = GraphRepresentation(framework='dgl')
     # ring_rep = RingRepresentation(node_simfunc=node_simfunc, max_size_kernel=None)
 
-    toy_dataset = RNADataset(
-        representations=[graph_rep],
-        annotated=False,
-        nt_features=node_features,
-        nt_targets=node_target)
+    toy_dataset = RNADataset(features_computer=features_computer, representations=graph_rep)
     train_loader, validation_loader, test_loader = get_loader(dataset=toy_dataset,
                                                               batch_size=3,
                                                               num_workers=0,

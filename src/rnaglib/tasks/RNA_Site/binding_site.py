@@ -5,7 +5,6 @@ from rnaglib.splitters import RandomSplitter
 from rnaglib.utils import load_index
 
 
-
 class BindingSiteDetection(ResidueClassificationTask):
     target_var = "binding_small-molecule"
     input_var = "nt_code"
@@ -27,9 +26,7 @@ class BindingSiteDetection(ResidueClassificationTask):
                 rnas_keep.append(graph.split(".")[0])
 
         features_computer = FeaturesComputer(nt_features=self.input_var, nt_targets=self.target_var)
-        dataset = RNADataset(features_computer=features_computer,
-                             rna_filter=lambda x: x.graph['pdbid'][0].lower() in rnas_keep
-                             )
+        dataset = RNADataset.from_args(features_computer=features_computer,
+                                       rna_filter=lambda x: x.graph['pdbid'][0].lower() in rnas_keep)
 
         return dataset
-

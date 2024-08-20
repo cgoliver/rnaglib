@@ -29,7 +29,7 @@ class VSCollater:
 class VSRNATrainDataset(Dataset):
     def __init__(self, groups, ligand_embedder, saved_dataset, decoy_mode='pdb', **kwargs):
         # To load RNAs:
-        self.rna_dataset = RNADataset(saved_dataset=saved_dataset, **kwargs)
+        self.rna_dataset = RNADataset.from_args(saved_dataset=saved_dataset, **kwargs) # TODO fix
         self.name_id_mapping = {rna['rna'].graph['pocket_name']: idx for idx, rna in enumerate(iter(self.rna_dataset))}
 
         # To load ligands
@@ -85,7 +85,7 @@ class VSRNATrainDataset(Dataset):
 class VSRNADataset(Dataset):
     def __init__(self, groups, ligand_embedder, saved_dataset, decoy_mode='pdb', **kwargs):
         # To load RNAs:
-        self.rna_dataset = RNADataset(saved_dataset=saved_dataset, **kwargs)
+        self.rna_dataset = RNADataset.from_args(saved_dataset=saved_dataset, **kwargs) #TODO add load
         self.name_id_mapping = {rna['rna'].graph['pocket_name']: idx for idx, rna in enumerate(iter(self.rna_dataset))}
 
         # To load ligands
