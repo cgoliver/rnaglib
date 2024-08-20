@@ -9,13 +9,26 @@ from rnaglib.utils import download_graphs, load_graph, dump_json
 from rnaglib.data_loading.features import FeaturesComputer
 
 
-def build_dataset_loop(all_graphs, db_path, rna_filter=None, nt_filter=None, annotator=None,
+def get_all_existing(dataset_path, all_graphs=None):
+    # Only use queried graph, by default listdir
+    all_graphs = sorted(os.listdir(dataset_path)) if all_graphs is None else all_graphs
+
+    # Filter out existing ones, and print message if there is a difference
+    all_graphs_path = [os.path.join(dataset_path, g_name) for g_name in all_graphs]
+    existing_all_graphs_path = [g_path for g_path in all_graphs_path if os.path.exists(g_path)]
+    size_diff = len(all_graphs) - len(existing_all_graphs_path)
+    if size_diff > 0:
+        print(f"{size_diff} graphs were missing from {dataset_path} compared to asked graphs")
+    return existing_all_graphs_path
+
+
+def build_dataset_loop(all_graphs_db, db_path, rna_filter=None, nt_filter=None, annotator=None,
                        features_computer: FeaturesComputer = None):
     """ Iterates through database, applying filters and annotations"""
     from tqdm import tqdm as tqdm
     graph_list = []
 
-    for graph_name in tqdm(all_graphs):
+    for graph_name in tqdm(all_graphs_db):
         g_path = os.path.join(db_path, graph_name)
         g = load_graph(g_path)
 
@@ -47,14 +60,16 @@ def build_dataset_loop(all_graphs, db_path, rna_filter=None, nt_filter=None, ann
 
 def build_dataset(dataset_path=None, recompute=False, all_graphs=None,
                   annotator=None, nt_filter=None, rna_filter=None, features_computer=None,
-                  db_path=None, version='1.0.0', download_dir=None, redundancy='nr', annotated=False):
+                  db_path=None, all_graphs_db=None,
+                  version='1.0.0', download_dir=None, redundancy='nr', annotated=False):
     """
     Function to
     :param dataset_path: Path to an already saved dataset, skips dataset creation if loaded.
-    :param recompute:
-    :param all_graphs: A list of file names
+    :param recompute: Boolean if we should recompute
+    :param all_graphs: A list of file names if we're using precomputed data
 
     :param db_path: The original database directory to produce our data from. If unset, further params are used. (below)
+    :param all_graphs_db: If we want to only precompute over only a subset of the db
     :param redundancy: To use all graphs or just the non-redundant set.
     :param download_dir: If one changed the default download directory of rglib
     :param version: Version of the dataset to use (default='1.0.0')
@@ -65,8 +80,8 @@ def build_dataset(dataset_path=None, recompute=False, all_graphs=None,
     :param rna_filter: Callable which takes as input an RNA dictionary and returns whether we should keep it.
     """
     if not recompute and dataset_path is not None and os.path.exists(dataset_path):
-        all_graphs = os.listdir(dataset_path) if all_graphs is None else all_graphs
-        rnas = [load_graph(os.path.join(dataset_path, g_name)) for g_name in all_graphs]
+        existing_all_graphs_path = get_all_existing(dataset_path=dataset_path, all_graphs=all_graphs)
+        rnas = [load_graph(g_path) for g_path in existing_all_graphs_path]
         return rnas
         # return dataset_path, all_graphs
 
@@ -84,7 +99,7 @@ def build_dataset(dataset_path=None, recompute=False, all_graphs=None,
                                   data_root=download_dir)
         db_path = os.path.join(db_path, 'graphs')
 
-    all_graphs = os.listdir(db_path) if all_graphs is None else all_graphs
+    all_graphs_db = os.listdir(db_path) if all_graphs_db is None else all_graphs_db
 
     # If no constructions args are given, just return the graphs
     if rna_filter is None and nt_filter is None and annotator is None and features_computer is None:
@@ -94,9 +109,13 @@ def build_dataset(dataset_path=None, recompute=False, all_graphs=None,
     # If some constructions args are given, launch processing.
     if rna_filter is None:
         rna_filter = lambda x: True
-    rnas = build_dataset_loop(all_graphs=all_graphs, db_path=db_path,
+    rnas = build_dataset_loop(all_graphs_db=all_graphs_db, db_path=db_path,
                               rna_filter=rna_filter, nt_filter=nt_filter,
                               annotator=annotator, features_computer=features_computer)
+    if dataset_path is not None:
+        os.makedirs(dataset_path, exist_ok=True)
+        for i, rna in enumerate(rnas):
+            dump_json(os.path.join(dataset_path, f"{i}.json"), rna)
     return rnas
     # TODO this is broken, it should iterate over graphs or something
     # self.available_pdbids = [g.split(".")[0].lower() for g in self.all_graphs]
@@ -128,13 +147,14 @@ class RNADataset:
                 dataset_path = os.path.join(dataset_path, 'graphs')
 
             # One can restrict the number of graphs to use
-            all_graphs = sorted(os.listdir(dataset_path)) if all_graphs is None else all_graphs
             #     TODO make the role of all_graphs clearer/refactor the dataset saving to make it more explicit
-
-            rnas = [load_graph(os.path.join(dataset_path, g_name)) for g_name in all_graphs]
+            existing_all_graphs_path = get_all_existing(dataset_path=dataset_path, all_graphs=all_graphs)
+            rnas = [load_graph(g_path) for g_path in existing_all_graphs_path]
         self.rnas = rnas
 
         # Now that we have the raw data setup, let us set up the features we want to be using:
+        if features_computer is None:
+            features_computer = FeaturesComputer()
         self.features_computer = features_computer
 
         # Finally, let us set up the list of representations that we will be using
@@ -204,21 +224,33 @@ class RNADataset:
 if __name__ == '__main__':
     from rnaglib.representations import GraphRepresentation
 
-
-    # First case
     features_computer = FeaturesComputer(nt_features='nt_code', nt_targets='binding_protein')
     graph_rep = GraphRepresentation(framework='dgl')
     all_graphs = ['1a9n.json', '1b23.json', '1b7f.json', '1csl.json', '1d4r.json', '1dfu.json', '1duq.json',
                   '1e8o.json', '1ec6.json', '1et4.json']
-    supervised_dataset = RNADataset(all_graphs=all_graphs,
-                                    features_computer=features_computer,
-                                    representations=[graph_rep])
-    g1 = supervised_dataset[0]
-    a = list(g1['rna'].nodes(data=True))[0][1]
+
+    # # First case
+    # supervised_dataset = RNADataset(all_graphs=all_graphs,
+    #                                 features_computer=features_computer,
+    #                                 representations=[graph_rep])
+    # g1 = supervised_dataset[0]
+    # a = list(g1['rna'].nodes(data=True))[0][1]
 
     # This instead uses from_args, hence features_computer is called during dataset preparation, which saves spaces
-    supervised_dataset = RNADataset.from_args(all_graphs=all_graphs,
-                                              features_computer=features_computer,
-                                              representations=[graph_rep])
+    # supervised_dataset = RNADataset.from_args(all_graphs_db=all_graphs,
+    #                                           features_computer=features_computer,
+    #                                           representations=[graph_rep])
+    # g2 = supervised_dataset[0]
+    # b = list(g2['rna'].nodes(data=True))[0][1]
+
+    # Test dumping/loading
+    # This instead uses from_args, hence features_computer is called during dataset preparation, which saves spaces
+    script_dir = os.path.dirname(os.path.realpath(__file__))
+    dataset_path = os.path.join(script_dir, "../data/test")
+    rnas = build_dataset(all_graphs_db=all_graphs,
+                         dataset_path=dataset_path,
+                         features_computer=features_computer)
+    supervised_dataset = RNADataset(dataset_path=dataset_path, representations=graph_rep, all_graphs=all_graphs)
     g2 = supervised_dataset[0]
     b = list(g2['rna'].nodes(data=True))[0][1]
+    a = 1
