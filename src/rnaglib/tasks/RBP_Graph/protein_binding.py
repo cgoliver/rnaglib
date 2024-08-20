@@ -1,21 +1,14 @@
-from rnaglib.data_loading import RNADataset
-from rnaglib.tasks import RNAClassificationTask
-from rnaglib.splitters import RandomSplitter
-
-from rnaglib.utils import load_index, BoolEncoder, OneHotEncoder
-import requests
-
 from networkx import set_node_attributes
+import requests
 
-from rnaglib.data_loading import RNADataset
+from rnaglib.data_loading import RNADataset, FeaturesComputer
 from rnaglib.tasks import RNAClassificationTask
 from rnaglib.splitters import RandomSplitter
+from rnaglib.utils import load_index, BoolEncoder, OneHotEncoder
 
-from rnaglib.utils import load_index
-import requests
 
 class ProteinBindingDetection(RNAClassificationTask):
-    target_var = 'rfam'   # graph level attribute
+    target_var = 'rfam'  # graph level attribute
     input_var = "dummy"  # node level attribute
 
     mapping = {}
@@ -31,7 +24,7 @@ class ProteinBindingDetection(RNAClassificationTask):
         return RandomSplitter()
 
     def _nt_filter(self, x):
-        chains = list(set(s[s.index('.'):s.rindex('.')+1] for s in x.nodes))
+        chains = list(set(s[s.index('.'):s.rindex('.') + 1] for s in x.nodes))
 
         def get_node_number(node):
             return int(node.split('.')[-1])
@@ -50,7 +43,7 @@ class ProteinBindingDetection(RNAClassificationTask):
                 # We split the chains into chains of size 50 or more (for the last chain)
                 # This allows graph level classification on attributes that may always be true for a whole RNA molecule but not for parts of it
                 for i in range(0, len(sorted_nodes), 50):
-                    batch_nodes = sorted_nodes[i:i+50]
+                    batch_nodes = sorted_nodes[i:i + 50]
                     batch_subgraph = subgraph.subgraph(batch_nodes).copy()
                     yield batch_subgraph
 
@@ -84,7 +77,7 @@ class ProteinBindingDetection(RNAClassificationTask):
             node: accession_number
             for node, nodedata in x.nodes.items()}
         set_node_attributes(x, rfam, 'rfam')
-        
+
         dummy = {
             node: 1
             for node, nodedata in x.nodes.items()}
@@ -100,26 +93,24 @@ class ProteinBindingDetection(RNAClassificationTask):
         for graph, graph_attrs in graph_index.items():
             rna_id = graph.split(".")[0]
             # Selection of ribosomal DNA removed since I cannot access the server endpoint
-            #if "node_" + self.target_var in graph_attrs and rna_id not in self.ribosomal_rnas:
-            
+            # if "node_" + self.target_var in graph_attrs and rna_id not in self.ribosomal_rnas:
+
             # Keep only RNAS with an assigned rfam family
             rfam = self.get_rfam(rna_id)
             if rfam:
                 families.append(rfam)
                 rnas_keep.append(rna_id)
 
-
-
         # Create mapping of Rfam families for OneHotEncoder
         self.mapping = {family: i for i, family in enumerate(set(families))}
         # Create dataset
-        dataset = RNADataset(nt_targets=[self.target_var],
-                             nt_features=[self.input_var],
-                             custom_encoders_targets= {self.target_var: OneHotEncoder(mapping=self.mapping)},
-                             custom_encoders_features={self.input_var: BoolEncoder()},  
-                             annotator=self._annotator,
-                             rna_filter=lambda x: x.graph['pdbid'][0].lower() in rnas_keep, 
-                             )
+        features_computer = FeaturesComputer(nt_features=self.input_var, nt_targets=self.target_var,
+                                             custom_encoders_features={self.input_var: BoolEncoder()},
+                                             custom_encoders_targets={
+                                                 self.target_var: OneHotEncoder(mapping=self.mapping)})
+        dataset = RNADataset.from_args(features_computer=features_computer,
+                                       annotator=self._annotator,
+                                       rna_filter=lambda x: x.graph['pdbid'][0].lower() in rnas_keep)
         return dataset
 
     def get_ribosomal_rnas(self):

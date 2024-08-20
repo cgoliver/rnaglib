@@ -27,24 +27,24 @@ parser.add_argument('--task', type=str, default=None, help="Task to run")
 
 
 args = parser.parse_args()
+if args.use_wandb:
+    # Initialize wandb
+    wandb.init(
+        project=args.experiment_name,
+        config=args,
+        name=args.run_name
+    )
 
-# Initialize wandb
-wandb.init(
-    project=args.experiment_name,
-    config=args,
-    name=args.run_name
-)
-
-# Log all arguments explicitly
-wandb.config.update({
-    "layers": args.layers,
-    "learning_rate": args.lr,
-    "epochs": args.epochs,
-    "hidden_layers": args.hidden_layers,
-    "dropout": args.dropout,
-    "root": args.root,
-    "from_pickle": args.frompickle
-})
+    # Log all arguments explicitly
+    wandb.config.update({
+        "layers": args.layers,
+        "learning_rate": args.lr,
+        "epochs": args.epochs,
+        "hidden_layers": args.hidden_layers,
+        "dropout": args.dropout,
+        "root": args.root,
+        "from_pickle": args.frompickle
+    })
 
 # Creating task
 if args.frompickle:
@@ -55,7 +55,7 @@ if args.frompickle:
 else:
     print('generating task')
     if args.task in globals():
-        ta =  globals()[args.task](args.root, recompute=True) 
+        ta =  globals()[args.task](args.root, recompute=True)
     else: print('Specify correct task name')
     ta.dataset.add_representation(GraphRepresentation(framework='pyg'))
 
@@ -88,13 +88,14 @@ def count_unique_edge_attrs(train_loader):
 
 num_unique_edge_attrs = count_unique_edge_attrs(train_loader)
 num_node_features = train_set[0]['graph'].x.shape[1]
-num_classes = 2 
+num_classes = 2
 
 print(f"# node features {num_node_features}, # classes {num_classes}, # edge attributes {num_unique_edge_attrs}")
 
 # Define model
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-model = RGCN_node(num_node_features, num_classes, num_unique_edge_attrs, num_layers=args.layers, dropout_rate=args.dropout, hidden_channels=args.hidden_layers)
+model = RGCN_node(num_node_features, num_classes, num_unique_edge_attrs,
+                  num_layers=args.layers, dropout_rate=args.dropout, hidden_channels=args.hidden_layers)
 model = model.to(device)
 optimizer = optim.Adam(model.parameters(), lr=args.lr)
 criterion = torch.nn.CrossEntropyLoss()
@@ -106,7 +107,7 @@ def evaluate(loader):
     all_preds = []
     all_labels = []
     total_loss = 0
-    
+
     for batch in loader:
         graph = batch['graph']
         graph = graph.to(device)
@@ -115,15 +116,15 @@ def evaluate(loader):
         total_loss += loss.item()
         preds = out.argmax(dim=1)
         all_preds.extend(preds.tolist())
-        all_labels.extend(graph.y.tolist()) 
-    
+        all_labels.extend(graph.y.tolist())
+
     avg_loss = total_loss / len(loader)
-    
+
     accuracy = accuracy_score(all_labels, all_preds)
     f1 = f1_score(all_labels, all_preds)
     auc = roc_auc_score(all_labels, all_preds)
     mcc = matthews_corrcoef(all_labels, all_preds)
-    
+
     return accuracy, f1, auc, avg_loss, mcc
 
 
@@ -144,15 +145,15 @@ def train():
 
 for epoch in range(args.epochs):
     train_loss = train()
-    train_acc, train_f1, train_auc, _, train_mcc = ta.evaluate(model, train_loader, criterion, device) 
-    val_acc, val_f1, val_auc, val_loss, val_mcc = ta.evaluate(model, val_loader, criterion, device)  
+    train_acc, train_f1, train_auc, _, train_mcc = ta.evaluate(model, train_loader, criterion, device)
+    val_acc, val_f1, val_auc, val_loss, val_mcc = ta.evaluate(model, val_loader, criterion, device)
     print(f"Epoch {epoch + 1}, "
       f"Train Loss: {train_loss:.4f}, Val Loss: {val_loss:.4f}, "
       f"Train Acc: {train_acc:.4f}, Val Acc: {val_acc:.4f}, "
       f"Train F1: {train_f1:.4f}, Val F1: {val_f1:.4f}, "
       f"Train AUC: {train_auc:.4f}, Val AUC: {val_auc:.4f}, "
       f"Train MCC: {train_mcc:.4f}, Val MCC: {val_mcc:.4f}")
-    
+
     # Log metrics to wandb
     wandb.log({
         "epoch": epoch + 1,
@@ -169,17 +170,19 @@ for epoch in range(args.epochs):
     })
 
 # Evaluate on test set
-test_accuracy, test_f1, test_auc, test_loss, test_mcc = ta.evaluate(model, test_loader, criterion, device)  
+test_accuracy, test_f1, test_auc, test_loss, test_mcc = ta.evaluate(model, test_loader, criterion, device)
 
-print(f'Test Accuracy: {test_accuracy:.4f}, Test F1 Score: {test_f1:.4f}, Test AUC: {test_auc:.4f}, Test MCC: {test_mcc:.4f}')
+print(f'Test Accuracy: {test_accuracy:.4f}, Test F1 Score: {test_f1:.4f}, '
+      f'Test AUC: {test_auc:.4f}, Test MCC: {test_mcc:.4f}')
 
-# Log final test metrics to wandb
-wandb.log({
-    "test_accuracy": test_accuracy,
-    "test_f1": test_f1,
-    "test_auc": test_auc,
-    "test_loss": test_loss,
-    "test_mcc": test_mcc
-})
+if args.use_wandb:
+    # Log final test metrics to wandb
+    wandb.log({
+        "test_accuracy": test_accuracy,
+        "test_f1": test_f1,
+        "test_auc": test_auc,
+        "test_loss": test_loss,
+        "test_mcc": test_mcc
+    })
 
-wandb.finish()
+    wandb.finish()

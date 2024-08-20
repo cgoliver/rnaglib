@@ -7,10 +7,120 @@ import copy
 import torch
 import networkx as nx
 
-from rnaglib.utils import build_node_feature_parser
-from rnaglib.utils import download_graphs
-from rnaglib.utils import load_graph
-from rnaglib.utils import dump_json
+from rnaglib.utils import download_graphs, load_graph, dump_json
+from rnaglib.data_loading.features import FeaturesComputer
+
+
+def get_all_existing(dataset_path, all_graphs=None):
+    # Only use queried graph, by default listdir
+    all_graphs = sorted(os.listdir(dataset_path)) if all_graphs is None else all_graphs
+
+    # Filter out existing ones, and print message if there is a difference
+    all_graphs_path = [os.path.join(dataset_path, g_name) for g_name in all_graphs]
+    existing_all_graphs_path = [g_path for g_path in all_graphs_path if os.path.exists(g_path)]
+    size_diff = len(all_graphs) - len(existing_all_graphs_path)
+    if size_diff > 0:
+        print(f"{size_diff} graphs were missing from {dataset_path} compared to asked graphs")
+    return existing_all_graphs_path
+
+
+def build_dataset_loop(all_graphs_db, db_path, rna_filter=None, nt_filter=None, annotator=None,
+                       features_computer: FeaturesComputer = None):
+    """ Iterates through database, applying filters and annotations"""
+    from tqdm import tqdm as tqdm
+    graph_list = []
+
+    for graph_name in tqdm(all_graphs_db):
+        g_path = os.path.join(db_path, graph_name)
+        g = load_graph(g_path)
+
+        # Remove whole systems
+        if not rna_filter(g):
+            continue
+
+        # Apply a chunking function to whole RNAs
+        if not nt_filter is None:
+            subgs = []
+
+            for subg in nt_filter(g):
+                subgs.append(subg)
+        else:
+            subgs = [g]
+
+        # Apply a per graph/subgraph function
+        if not annotator is None:
+            for subg in subgs:
+                annotator(subg)
+
+        # Remove useless keys
+        if features_computer is not None:
+            subgs = [features_computer.remove_useless_keys(subg) for subg in subgs]
+
+        graph_list.extend(subgs)
+    return graph_list
+
+
+def build_dataset(dataset_path=None, recompute=False, all_graphs=None,
+                  annotator=None, nt_filter=None, rna_filter=None, features_computer=None,
+                  db_path=None, all_graphs_db=None,
+                  version='1.0.0', download_dir=None, redundancy='nr', annotated=False):
+    """
+    Function to
+    :param dataset_path: Path to an already saved dataset, skips dataset creation if loaded.
+    :param recompute: Boolean if we should recompute
+    :param all_graphs: A list of file names if we're using precomputed data
+
+    :param db_path: The original database directory to produce our data from. If unset, further params are used. (below)
+    :param all_graphs_db: If we want to only precompute over only a subset of the db
+    :param redundancy: To use all graphs or just the non-redundant set.
+    :param download_dir: If one changed the default download directory of rglib
+    :param version: Version of the dataset to use (default='1.0.0')
+    :param annotated: To use for pretraining
+
+    :param nt_filter: Callable which takes as input an RNA dictionary and filters out some nt
+    :param annotator: Callable which takes as input an RNA dictionary and adds new key-value pairs.
+    :param rna_filter: Callable which takes as input an RNA dictionary and returns whether we should keep it.
+    """
+    if not recompute and dataset_path is not None and os.path.exists(dataset_path):
+        existing_all_graphs_path = get_all_existing(dataset_path=dataset_path, all_graphs=all_graphs)
+        rnas = [load_graph(g_path) for g_path in existing_all_graphs_path]
+        return rnas
+        # return dataset_path, all_graphs
+
+    # Set up the original data to build the dataset from
+    # If we don't input a data path, the right one according to redundancy, chop and annotated is fetched
+
+    # By default, we set hashing to None and potential node sim should be specified when creating
+    # the node_sim function. Then, if a download occurs and no hashing was provided to the loader, the hashing used
+    # is the one fetched by the downloading process to ensure it matches the data we iterate over.
+    # TODO, check annotations and pretraining still work
+    if db_path is None:
+        db_path = download_graphs(redundancy=redundancy,
+                                  version=version,
+                                  annotated=annotated,
+                                  data_root=download_dir)
+        db_path = os.path.join(db_path, 'graphs')
+
+    all_graphs_db = os.listdir(db_path) if all_graphs_db is None else all_graphs_db
+
+    # If no constructions args are given, just return the graphs
+    if rna_filter is None and nt_filter is None and annotator is None and features_computer is None:
+        rnas = [load_graph(os.path.join(db_path, g_name)) for g_name in all_graphs]
+        return rnas
+
+    # If some constructions args are given, launch processing.
+    if rna_filter is None:
+        rna_filter = lambda x: True
+    rnas = build_dataset_loop(all_graphs_db=all_graphs_db, db_path=db_path,
+                              rna_filter=rna_filter, nt_filter=nt_filter,
+                              annotator=annotator, features_computer=features_computer)
+    if dataset_path is not None:
+        os.makedirs(dataset_path, exist_ok=True)
+        for i, rna in enumerate(rnas):
+            dump_json(os.path.join(dataset_path, f"{i}.json"), rna)
+    return rnas
+    # TODO this is broken, it should iterate over graphs or something
+    # self.available_pdbids = [g.split(".")[0].lower() for g in self.all_graphs]
 
 
 class RNADataset:
@@ -18,168 +128,77 @@ class RNADataset:
         This class is the main object to hold the core RNA data annotations.
         The ``RNAglibDataset.all_rnas`` object is a generator networkx objects that hold all the annotations for each RNA in the dataset.
         You can also access individual RNAs on-disk with ``RNAGlibDataset()[idx]`` or ``RNAGlibDataset().get_pdbid('1b23')``
-
     """
 
     def __init__(self,
-                 db_path: Optional[Union[str, os.PathLike]] = None,
-                 saved_dataset : Optional[Union[str, os.PathLike]] = None,
-                 version : str = '1.0.0',
-                 download_dir : Optional[Union[str, os.PathLike]] = None,
-                 redundancy : Literal['nr', 'all'] = 'nr',
+                 rnas=None,
+                 dataset_path=None,
                  all_graphs=None,
+                 # TODO add in_memory field to load on the fly
                  representations=None,
-                 rna_features=None,
-                 nt_features=None,
-                 bp_features=None,
-                 rna_targets=None,
-                 nt_targets=None,
-                 bp_targets=None,
-                 custom_encoders_features=None,
-                 custom_encoders_targets=None,
-                 annotated=False,
-                 verbose=False,
-                 annotator=None,
-                 nt_filter=None,
-                 rna_filter=None,
-                 ):
+                 features_computer=None):
         """
-
-
         :param representations: List of `rnaglib.Representation` objects to apply to each item.
-        :param db_path: The path to the folder containing the graphs. If node_sim is not None, this data should be annotated
-        :param saved_dataset: Path to an already saved dataset, skips dataset creation if loaded.
-        :param version: Version of the dataset to use (default='0.0.0')
-        :param redundancy: To use all graphs or just the non redundant set.
+        :param dataset_path: The path to the folder containing the graphs.
         :param all_graphs: In the given directory, one can choose to provide a list of graphs to use
-        :param rna_filter: Callable which accepts an RNA dictionary and returns a new RNA dictionary with fewer nodes.
-        :param annotator: Callable which takes as input an RNA dictionary and adds new key-value pairs.
-
         """
+        if rnas is None:
+            if dataset_path is None:
+                # By default, use non redundant (nr), v1.0.0 dataset of rglib
+                dataset_path = download_graphs()
+                dataset_path = os.path.join(dataset_path, 'graphs')
 
-        # If we don't input a data path, the right one according to redundancy, chop and annotated is fetched
-        # By default, we set hashing to None and potential node sim should be specified when creating
-        # the node_sim function.
-        # Then if a download occurs and no hashing was provided to the loader, the hashing used is the one
-        # fetched by the downloading process to ensure it matches the data we iterate over.
+            # One can restrict the number of graphs to use
+            #     TODO make the role of all_graphs clearer/refactor the dataset saving to make it more explicit
+            existing_all_graphs_path = get_all_existing(dataset_path=dataset_path, all_graphs=all_graphs)
+            rnas = [load_graph(g_path) for g_path in existing_all_graphs_path]
+        self.rnas = rnas
+
+        # Now that we have the raw data setup, let us set up the features we want to be using:
+        if features_computer is None:
+            features_computer = FeaturesComputer()
+        self.features_computer = features_computer
+
+        # Finally, let us set up the list of representations that we will be using
         if representations is None:
             self.representations = []
+        elif not isinstance(representations, list):
+            self.representations = [representations]
         else:
             self.representations = representations
 
-        self.db_path = db_path
-
-        # DB_path corresponds to all available RNA graphs in rnaglib
-        if db_path is None:
-            self.db_path = download_graphs(redundancy=redundancy,
-                                           version=version,
-                                           annotated=annotated,
-                                           data_root=download_dir,
-                                           )
-
-            self.db_path = Path(self.db_path) / 'graphs'
-
-        # One can restrict the number of graphs to use
-        if all_graphs is None:
-            self.all_graphs = sorted(os.listdir(self.db_path))
-        else:
-            self.all_graphs = all_graphs
-
-        # Maybe we precomputed subsets of the db already or we want to; this is what saved_dataset is here for
-        self.saved_dataset = saved_dataset
-
-        self.rna_features = rna_features
-        self.rna_targets = rna_targets
-        self.nt_features = nt_features
-        self.nt_targets = nt_targets
-        self.bp_features = bp_features
-        self.bp_targets = bp_targets
-
-        self.node_features_parser = build_node_feature_parser(self.nt_features,
-                                                              custom_encoders=custom_encoders_features
-                                                              )
-        self.node_target_parser = build_node_feature_parser(self.nt_targets,
-                                                            custom_encoders=custom_encoders_targets)
-
-        self.input_dim = self.compute_dim(self.node_features_parser)
-        self.output_dim = self.compute_dim(self.node_target_parser)
-
-        self.available_pdbids = [g.split(".")[0].lower() for g in self.all_graphs]
-
-        if rna_filter is None:
-            self.rna_filter = lambda x: True
-        else:
-            self.rna_filter = rna_filter
-
-        self.nt_filter = nt_filter
-
-        self.annotator = annotator
-
-        self.rnas = self._build_dataset()
+    @classmethod
+    def from_args(cls, representations=None, features_computer=None, **dataset_build_params):
+        rnas = build_dataset(features_computer=features_computer, **dataset_build_params)
+        return cls(representations=representations,
+                   features_computer=features_computer,
+                   rnas=rnas)
+        # dataset_path=data.dataset_path,
+        # all_graphs=data.all_graphs)
 
     def __len__(self):
         return len(self.rnas)
-
-    def _build_dataset(self):
-        if not self.saved_dataset is None:
-            return [load_graph(Path(self.saved_dataset) / g_name) \
-                    for g_name in os.listdir(self.saved_dataset)]
-        else:
-            return self.build_dataset()
-        pass
-
-    def build_dataset(self):
-        """ Iterates through database, applying filters and annotations"""
-        from tqdm import tqdm as tqdm
-        graph_list = []
-
-        for graph_name in tqdm(self.all_graphs):
-            g_path = os.path.join(self.db_path, graph_name)
-            g = load_graph(g_path)
-
-            if not self.rna_filter(g):
-                continue
-            if not self.nt_filter is None:
-                subgs = []
-
-                for subg in self.nt_filter(g):
-                    subgs.append(subg)
-            else:
-                subgs = [g]
-            if not self.annotator is None:
-                for subg in subgs:
-                    self.annotator(subg)
-            graph_list.extend(subgs)
-        return graph_list
-
-    def save(self, dump_path):
-        """ Save a local copy of the dataset"""
-        for i, rna in enumerate(self.rnas):
-            dump_json(os.path.join(dump_path, f"{i}.json"), rna)
 
     def __getitem__(self, idx):
         """ Fetches one RNA and converts it from raw data to a dictionary
         with representations and annotations to be used by loaders """
 
         rna_graph = self.rnas[idx]
-
         rna_dict = {'rna': rna_graph}
-        features_dict = self.compute_features(rna_dict)
+        features_dict = self.features_computer.compute_features(rna_dict)
+
         # apply representations to the res_dict
         # each is a callable that updates the res_dict
         for rep in self.representations:
             rna_dict[rep.name] = rep(rna_graph, features_dict)
         return rna_dict
 
-    def select(self):
-        return [self[i] for i in range(len(self))]
-
     def add_representation(self, representation):
         self.representations.append(representation)
 
     def remove_representation(self, name):
-        self.representations = [representation for representation in self.representations if
-                                representation.name != name]
+        self.representations = [representation for representation in self.representations
+                                if representation.name != name]
 
     def subset(self, list_of_ids):
         """
@@ -190,73 +209,50 @@ class RNADataset:
         """
         subset = copy.deepcopy(self)
         subset.rnas = [self.rnas[i] for i in list_of_ids]
+        # TODO: also subset available pdbids and all graphs
         return subset
+
+    def save(self, dump_path):
+        """ Save a local copy of the dataset"""
+        for i, rna in enumerate(self.rnas):
+            dump_json(os.path.join(dump_path, f"{i}.json"), rna)
 
     def get_pdbid(self, pdbid):
         """ Grab an RNA by its pdbid """
-        return self.__getitem__(self.available_pdbids.index(pdbid.lower()))
+        # TODO fix by subclassing to get a PDBRNADataset ?
+        return self.__getitem__(self.all_graphs.index(pdbid.lower()))
 
-    def get_nt_encoding(self, g, encode_feature=True):
-        """
 
-        Get targets for graph g
-        for every node get the attribute specified by self.node_target
-        output a mapping of nodes to their targets
+if __name__ == '__main__':
+    from rnaglib.representations import GraphRepresentation
 
-        :param g: a nx graph
-        :param encode_feature: A boolean as to whether this should encode the features or targets
-        :return: A dict that maps nodes to encodings
-        
-        """
-        node_encodings = {}
-        node_parser = self.node_features_parser if encode_feature else self.node_target_parser
+    features_computer = FeaturesComputer(nt_features='nt_code', nt_targets='binding_protein')
+    graph_rep = GraphRepresentation(framework='dgl')
+    all_graphs = ['1a9n.json', '1b23.json', '1b7f.json', '1csl.json', '1d4r.json', '1dfu.json', '1duq.json',
+                  '1e8o.json', '1ec6.json', '1et4.json']
 
-        if len(node_parser) == 0:
-            return None
+    # # First case
+    # supervised_dataset = RNADataset(all_graphs=all_graphs,
+    #                                 features_computer=features_computer,
+    #                                 representations=[graph_rep])
+    # g1 = supervised_dataset[0]
+    # a = list(g1['rna'].nodes(data=True))[0][1]
 
-        for node, attrs in g.nodes.data():
-            all_node_feature_encoding = list()
-            for i, (feature, feature_encoder) in enumerate(node_parser.items()):
-                try:
-                    node_feature = attrs[feature]
-                    node_feature_encoding = feature_encoder.encode(node_feature)
-                except KeyError:
-                    node_feature_encoding = feature_encoder.encode_default()
-                all_node_feature_encoding.append(node_feature_encoding)
-            node_encodings[node] = torch.cat(all_node_feature_encoding)
-        return node_encodings
+    # This instead uses from_args, hence features_computer is called during dataset preparation, which saves spaces
+    # supervised_dataset = RNADataset.from_args(all_graphs_db=all_graphs,
+    #                                           features_computer=features_computer,
+    #                                           representations=[graph_rep])
+    # g2 = supervised_dataset[0]
+    # b = list(g2['rna'].nodes(data=True))[0][1]
 
-    def compute_dim(self, node_parser):
-        """
-        Based on the encoding scheme, we can compute the shapes of the in and out tensors
-
-        :return:
-
-        """
-        if len(node_parser) == 0:
-            return 0
-        all_node_feature_encoding = list()
-        for i, (feature, feature_encoder) in enumerate(node_parser.items()):
-            node_feature_encoding = feature_encoder.encode_default()
-            all_node_feature_encoding.append(node_feature_encoding)
-        all_node_feature_encoding = torch.cat(all_node_feature_encoding)
-        return len(all_node_feature_encoding)
-
-    def compute_features(self, rna_dict):
-        """ Add 3 dictionaries to the `rna_dict` wich maps nts, edges, and the whole graph
-        to a feature vector each. The final converter uses these to include the data in the
-        framework-specific object.
-
-        """
-
-        graph = rna_dict['rna']
-        features_dict = {}
-
-        # Get Node labels
-        if len(self.node_features_parser) > 0:
-            feature_encoding = self.get_nt_encoding(graph, encode_feature=True)
-            features_dict['nt_features'] = feature_encoding
-        if len(self.node_target_parser) > 0:
-            target_encoding = self.get_nt_encoding(graph, encode_feature=False)
-            features_dict['nt_targets'] = target_encoding
-        return features_dict
+    # Test dumping/loading
+    # This instead uses from_args, hence features_computer is called during dataset preparation, which saves spaces
+    script_dir = os.path.dirname(os.path.realpath(__file__))
+    dataset_path = os.path.join(script_dir, "../data/test")
+    rnas = build_dataset(all_graphs_db=all_graphs,
+                         dataset_path=dataset_path,
+                         features_computer=features_computer)
+    supervised_dataset = RNADataset(dataset_path=dataset_path, representations=graph_rep, all_graphs=all_graphs)
+    g2 = supervised_dataset[0]
+    b = list(g2['rna'].nodes(data=True))[0][1]
+    a = 1

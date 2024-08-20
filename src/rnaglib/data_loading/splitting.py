@@ -1,9 +1,11 @@
 from collections import defaultdict
 import random
+from torch.utils.data import Subset
 
 from rnaglib.utils import load_index
 
 graph_index = load_index()
+
 
 def get_multitask_split(node_targets, graph_index=graph_index, fractions=(0.15, 0.15)):
     """
