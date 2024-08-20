@@ -16,7 +16,7 @@ class OneHotEncoder:
         self.mapping = mapping
         self.reverse_mapping = {value: key for key, value in mapping.items()}
         if num_values is None:
-            num_values = len(mapping.values()) #max(mapping.values())
+            num_values = max(mapping.values())
         self.num_values = num_values
 
     def encode(self, value):
@@ -141,7 +141,7 @@ class ListEncoder:
 
 # Interesting Counters :
 # To get those, run 'get_all_labels with the counter option. This is useful to produce the
-# one hot encoding (by discarding the really scarce ones
+# one hot encoding (by discarding the really scarce ones)
 # node dbn : 
 # {'(': 1595273, '.': 2694367, ')': 1596160, '[': 52080, ']': 51598, '{': 9862, '}': 9916, '>': 2076, '<': 2078,
 # 'A': 529, 'a': 524, 'B': 30, 'b': 29, 'O': 1, 'P': 1, 'C': 1, 'Q': 1, 'D': 1, 'E': 1, 'R': 1, 'F': 1, 'G': 1, 

@@ -10,6 +10,8 @@ RNAGlib provides access to collections of RNAs for machine learning with PyTorch
 It revolves around the usual Dataset and Dataloader objects, along with a Representation object :
 
 * `RNADatasets` objects are an iterable of RNA data, that returns representations of this data
+* The `Features_Computer` object can be thought of as Transforms class, selecting relevant node or graph features
+and transforming them into tensors ready to be used in deep learning.
 * The `Representation` object will return our data in a certain representation (e.g. graphs, voxels, point clouds) as
   well as cast to different data science and ML frameworks (DGL, pytorch-geometric, networkx).
 * The `get_loader` function encapsulates automatic data splitting and collating and returns appropriate PyTorch data loaders.
@@ -54,7 +56,27 @@ The returned object is a dictionnary with three entries :
 Representations
 ~~~~~~~~~~~~~~~~~
 
-The next important object for RNAGlib is the `representation`. Previously, our return only included the raw data.
+The next important object for RNAGlib is the `FeaturesComputer`. This object can be thought as a Transforms function
+that acts on the raw data to select relevant features and turn them into torch Tensors.
+The user can ask for input nucleotide features and nucleotide targets.
+As an example, we use nucleotide identity ('nt_code') as input and the binding of an ion ('binding_ion') as output.
+We can also ask for additional features after creation of the object, as well as provide it with custom transformations.
+These two additions are exemplified below :
+
+.. code-block:: python
+
+    from rnaglib.data_loader import FeaturesComputer
+    features_computer = FeaturesComputer(nt_features='nt_code', nt_targets='binding_protein')
+    features_computer.add_feature('alpha') # Add alpha angle for illustation purposes
+    features_computer.input_dim
+    >>> 5
+
+This object will be used internally and exemplified below.
+
+Representations
+~~~~~~~~~~~~~~~~~
+
+The next important object for RNAGlib is the `Representation`. Previously, our return only included the raw data.
 One can add a `Representation` object with arguments to post-process this raw data into a more usable data format.
 The most trivial one is to ask for a `GraphRepresentation`. One can choose either networkx, DGL or PyTorch Geometric as
 a return type.
@@ -69,13 +91,12 @@ These two additions are exemplified below :
     from rnaglib.representations import GraphRepresentation
 
     graph_rep = GraphRepresentation(framework='dgl')
-    nt_features = ['nt_code']
-    nt_targets = ['binding_ion']
-    dataset = RNADataset(nt_features=nt_features, nt_targets=nt_targets, representations=[graph_rep])
+    dataset = RNADataset(features_computer=features_computer, representation=graph_rep)
+
     print(dataset[0]['graph'])
 
     >>> {Graph(num_nodes=24, num_edges=58,
-            ndata_schemes={'nt_features': Scheme(shape=(4,), dtype=torch.float32),
+            ndata_schemes={'nt_features': Scheme(shape=(5,), dtype=torch.float32),
                            'nt_targets': Scheme(shape=(1,), dtype=torch.float32)}
             edata_schemes={'edge_type': Scheme(shape=(), dtype=torch.int64)})}
 
@@ -103,13 +124,13 @@ or point clouds.
 In our case, the RNA has 24 nucleotides and is approximately 12 Angrstroms wide.
 Hence, dataset[0]['point_cloud'] is a dictionnary that contains two grids in the PyTorch order :
 
-* ``voxel_feats : torch.Size([4, 6, 5, 6])``
+* ``voxel_feats : torch.Size([5, 6, 5, 6])``
 * ``voxel_target : torch.Size([1, 6, 5, 6])``
 
 While dataset[0]['point_cloud'] is a dictionnary that contains one list and three tensors :
 
 * ``point_cloud_coords torch.Size([24, 3])``
-* ``point_cloud_feats torch.Size([24, 4])``
+* ``point_cloud_feats torch.Size([24, 5])``
 * ``point_cloud_targets torch.Size([24, 1])``
 * ``point_cloud_nodes ['1a9n.Q.0', '1a9n.Q.1',... '1a9n.Q.9']``
 
@@ -156,6 +177,7 @@ An example of a variation is provided below, the rest of the code is unaffected.
 
     nt_features = ['nt_code', "alpha", "C5prime_xyz", "is_modified"]
     nt_targets = ['binding_ion', 'binding_protein']
+    features_computer = FeaturesComputer(nt_features=nt_features, nt_targets=nt_targets)
 
 
 Unsupervised pre-training

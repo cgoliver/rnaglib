@@ -5,7 +5,6 @@ import copy
 import torch
 import networkx as nx
 
-from rnaglib.utils import build_node_feature_parser
 from rnaglib.utils import download_graphs
 from rnaglib.utils import load_graph
 from rnaglib.utils import dump_json
@@ -16,7 +15,6 @@ class RNADataset:
         This class is the main object to hold the core RNA data annotations.
         The ``RNAglibDataset.all_rnas`` object is a generator networkx objects that hold all the annotations for each RNA in the dataset.
         You can also access individual RNAs on-disk with ``RNAGlibDataset()[idx]`` or ``RNAGlibDataset().get_pdbid('1b23')``
-
     """
 
     def __init__(self,
@@ -27,14 +25,7 @@ class RNADataset:
                  redundancy='nr',
                  all_graphs=None,
                  representations=None,
-                 rna_features=None,
-                 nt_features=None,
-                 bp_features=None,
-                 rna_targets=None,
-                 nt_targets=None,
-                 bp_targets=None,
-                 custom_encoders_features=None,
-                 custom_encoders_targets=None,
+                 features_computer=None,
                  annotated=False,
                  verbose=False,
                  annotator=None,
@@ -79,35 +70,26 @@ class RNADataset:
         #     TODO make the role of all_graphs clearer/refactor the dataset saving to make it more explicit
 
         # Maybe we precomputed subsets of the db already or we want to; this is what saved_dataset is here for
-        self.available_pdbids = [g.split(".")[0].lower() for g in self.all_graphs]
         self.saved_dataset = saved_dataset
         if rna_filter is None:
             self.rna_filter = lambda x: True
         else:
             self.rna_filter = rna_filter
-
         self.nt_filter = nt_filter
         self.annotator = annotator
         self.rnas = self._build_dataset()
+        # TODO this is broken, it should iterate over graphs or something
+        self.available_pdbids = [g.split(".")[0].lower() for g in self.all_graphs]
 
-        # Now that we have the raw data setup, let's setup the features we want to be using:
-        self.rna_features = rna_features
-        self.rna_targets = rna_targets
-        self.nt_features = nt_features
-        self.nt_targets = nt_targets
-        self.bp_features = bp_features
-        self.bp_targets = bp_targets
-        self.node_features_parser = build_node_feature_parser(self.nt_features,
-                                                              custom_encoders=custom_encoders_features)
-        self.node_target_parser = build_node_feature_parser(self.nt_targets,
-                                                            custom_encoders=custom_encoders_targets)
-        self.input_dim = self.compute_dim(self.node_features_parser)
-        self.output_dim = self.compute_dim(self.node_target_parser)
+        # Now that we have the raw data setup, let us set up the features we want to be using:
+        self.features_computer = features_computer
 
-        # Finally, let's setup the list of representations that we will be using
+        # Finally, let us set up the list of representations that we will be using
         if representations is None:
             self.representations = []
         else:
+            if not isinstance(representations, list):
+                representations = [representations]
             self.representations = representations
 
     def __len__(self):
@@ -156,47 +138,19 @@ class RNADataset:
         rna_graph = self.rnas[idx]
 
         rna_dict = {'rna': rna_graph}
-        features_dict = self.compute_features(rna_dict)
+        features_dict = self.features_computer.compute_features(rna_dict)
         # apply representations to the res_dict
         # each is a callable that updates the res_dict
         for rep in self.representations:
             rna_dict[rep.name] = rep(rna_graph, features_dict)
         return rna_dict
 
-    def select(self):
-        return [self[i] for i in range(len(self))]
-
     def add_representation(self, representation):
         self.representations.append(representation)
 
     def remove_representation(self, name):
-        self.representations = [representation for representation in self.representations if
-                                representation.name != name]
-
-    def add_feature(self, feature_names=None, custom_encoders=None, input_feature=True):
-        """
-        Update the input/output feature selector with either an extra available named feature or a custom encoder
-        :param feature_names: Name of the input feature to add
-        :param custom_encoders: A dict containing {named_feature: custom encoder}
-        :param input_feature: Set to true to modify the input feature encoder, false for the target one
-        :return: None
-        """
-        # Select the right node_parser and update it
-        node_parser = self.node_features_parser if input_feature else self.node_target_parser
-        new_node_parser = build_node_feature_parser(asked_features=feature_names,
-                                                    custom_encoders=custom_encoders)
-        node_parser.update(new_node_parser)
-
-    def remove_feature(self, feature_name=None, input_feature=True):
-        """
-        Update the input/output feature selector with either an extra available named feature or a custom encoder
-        :param feature_name: Name of the input feature to remove
-        :param input_feature: Set to true to modify the input feature encoder, false for the target one
-        :return: None
-        """
-        # Select the right node_parser and update it
-        node_parser = self.node_features_parser if input_feature else self.node_target_parser
-        node_parser = {k: node_parser[k] for k in node_parser}
+        self.representations = [representation for representation in self.representations
+                                if representation.name != name]
 
     def subset(self, list_of_ids):
         """
@@ -207,73 +161,9 @@ class RNADataset:
         """
         subset = copy.deepcopy(self)
         subset.rnas = [self.rnas[i] for i in list_of_ids]
+        # TODO: also subset available pdbids and all graphs
         return subset
 
     def get_pdbid(self, pdbid):
         """ Grab an RNA by its pdbid """
         return self.__getitem__(self.available_pdbids.index(pdbid.lower()))
-
-    def get_nt_encoding(self, g, encode_feature=True):
-        """
-
-        Get targets for graph g
-        for every node get the attribute specified by self.node_target
-        output a mapping of nodes to their targets
-
-        :param g: a nx graph
-        :param encode_feature: A boolean as to whether this should encode the features or targets
-        :return: A dict that maps nodes to encodings
-        
-        """
-        node_encodings = {}
-        node_parser = self.node_features_parser if encode_feature else self.node_target_parser
-
-        if len(node_parser) == 0:
-            return None
-
-        for node, attrs in g.nodes.data():
-            all_node_feature_encoding = list()
-            for i, (feature, feature_encoder) in enumerate(node_parser.items()):
-                try:
-                    node_feature = attrs[feature]
-                    node_feature_encoding = feature_encoder.encode(node_feature)
-                except KeyError:
-                    node_feature_encoding = feature_encoder.encode_default()
-                all_node_feature_encoding.append(node_feature_encoding)
-            node_encodings[node] = torch.cat(all_node_feature_encoding)
-        return node_encodings
-
-    def compute_dim(self, node_parser):
-        """
-        Based on the encoding scheme, we can compute the shapes of the in and out tensors
-
-        :return:
-
-        """
-        if len(node_parser) == 0:
-            return 0
-        all_node_feature_encoding = list()
-        for i, (feature, feature_encoder) in enumerate(node_parser.items()):
-            node_feature_encoding = feature_encoder.encode_default()
-            all_node_feature_encoding.append(node_feature_encoding)
-        all_node_feature_encoding = torch.cat(all_node_feature_encoding)
-        return len(all_node_feature_encoding)
-
-    def compute_features(self, rna_dict):
-        """ Add 3 dictionaries to the `rna_dict` wich maps nts, edges, and the whole graph
-        to a feature vector each. The final converter uses these to include the data in the
-        framework-specific object.
-
-        """
-
-        graph = rna_dict['rna']
-        features_dict = {}
-
-        # Get Node labels
-        if len(self.node_features_parser) > 0:
-            feature_encoding = self.get_nt_encoding(graph, encode_feature=True)
-            features_dict['nt_features'] = feature_encoding
-        if len(self.node_target_parser) > 0:
-            target_encoding = self.get_nt_encoding(graph, encode_feature=False)
-            features_dict['nt_targets'] = target_encoding
-        return features_dict
