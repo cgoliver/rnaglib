@@ -6,7 +6,7 @@ import torch
 import networkx as nx
 
 from rnaglib.utils import download_graphs, load_graph, dump_json
-from rnaglib.data_loading import FeaturesComputer
+from rnaglib.data_loading.features import FeaturesComputer
 
 
 def build_dataset_loop(all_graphs, db_path, rna_filter=None, nt_filter=None, annotator=None,
@@ -87,15 +87,16 @@ def build_dataset(dataset_path=None, recompute=False, all_graphs=None,
     all_graphs = os.listdir(db_path) if all_graphs is None else all_graphs
 
     # If no constructions args are given, just return the graphs
-    if rna_filter is None and nt_filter is None and annotator is None:
-        rnas = [load_graph(os.path.join(dataset_path, g_name)) for g_name in all_graphs]
+    if rna_filter is None and nt_filter is None and annotator is None and features_computer is None:
+        rnas = [load_graph(os.path.join(db_path, g_name)) for g_name in all_graphs]
         return rnas
 
     # If some constructions args are given, launch processing.
     if rna_filter is None:
         rna_filter = lambda x: True
-    rnas = build_dataset_loop(all_graphs=all_graphs, db_path=db_path, rna_filter=rna_filter, nt_filter=nt_filter,
-                              annotator=annotator)
+    rnas = build_dataset_loop(all_graphs=all_graphs, db_path=db_path,
+                              rna_filter=rna_filter, nt_filter=nt_filter,
+                              annotator=annotator, features_computer=features_computer)
     return rnas
     # TODO this is broken, it should iterate over graphs or something
     # self.available_pdbids = [g.split(".")[0].lower() for g in self.all_graphs]
@@ -146,28 +147,24 @@ class RNADataset:
 
     @classmethod
     def from_args(cls, representations=None, features_computer=None, **dataset_build_params):
-        data = build_dataset(features_computer=features_computer, **dataset_build_params)
+        rnas = build_dataset(features_computer=features_computer, **dataset_build_params)
         return cls(representations=representations,
                    features_computer=features_computer,
-                   dataset_path=data.dataset_path,
-                   all_graphs=data.all_graphs)
+                   rnas=rnas)
+        # dataset_path=data.dataset_path,
+        # all_graphs=data.all_graphs)
 
     def __len__(self):
         return len(self.rnas)
-
-    def save(self, dump_path):
-        """ Save a local copy of the dataset"""
-        for i, rna in enumerate(self.rnas):
-            dump_json(os.path.join(dump_path, f"{i}.json"), rna)
 
     def __getitem__(self, idx):
         """ Fetches one RNA and converts it from raw data to a dictionary
         with representations and annotations to be used by loaders """
 
         rna_graph = self.rnas[idx]
-
         rna_dict = {'rna': rna_graph}
         features_dict = self.features_computer.compute_features(rna_dict)
+
         # apply representations to the res_dict
         # each is a callable that updates the res_dict
         for rep in self.representations:
@@ -193,7 +190,35 @@ class RNADataset:
         # TODO: also subset available pdbids and all graphs
         return subset
 
+    def save(self, dump_path):
+        """ Save a local copy of the dataset"""
+        for i, rna in enumerate(self.rnas):
+            dump_json(os.path.join(dump_path, f"{i}.json"), rna)
+
     def get_pdbid(self, pdbid):
         """ Grab an RNA by its pdbid """
         # TODO fix by subclassing to get a PDBRNADataset ?
         return self.__getitem__(self.all_graphs.index(pdbid.lower()))
+
+
+if __name__ == '__main__':
+    from rnaglib.representations import GraphRepresentation
+
+
+    # First case
+    features_computer = FeaturesComputer(nt_features='nt_code', nt_targets='binding_protein')
+    graph_rep = GraphRepresentation(framework='dgl')
+    all_graphs = ['1a9n.json', '1b23.json', '1b7f.json', '1csl.json', '1d4r.json', '1dfu.json', '1duq.json',
+                  '1e8o.json', '1ec6.json', '1et4.json']
+    supervised_dataset = RNADataset(all_graphs=all_graphs,
+                                    features_computer=features_computer,
+                                    representations=[graph_rep])
+    g1 = supervised_dataset[0]
+    a = list(g1['rna'].nodes(data=True))[0][1]
+
+    # This instead uses from_args, hence features_computer is called during dataset preparation, which saves spaces
+    supervised_dataset = RNADataset.from_args(all_graphs=all_graphs,
+                                              features_computer=features_computer,
+                                              representations=[graph_rep])
+    g2 = supervised_dataset[0]
+    b = list(g2['rna'].nodes(data=True))[0][1]

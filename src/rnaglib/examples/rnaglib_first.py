@@ -23,17 +23,6 @@ def main():
     supervised_dataset = rna_dataset.RNADataset(all_graphs=all_graphs,
                                                 features_computer=features_computer,
                                                 representations=[graph_rep])
-    features_computer = FeaturesComputer(nt_features='nt_code', nt_targets='binding_protein')
-    features_computer.add_feature('alpha')
-    a = features_computer.input_dim
-
-    # features_computer.add_feature('dbn')
-    # a = features_computer.node_features_parser.copy()
-    # features_computer.add_feature(custom_encoders={"is_modified": lambda x: torch.tensor([x], dtype=torch.float)})
-    # b = features_computer.node_features_parser.copy()
-    # features_computer.remove_feature("is_modified")
-    # c = features_computer.node_features_parser.copy()
-
     train_loader, validation_loader, test_loader = rna_loader.get_loader(dataset=supervised_dataset)
 
     # Define a model, we first embed our data in 10 dimensions, and then add one classification
