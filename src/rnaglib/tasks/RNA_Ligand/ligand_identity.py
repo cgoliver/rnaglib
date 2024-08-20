@@ -47,11 +47,11 @@ class GMSM(RNAClassificationTask):
                                              custom_encoders_targets={
                                                  self.target_var: OneHotEncoder(mapping=self.mapping)},
                                              )
-        dataset = RNADataset(features_computer=features_computer,
-                             annotator=self._annotator,
-                             nt_filter=self._nt_filter,
-                             rna_filter=lambda x: x.graph['pdbid'][0].lower() in self.rnas_keep,
-                             all_graphs=[name + '.json' for name in self.rnas_keep],  # for testing [0:10]
-                             redundancy='all'
-                             )
+        dataset = RNADataset.from_args(features_computer=features_computer,
+                                       annotator=self._annotator,
+                                       nt_filter=self._nt_filter,
+                                       rna_filter=lambda x: x.graph['pdbid'][0].lower() in self.rnas_keep,
+                                       all_graphs=[name + '.json' for name in self.rnas_keep],  # for testing [0:10]
+                                       redundancy='all'
+                                       )
         return dataset

@@ -1,5 +1,5 @@
 import torch
-
+import networkx as nx
 from rnaglib.utils import build_node_feature_parser
 
 
@@ -131,3 +131,5 @@ class FeaturesComputer:
             target_encoding = self.encode_nodes(graph, node_parser=self.node_target_parser)
             features_dict['nt_targets'] = target_encoding
         return features_dict
+
+

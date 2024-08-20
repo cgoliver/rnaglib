@@ -1,13 +1,13 @@
 from rnaglib.data_loading import RNADataset, FeaturesComputer
 from rnaglib.tasks import ResidueClassificationTask
-from rnaglib.splitters import BenchmarkBindingSiteSplitter 
+from rnaglib.splitters import BenchmarkBindingSiteSplitter
 from rnaglib.utils import BoolEncoder
 
 from networkx import set_node_attributes
 
 
 class BenchmarkLigandBindingSiteDetection(ResidueClassificationTask):
-    target_var =  'binding_site' #'custom' #'binding_small-molecule'  # "binding_site" needs to be replaced once dataset modifiable.
+    target_var = 'binding_site'  # 'custom' #'binding_small-molecule'  # "binding_site" needs to be replaced once dataset modifiable.
     input_var = "nt_code"
 
     TR60 = ['3sktA', '5u3gB', '5j02A', '2yieZ', '2fcyA', '3gx3A', '4nybA', '1hr2A', '4mgmB', '3oxeB',
@@ -46,20 +46,22 @@ class BenchmarkLigandBindingSiteDetection(ResidueClassificationTask):
                                                                                               None) is None))
             for node, nodedata in x.nodes.items()
         }
-        
+
         set_node_attributes(x, binding_sites, 'binding_site')
-        #set_node_attributes(x, {n:[0,0,0] for n in x.nodes()}, 'custom')
+        # set_node_attributes(x, {n:[0,0,0] for n in x.nodes()}, 'custom')
         return x
 
     def build_dataset(self, root):
         features_computer = FeaturesComputer(nt_features=self.input_var, nt_targets=self.target_var,
-                                             custom_encoders_targets= {self.target_var: BoolEncoder()})
+                                             custom_encoders_targets={self.target_var: BoolEncoder()})
 
-        dataset = RNADataset(features_computer=features_computer,
-                             rna_filter=lambda x: x.graph['pdbid'][0].lower() in [name[:-1] for name in self.rnaskeep],
-                             nt_filter=self._nt_filter,
-                             annotator=self._annotator,
-                             redundancy='all',
-                             all_graphs=[name[:-1] + '.json' for name in self.rnaskeep]  # for increased loading speed
-                             )
+        dataset = RNADataset.from_args(features_computer=features_computer,
+                                       rna_filter=lambda x: x.graph['pdbid'][0].lower() in [name[:-1] for name in
+                                                                                            self.rnaskeep],
+                                       nt_filter=self._nt_filter,
+                                       annotator=self._annotator,
+                                       redundancy='all',
+                                       all_graphs=[name[:-1] + '.json' for name in self.rnaskeep]
+                                       # for increased loading speed
+                                       )
         return dataset

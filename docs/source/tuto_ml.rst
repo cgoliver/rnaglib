@@ -22,7 +22,7 @@ Datasets
 
 The `rnaglib.data_loading.RNADataset` object builds and provides access to collections of RNAs.
 When using the Dataset class, our standard data distribution should be downloaded automatically.
-Alternatively, you can choose to provide your own annotated RNAs by providing a `data_path`.
+Alternatively, you can choose to provide your own annotated RNAs by providing a `dataset_path`.
 
 To create a dataset using our hosted data simply instantiate the `RNADataset` object.
 
@@ -33,7 +33,7 @@ To create a dataset using our hosted data simply instantiate the `RNADataset` ob
    dataset = RNADataset()
 
 
-Different datasets can be specified using the following options in the `RNADataset()` parameters:
+Different datasets can be specified using the following options in the `RNADataset.from_args()` parameters:
 
 * `version='x.x.x'`: which data build to load
 * `redundancy`: by default, we only load non-redundant structures `redundancy='nr'` you can also pass `redundancy='all'` to get all RNAs.

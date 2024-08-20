@@ -26,11 +26,10 @@ class BindingSiteDetection(ResidueClassificationTask):
             if "node_" + self.target_var in graph_attrs:
                 rnas_keep.append(graph.split(".")[0])
 
-
         features_computer = FeaturesComputer(nt_features=self.input_var, nt_targets=self.target_var)
-        dataset = RNADataset(features_computer=features_computer,
-                             rna_filter=lambda x: x.graph['pdbid'][0].lower() in rnas_keep,
-                             )
+        dataset = RNADataset.from_args(features_computer=features_computer,
+                                       rna_filter=lambda x: x.graph['pdbid'][0].lower() in rnas_keep,
+                                       )
 
         return dataset
 
@@ -173,6 +172,7 @@ class ChemicalModification(ResidueClassificationTask):
     def __init__(self, root, splitter=None, **kwargs):
         super().__init__(root=root, splitter=splitter, **kwargs)
         pass
+
     pass
 
     def default_splitter(self):
