@@ -133,10 +133,15 @@ class FeaturesComputer:
         return features_dict
 
     def remove_useless_keys(self, rna_graph):
+        """
+        Copy the original graph to only retain keys relevant to this FeaturesComputer
+        :param rna_graph:
+        :return:
+        """
         useful_keys = set(self.node_features_parser.keys()).union(set(self.node_target_parser.keys()))
-        cleaned_graph = nx.DiGraph()  # or whatever type of graph `G` is
-        cleaned_graph.add_edges_from(rna_graph.edges())
-        for key, val in cleaned_graph.nodes(data=True):
-            if key in useful_keys:
-                nx.set_node_attributes(cleaned_graph, name=key, values=val)
+        cleaned_graph = nx.DiGraph()
+        cleaned_graph.add_edges_from(rna_graph.edges(data=True))
+        for key in useful_keys:
+            val = nx.get_node_attributes(rna_graph, key)
+            nx.set_node_attributes(cleaned_graph, name=key, values=val)
         return cleaned_graph
