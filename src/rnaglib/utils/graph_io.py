@@ -73,13 +73,16 @@ def load_graph(filename):
         raise NotImplementedError('We have not implemented this data format yet')
 
 
-def get_name_extension(filename):
+def get_name_extension(filename, permissive=False):
     if filename.endswith('.json'):
         fname, extension = filename[:-5], filename[-5:]
     elif filename.endswith('.p'):
         fname, extension = filename[:-2], filename[-2:]
     else:
-        raise NotImplementedError('We have not implemented this data format yet')
+        if permissive:
+            fname, extension = filename, None
+        else:
+            raise NotImplementedError('We have not implemented this data format yet')
     return fname, extension
 
 

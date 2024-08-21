@@ -113,22 +113,20 @@ class FeaturesComputer:
             node_encodings[node] = torch.cat(all_node_feature_encoding)
         return node_encodings
 
-    def compute_features(self, rna_dict):
+    def compute_features(self, rna_graph):
         """
         Add 3 dictionaries to the `rna_dict` wich maps nts, edges, and the whole graph
         to a feature vector each. The final converter uses these to include the data in the
         framework-specific object.
         """
 
-        graph = rna_dict['rna']
         features_dict = {}
-
         # Get Node labels
         if len(self.node_features_parser) > 0:
-            feature_encoding = self.encode_nodes(graph, node_parser=self.node_features_parser)
+            feature_encoding = self.encode_nodes(rna_graph, node_parser=self.node_features_parser)
             features_dict['nt_features'] = feature_encoding
         if len(self.node_target_parser) > 0:
-            target_encoding = self.encode_nodes(graph, node_parser=self.node_target_parser)
+            target_encoding = self.encode_nodes(rna_graph, node_parser=self.node_target_parser)
             features_dict['nt_targets'] = target_encoding
         return features_dict
 
