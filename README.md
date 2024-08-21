@@ -4,8 +4,17 @@
 
 # RNA Geometric Library (`rnaglib`)
 
+
 <div align="center">
-[![Documentation Status](https://readthedocs.org/projects/rnaglib/badge/?version=latest)](https://rnaglib.readthedocs.io/en/latest/?badge=latest)
+
+![build](https://img.shields.io/github/actions/workflow/status/cgoliver/rnaglib/build.yml)
+[![pypi](https://img.shields.io/pypi/v/proteinshake?)](https://pypi.org/project/rnaglib/)
+[![docs](https://img.shields.io/readthedocs/rnaglib)](https://rnaglib.readthedocs.io/en/latest/?badge=latest)
+[![codecov](https://img.shields.io/codecov/c/gh/cgoliver/rnaglib)](https://codecov.io/gh/cgoliver/rnaglib)
+</div>
+
+<div align="center">
+![Documentation Status](https://readthedocs.org/projects/rnaglib/badge/?version=latest)](https://rnaglib.readthedocs.io/en/latest/?badge=latest)
 [![codecov](https://img.shields.io/codecov/c/gh/cgoliver/rnaglib)](https://codecov.io/gh/cgoliver/rnaglib)
 </div>
 
