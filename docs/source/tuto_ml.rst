@@ -37,7 +37,7 @@ Different datasets can be specified using the following options in the `RNADatas
 
 * `version='x.x.x'`: which data build to load
 * `redundancy`: by default, we only load non-redundant structures `redundancy='nr'` you can also pass `redundancy='all'` to get all RNAs.
-* `all_graphs`: a specific list of pdb ids to iterate through
+* `all_rnas`: a specific list of pdb ids to iterate through
 
 Datasets can be indexed like a list or you can inspect an individual RNA by its PDBID.
 
