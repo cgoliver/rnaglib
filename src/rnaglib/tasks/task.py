@@ -2,6 +2,7 @@ import os
 import hashlib
 import json
 from functools import cached_property
+from typing import Union, Optional
 
 import torch
 import torch.nn.functional as F
@@ -47,6 +48,11 @@ class Task:
         return RandomSplitter()
 
     def write(self):
+        """ Save task data and splits to root. Creates a folder in ``root`` called
+        ``'graphs'`` which stores the RNAs that form the dataset, and three `.txt` files (`'{train, val, test}_idx.txt'`,
+        one for each split with a list of indices.
+
+        """
         print(">>> Saving dataset.")
         os.makedirs(os.path.join(self.dataset_path), exist_ok=True)
         self.dataset.save(self.dataset_path)
@@ -62,7 +68,10 @@ class Task:
         print(">>> Done")
 
     def split(self):
-        """ Sets train, val, and test indices"""
+        """ Sets train, val, and test indices as attributes of the task. Can be accessed
+        as ``self.train_ind``, etc. Will load splits if they are saved in `root` otherwise,
+        recomputes from scratch by invoking ``self.splitter()``.
+        """
         if not os.path.exists(os.path.join(self.root, "train_idx.txt")) or self.recompute:
             print(">>> Computing splits...")
             train_ind, val_ind, test_ind = self.splitter(self.dataset)
@@ -94,6 +103,10 @@ class Task:
 
     def __eq__(self, other):
         return self.task_id == other.task_id
+
+
+    def evaluate(self, model, test_loader, criterion, device):
+        raise NotImplementedError
 
 
 class ResidueClassificationTask(Task):

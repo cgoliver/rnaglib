@@ -6,6 +6,9 @@ from rnaglib.utils import load_index
 
 
 class ChemicalModification(ResidueClassificationTask):
+    """ Residue-level binary classification task to predict whether or not a given
+    residue is chemically modified.
+    """
     target_var = "is_modified"
     input_var = "nt_code"
 
