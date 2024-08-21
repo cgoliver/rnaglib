@@ -139,7 +139,7 @@ class FeaturesComputer:
         :return:
         """
         useful_keys = set(self.node_features_parser.keys()).union(set(self.node_target_parser.keys()))
-        cleaned_graph = nx.DiGraph()
+        cleaned_graph = nx.DiGraph(name=rna_graph.name)
         cleaned_graph.add_edges_from(rna_graph.edges(data=True))
         for key in useful_keys:
             val = nx.get_node_attributes(rna_graph, key)

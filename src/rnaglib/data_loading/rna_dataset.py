@@ -2,24 +2,13 @@ import os
 import sys
 
 import copy
+import pathlib
 import torch
 import networkx as nx
 
-from rnaglib.utils import download_graphs, load_graph, dump_json
 from rnaglib.data_loading.features import FeaturesComputer
-
-
-def get_all_existing(dataset_path, all_graphs=None):
-    # Only use queried graph, by default listdir
-    all_graphs = sorted(os.listdir(dataset_path)) if all_graphs is None else all_graphs
-
-    # Filter out existing ones, and print message if there is a difference
-    all_graphs_path = [os.path.join(dataset_path, g_name) for g_name in all_graphs]
-    existing_all_graphs_path = [g_path for g_path in all_graphs_path if os.path.exists(g_path)]
-    size_diff = len(all_graphs) - len(existing_all_graphs_path)
-    if size_diff > 0:
-        print(f"{size_diff} graphs were missing from {dataset_path} compared to asked graphs")
-    return existing_all_graphs_path
+from rnaglib.utils import download_graphs, load_graph, dump_json
+from rnaglib.utils.graph_io import get_all_existing, get_name_extension
 
 
 def build_dataset_loop(all_graphs_db, db_path, rna_filter=None, nt_filter=None, annotator=None,
@@ -28,8 +17,8 @@ def build_dataset_loop(all_graphs_db, db_path, rna_filter=None, nt_filter=None, 
     from tqdm import tqdm as tqdm
     graph_list = []
 
-    for graph_name in tqdm(all_graphs_db):
-        g_path = os.path.join(db_path, graph_name)
+    for graph_filename in tqdm(all_graphs_db):
+        g_path = os.path.join(db_path, graph_filename)
         g = load_graph(g_path)
 
         # Remove whole systems
@@ -49,6 +38,15 @@ def build_dataset_loop(all_graphs_db, db_path, rna_filter=None, nt_filter=None, 
         if not annotator is None:
             for subg in subgs:
                 annotator(subg)
+
+        # Add a 'name' field to the graphs if annotator did not put one.
+        graph_name, graph_extension = get_name_extension(graph_filename)
+        for i, subg in enumerate(subgs):
+            if subg.name == '':
+                if len(subgs) == 1:
+                    subg.name = graph_name
+                else:
+                    subg.name = f'{graph_name}_{i}'
 
         # Remove useless keys
         if features_computer is not None:
@@ -79,7 +77,10 @@ def build_dataset(dataset_path=None, recompute=False, all_graphs=None,
     :param annotator: Callable which takes as input an RNA dictionary and adds new key-value pairs.
     :param rna_filter: Callable which takes as input an RNA dictionary and returns whether we should keep it.
     """
-    if not recompute and dataset_path is not None and os.path.exists(dataset_path):
+    # If this corresponds to a dataset that was precomputed already, just return the graphs
+    # TODO fix graphs naming. Right now graph names are 1,2,3... so when loading it's a bit weird
+    # TODO also it's a discrepancy when compared to loading ones from DB (they have pdb names).
+    if dataset_path is not None and os.path.exists(dataset_path) and not recompute:
         existing_all_graphs_path = get_all_existing(dataset_path=dataset_path, all_graphs=all_graphs)
         rnas = [load_graph(g_path) for g_path in existing_all_graphs_path]
         return rnas
@@ -244,13 +245,13 @@ if __name__ == '__main__':
     # b = list(g2['rna'].nodes(data=True))[0][1]
 
     # Test dumping/loading
-    # This instead uses from_args, hence features_computer is called during dataset preparation, which saves spaces
     script_dir = os.path.dirname(os.path.realpath(__file__))
     dataset_path = os.path.join(script_dir, "../data/test")
     rnas = build_dataset(all_graphs_db=all_graphs,
                          dataset_path=dataset_path,
-                         features_computer=features_computer)
-    supervised_dataset = RNADataset(dataset_path=dataset_path, representations=graph_rep, all_graphs=all_graphs)
+                         features_computer=features_computer,
+                         recompute=True)
+    supervised_dataset = RNADataset(dataset_path=dataset_path, representations=graph_rep)
     g2 = supervised_dataset[0]
     b = list(g2['rna'].nodes(data=True))[0][1]
     a = 1
