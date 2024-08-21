@@ -1,4 +1,3 @@
-
 import sys
 import os
 import json
@@ -16,6 +15,7 @@ import zipfile
 from networkx.readwrite import json_graph
 import networkx as nx
 from Bio.PDB.PDBList import PDBList
+
 
 def dump_json(filename, graph):
     """
@@ -71,6 +71,36 @@ def load_graph(filename):
 
     else:
         raise NotImplementedError('We have not implemented this data format yet')
+
+
+def get_name_extension(filename):
+    if filename.endswith('.json'):
+        fname, extension = filename[:-5], filename[-5:]
+    elif filename.endswith('.p'):
+        fname, extension = filename[:-2], filename[-2:]
+    else:
+        raise NotImplementedError('We have not implemented this data format yet')
+    return fname, extension
+
+
+def get_all_existing(dataset_path, all_graphs=None):
+    """
+    Given a directory and optionally a query list of graphs, return all existing queried graphs in the directory.
+    :param dataset_path:
+    :param all_graphs:
+    :return:
+    """
+    # By default, return a sorted listdir
+    if all_graphs is None:
+        return sorted(os.listdir(dataset_path))
+
+    # Filter out existing ones, and print message if there is a difference
+    all_graphs_path = [os.path.join(dataset_path, g_name) for g_name in all_graphs]
+    existing_all_graphs_path = [g_path for g_path in all_graphs_path if os.path.exists(g_path)]
+    size_diff = len(all_graphs) - len(existing_all_graphs_path)
+    if size_diff > 0:
+        print(f"{size_diff} graphs were missing from {dataset_path} compared to asked graphs")
+    return existing_all_graphs_path
 
 
 def get_default_download_dir():
@@ -159,12 +189,10 @@ def download(url, path=None, overwrite=True, retries=5, verify_ssl=True, log=Tru
     return fname
 
 
-def download_name_generator(
-                            version='1.0.0',
+def download_name_generator(version='1.0.0',
                             redundancy='nr',
                             annotated=False,
-                            record='7624873'
-                            ):
+                            record='7624873'):
     """
     This returns the zenodo URL given dataset choices. 
 
@@ -179,7 +207,7 @@ def download_name_generator(
     # Find remote url and get download link
     # full = https://zenodo.org/records/7624873/files/rnaglib-all-1.0.0.tar.gz?download=1
     if annotated:
-        if version == '1.0.0': 
+        if version == '1.0.0':
             print("Annotated version for v 1.0.0 not available. Try a higher version")
             return None
         return f"https://zenodo.org/records/{record}/files/rnaglib-{redundancy}-{version}-annotated.tar.gz?download=1"
@@ -237,7 +265,7 @@ def available_pdbids(graph_dir=None,
     tag = f"rnaglib-{redundancy}-{version}{'-chop' if chop else ''}{'-' + 'annotated' if annotated else ''}"
     if graph_dir is None:
         dl_dir = get_default_download_dir()
-        graph_path = os.path.join(dl_dir, "datasets", tag, "graphs" )
+        graph_path = os.path.join(dl_dir, "datasets", tag, "graphs")
         if not os.path.exists(graph_path):
             print(f"Data build {graph_path} download not found. Use rnaglib_download to fetch")
             return None
@@ -245,6 +273,7 @@ def available_pdbids(graph_dir=None,
         graph_path = graph_dir
 
     return [os.path.splitext(g)[0] for g in os.listdir(graph_path)]
+
 
 def graph_from_pdbid(pdbid,
                      graph_dir=None,
@@ -261,7 +290,7 @@ def graph_from_pdbid(pdbid,
     """
 
     tag = f"rnaglib-{redundancy}-{version}{'-chop' if chop else ''}{'-' + 'annotated' if annotated else ''}"
-    
+
     if graph_format == 'nx':
         graph_name = os.path.join(pdbid.lower() + '.nx')
     elif graph_format == 'json':
@@ -284,6 +313,7 @@ def graph_from_pdbid(pdbid,
 
     graph = load_graph(graph_path)
     return graph
+
 
 def get_rna_list(nr_only=False):
     """
@@ -317,6 +347,7 @@ def get_rna_list(nr_only=False):
         exit()
     return ids
 
+
 def get_NRlist(resolution):
     """
     Get non-redudant RNA list from the BGSU website
@@ -336,6 +367,7 @@ def get_NRlist(resolution):
         repr_set.append(ife)
 
     return repr_set
+
 
 def load_csv(input_file, quiet=False):
     """
@@ -430,7 +462,6 @@ def update_RNApdb(pdir, nr_only=True):
     return rna
 
 
-
 def get_Ribochains():
     """
     Get a list of all PDB structures containing RNA and have the text 'ribosome'
@@ -478,7 +509,6 @@ def get_Custom(text):
     return set(query())
 
 
-
 if __name__ == '__main__':
     # tmp_path = '../../examples/2du5.json'
     # g = load_json(tmp_path)
@@ -486,4 +516,3 @@ if __name__ == '__main__':
     default = get_default_download_dir()
     print(default)
     graph_from_pdbid('4nlf')
-
