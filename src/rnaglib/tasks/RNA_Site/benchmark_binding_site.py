@@ -61,7 +61,7 @@ class BenchmarkLigandBindingSiteDetection(ResidueClassificationTask):
                                        nt_filter=self._nt_filter,
                                        annotator=self._annotator,
                                        redundancy='all',
-                                       all_graphs=[name[:-1] + '.json' for name in self.rnaskeep]
+                                       all_rnas=[name[:-1] + '.json' for name in self.rnaskeep]
                                        # for increased loading speed
                                        )
         return dataset

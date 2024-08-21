@@ -83,24 +83,23 @@ def get_name_extension(filename):
     return fname, extension
 
 
-def get_all_existing(dataset_path, all_graphs=None):
+def get_all_existing(dataset_path, all_rnas=None):
     """
     Given a directory and optionally a query list of graphs, return all existing queried graphs in the directory.
     :param dataset_path:
-    :param all_graphs:
+    :param all_rnas:
     :return:
     """
     # By default, return a sorted listdir
-    if all_graphs is None:
+    if all_rnas is None:
         return sorted(os.listdir(dataset_path))
 
     # Filter out existing ones, and print message if there is a difference
-    all_graphs_path = [os.path.join(dataset_path, g_name) for g_name in all_graphs]
-    existing_all_graphs_path = [g_path for g_path in all_graphs_path if os.path.exists(g_path)]
-    size_diff = len(all_graphs) - len(existing_all_graphs_path)
+    existing_all_rnas = [g_name for g_name in all_rnas if os.path.exists(os.path.join(dataset_path, g_name))]
+    size_diff = len(all_rnas) - len(existing_all_rnas)
     if size_diff > 0:
         print(f"{size_diff} graphs were missing from {dataset_path} compared to asked graphs")
-    return existing_all_graphs_path
+    return existing_all_rnas
 
 
 def get_default_download_dir():

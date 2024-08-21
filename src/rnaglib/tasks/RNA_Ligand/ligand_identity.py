@@ -51,7 +51,7 @@ class GMSM(RNAClassificationTask):
                                        annotator=self._annotator,
                                        nt_filter=self._nt_filter,
                                        rna_filter=lambda x: x.graph['pdbid'][0].lower() in self.rnas_keep,
-                                       all_graphs=[name + '.json' for name in self.rnas_keep],  # for testing [0:10]
+                                       all_rnas=[name + '.json' for name in self.rnas_keep],  # for testing [0:10]
                                        redundancy='all'
                                        )
         return dataset

@@ -18,9 +18,9 @@ def main():
     # Choose the Features and Representation to use, and get the data going !
     features_computer = FeaturesComputer(nt_features='nt_code', nt_targets='binding_protein')
     graph_rep = GraphRepresentation(framework='dgl')
-    all_graphs = ['1a9n.json', '1b23.json', '1b7f.json', '1csl.json', '1d4r.json', '1dfu.json', '1duq.json',
+    all_rnas = ['1a9n.json', '1b23.json', '1b7f.json', '1csl.json', '1d4r.json', '1dfu.json', '1duq.json',
                   '1e8o.json', '1ec6.json', '1et4.json']
-    supervised_dataset = rna_dataset.RNADataset(all_graphs=all_graphs,
+    supervised_dataset = rna_dataset.RNADataset(all_rnas=all_rnas,
                                                 features_computer=features_computer,
                                                 representations=[graph_rep])
     train_loader, validation_loader, test_loader = rna_loader.get_loader(dataset=supervised_dataset)
