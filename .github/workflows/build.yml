@@ -29,7 +29,7 @@ jobs:
           export PATH=$(pwd):$PATH
           pip install -r requirements.txt
           pip install coverage
-          coverage run --source rnaglib -m pytest
+          coverage run --source src/rnaglib -m pytest
           coverage report -m
           coverage xml
       - name: Upload Coverage
