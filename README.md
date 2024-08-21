@@ -1,11 +1,13 @@
 <p align="center">
 <img src="https://raw.githubusercontent.com/cgoliver/rnaglib/master/images/rgl.png#gh-light-mode-only" width="30%">
-[![codecov](https://img.shields.io/codecov/c/gh/cgoliver/rnaglib)](https://codecov.io/gh/cgoliver/rnaglib)
 </p>
 
 # RNA Geometric Library (`rnaglib`)
 
+<div align="center">
 [![Documentation Status](https://readthedocs.org/projects/rnaglib/badge/?version=latest)](https://rnaglib.readthedocs.io/en/latest/?badge=latest)
+[![codecov](https://img.shields.io/codecov/c/gh/cgoliver/rnaglib)](https://codecov.io/gh/cgoliver/rnaglib)
+</div>
 
 `RNAglib` is a Python package for studying RNA 2.5D and 3D structures. Functionality includes automated data loading,
 analysis,
