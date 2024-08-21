@@ -1,5 +1,6 @@
 <p align="center">
 <img src="https://raw.githubusercontent.com/cgoliver/rnaglib/master/images/rgl.png#gh-light-mode-only" width="30%">
+[![codecov](https://img.shields.io/codecov/c/gh/cgoliver/rnaglib)](https://codecov.io/gh/cgoliver/rnaglib)
 </p>
 
 # RNA Geometric Library (`rnaglib`)
@@ -221,6 +222,16 @@ from rnaglib.utils import graph_from_pdbid
 
 G = graph_from_pdbid("4nlf")
 print(graph_edit_distance(G, G))  # 0.0
+
+```
+
+### Testing library functionality
+
+Go to root of the rnaglib directory from a git clone and run pytest.
+
+```
+pip install pytest
+pytest tests/
 ```
 
 ## Cite
