@@ -1,4 +1,4 @@
-.. rnaglib documentation master file, created by
+.. naglib documentation master file, created by
    sphinx-quickstart on Thu Aug 26 15:14:41 2021.
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
@@ -11,8 +11,6 @@
    Homepage <self>
    Installation <install>
    Quickstart <quickstart>
-   What is an RNA 2.5D graph? <what_is>
-   How is the data built? <tuto_build>
    Citing <citation>
 
 .. toctree::
@@ -20,14 +18,25 @@
    :caption: Tutorials
    :hidden:
 
-   A tour of RNA 2.5D graphs <tuto_2.5d>
    Machine Learning on Benchmark Datasets <tuto_tasks>
+   What is an RNA 2.5D graph? <what_is>
+   A tour of RNA 2.5D graphs <tuto_2.5d>
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Advanced Tutorials 
+   :hidden:
+
+   Creating custom tasks and splits <tuto_custom_task>
+   How is the data built? <tuto_build>
+
 
 .. toctree::
    :maxdepth: 2
    :caption: Data Reference 
    :hidden:
 
+   Available Benchmark Tasks <available_tasks>
    RNA Annotation Reference <rna_ref>
 
 .. toctree::
@@ -35,6 +44,7 @@
    :caption: Package Reference
    :hidden:
 
+   Algorithms <rnaglib.algorithms>
    Data Building <rnaglib.prepare_data>
    Data Loading <rnaglib.data_loading>
    Data Representations <rnaglib.representations>
@@ -70,12 +80,11 @@ Get started with RNAGlib
 
 * :doc:`Install<install>`
 * :doc:`Quickstart<quickstart>`
-* :doc:`Learn about RNA 2.5D Graphs<what_is>`
-* :doc:`Annotation reference <rna_ref>`
 
 Tutorials
 -----------
 
+* :doc:`Learn about RNA 2.5D Graphs<what_is>`
 * :doc:`Working with 2.5D graphs datasets <tuto_2.5d>`
 * :doc:`Training machine learning models <tuto_ml>`
 * :doc:`Using and building machine learning tasks <tuto_tasks>`
