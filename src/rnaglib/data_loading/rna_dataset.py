@@ -1,6 +1,7 @@
 import os
 
 from bidict import bidict
+from collections.abc import Iterable
 import copy
 
 from rnaglib.data_loading.features import FeaturesComputer
@@ -217,12 +218,15 @@ class RNADataset:
             rna_dict[rep.name] = rep(rna_graph, features_dict)
         return rna_dict
 
-    def add_representation(self, representation):
-        self.representations.append(representation)
+    def add_representations(self, representations):
+        representations = [representations] if not isinstance(representations, list) else representations
+        self.representations.extend(representations)
 
-    def remove_representation(self, name):
-        self.representations = [representation for representation in self.representations
-                                if representation.name != name]
+    def remove_representations(self, names):
+        names = [names] if not isinstance(names, Iterable) else names
+        for name in names:
+            self.representations = [representation for representation in self.representations if
+                                    representation.name != name]
 
     def subset(self, list_of_names=None, list_of_ids=None):
         """
@@ -259,6 +263,10 @@ class RNADataset:
         """ Grab an RNA by its pdbid """
         rna_idx = self.all_rnas[pdbid.lower()]
         return self.__getitem__(rna_idx)
+
+    def check_consistency(self):
+        if self.in_memory:
+            assert list(self.all_rnas) == [rna.name for rna in self.rnas]
 
 
 if __name__ == '__main__':
@@ -308,6 +316,7 @@ if __name__ == '__main__':
     # subset2 = subset.subset(list_of_ids=[1, 3, 4])
 
     # Test saving
-    # supervised_dataset = RNADataset(dataset_path=dataset_path, representations=graph_rep, in_memory=False)
+    supervised_dataset = RNADataset(dataset_path=dataset_path, representations=graph_rep, in_memory=True)
     # supervised_dataset.save(os.path.join(script_dir, "../data/test_dump"))
+    supervised_dataset.check_consistency()
     a = 1
