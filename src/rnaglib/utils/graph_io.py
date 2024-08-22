@@ -3,6 +3,7 @@ import os
 import json
 import pickle
 import requests
+from typing import Optional, List
 from collections import defaultdict
 
 import requests
@@ -86,12 +87,14 @@ def get_name_extension(filename, permissive=False):
     return fname, extension
 
 
-def get_all_existing(dataset_path, all_rnas=None):
+def get_all_existing(dataset_path: os.PathLike, all_rnas: Optional[List[str]] = None) -> List[str]:
     """
-    Given a directory and optionally a query list of graphs, return all existing queried graphs in the directory.
-    :param dataset_path:
-    :param all_rnas:
-    :return:
+    Return list of graph IDs in a given dataset directory in sorted() order. If you pass ``all_rnas``
+    as a list of, returns the graph IDs in ``all_rnas`` that have a matching file in the dataset folder.
+
+    :param dataset_path: where all the RNA JSONs are stored.
+    :param all_rnas: list of RNA names to search for (e.g. ``'1aju'`` will match ``'1aju.json'`` in ``dataset_path``.
+    :return: List of filenames in ``dataset_path``
     """
     # By default, return a sorted listdir
     if all_rnas is None:

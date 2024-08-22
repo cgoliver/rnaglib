@@ -8,7 +8,7 @@ from .benchmark_tasks import BenchmarkProteinBindingSiteDetection, BenchmarkProt
 # from .inverse_folding import InverseFolding, gRNAde
 
 from .RBP_Node.protein_binding_site import ProteinBindingSiteDetection
-from .RBP_Graph.protein_binding import ProteinBindingDetection
+from .RNA_Family.rfam import RNAFamilyTask
 from .RNA_CM.chemical_modification import ChemicalModification
 from .RNA_Site.binding_site import BindingSiteDetection
 from .RNA_Site.benchmark_binding_site import BenchmarkLigandBindingSiteDetection

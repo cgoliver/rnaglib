@@ -31,6 +31,7 @@ class ProteinBindingSiteDetection(ResidueClassificationTask):
         return dataset
 
     def get_ribosomal_rnas(self):
+        print("Getting pdbids from API")
         url = "https://search.rcsb.org/rcsbsearch/v2/query"
         query = {
             "query": {

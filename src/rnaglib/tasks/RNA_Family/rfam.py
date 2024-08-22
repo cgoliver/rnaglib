@@ -1,4 +1,5 @@
 from networkx import set_node_attributes
+from tqdm import tqdm
 import requests
 
 from rnaglib.data_loading import RNADataset, FeaturesComputer
@@ -7,7 +8,7 @@ from rnaglib.splitters import RandomSplitter
 from rnaglib.utils import load_index, BoolEncoder, OneHotEncoder
 
 
-class ProteinBindingDetection(RNAClassificationTask):
+class RNAFamilTask(RNAClassificationTask):
     target_var = 'rfam'  # graph level attribute
     input_var = "dummy"  # node level attribute
 
@@ -90,7 +91,7 @@ class ProteinBindingDetection(RNAClassificationTask):
         rnas_keep = []
         families = []
 
-        for graph, graph_attrs in graph_index.items():
+        for graph, graph_attrs in tqdm(graph_index.items(), desc="build_dataset()"):
             rna_id = graph.split(".")[0]
             # Selection of ribosomal DNA removed since I cannot access the server endpoint
             # if "node_" + self.target_var in graph_attrs and rna_id not in self.ribosomal_rnas:
