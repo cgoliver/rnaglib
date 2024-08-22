@@ -148,7 +148,8 @@ that are used. These two functionalities are implemented in a straightforward ma
 .. code-block:: python
 
     from torch.utils.data import DataLoader
-    from rnaglib.data_loading import split_dataset, Collater
+    from rnaglib.data_loading import Collater
+    from rnaglib.splitters import split_dataset
 
     train_set, valid_set, test_set = split_dataset(dataset, split_train=0.7, split_valid=0.85)
     collater = Collater(dataset=dataset)
