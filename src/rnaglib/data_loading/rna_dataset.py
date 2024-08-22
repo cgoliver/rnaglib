@@ -1,10 +1,13 @@
 import os
-
-from pathlib import Path
-from bidict import bidict
-from collections.abc import Iterable
 import copy
+from typing import Optional, List, Callable, Literal
+from pathlib import Path
+from collections.abc import Iterable
 
+from bidict import bidict
+import networkx as nx
+
+from rnaglib.representations import Representation
 from rnaglib.data_loading.features import FeaturesComputer
 from rnaglib.utils import download_graphs, load_graph, dump_json
 from rnaglib.utils.graph_io import get_all_existing, get_name_extension
@@ -57,37 +60,40 @@ def build_dataset_loop(all_rnas_db, db_path, rna_filter=None, nt_filter=None, an
     return rna_list
 
 
-def build_dataset(dataset_path=None, 
-                  recompute=False,
-                  all_rnas=None,
-                  return_rnas=True,
-                  annotator=None,
-                  nt_filter=None,
-                  rna_filter=None,
-                  features_computer=None,
-                  db_path=None,
-                  all_rnas_db=None,
-                  version='1.0.0',
-                  download_dir=None,
-                  redundancy='nr',
-                  annotated=False):
+def build_dataset(
+                  dataset_path: Optional[os.PathLike] = None,
+                  db_path: Optional[os.PathLike] = None,
+                  all_rnas: Optional[List[nx.Graph]] = None,
+                  download_dir: Optional[os.PathLike] = None,
+                  all_rnas_db: Optional[os.PathLike] = None,
+                  annotator: Optional[Callable[[nx.Graph],nx.Graph]] = None,
+                  nt_filter: Optional[Callable[[nx.Graph],nx.Graph]] = None,
+                  rna_filter: Optional[Callable[[nx.Graph],bool]] = None,
+                  features_computer: Optional[FeaturesComputer] = None,
+                  redundancy: Literal['nr', 'all'] = 'nr',
+                  version: str = '1.0.0',
+                  annotated: bool = False,
+                  recompute: bool = False,
+                  return_rnas: bool = True,
+                  ):
     """
-    Function to
-    :param dataset_path: Path to an already saved dataset, skips dataset creation if loaded.
-    :param recompute: Boolean if we should recompute
-    :param all_rnas: A list of file names if we're using precomputed data
-    :param return_rnas: If we're using existing files, shall we load them or just the file names ?
+    Function to process the fetching and constructing of the initial RNA graphs.
 
+    :param dataset_path: Path to an already saved dataset, skips dataset creation if loaded.
+    :param all_rnas: A list of file names if we're using precomputed data
+
+    :param annotator: Callable which takes as input an RNA dictionary and adds new key-value pairs.
     :param db_path: The original database directory to produce our data from. If unset, further params are used. (below)
     :param all_rnas_db: If we want to only precompute over only a subset of the db
     :param redundancy: To use all graphs or just the non-redundant set.
     :param download_dir: If one changed the default download directory of rglib
     :param version: Version of the dataset to use (default='1.0.0')
-    :param annotated: To use for pretraining
 
     :param nt_filter: Callable which takes as input an RNA dictionary and filters out some nt
-    :param annotator: Callable which takes as input an RNA dictionary and adds new key-value pairs.
     :param rna_filter: Callable which takes as input an RNA dictionary and returns whether we should keep it.
+    :param annotated: To use for pretraining
+    :param recompute: Boolean if we should recompute
+    :param return_rnas: If we're using existing files, shall we load them or just the file names ?
     """
     # If this corresponds to a dataset that was precomputed already, just return the graphs
     if dataset_path is not None and os.path.exists(dataset_path) and not recompute:
@@ -139,13 +145,12 @@ def build_dataset(dataset_path=None,
 class RNADataset:
     """
     This class is the main object to hold the core RNA data annotations.
-    The ``RNAglibDataset.all_rnas`` object is a list of networkx objects that holds all the annotations for each RNA
-    in the dataset.
+    The ``RNAglibDataset.all_rnas`` object is a list of networkx objects that holds all the annotations for each RNA in the dataset.
     You can also access individual RNAs on-disk with ``RNAGlibDataset()[idx]`` or ``RNAGlibDataset().get_pdbid('1b23')``
 
     :param rnas: One can instantiate directly from a list of RNA files
     :param dataset_path: The path to the folder containing the graphs.
-    :param all_rnas: In the given directory, one can choose to provide a list of graphs to use
+    :param all_rnas: In the given directory, ``'dataset_path'``, one can choose to provide a list of graphs to use as filenames.
     :param in_memory: Whether to load all RNA graphs in memory or to load them on the fly
     :param features_computer: A FeaturesComputer object, useful to transform raw RNA data into tensors.
     :param representations: List of `rnaglib.Representation` objects to apply to each item.
@@ -153,12 +158,13 @@ class RNADataset:
     """
 
     def __init__(self,
-                 rnas = None,
-                 dataset_path=None,
-                 all_rnas=None,
-                 in_memory=True,
-                 features_computer=None,
-                 representations=None):
+                 rnas: Optional[List[nx.Graph]]  = None,
+                 dataset_path: Optional[os.PathLike] = None,
+                 all_rnas: Optional[List[str]] = None,
+                 in_memory: bool = True,
+                 features_computer: Optional[FeaturesComputer] = None,
+                 representations: List [Representation] = None
+                 ):
         """
                 """
         self.in_memory = in_memory
@@ -240,15 +246,13 @@ class RNADataset:
             rna_dict[rep.name] = rep(rna_graph, features_dict)
         return rna_dict
 
-    def add_representations(self, representations):
-        representations = [representations] if not isinstance(representations, list) else representations
-        self.representations.extend(representations)
+    def add_representation(self, representation):
+        """ Appends ``Representation`` object to ``self.representations`` """
+        self.representations.append(representation)
 
-    def remove_representations(self, names):
-        names = [names] if not isinstance(names, Iterable) else names
-        for name in names:
-            self.representations = [representation for representation in self.representations if
-                                    representation.name != name]
+    def remove_representation(self, name):
+        self.representations = [representation for representation in self.representations if
+                                representation.name != name]
 
     def subset(self, list_of_names=None, list_of_ids=None):
         """
