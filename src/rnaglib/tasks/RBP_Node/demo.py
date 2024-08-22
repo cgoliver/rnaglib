@@ -1,15 +1,16 @@
 from rnaglib.representations import GraphRepresentation
-from rnaglib.tasks.RBP_Node.protein_binding_site import ProteinBindingSiteDetection, \
-    BenchmarkProteinBindingSiteDetection
+from rnaglib.tasks.RBP_Node.protein_binding_site import ProteinBindingSiteDetection, BenchmarkProteinBindingSiteDetection
 from rnaglib.learning.task_models import RGCN_node
+from rnaglib.utils.feature_maps import ListEncoder
 
 import torch
 import torch.optim as optim
 
-ta = BenchmarkProteinBindingSiteDetection('RBP-Node', recompute=False)
+ta = BenchmarkProteinBindingSiteDetection('RBP-Node', recompute=True)
 
 # Here, you could potentially ask for more features
 features_computer = ta.dataset.features_computer
+features_computer.add_feature(custom_encoders={'embeddings': ListEncoder(list_length=640)})
 
 # Choose your representation !
 ta.dataset.add_representation(GraphRepresentation(framework='pyg'))

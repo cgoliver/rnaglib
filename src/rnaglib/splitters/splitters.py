@@ -27,10 +27,9 @@ class Splitter:
 
 
 class RandomSplitter(Splitter):
-    def __init__(self, seed=0, *args, **kwargs):
+    def __init__(self, seed=0, **kwargs):
         super().__init__(**kwargs)
         self.seed = seed
-        pass
 
     def __call__(self, dataset):
         return random_split(dataset,
