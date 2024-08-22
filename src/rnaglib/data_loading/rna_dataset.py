@@ -1,5 +1,6 @@
 import os
 
+from pathlib import Path
 from bidict import bidict
 from collections.abc import Iterable
 import copy
@@ -56,10 +57,20 @@ def build_dataset_loop(all_rnas_db, db_path, rna_filter=None, nt_filter=None, an
     return rna_list
 
 
-def build_dataset(dataset_path=None, recompute=False, all_rnas=None, return_rnas=True,
-                  annotator=None, nt_filter=None, rna_filter=None, features_computer=None,
-                  db_path=None, all_rnas_db=None,
-                  version='1.0.0', download_dir=None, redundancy='nr', annotated=False):
+def build_dataset(dataset_path=None,
+                  recompute=False,
+                  all_rnas=None,
+                  return_rnas=True,
+                  annotator=None,
+                  nt_filter=None,
+                  rna_filter=None,
+                  features_computer=None,
+                  db_path=None,
+                  all_rnas_db=None,
+                  version='1.0.0',
+                  download_dir=None,
+                  redundancy='nr',
+                  annotated=False):
     """
     Function to
     :param dataset_path: Path to an already saved dataset, skips dataset creation if loaded.
@@ -82,7 +93,7 @@ def build_dataset(dataset_path=None, recompute=False, all_rnas=None, return_rnas
     if dataset_path is not None and os.path.exists(dataset_path) and not recompute:
         existing_all_rnas = get_all_existing(dataset_path=dataset_path, all_rnas=all_rnas)
         if return_rnas:
-            rnas = [load_graph(os.path.join(dataset_path, g_name)) for g_name in existing_all_rnas]
+            rnas = [load_graph(Path(dataset_path) / g_name) for g_name in existing_all_rnas]
             for rna, name in zip(rnas, existing_all_rnas):
                 rna.name = get_name_extension(name)[0]
         else:
@@ -113,9 +124,12 @@ def build_dataset(dataset_path=None, recompute=False, all_rnas=None, return_rnas
     # If some constructions args are given, launch processing.
     if rna_filter is None:
         rna_filter = lambda x: True
-    rnas = build_dataset_loop(all_rnas_db=all_rnas_db, db_path=db_path,
-                              rna_filter=rna_filter, nt_filter=nt_filter,
-                              annotator=annotator, features_computer=features_computer)
+    rnas = build_dataset_loop(all_rnas_db=all_rnas_db,
+                              db_path=db_path,
+                              rna_filter=rna_filter,
+                              nt_filter=nt_filter,
+                              annotator=annotator,
+                              features_computer=features_computer)
     all_rnas_name = [rna.name for rna in rnas]
     if dataset_path is not None:
         os.makedirs(dataset_path, exist_ok=True)
@@ -130,6 +144,14 @@ class RNADataset:
     The ``RNAglibDataset.all_rnas`` object is a list of networkx objects that holds all the annotations for each RNA
     in the dataset.
     You can also access individual RNAs on-disk with ``RNAGlibDataset()[idx]`` or ``RNAGlibDataset().get_pdbid('1b23')``
+
+    :param rnas: One can instantiate directly from a list of RNA files
+    :param dataset_path: The path to the folder containing the graphs.
+    :param all_rnas: In the given directory, one can choose to provide a list of graphs to use
+    :param in_memory: Whether to load all RNA graphs in memory or to load them on the fly
+    :param features_computer: A FeaturesComputer object, useful to transform raw RNA data into tensors.
+    :param representations: List of `rnaglib.Representation` objects to apply to each item.
+
     """
 
     def __init__(self,
@@ -140,13 +162,7 @@ class RNADataset:
                  features_computer=None,
                  representations=None):
         """
-        :param rnas: One can instantiate directly from a list of RNA files
-        :param dataset_path: The path to the folder containing the graphs.
-        :param all_rnas: In the given directory, one can choose to provide a list of graphs to use
-        :param in_memory: Whether to load all RNA graphs in memory or to load them on the fly
-        :param features_computer: A FeaturesComputer object, useful to transform raw RNA data into tensors.
-        :param representations: List of `rnaglib.Representation` objects to apply to each item.
-        """
+                """
         self.in_memory = in_memory
         if rnas is None:
             if dataset_path is None:
@@ -166,7 +182,7 @@ class RNADataset:
             existing_all_rna_names = [get_name_extension(rna, permissive=True)[0] for rna in existing_all_rnas]
             self.all_rnas = bidict({rna: i for i, rna in enumerate(existing_all_rna_names)})
         else:
-            assert in_memory, ("Conflicting arguments: if an RNADataset is instanciated with a list of graphs, "
+            assert in_memory, ("Conflicting arguments: if an RNADataset is instantiated with a list of graphs, "
                                "it must use 'in_memory=True'")
             self.rnas = rnas
 
@@ -189,8 +205,14 @@ class RNADataset:
             self.representations = representations
 
     @classmethod
-    def from_args(cls, representations=None, features_computer=None, in_memory=True, **dataset_build_params):
-        dataset_path, all_rnas_name, rnas = build_dataset(features_computer=features_computer, return_rnas=in_memory,
+    def from_args(cls,
+                  representations=None,
+                  features_computer=None,
+                  in_memory=True,
+                  **dataset_build_params):
+
+        dataset_path, all_rnas_name, rnas = build_dataset(features_computer=features_computer,
+                                                          return_rnas=in_memory,
                                                           **dataset_build_params)
         return cls(rnas=rnas,
                    dataset_path=dataset_path,
