@@ -15,6 +15,7 @@ class BenchmarkProteinBindingSiteDetection(ResidueClassificationTask):
     rnaskeep = set(SPLITTING_VARS['TR60'] + SPLITTING_VARS['TE18'])
 
     def __init__(self, root, splitter=None, **kwargs):
+        # This mapping is needed before super()__init__ to filter out systems
         self.rna_id_to_chains = defaultdict(list)
         for pdb_chain in self.rnaskeep:
             pdb, chain = pdb_chain[:4], pdb_chain[4:]
@@ -55,6 +56,7 @@ class BenchmarkProteinBindingSiteDetection(ResidueClassificationTask):
                                              custom_encoders_targets={self.target_var: BoolEncoder()},
                                              extra_useful_keys=['embeddings'])
         dataset = RNADataset.from_args(features_computer=features_computer,
+                                       dataset_path=self.dataset_path,
                                        nt_filter=self._nt_filter,
                                        annotator=self._annotator,
                                        all_rnas_db=[name[:-1] + '.json' for name in self.rnaskeep],

@@ -6,7 +6,7 @@ from rnaglib.learning.task_models import RGCN_node
 import torch
 import torch.optim as optim
 
-ta = BenchmarkProteinBindingSiteDetection('RBP-Node', recompute=True)
+ta = BenchmarkProteinBindingSiteDetection('RBP-Node', recompute=False)
 
 # Here, you could potentially ask for more features
 features_computer = ta.dataset.features_computer
