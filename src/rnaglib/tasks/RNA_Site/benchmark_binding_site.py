@@ -1,6 +1,6 @@
 from rnaglib.data_loading import RNADataset, FeaturesComputer
 from rnaglib.tasks import ResidueClassificationTask
-from rnaglib.splitters import BenchmarkBindingSiteSplitter
+from rnaglib.splitters import NameSplitter
 from rnaglib.utils import BoolEncoder
 
 from networkx import set_node_attributes
@@ -30,7 +30,7 @@ class BenchmarkLigandBindingSiteDetection(ResidueClassificationTask):
         train_names = [name[:-1] + '.json' for name in self.TR60[:-6]]
         val_names = [name[:-1] + '.json' for name in self.TR60[-6:]]
         test_names = [name[:-1] + '.json' for name in self.TE18]
-        return BenchmarkBindingSiteSplitter(train_names, val_names, test_names)
+        return NameSplitter(train_names, val_names, test_names)
 
     def _nt_filter(self, x):
         chains = ['.' + chain[-1] + '.' for chain in self.rnaskeep if chain.startswith(x.graph['pdbid'][0].lower())]

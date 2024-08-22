@@ -18,7 +18,9 @@ class FeaturesComputer:
                  rna_targets=None,
                  bp_features=None,
                  bp_targets=None,
-                 misc_encoder=None):
+                 misc_encoder=None,
+                 extra_useful_keys=None,
+                 ):
         self.node_features_parser = build_node_feature_parser(nt_features,
                                                               custom_encoders=custom_encoders_features)
         self.node_target_parser = build_node_feature_parser(nt_targets,
@@ -26,6 +28,10 @@ class FeaturesComputer:
 
         # For all special cases, this is what to use
         self.misc_encoder = misc_encoder
+
+        # This is only useful when using a FeatureComputer to create a dataset, and avoid removing important features
+        # of the graph that are not used during loading
+        self.extra_useful_keys = extra_useful_keys
 
         # experimental
         self.rna_features = rna_features
@@ -97,6 +103,8 @@ class FeaturesComputer:
         :return:
         """
         useful_keys = set(self.node_features_parser.keys()).union(set(self.node_target_parser.keys()))
+        if self.extra_useful_keys is not None:
+            useful_keys.union(set(self.extra_useful_keys))
         cleaned_graph = nx.DiGraph(name=rna_graph.name)
         cleaned_graph.add_edges_from(rna_graph.edges(data=True))
         for key in useful_keys:

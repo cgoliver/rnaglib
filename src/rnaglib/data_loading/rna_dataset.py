@@ -21,7 +21,7 @@ def build_dataset_loop(all_rnas_db, db_path, rna_filter=None, nt_filter=None, an
         rna = load_graph(rna_path)
 
         # Remove whole systems
-        if not rna_filter(rna):
+        if rna_filter is not None and not rna_filter(rna):
             continue
 
         # Apply a chunking function to whole RNAs
@@ -118,12 +118,10 @@ def build_dataset(dataset_path=None,
 
     # If no constructions args are given, just return the graphs
     if rna_filter is None and nt_filter is None and annotator is None and features_computer is None:
-        rnas = [load_graph(os.path.join(db_path, g_name)) for g_name in all_rnas]
+        rnas = [load_graph(os.path.join(db_path, g_name)) for g_name in all_rnas_db]
         return rnas
 
     # If some constructions args are given, launch processing.
-    if rna_filter is None:
-        rna_filter = lambda x: True
     rnas = build_dataset_loop(all_rnas_db=all_rnas_db,
                               db_path=db_path,
                               rna_filter=rna_filter,
@@ -152,6 +150,8 @@ class RNADataset:
     :param features_computer: A FeaturesComputer object, useful to transform raw RNA data into tensors.
     :param representations: List of `rnaglib.Representation` objects to apply to each item.
 
+    The dataset holds an attribute self.all_rnas = bidict({rna_name: i for i, rna_name in enumerate(all_rna_names)})
+    Where rna_name is expected to match the file name the rna should be saved in.
     """
 
     def __init__(self,
@@ -241,21 +241,21 @@ class RNADataset:
             rna_dict[rep.name] = rep(rna_graph, features_dict)
         return rna_dict
 
-    def add_representations(self, representations):
+    def add_representation(self, representations):
         representations = [representations] if not isinstance(representations, list) else representations
         self.representations.extend(representations)
 
-    def remove_representations(self, names):
+    def remove_representation(self, names):
         names = [names] if not isinstance(names, Iterable) else names
         for name in names:
             self.representations = [representation for representation in self.representations if
                                     representation.name != name]
 
-    def subset(self, list_of_names=None, list_of_ids=None):
+    def subset(self, list_of_ids=None, list_of_names=None):
         """
         Create another dataset with only the specified graphs
 
-        :param list_of_names: a list of rna names
+        :param list_of_names: a list of rna names (no extension is expected)
         :param list_of_ids: a list of rna ids
         :return: An RNADataset with only the specified graphs/ids
         """
