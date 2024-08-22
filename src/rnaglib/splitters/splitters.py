@@ -4,6 +4,7 @@ from torch import load
 import pandas as pd
 import ast
 
+
 class Splitter:
     def __init__(self, split_train=0.7, split_valid=0.15, split_test=0.15):
         assert sum([split_train, split_valid, split_test]) == 1, "Splits don't sum to 1."
@@ -26,9 +27,7 @@ class RandomSplitter(Splitter):
         return random_split(dataset,
                             split_train=self.split_train,
                             split_valid=self.split_valid,
-                            seed=self.seed
-                            )
-
+                            seed=self.seed)
 
 class BenchmarkBindingSiteSplitter(Splitter):
     def __init__(self, train_pdbs, val_pdbs, test_pdbs, seed=0, *args, **kwargs):
@@ -57,9 +56,9 @@ class DasSplitter(Splitter):
         parent_dir = os.path.dirname(current_dir)
         splits_path = os.path.join(parent_dir, 'tasks/data', 'das_split.pt')
         metadata_path = os.path.join(parent_dir, 'tasks/data', 'gRNAde_metadata.csv')
-        
-        #Note that preprocessing is needed since splits contain indices of compounds that may contain multiple pdbs. Our approach treats each pdb as an individual sample.
-              
+
+        # Note that preprocessing is needed since splits contain indices of compounds that may contain multiple pdbs. Our approach treats each pdb as an individual sample.
+
         splits = load(splits_path)
         metadata = pd.read_csv(metadata_path)
         metadata_ids = metadata['id_list'].apply(ast.literal_eval)
@@ -72,14 +71,13 @@ class DasSplitter(Splitter):
         self.test_pdbs = test_pdbs
         pass
 
-
     def __call__(self, dataset):
         print('Generating split indices')
-        dataset_map = {value['rna'].graph['pdbid'][0] : idx for idx, value in enumerate(dataset)}
+        dataset_map = {value['rna'].graph['pdbid'][0]: idx for idx, value in enumerate(dataset)}
         train_ind = [dataset_map[item] for item in self.train_pdbs if item in dataset_map]
         val_ind = [dataset_map[item] for item in self.val_pdbs if item in dataset_map]
         test_ind = [dataset_map[item] for item in self.test_pdbs if item in dataset_map]
         return train_ind, val_ind, test_ind
-    
+
     def _process_split(self, metadata_ids, indices):
         return [x.split('_')[0] for x in sum(metadata_ids.iloc[indices].to_list(), [])]
