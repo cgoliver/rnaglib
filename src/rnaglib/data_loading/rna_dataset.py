@@ -161,8 +161,6 @@ class RNADataset:
                  in_memory=True,
                  features_computer=None,
                  representations=None):
-        """
-                """
         self.in_memory = in_memory
         if rnas is None:
             if dataset_path is None:
@@ -236,6 +234,7 @@ class RNADataset:
         # Compute features
         features_dict = self.features_computer.compute_features(rna_graph)
         rna_dict = {'rna': rna_graph}
+
         # apply representations to the res_dict
         # each is a callable that updates the res_dict
         for rep in self.representations:
