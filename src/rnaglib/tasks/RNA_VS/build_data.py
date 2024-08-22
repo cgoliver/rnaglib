@@ -14,7 +14,7 @@ from rnaglib.utils import graph_from_pdbid, graph_io
 
 def build_data(root, recompute=False):
     script_dir = os.path.dirname(__file__)
-    json_dump = os.path.join(script_dir, "../../data/tasks/rna_vs/dataset_as_json.json")
+    json_dump = os.path.join(script_dir, "../data/rna_vs/dataset_as_json.json")
     train_groups, test_groups = pickle.load(open(json_dump, 'rb'))
     all_groups = {**train_groups, **test_groups}
 
@@ -46,23 +46,24 @@ def build_data(root, recompute=False):
     print(failed_set)
     print(f"{len(failed_set)}/{len(all_groups)} failed systems")
 
-    print("Processing ligands")
-    all_ligands = set()
-    for group_rep, group in all_groups.items():
-        actives = set(group['actives'])
-        pdb_decoys = set(group['pdb_decoys'])
-        chembl_decoys = set(group['chembl_decoys'])
-        all_ligands = all_ligands.union(actives).union(pdb_decoys).union(chembl_decoys)
-
-    mol_encoder = MolGraphEncoder(cache_path=None)
-    all_mol_graphs = {}
-    for sm in tqdm(list(all_ligands)):
-        graph = mol_encoder.smiles_to_graph_one(sm)
-        all_mol_graphs[sm] = graph
     ligand_file = os.path.join(root, 'ligands.p')
-    pickle.dump(all_mol_graphs, open(ligand_file, 'wb'))
+    if not os.path.exists(ligand_file) or recompute:
+        print("Processing ligands")
+        all_ligands = set()
+        for group_rep, group in all_groups.items():
+            actives = set(group['actives'])
+            pdb_decoys = set(group['pdb_decoys'])
+            chembl_decoys = set(group['chembl_decoys'])
+            all_ligands = all_ligands.union(actives).union(pdb_decoys).union(chembl_decoys)
+
+        mol_encoder = MolGraphEncoder(cache_path=None)
+        all_mol_graphs = {}
+        for sm in tqdm(list(all_ligands)):
+            graph = mol_encoder.smiles_to_graph_one(sm)
+            all_mol_graphs[sm] = graph
+        pickle.dump(all_mol_graphs, open(ligand_file, 'wb'))
 
 
 if __name__ == "__main__":
-    default_dir = "../../data/tasks/rna_vs"
+    default_dir = "../data/rna_vs"
     build_data(root=default_dir, recompute=False)
