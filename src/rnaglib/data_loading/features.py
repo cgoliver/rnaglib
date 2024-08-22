@@ -104,7 +104,7 @@ class FeaturesComputer:
         """
         useful_keys = set(self.node_features_parser.keys()).union(set(self.node_target_parser.keys()))
         if self.extra_useful_keys is not None:
-            useful_keys.union(set(self.extra_useful_keys))
+            useful_keys = useful_keys.union(set(self.extra_useful_keys))
         cleaned_graph = nx.DiGraph(name=rna_graph.name)
         cleaned_graph.add_edges_from(rna_graph.edges(data=True))
         for key in useful_keys:
