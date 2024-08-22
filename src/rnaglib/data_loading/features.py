@@ -17,12 +17,16 @@ class FeaturesComputer:
                  rna_features=None,
                  rna_targets=None,
                  bp_features=None,
-                 bp_targets=None):
-
+                 bp_targets=None,
+                 misc_encoder=None):
         self.node_features_parser = build_node_feature_parser(nt_features,
                                                               custom_encoders=custom_encoders_features)
         self.node_target_parser = build_node_feature_parser(nt_targets,
                                                             custom_encoders=custom_encoders_targets)
+
+        # For all special cases, this is what to use
+        self.misc_encoder = misc_encoder
+
         # experimental
         self.rna_features = rna_features
         self.rna_targets = rna_targets
@@ -86,6 +90,20 @@ class FeaturesComputer:
     def output_dim(self):
         return self.compute_dim(self.node_target_parser)
 
+    def remove_useless_keys(self, rna_graph):
+        """
+        Copy the original graph to only retain keys relevant to this FeaturesComputer
+        :param rna_graph:
+        :return:
+        """
+        useful_keys = set(self.node_features_parser.keys()).union(set(self.node_target_parser.keys()))
+        cleaned_graph = nx.DiGraph(name=rna_graph.name)
+        cleaned_graph.add_edges_from(rna_graph.edges(data=True))
+        for key in useful_keys:
+            val = nx.get_node_attributes(rna_graph, key)
+            nx.set_node_attributes(cleaned_graph, name=key, values=val)
+        return cleaned_graph
+
     @staticmethod
     def encode_nodes(g, node_parser):
         """
@@ -128,18 +146,6 @@ class FeaturesComputer:
         if len(self.node_target_parser) > 0:
             target_encoding = self.encode_nodes(rna_graph, node_parser=self.node_target_parser)
             features_dict['nt_targets'] = target_encoding
+        if self.misc_encoder is not None:
+            self.misc_encoder(rna_graph, features_dict)
         return features_dict
-
-    def remove_useless_keys(self, rna_graph):
-        """
-        Copy the original graph to only retain keys relevant to this FeaturesComputer
-        :param rna_graph:
-        :return:
-        """
-        useful_keys = set(self.node_features_parser.keys()).union(set(self.node_target_parser.keys()))
-        cleaned_graph = nx.DiGraph(name=rna_graph.name)
-        cleaned_graph.add_edges_from(rna_graph.edges(data=True))
-        for key in useful_keys:
-            val = nx.get_node_attributes(rna_graph, key)
-            nx.set_node_attributes(cleaned_graph, name=key, values=val)
-        return cleaned_graph
