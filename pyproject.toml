@@ -30,7 +30,8 @@ dependencies = [
     "torch",
     "torchdata",
     "tqdm",
-    "gemmi"
+    "gemmi",
+    "bidict"
 ]
 
 
@@ -52,3 +53,8 @@ rnaglib_index = 'rnaglib.bin.rnaglib_index:main'
 [tool.setuptools.package-data]
 
 rnaglib = ["data_loading/graph_index_NR.json", "config/rna_smiles.txt", "tasks/data/*", "tasks/RNA_Ligand/data/gmsm_dataset.csv", "tasks/RNA_IF/data/das_split.pt", "tasks/RNA_IF/data/gRNAde_metadata.csv"]
+
+[tool.pytest.ini_options]
+
+testpaths = ["tests"]
+pythonpath = ["src"]

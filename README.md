@@ -4,7 +4,14 @@
 
 # RNA Geometric Library (`rnaglib`)
 
-[![Documentation Status](https://readthedocs.org/projects/rnaglib/badge/?version=latest)](https://rnaglib.readthedocs.io/en/latest/?badge=latest)
+
+<div align="center">
+
+![build](https://img.shields.io/github/actions/workflow/status/cgoliver/rnaglib/build.yml)
+[![pypi](https://img.shields.io/pypi/v/rnaglib?)](https://pypi.org/project/rnaglib/)
+[![docs](https://img.shields.io/readthedocs/rnaglib)](https://rnaglib.readthedocs.io/en/latest/?badge=latest)
+[![codecov](https://codecov.io/gh/cgoliver/rnaglib/graph/badge.svg?token=AOQIF59SFT)](https://codecov.io/gh/cgoliver/rnaglib)
+</div>
 
 `RNAglib` is a Python package for studying RNA 2.5D and 3D structures. Functionality includes automated data loading,
 analysis,
@@ -221,6 +228,16 @@ from rnaglib.utils import graph_from_pdbid
 
 G = graph_from_pdbid("4nlf")
 print(graph_edit_distance(G, G))  # 0.0
+
+```
+
+### Testing library functionality
+
+Go to root of the rnaglib directory from a git clone and run pytest.
+
+```
+pip install pytest
+pytest tests/
 ```
 
 ## Cite
