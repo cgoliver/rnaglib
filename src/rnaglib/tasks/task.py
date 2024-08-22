@@ -39,8 +39,8 @@ class Task:
             self.splitter = splitter
         self.split()
 
+        os.makedirs(root, exist_ok=True)
         if not os.path.exists(root) or recompute:
-            os.makedirs(root, exist_ok=True)
             self.write()
 
     def build_dataset(self, root):
@@ -121,10 +121,9 @@ class Task:
         ``'graphs'`` which stores the RNAs that form the dataset, and three `.txt` files (`'{train, val, test}_idx.txt'`,
         one for each split with a list of indices.
         """
-        print(">>> Saving dataset.")
-        os.makedirs(os.path.join(self.dataset_path), exist_ok=True)
-        self.dataset.save(self.dataset_path)
-
+        if not os.path.exists(self.dataset_path) or self.recompute:
+            print(">>> Saving dataset.")
+            self.dataset.save(self.dataset_path, recompute=self.recompute)
         with open(os.path.join(self.root, 'train_idx.txt'), 'w') as idx:
             [idx.write(str(ind) + "\n") for ind in self.train_ind]
         with open(os.path.join(self.root, 'val_idx.txt'), 'w') as idx:

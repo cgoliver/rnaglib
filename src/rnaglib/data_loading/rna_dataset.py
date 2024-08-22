@@ -93,7 +93,7 @@ def build_dataset(dataset_path=None,
     if dataset_path is not None and os.path.exists(dataset_path) and not recompute:
         existing_all_rnas = get_all_existing(dataset_path=dataset_path, all_rnas=all_rnas)
         if return_rnas:
-            rnas = [load_graph(Path(dataset_path) / g_name) for g_name in existing_all_rnas]
+            rnas = [load_graph(os.path.join(dataset_path, g_name)) for g_name in existing_all_rnas]
             for rna, name in zip(rnas, existing_all_rnas):
                 rna.name = get_name_extension(name)[0]
         else:
@@ -208,7 +208,6 @@ class RNADataset:
                   features_computer=None,
                   in_memory=True,
                   **dataset_build_params):
-
         dataset_path, all_rnas_name, rnas = build_dataset(features_computer=features_computer,
                                                           return_rnas=in_memory,
                                                           **dataset_build_params)
@@ -272,8 +271,10 @@ class RNADataset:
         subset.all_rnas = bidict({rna: i for i, rna in enumerate(subset_names)})
         return subset
 
-    def save(self, dump_path):
+    def save(self, dump_path, recompute=False):
         """ Save a local copy of the dataset"""
+        if os.path.exists(dump_path) and not recompute:
+            return
         os.makedirs(dump_path, exist_ok=True)
         for rna_name, i in self.all_rnas.items():
             if not self.in_memory:
