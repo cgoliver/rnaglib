@@ -3,17 +3,17 @@ import sys
 
 import numpy as np
 import pickle
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import DataLoader
 
 from rnaglib.tasks.RNA_VS.build_data import build_data
-from rnaglib.tasks.RNA_VS.data import VSRNADataset, VSRNATrainDataset, VSCollater
+from rnaglib.tasks.RNA_VS.data import VSRNATestDataset, VSRNATrainDataset, VSCollater
 from rnaglib.tasks.RNA_VS.evaluate import run_virtual_screen
 from rnaglib.tasks.RNA_VS.ligands import MolGraphEncoder
 
 
 class VSTask:
     script_dir = os.path.dirname(__file__)
-    json_dump = os.path.join(script_dir, "../../data/tasks/rna_vs/dataset_as_json.json")
+    json_dump = os.path.join(script_dir, "../data/rna_vs/dataset_as_json.json")
     trainval_groups, test_groups = pickle.load(open(json_dump, 'rb'))
 
     def __init__(self, root, ligand_framework='dgl', recompute=False):
@@ -35,16 +35,16 @@ class VSTask:
     def get_split_datasets(self, dataset_kwargs=None):
         train_dataset = VSRNATrainDataset(groups=self.train_groups,
                                           ligand_embedder=self.ligand_encoder,
-                                          saved_dataset=os.path.join(self.root, 'graphs'),
+                                          dataset_path=os.path.join(self.root, 'graphs'),
                                           **dataset_kwargs)
         val_dataset = VSRNATrainDataset(groups=self.val_groups,
                                         ligand_embedder=self.ligand_encoder,
-                                        saved_dataset=os.path.join(self.root, 'graphs'),
+                                        dataset_path=os.path.join(self.root, 'graphs'),
                                         **dataset_kwargs)
-        test_dataset = VSRNADataset(groups=self.test_groups,
-                                    ligand_embedder=self.ligand_encoder,
-                                    saved_dataset=os.path.join(self.root, 'graphs'),
-                                    **dataset_kwargs)
+        test_dataset = VSRNATestDataset(groups=self.test_groups,
+                                        ligand_embedder=self.ligand_encoder,
+                                        dataset_path=os.path.join(self.root, 'graphs'),
+                                        **dataset_kwargs)
         self.train_dataset = train_dataset
         self.val_dataset = val_dataset
         self.test_dataset = test_dataset

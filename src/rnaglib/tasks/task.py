@@ -32,7 +32,6 @@ class Task:
 
         self.dataset = self.build_dataset(root)
 
-
         if splitter is None:
             self.splitter = self.default_splitter
         else:
@@ -103,7 +102,6 @@ class Task:
 
     def __eq__(self, other):
         return self.task_id == other.task_id
-
 
     def evaluate(self, model, test_loader, criterion, device):
         raise NotImplementedError

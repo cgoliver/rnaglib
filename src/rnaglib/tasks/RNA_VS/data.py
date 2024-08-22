@@ -26,66 +26,11 @@ class VSCollater:
         return batch
 
 
-class VSRNATrainDataset(Dataset):
-    def __init__(self, groups, ligand_embedder, saved_dataset, decoy_mode='pdb', **kwargs):
-        # To load RNAs:
-        self.rna_dataset = RNADataset.from_args(saved_dataset=saved_dataset, **kwargs) # TODO fix
-        self.name_id_mapping = {rna['rna'].graph['pocket_name']: idx for idx, rna in enumerate(iter(self.rna_dataset))}
-
-        # To load ligands
-        self.ligand_embedder = ligand_embedder
-
-        # To get the right pairs
-        # The difficulty here arises from the need to train on pocket/ligand pairs obtained
-        # from a pool of possible actives/inactives
-        self.groups = groups
-        self.sorted_groups = np.sort(list(groups.keys()))
-        num_pos, num_neg = [], []
-        for group_rep in self.sorted_groups:
-            actives = groups[group_rep]['actives']
-            inactives = groups[group_rep][f'{decoy_mode}_decoys']
-            num_pos.append(len(actives))
-            num_neg.append(len(inactives))
-        self.num_pos = np.array(num_pos)
-        self.num_neg = np.array(num_neg)
-        self.decoy_mode = decoy_mode
-
-    def __len__(self):
-        return len(self.num_pos * 2)
-
-    def add_inpocket_flag(self, graph, rna):
-        # TODO also add for point representation and pyg graphs
-        import dgl
-        pocket_graph_dgl = dgl.from_networkx(nx_graph=rna,
-                                             node_attrs=['in_pocket'])
-        graph.ndata['in_pocket'] = pocket_graph_dgl.ndata['in_pocket']
-
-    def __getitem__(self, idx):
-        group_rep = self.sorted_groups[idx]
-        pocket_representations = self.rna_dataset[self.name_id_mapping[group_rep]]
-        self.add_inpocket_flag(pocket_representations['graph'], pocket_representations['rna'])
-        group = self.groups[group_rep]
-        actives = group['actives']
-        inactives = group[f'{self.decoy_mode}_decoys']
-        is_active = random.random() > 0.5
-        ligands_to_use = actives if is_active else inactives
-        ligand_id = random.randint(0, len(ligands_to_use) - 1)
-        ligand = ligands_to_use[ligand_id]
-        ligand_graph = self.ligand_embedder.smiles_to_graph_one(ligand)
-
-        # Sampler-based solution
-        # group_idx, ligand_id, is_active = idx
-        # ligand = actives[ligand_id] if is_active else inactives[ligand_id]
-        return {'group_rep': group_rep,
-                'pocket': pocket_representations,
-                'ligand': ligand_graph,
-                'active': is_active}
-
-
 class VSRNADataset(Dataset):
-    def __init__(self, groups, ligand_embedder, saved_dataset, decoy_mode='pdb', **kwargs):
-        # To load RNAs:
-        self.rna_dataset = RNADataset.from_args(saved_dataset=saved_dataset, **kwargs) #TODO add load
+    def __init__(self, groups, ligand_embedder, dataset_path, decoy_mode='pdb', features_computer=None, **kwargs):
+        # To load RNAs. We don't pass the features_encoder for graph construction, to avoid discarding other fields
+        self.rna_dataset = RNADataset.from_args(dataset_path=dataset_path, features_computer=None, **kwargs)
+        self.rna_dataset.features_computer = features_computer
         self.name_id_mapping = {rna['rna'].graph['pocket_name']: idx for idx, rna in enumerate(iter(self.rna_dataset))}
 
         # To load ligands
@@ -106,11 +51,40 @@ class VSRNADataset(Dataset):
     def __len__(self):
         return len(self.groups)
 
-    def __getitem__(self, i):
-        group_rep = self.sorted_groups[i]
+    def get_pocket_representations(self, group_rep):
         pocket_representations = self.rna_dataset[self.name_id_mapping[group_rep]]
         self.add_inpocket_flag(pocket_representations['graph'], pocket_representations['rna'])
+        return pocket_representations
 
+    def __getitem__(self, idx):
+        raise NotImplementedError
+
+
+class VSRNATrainDataset(VSRNADataset):
+    def __getitem__(self, idx):
+        # Get pocket representation
+        group_rep = self.sorted_groups[idx]
+        pocket_representations = self.get_pocket_representations(group_rep)
+
+        # Pick either active or inactive at random, then sample a ligand of the right group and encode it
+        group = self.groups[group_rep]
+        is_active = random.random() > 0.5
+        ligands_to_use = group['actives'] if is_active else group[f'{self.decoy_mode}_decoys']
+        ligand = ligands_to_use[random.randint(0, len(ligands_to_use) - 1)]
+        ligand_graph = self.ligand_embedder.smiles_to_graph_one(ligand)
+        return {'group_rep': group_rep,
+                'pocket': pocket_representations,
+                'ligand': ligand_graph,
+                'active': is_active}
+
+
+class VSRNATestDataset(VSRNADataset):
+    def __getitem__(self, idx):
+        # Get pocket representation
+        group_rep = self.sorted_groups[idx]
+        pocket_representations = self.get_pocket_representations(group_rep)
+
+        # Pick either active or inactive at random, then sample a ligand of the right group and encode it
         actives = self.groups[group_rep]['actives']
         inactives = self.groups[group_rep][f'{self.decoy_mode}_decoys']
         active_ligands = self.ligand_embedder.smiles_to_graph_list(actives)
@@ -123,27 +97,33 @@ class VSRNADataset(Dataset):
 
 if __name__ == '__main__':
     import pickle
+    from rnaglib.data_loading import FeaturesComputer
     from rnaglib.representations.graph import GraphRepresentation
     from rnaglib.tasks.RNA_VS.build_data import build_data
     from rnaglib.tasks.RNA_VS.ligands import MolGraphEncoder
 
     script_dir = os.path.dirname(__file__)
-    json_dump = os.path.join(script_dir, "../../data/tasks/rna_vs/dataset_as_json.json")
+    json_dump = os.path.join(script_dir, "../data/rna_vs/dataset_as_json.json")
     trainval_groups, test_groups = pickle.load(open(json_dump, 'rb'))
 
-    root = "../../data/tasks/rna_vs"
+    root = "../data/rna_vs"
     build_data(root=root, recompute=False)
     ligand_encoder = MolGraphEncoder(cache_path=os.path.join(root, 'ligands.p'))
-    representations = [GraphRepresentation(framework='pyg')]
-    rna_dataset_args = {'representations': representations, 'nt_features': 'nt_code'}
-    test_dataset = VSRNATrainDataset(groups=test_groups,
-                                     ligand_embedder=ligand_encoder,
-                                     saved_dataset=os.path.join(root, 'graphs'),
-                                     **rna_dataset_args)
+    features_computer = FeaturesComputer(nt_features=['nt_code'])
+    representations = GraphRepresentation(framework='dgl')
+    rna_dataset_args = {'representations': representations, 'features_computer': features_computer}
+    train_dataset_debug = VSRNATrainDataset(groups=test_groups,
+                                            ligand_embedder=ligand_encoder,
+                                            dataset_path=os.path.join(root, 'graphs'),
+                                            **rna_dataset_args)
+    test_dataset_debug = VSRNATrainDataset(groups=test_groups,
+                                           ligand_embedder=ligand_encoder,
+                                           dataset_path=os.path.join(root, 'graphs'),
+                                           **rna_dataset_args)
 
-    for i, elt in enumerate(test_dataset):
+    for i, elt in enumerate(train_dataset_debug):
         a = 1
         # if i > 3:
         #     break
         if not i % 50:
-            print(i, len(test_dataset))
+            print(i, len(train_dataset_debug))

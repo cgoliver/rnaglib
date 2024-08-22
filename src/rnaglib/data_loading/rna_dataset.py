@@ -83,6 +83,8 @@ def build_dataset(dataset_path=None, recompute=False, all_rnas=None, return_rnas
         existing_all_rnas = get_all_existing(dataset_path=dataset_path, all_rnas=all_rnas)
         if return_rnas:
             rnas = [load_graph(os.path.join(dataset_path, g_name)) for g_name in existing_all_rnas]
+            for rna, name in zip(rnas, existing_all_rnas):
+                rna.name = get_name_extension(name)[0]
         else:
             rnas = None
         return dataset_path, existing_all_rnas, rnas

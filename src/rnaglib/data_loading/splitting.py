@@ -45,7 +45,8 @@ def get_multitask_split(node_targets, graph_index=graph_index, fractions=(0.15, 
             if graph_attrs_name in copy_query_attrs:
                 # Now add this graph and update the splits
                 currrent_split.add(graph)
-                # total_nodes_in_split += len(graph.nodes()) TODO get the number of nodes per graph
+                # total_nodes_in_split += len(graph.nodes())
+                # TODO get the number of nodes per graph
                 query_attrs_insplit[graph_attrs_name] += sum(graph_attrs_counter.values())
                 attrs_fraction = float(query_attrs_insplit[graph_attrs_name]) / total_counts[graph_attrs_name]
                 if attrs_fraction > current_fraction:
