@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
-from rnaglib.tasks import BenchmarkLigandBindingSiteDetection, BenchmarkProteinBindingSiteDetection, BenchmarkChemicalModification, BenchmarkLigandBindingSiteDetectionEmbeddings, BenchmarkProteinBindingSiteDetectionEmbeddings, BenchmarkChemicalModificationEmbeddings
+from rnaglib.tasks import (BenchmarkLigandBindingSiteDetection, BenchmarkProteinBindingSiteDetection,
+                           BenchmarkChemicalModification, BenchmarkLigandBindingSiteDetectionEmbeddings, BenchmarkProteinBindingSiteDetectionEmbeddings, BenchmarkChemicalModificationEmbeddings)
 from rnaglib.representations import GraphRepresentation
 from rnaglib.data_loading import Collater
 import torch

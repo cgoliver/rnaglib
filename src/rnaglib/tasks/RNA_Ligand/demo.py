@@ -10,7 +10,6 @@ import torch.nn.functional as F
 
 from torch_geometric.loader import DataLoader as PygLoader
 
-
 from rnaglib.tasks import GMSM
 from rnaglib.representations import GraphRepresentation
 from rnaglib.learning.task_models import RGCN_graph
@@ -20,7 +19,6 @@ parser.add_argument('-p', '--frompickle', action='store_true', help="To load tas
 args = parser.parse_args()
 
 # Creating task
-
 if args.frompickle is True:
     print('loading task from pickle')
     file_path = Path(__file__).parent / 'data' / 'gmsm.pkl'

@@ -5,11 +5,12 @@ from functools import cached_property
 from typing import Union, Optional
 
 import torch
+from torch.utils.data import DataLoader
 import torch.nn.functional as F
 import numpy as np
 from sklearn.metrics import matthews_corrcoef, f1_score, accuracy_score, roc_auc_score
 
-from rnaglib.data_loading import RNADataset
+from rnaglib.data_loading import Collater
 from rnaglib.splitters import RandomSplitter
 
 
@@ -32,40 +33,22 @@ class Task:
 
         self.dataset = self.build_dataset(root)
 
-
         if splitter is None:
-            self.splitter = self.default_splitter
+            self.splitter = self.default_splitter()
         else:
             self.splitter = splitter
         self.split()
 
+        os.makedirs(root, exist_ok=True)
         if not os.path.exists(root) or recompute:
-            os.makedirs(root, exist_ok=True)
             self.write()
+
+    def build_dataset(self, root):
+        raise NotImplementedError
 
     @property
     def default_splitter(self):
         return RandomSplitter()
-
-    def write(self):
-        """ Save task data and splits to root. Creates a folder in ``root`` called
-        ``'graphs'`` which stores the RNAs that form the dataset, and three `.txt` files (`'{train, val, test}_idx.txt'`,
-        one for each split with a list of indices.
-
-        """
-        print(">>> Saving dataset.")
-        os.makedirs(os.path.join(self.dataset_path), exist_ok=True)
-        self.dataset.save(self.dataset_path)
-
-        with open(os.path.join(self.root, 'train_idx.txt'), 'w') as idx:
-            [idx.write(str(ind) + "\n") for ind in self.train_ind]
-        with open(os.path.join(self.root, 'val_idx.txt'), 'w') as idx:
-            [idx.write(str(ind) + "\n") for ind in self.val_ind]
-        with open(os.path.join(self.root, 'test_idx.txt'), 'w') as idx:
-            [idx.write(str(ind) + "\n") for ind in self.test_ind]
-        with open(os.path.join(self.root, "task_id.txt"), "w") as tid:
-            tid.write(self.task_id)
-        print(">>> Done")
 
     def split(self):
         """ Sets train, val, and test indices as attributes of the task. Can be accessed
@@ -85,7 +68,39 @@ class Task:
         self.test_ind = test_ind
         return train_ind, val_ind, test_ind
 
-    def build_dataset(self, root):
+    def get_split_datasets(self):
+        train_ind, val_ind, test_ind = self.split()
+        train_set = self.dataset.subset(train_ind)
+        val_set = self.dataset.subset(val_ind)
+        test_set = self.dataset.subset(test_ind)
+        self.train_dataset = train_set
+        self.val_dataset = val_set
+        self.test_dataset = test_set
+        return train_set, val_set, test_set
+
+    def get_split_loaders(self, **dataloader_kwargs):
+        # If datasets were not already precomputed
+        if 'train_dataset' not in self.__dict__:
+            self.get_split_datasets()
+
+        # If no collater is provided we need one
+        if dataloader_kwargs is None:
+            dataloader_kwargs = {'collate_fn': Collater(self.train_dataset)}
+        if 'collate_fn' not in dataloader_kwargs:
+            collater = Collater(self.train_dataset)
+            dataloader_kwargs['collate_fn'] = collater
+
+        # Now build the loaders
+        train_loader = DataLoader(dataset=self.train_dataset, **dataloader_kwargs)
+        dataloader_kwargs['shuffle'] = False
+        val_loader = DataLoader(dataset=self.val_dataset, **dataloader_kwargs)
+        test_loader = DataLoader(dataset=self.test_dataset, **dataloader_kwargs)
+        self.train_dataloader = train_loader
+        self.val_dataloader = val_loader
+        self.test_dataloader = test_loader
+        return train_loader, val_loader, test_loader
+
+    def evaluate(self, model, test_loader, criterion, device):
         raise NotImplementedError
 
     @cached_property
@@ -93,7 +108,7 @@ class Task:
         """ Task hash is a hash of all RNA ids and node IDs in the dataset"""
         h = hashlib.new('sha256')
         for rna in self.dataset.rnas:
-            h.update(rna.graph['pdbid'][0].encode("utf-8"))
+            h.update(rna.name.encode("utf-8"))
             for nt in sorted(rna.nodes()):
                 h.update(nt.encode("utf-8"))
         [h.update(str(i).encode("utf-8")) for i in self.train_ind]
@@ -101,12 +116,26 @@ class Task:
         [h.update(str(i).encode("utf-8")) for i in self.test_ind]
         return h.hexdigest()
 
+    def write(self):
+        """ Save task data and splits to root. Creates a folder in ``root`` called
+        ``'graphs'`` which stores the RNAs that form the dataset, and three `.txt` files (`'{train, val, test}_idx.txt'`,
+        one for each split with a list of indices.
+        """
+        if not os.path.exists(self.dataset_path) or self.recompute:
+            print(">>> Saving dataset.")
+            self.dataset.save(self.dataset_path, recompute=self.recompute)
+        with open(os.path.join(self.root, 'train_idx.txt'), 'w') as idx:
+            [idx.write(str(ind) + "\n") for ind in self.train_ind]
+        with open(os.path.join(self.root, 'val_idx.txt'), 'w') as idx:
+            [idx.write(str(ind) + "\n") for ind in self.val_ind]
+        with open(os.path.join(self.root, 'test_idx.txt'), 'w') as idx:
+            [idx.write(str(ind) + "\n") for ind in self.test_ind]
+        with open(os.path.join(self.root, "task_id.txt"), "w") as tid:
+            tid.write(self.task_id)
+        print(">>> Done")
+
     def __eq__(self, other):
         return self.task_id == other.task_id
-
-
-    def evaluate(self, model, test_loader, criterion, device):
-        raise NotImplementedError
 
 
 class ResidueClassificationTask(Task):
@@ -194,3 +223,5 @@ class RNAClassificationTask(Task):
         print(f'F1 Score: {f1:.4f}')
 
         return avg_loss, accuracy, mcc, f1
+
+

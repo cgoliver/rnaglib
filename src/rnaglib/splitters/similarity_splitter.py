@@ -1,7 +1,7 @@
 import os
 import random
 import tempfile
-from typing import Optional, Union, Callable, Literal
+from typing import Optional, Union
 from collections import defaultdict
 from pathlib import Path
 from joblib import Parallel, delayed
@@ -11,7 +11,7 @@ import numpy as np
 from sklearn.neighbors import NearestNeighbors
 from tqdm import tqdm
 from rnaglib.splitters import Splitter
-from rnaglib.data_loading import RNADataset
+from rnaglib.data_loading.rna_dataset import RNADataset
 from rnaglib.utils import rna_align_wrapper, cdhit_wrapper, get_sequences, cif_remove_residues
 
 
@@ -19,10 +19,11 @@ class ClusterSplitter(Splitter):
     """ Abstract class for splitting by clustering with a
     similarity function
     """
-    def __init__(self, 
+
+    def __init__(self,
                  similarity_threshold: float = 0.3,
-                 n_jobs : int = -1,
-                 seed : int = 0,
+                 n_jobs: int = -1,
+                 seed: int = 0,
                  *args, **kwargs):
         self.similarity_threshold = similarity_threshold
         self.n_jobs = n_jobs
@@ -35,18 +36,17 @@ class ClusterSplitter(Splitter):
         val, test = self.cluster_split([dataset[i] for i in test], self.split_test, ids=test, n=0.2)
         return train, val, test
 
-
     def cluster_split(self, dataset, frac, n=0.05, ids=None):
         """ Fast cluster-based splitting adapted from ProteinShake (https://github.com/BorgwardtLab/proteinshake_release/blob/main/structure_split.py).
             """
         similarity_matrix = self.compute_similarity_matrix(dataset)
-        nei = NearestNeighbors(radius=1-self.similarity_threshold, metric='precomputed').fit(1 - similarity_matrix)
+        nei = NearestNeighbors(radius=1 - self.similarity_threshold, metric='precomputed').fit(1 - similarity_matrix)
         neighbors = nei.radius_neighbors(return_distance=False)
 
         test_size = int(len(dataset) * frac)
         random.seed(self.seed)
         test = set()
-        n = max(1, int(test_size*n))
+        n = max(1, int(test_size * n))
         pool = list(range(len(dataset)))
         with tqdm(total=test_size, desc='Sampling split') as pbar:
             while len(test) < test_size:
@@ -55,7 +55,7 @@ class ClusterSplitter(Splitter):
                 pool = list(set(pool) - cluster)
                 # if cluster is too big, subsample it
                 if len(cluster) > n: cluster = random.sample(cluster, n)
-                if len(cluster) > (test_size-len(test)): cluster = random.sample(cluster, (test_size-len(test)))
+                if len(cluster) > (test_size - len(test)): cluster = random.sample(cluster, (test_size - len(test)))
                 test.update(cluster)
                 pbar.update(len(cluster))
         pool = sorted(list(pool))
@@ -66,14 +66,12 @@ class ClusterSplitter(Splitter):
             return [ids[i] for i in pool], [ids[i] for i in test]
 
 
-    pass
-
 class CDHitSplitter(ClusterSplitter):
     """ Splits based on sequence similarity using CDHit.
     NOTE: Make sure cd-hit is in your PATH.
     """
-    
-    def compute_similarity_matrix(self, dataset : RNADataset):
+
+    def compute_similarity_matrix(self, dataset: RNADataset):
         """ Computes sequence similarity between all pairs
         of RNAs. To deal with multi-chain RNAs we clusterb all chains independently
         using CD-Hit. For a given pair of multi-chained RNAs, their overall similarity score
@@ -103,10 +101,8 @@ class CDHitSplitter(ClusterSplitter):
             return len(set_1 & set_2) / len(set_1 | set_2)
 
         idxs = list(range(len(dataset)))
-        sims = [tanimoto(idx_to_clusters[rna_1], idx_to_clusters[rna_2]) for \
-                                                                        rna_1, rna_2 in\
-                                                                        itertools.combinations(idxs, 2)
-                ]
+        sims = [tanimoto(idx_to_clusters[rna_1], idx_to_clusters[rna_2])
+                for rna_1, rna_2 in itertools.combinations(idxs, 2)]
         sim_mat = np.zeros((len(dataset), len(dataset)))
         sim_mat[np.triu_indices(len(dataset), 1)] = sims
         sim_mat += sim_mat.T
@@ -119,13 +115,14 @@ class RNAalignSplitter(ClusterSplitter):
     NOTE: running this splitter requires that you have the
     RNAalign executable in your PATH. You can install it by 
     following these instructions: https://zhanggroup.org/RNA-align/download.html."""
+
     def __init__(self,
                  structures_dir: Union[str, os.PathLike],
                  seed: int = 0,
                  use_substructures: bool = False,
                  *args,
                  **kwargs
-                ):
+                 ):
         """ Use RNAalign to split structures.
 
         :param structures_dir: path to folder containing mmCIF files for all elements in dataset.
@@ -138,7 +135,7 @@ class RNAalignSplitter(ClusterSplitter):
         self.structures_dir = structures_dir
         super().__init__(**kwargs)
 
-    def compute_similarity_matrix(self, dataset : RNADataset):
+    def compute_similarity_matrix(self, dataset: RNADataset):
         """ Computes pairwise structural similarity between all pairs
         of RNAs using rna-align. Stalls with very large RNA (> 200 nts). Currently only supports whole RNA alignments. For subgraph tasks, will need to edit the corresponding cif file.
 
@@ -148,26 +145,22 @@ class RNAalignSplitter(ClusterSplitter):
         pdbids = [rna['rna'].graph['pdbid'][0] for rna in dataset]
         pdb_paths = (Path(self.structures_dir) / f"{pdbid.lower()}.cif" for pdbid in pdbids)
 
-
         with tempfile.TemporaryDirectory() as tmpdir:
             if self.use_substructures:
                 reslists = [[(n.split(".")[1], n.split(".")[2]) for n in rna['rna'].nodes()]
-                                for rna in dataset]
+                            for rna in dataset]
                 new_paths = []
                 for idx, (cif_path, reslist) in enumerate(zip(pdb_paths, reslists)):
                     new_cif = Path(tmpdir) / f'{idx}.cif'
                     cif_remove_residues(cif_path, reslist, new_cif)
                     new_paths.append(new_cif)
-
                 pdb_paths = new_paths
 
             todo = list(itertools.combinations(pdb_paths, 2))
             sims = Parallel(n_jobs=self.n_jobs)(delayed(rna_align_wrapper)(pdbid1, pdbid2)
-                                                    for pdbid1, pdbid2 in tqdm(todo, total=len(todo)))
+                                                for pdbid1, pdbid2 in tqdm(todo, total=len(todo)))
         sim_mat = np.zeros((len(pdbids), len(pdbids)))
         sim_mat[np.triu_indices(len(pdbids), 1)] = sims
         sim_mat += sim_mat.T
         np.fill_diagonal(sim_mat, 1)
         return sim_mat
-        pass
-    pass

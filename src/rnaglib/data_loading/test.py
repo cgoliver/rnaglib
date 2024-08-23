@@ -1,9 +1,11 @@
+from torch.utils.data import DataLoader
+
 from rnaglib.representations import GraphRepresentation, RingRepresentation
 from rnaglib.representations import PointCloudRepresentation, VoxelRepresentation
 from rnaglib.data_loading import RNADataset, get_loader, FeaturesComputer
 from rnaglib.kernels import node_sim
-from torch.utils.data import DataLoader
-from rnaglib.data_loading import split_dataset, Collater
+from rnaglib.data_loading import Collater
+from rnaglib.splitters import split_dataset
 
 features_computer = FeaturesComputer(nt_features='nt_code', nt_targets='binding_protein')
 da = RNADataset(features_computer=features_computer)
