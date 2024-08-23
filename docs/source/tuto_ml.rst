@@ -33,7 +33,7 @@ To create a dataset using our hosted data simply instantiate the `RNADataset` ob
    dataset = RNADataset()
 
 
-Different datasets can be specified using the following options in the `RNADataset.from_args()` parameters:
+Different datasets can be specified using the following options in the `RNADataset.from_database()` parameters:
 
 * `version='x.x.x'`: which data build to load
 * `redundancy`: by default, we only load non-redundant structures `redundancy='nr'` you can also pass `redundancy='all'` to get all RNAs.

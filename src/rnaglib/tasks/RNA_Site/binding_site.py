@@ -26,7 +26,7 @@ class BindingSiteDetection(ResidueClassificationTask):
                 rnas_keep.append(graph.split(".")[0])
 
         features_computer = FeaturesComputer(nt_features=self.input_var, nt_targets=self.target_var)
-        dataset = RNADataset.from_args(features_computer=features_computer,
+        dataset = RNADataset.from_database(features_computer=features_computer,
                                        rna_filter=lambda x: x.graph['pdbid'][0].lower() in rnas_keep)
 
         return dataset

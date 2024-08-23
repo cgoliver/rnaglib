@@ -133,7 +133,7 @@ class gRNAde(ResidueClassificationTask):
         features_computer = FeaturesComputer(nt_targets=[self.target_var],
                                              nt_features=[self.input_var],
                                              custom_encoders_features={self.input_var: BoolEncoder()})
-        dataset = RNADataset.from_args(features_computer=features_computer,
+        dataset = RNADataset.from_database(features_computer=features_computer,
                                        redundancy='all',
                                        annotator=self._annotator,
                                        rna_filter=lambda x: x.graph['pdbid'][0] in rnas_keep)

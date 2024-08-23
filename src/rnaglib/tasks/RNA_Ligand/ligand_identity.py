@@ -47,7 +47,7 @@ class GMSM(RNAClassificationTask):
                                              custom_encoders_targets={
                                                  self.target_var: OneHotEncoder(mapping=self.mapping)},
                                              )
-        dataset = RNADataset.from_args(features_computer=features_computer,
+        dataset = RNADataset.from_database(features_computer=features_computer,
                                        annotator=self._annotator,
                                        nt_filter=self._nt_filter,
                                        rna_filter=lambda x: x.graph['pdbid'][0].lower() in self.rnas_keep,

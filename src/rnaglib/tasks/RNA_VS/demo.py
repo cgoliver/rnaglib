@@ -11,7 +11,7 @@ from rnaglib.representations.graph import GraphRepresentation
 from rnaglib.data_loading import FeaturesComputer
 
 # Create a task
-root = "../data/rna_vs"
+root = "../data/RNA_VS"
 framework = 'dgl'
 ef_task = VSTask(root)
 

@@ -10,7 +10,7 @@ import torch.nn.functional as F
 import numpy as np
 from sklearn.metrics import matthews_corrcoef, f1_score, accuracy_score, roc_auc_score
 
-from rnaglib.data_loading import RNADataset, Collater
+from rnaglib.data_loading import Collater
 from rnaglib.splitters import RandomSplitter
 
 
@@ -223,3 +223,5 @@ class RNAClassificationTask(Task):
         print(f'F1 Score: {f1:.4f}')
 
         return avg_loss, accuracy, mcc, f1
+
+

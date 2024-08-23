@@ -1,8 +1,8 @@
-from collections import defaultdict
 import numpy as np
 from networkx import set_node_attributes
 
 from rnaglib.data_loading import RNADataset, FeaturesComputer
+from rnaglib.data_loading.create_dataset import annotator_add_embeddings
 from rnaglib.splitters import RandomSplitter, SPLITTING_VARS, get_ribosomal_rnas, default_splitter_tr60_tr18
 from rnaglib.tasks import ResidueClassificationTask
 from rnaglib.utils import load_index
@@ -10,16 +10,12 @@ from rnaglib.utils.feature_maps import BoolEncoder
 
 
 class BenchmarkProteinBindingSiteDetection(ResidueClassificationTask):
-    target_var = 'binding_site'  # "binding_site" needs to be replaced once dataset modifiable.
     input_var = "nt_code"
-    rnaskeep = set(SPLITTING_VARS['TR60'] + SPLITTING_VARS['TE18'])
+    target_var = 'binding_site'
+    rnaskeep = SPLITTING_VARS['ID_TR60_TE18']
+    rna_id_to_chains = SPLITTING_VARS['PDB_TO_CHAIN_TR60_TE18']
 
     def __init__(self, root, splitter=None, **kwargs):
-        # This mapping is needed before super()__init__ to filter out systems
-        self.rna_id_to_chains = defaultdict(list)
-        for pdb_chain in self.rnaskeep:
-            pdb, chain = pdb_chain[:4], pdb_chain[4:]
-            self.rna_id_to_chains[pdb].append(chain)
         super().__init__(root=root, splitter=splitter, **kwargs)
 
     def default_splitter(self):
@@ -37,25 +33,20 @@ class BenchmarkProteinBindingSiteDetection(ResidueClassificationTask):
             yield subgraph
 
     def _annotator(self, x):
-        binding_sites = {
-            node: (not (nodedata.get("binding_small-molecule", None) is None and
-                        nodedata.get("binding_ion", None) is None))
-            for node, nodedata in x.nodes.items()}
+        binding_sites = {node: (not (nodedata.get("binding_small-molecule", None) is None
+                                     and nodedata.get("binding_ion", None) is None))
+                         for node, nodedata in x.nodes.items()}
+        set_node_attributes(x, binding_sites, 'binding_site')
 
         # Add RNA-FM embeddings
-        sample_node = next(iter(x.nodes()))
-        chain_embs = np.load(f"../../data/rnafm_chain_embs/{sample_node.rsplit('.', 1)[0]}.npz")
-        # needs to be list or won't be json serialisable
-        embeddings = {node: chain_embs[node].tolist() for node, nodedata in x.nodes.items()}
-        set_node_attributes(x, binding_sites, 'binding_site')
-        set_node_attributes(x, embeddings, 'embeddings')
+        annotator_add_embeddings(x)
         return x
 
     def build_dataset(self, root):
         features_computer = FeaturesComputer(nt_features=self.input_var,
                                              custom_encoders_targets={self.target_var: BoolEncoder()},
                                              extra_useful_keys=['embeddings'])
-        dataset = RNADataset.from_args(features_computer=features_computer,
+        dataset = RNADataset.from_database(features_computer=features_computer,
                                        dataset_path=self.dataset_path,
                                        nt_filter=self._nt_filter,
                                        annotator=self._annotator,
@@ -66,8 +57,8 @@ class BenchmarkProteinBindingSiteDetection(ResidueClassificationTask):
 
 
 class ProteinBindingSiteDetection(ResidueClassificationTask):
-    target_var = "binding_protein"
     input_var = "nt_code"
+    target_var = "binding_protein"
 
     def __init__(self, root, splitter=None, **kwargs):
         self.ribosomal_rnas = get_ribosomal_rnas()
@@ -85,6 +76,6 @@ class ProteinBindingSiteDetection(ResidueClassificationTask):
                 rnas_keep.append(rna_id)
 
         features_computer = FeaturesComputer(nt_features=self.input_var, nt_targets=self.target_var)
-        dataset = RNADataset.from_args(features_computer=features_computer,
+        dataset = RNADataset.from_database(features_computer=features_computer,
                                        rna_filter=lambda x: x.graph['pdbid'][0].lower() in rnas_keep)
         return dataset
