@@ -55,7 +55,7 @@ class BenchmarkLigandBindingSiteDetection(ResidueClassificationTask):
         features_computer = FeaturesComputer(nt_features=self.input_var, nt_targets=self.target_var,
                                              custom_encoders_targets={self.target_var: BoolEncoder()})
 
-        dataset = RNADataset.from_args(features_computer=features_computer,
+        dataset = RNADataset.from_database(features_computer=features_computer,
                                        rna_filter=lambda x: x.graph['pdbid'][0].lower() in [name[:-1] for name in
                                                                                             self.rnaskeep],
                                        nt_filter=self._nt_filter,

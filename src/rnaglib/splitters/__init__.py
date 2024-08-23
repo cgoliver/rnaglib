@@ -11,8 +11,11 @@ __all__ = ['Splitter',
            'ClusterSplitter',
            'RNAalignSplitter',
            'CDHitSplitter',
-            ]
-
+           'default_splitter_tr60_tr18',
+           'get_ribosomal_rnas',
+           'SPLITTING_VARS',
+           'random_split',
+           'split_dataset',
+           ]
 
 classes = __all__
-

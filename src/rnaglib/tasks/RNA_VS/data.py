@@ -29,7 +29,7 @@ class VSCollater:
 class VSRNADataset(Dataset):
     def __init__(self, groups, ligand_embedder, dataset_path, decoy_mode='pdb', features_computer=None, **kwargs):
         # To load RNAs. We don't pass the features_encoder for graph construction, to avoid discarding other fields
-        self.rna_dataset = RNADataset.from_args(dataset_path=dataset_path, features_computer=None, **kwargs)
+        self.rna_dataset = RNADataset.from_database(dataset_path=dataset_path, features_computer=None, **kwargs)
         self.rna_dataset.features_computer = features_computer
         self.name_id_mapping = {rna['rna'].graph['pocket_name']: idx for idx, rna in enumerate(iter(self.rna_dataset))}
 

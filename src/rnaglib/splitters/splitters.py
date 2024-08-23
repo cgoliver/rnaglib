@@ -1,5 +1,7 @@
-from rnaglib.splitters import random_split
+from collections import defaultdict
 import requests
+
+from rnaglib.splitters import random_split
 
 SPLITTING_VARS = {
     "TR60": ['3sktA', '5u3gB', '5j02A', '2yieZ', '2fcyA', '3gx3A', '4nybA', '1hr2A', '4mgmB', '3oxeB',
@@ -9,9 +11,17 @@ SPLITTING_VARS = {
              '5vciA', '3q3zV', '1uudB', '1byjA', '1lvjA', '1utsB', '1qd3A', '1arjN', '2l8hA', '6hagA',
              '1yrjA', '1tobA', '1f1tA', '3tzrA', '4qjhC', '2kgpA', '1rawA', '1ehtA', '1nbkA',
              '1ei2A'],  # nok is a duplicate. RLBind uses chain C only. ,'2nokB'
+    # 1f1tA is duplicated
     "TE18": ['2pwtA', '5v3fA', '379dB', '5bjoE', '4pqvA', '430dA', '1nemA', '1q8nA', '1f1tA', '2jukA',
              '4yazR', '364dC', '6ez0A', '2tobA', '1ddyA', '1fmnA', '2misA', '4f8uB']
 }
+
+SPLITTING_VARS['ID_TR60_TE18'] = set(SPLITTING_VARS['TR60'] + SPLITTING_VARS['TE18'])
+id_to_chains = defaultdict(list)
+for pdb_chain in SPLITTING_VARS['ID_TR60_TE18']:
+    pdb, chain = pdb_chain[:4], pdb_chain[4:]
+    id_to_chains[pdb].append(chain)
+SPLITTING_VARS['PDB_TO_CHAIN_TR60_TE18'] = id_to_chains
 
 
 class Splitter:
@@ -80,7 +90,7 @@ def get_ribosomal_rnas():
     response = requests.post(url, json=query)
     if response.status_code == 200:
         data = response.json()
-        ribosomal_rnas = [result['identifier'] for result in data['result_set']]
+        ribosomal_rnas = set([result['identifier'] for result in data['result_set']])
         return ribosomal_rnas
     else:
         print(f"Failed to retrieve data: {response.status_code}")

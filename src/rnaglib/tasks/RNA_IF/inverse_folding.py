@@ -73,7 +73,7 @@ class InverseFolding(ResidueClassificationTask):
         features_computer = FeaturesComputer(nt_targets=[self.target_var],
                                              nt_features=[self.input_var],
                                              custom_encoders_features={self.input_var: BoolEncoder()})
-        dataset = RNADataset.from_args(features_computer=features_computer,
+        dataset = RNADataset.from_database(features_computer=features_computer,
                                        rna_filter=lambda x: x.graph['pdbid'][0],
                                        annotator=self._annotator,
                                        )
