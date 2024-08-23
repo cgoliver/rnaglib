@@ -27,7 +27,7 @@ def cline():
 def main():
     # TODO fix outdated
     args = cline()
-    dataset = RNADataset.from_args(version=args.version, redundancy='NR')
+    dataset = RNADataset.from_database(version=args.version, redundancy='NR')
     nt_feats = ['nt_code', 'dbn']
     features_computer = FeaturesComputer(nt_features=nt_feats)
     node_features_parser = features_computer.node_features_parser

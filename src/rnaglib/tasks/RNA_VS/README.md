@@ -11,9 +11,8 @@ This model can then be used as a virtual-screening tool, as introduced in:
 The metric used is the AuROC, which approximately equates the expected rank of active compounds of a binding site
 among decoys.
 
-In this task, binding sites were clustered into groups of homologous binding sites, usingRMscores (a structural
-similarity method).
-The groups were then split following a strict structural split introduced in the paper.
+In this task, binding sites were clustered into groups of homologous binding sites, using RMscores (a structural
+similarity method). The groups were then split following a strict structural split introduced in the paper.
 
 This task implementation deviates a bit from the general Task API, because it involves loaders returning more than an
 RNA, and distinct dataloaders for training (returning pairs of RNA, compound) and testing (pairs of RNA, list of
@@ -21,7 +20,7 @@ compounds).
 
 ## Project Structure
 
-This repository contains four files:
+This repository contains seven files:
 
 1. `demo.py`
 2. `build_data.py`

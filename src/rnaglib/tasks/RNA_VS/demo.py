@@ -8,15 +8,17 @@ import torch.optim as optim
 from rnaglib.tasks.RNA_VS.task import VSTask
 from rnaglib.tasks.RNA_VS.model import RNAEncoder, LigandGraphEncoder, Decoder, VSModel
 from rnaglib.representations.graph import GraphRepresentation
+from rnaglib.data_loading import FeaturesComputer
 
 # Create a task
-root = "../data/rna_vs"
+root = "../data/RNA_VS"
 framework = 'dgl'
 ef_task = VSTask(root)
 
 # Build corresponding datasets and dataloader
+features_computer = FeaturesComputer(nt_features=['nt_code'])
 representations = [GraphRepresentation(framework=framework)]
-rna_dataset_args = {'representations': representations, 'nt_features': 'nt_code'}
+rna_dataset_args = {'representations': representations, 'features_computer': features_computer}
 rna_loader_args = {'batch_size': 16, 'shuffle': True, 'num_workers': 0}
 train_dataloader, val_dataloader, test_dataloader = ef_task.get_split_loaders(dataset_kwargs=rna_dataset_args,
                                                                               dataloader_kwargs=rna_loader_args)

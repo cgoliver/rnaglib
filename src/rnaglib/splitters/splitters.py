@@ -1,8 +1,28 @@
+from collections import defaultdict
+import requests
+
 from rnaglib.splitters import random_split
-import os
-from torch import load
-import pandas as pd
-import ast
+
+SPLITTING_VARS = {
+    "TR60": ['3sktA', '5u3gB', '5j02A', '2yieZ', '2fcyA', '3gx3A', '4nybA', '1hr2A', '4mgmB', '3oxeB',
+             '1y90B', '2quwB', '4megB', '4lvxA', '4rgeB', '4pcjA', '3c44A', '5o69A', '2lwkA', '3vrsA',
+             '2g5kA', '5fj1C', '5d5lD', '4frgX', '1ylsB', '3q50A', '4xw7A', '2ktzA', '4qlmA', '3fu2A',
+             '5dh8B', '3meiB', '6fz0A', '2mxsA', '2nokC', '1ajuA', '1fypA', '4k31C', '1ntbA', '3bnqC',
+             '5vciA', '3q3zV', '1uudB', '1byjA', '1lvjA', '1utsB', '1qd3A', '1arjN', '2l8hA', '6hagA',
+             '1yrjA', '1tobA', '1f1tA', '3tzrA', '4qjhC', '2kgpA', '1rawA', '1ehtA', '1nbkA',
+             '1ei2A'],  # nok is a duplicate. RLBind uses chain C only. ,'2nokB'
+    # 1f1tA is duplicated
+    "TE18": ['2pwtA', '5v3fA', '379dB', '5bjoE', '4pqvA', '430dA', '1nemA', '1q8nA', '1f1tA', '2jukA',
+             '4yazR', '364dC', '6ez0A', '2tobA', '1ddyA', '1fmnA', '2misA', '4f8uB']
+}
+
+SPLITTING_VARS['ID_TR60_TE18'] = set(SPLITTING_VARS['TR60'] + SPLITTING_VARS['TE18'])
+id_to_chains = defaultdict(list)
+for pdb_chain in SPLITTING_VARS['ID_TR60_TE18']:
+    pdb, chain = pdb_chain[:4], pdb_chain[4:]
+    id_to_chains[pdb].append(chain)
+SPLITTING_VARS['PDB_TO_CHAIN_TR60_TE18'] = id_to_chains
+
 
 class Splitter:
     def __init__(self, split_train=0.7, split_valid=0.15, split_test=0.15):
@@ -17,69 +37,62 @@ class Splitter:
 
 
 class RandomSplitter(Splitter):
-    def __init__(self, seed=0, *args, **kwargs):
+    def __init__(self, seed=0, **kwargs):
         super().__init__(**kwargs)
         self.seed = seed
-        pass
 
     def __call__(self, dataset):
         return random_split(dataset,
                             split_train=self.split_train,
                             split_valid=self.split_valid,
-                            seed=self.seed
-                            )
+                            seed=self.seed)
 
 
-class BenchmarkBindingSiteSplitter(Splitter):
-    def __init__(self, train_pdbs, val_pdbs, test_pdbs, seed=0, *args, **kwargs):
+class NameSplitter(Splitter):
+    def __init__(self, train_names, val_names, test_names, **kwargs):
         super().__init__(**kwargs)
-        self.seed = seed
-        self.train_pdbs = train_pdbs
-        self.val_pdbs = val_pdbs
-        self.test_pdbs = test_pdbs
-        pass
+        self.train_names = train_names
+        self.val_names = val_names
+        self.test_names = test_names
 
     def __call__(self, dataset):
-        dataset_map = {value['rna'].graph['pdbid'][0].lower() + '.json': idx for idx, value in enumerate(dataset)}
-        train_ind = [dataset_map[item] for item in self.train_pdbs if item in dataset_map]
-        val_ind = [dataset_map[item] for item in self.val_pdbs if item in dataset_map]
-        test_ind = [dataset_map[item] for item in self.test_pdbs if item in dataset_map]
+        dataset_map = dataset.all_rnas
+        train_ind = [dataset_map[name] for name in self.train_names if name in dataset_map]
+        val_ind = [dataset_map[name] for name in self.val_names if name in dataset_map]
+        test_ind = [dataset_map[name] for name in self.test_names if name in dataset_map]
         return train_ind, val_ind, test_ind
 
 
-class DasSplitter(Splitter):
-    def __init__(self, seed=0, *args, **kwargs):
-        super().__init__(**kwargs)
-        print('Initialising DasSplitter')
-        self.seed = seed
-
-        current_dir = os.path.dirname(__file__)
-        parent_dir = os.path.dirname(current_dir)
-        splits_path = os.path.join(parent_dir, 'tasks/data', 'das_split.pt')
-        metadata_path = os.path.join(parent_dir, 'tasks/data', 'gRNAde_metadata.csv')
-        
-        #Note that preprocessing is needed since splits contain indices of compounds that may contain multiple pdbs. Our approach treats each pdb as an individual sample.
-              
-        splits = load(splits_path)
-        metadata = pd.read_csv(metadata_path)
-        metadata_ids = metadata['id_list'].apply(ast.literal_eval)
-        train_pdbs = self._process_split(metadata_ids, splits[0])
-        val_pdbs = self._process_split(metadata_ids, splits[1])
-        test_pdbs = self._process_split(metadata_ids, splits[2])
-        # If you want to convince yourself that this is the right order, see this notebook: https://github.com/chaitjo/geometric-rna-design/blob/deccaa0139f7f9130487858ece2fbca331100369/notebooks/split_das.ipynb 
-        self.train_pdbs = train_pdbs
-        self.val_pdbs = val_pdbs
-        self.test_pdbs = test_pdbs
-        pass
+def default_splitter_tr60_tr18():
+    train_names = [f"{name[:-1]}_{name[-1]}" for name in SPLITTING_VARS['TR60'][:-6]]
+    val_names = [f"{name[:-1]}_{name[-1]}" for name in SPLITTING_VARS['TR60'][-6:]]
+    test_names = [f"{name[:-1]}_{name[-1]}" for name in SPLITTING_VARS['TE18'] if name != '1f1tA']
+    return NameSplitter(train_names, val_names, test_names)
 
 
-    def __call__(self, dataset):
-        print('Generating split indices')
-        dataset_map = {value['rna'].graph['pdbid'][0] : idx for idx, value in enumerate(dataset)}
-        train_ind = [dataset_map[item] for item in self.train_pdbs if item in dataset_map]
-        val_ind = [dataset_map[item] for item in self.val_pdbs if item in dataset_map]
-        test_ind = [dataset_map[item] for item in self.test_pdbs if item in dataset_map]
-        return train_ind, val_ind, test_ind
-    
-    def _process_split(self, metadata_ids, indices):
-        return [x.split('_')[0] for x in sum(metadata_ids.iloc[indices].to_list(), [])]
+def get_ribosomal_rnas():
+    url = "https://search.rcsb.org/rcsbsearch/v2/query"
+    query = {
+        "query": {
+            "type": "terminal",
+            "service": "text",
+            "parameters": {
+                "attribute": "struct_keywords.pdbx_keywords",
+                "operator": "contains_phrase",
+                "value": "ribosome"
+            }
+        },
+        "return_type": "entry",
+        "request_options": {
+            "return_all_hits": True
+        }
+    }
+    response = requests.post(url, json=query)
+    if response.status_code == 200:
+        data = response.json()
+        ribosomal_rnas = set([result['identifier'] for result in data['result_set']])
+        return ribosomal_rnas
+    else:
+        print(f"Failed to retrieve data: {response.status_code}")
+        print(response.text)
+        return []

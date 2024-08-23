@@ -1,7 +1,7 @@
 import torch
 from torch.utils.data import DataLoader
 
-from rnaglib.data_loading import split_dataset
+from rnaglib.splitters import split_dataset
 from rnaglib.config.graph_keys import EDGE_MAP_RGLIB_REVERSE
 
 

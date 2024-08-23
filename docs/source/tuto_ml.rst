@@ -33,7 +33,7 @@ To create a dataset using our hosted data simply instantiate the `RNADataset` ob
    dataset = RNADataset()
 
 
-Different datasets can be specified using the following options in the `RNADataset.from_args()` parameters:
+Different datasets can be specified using the following options in the `RNADataset.from_database()` parameters:
 
 * `version='x.x.x'`: which data build to load
 * `redundancy`: by default, we only load non-redundant structures `redundancy='nr'` you can also pass `redundancy='all'` to get all RNAs.
@@ -148,7 +148,8 @@ that are used. These two functionalities are implemented in a straightforward ma
 .. code-block:: python
 
     from torch.utils.data import DataLoader
-    from rnaglib.data_loading import split_dataset, Collater
+    from rnaglib.data_loading import Collater
+    from rnaglib.splitters import split_dataset
 
     train_set, valid_set, test_set = split_dataset(dataset, split_train=0.7, split_valid=0.85)
     collater = Collater(dataset=dataset)
