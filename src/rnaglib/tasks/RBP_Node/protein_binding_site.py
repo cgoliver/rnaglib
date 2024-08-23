@@ -1,59 +1,17 @@
 import numpy as np
 from networkx import set_node_attributes
 
+from rnaglib.data_loading.create_dataset import annotator_add_embeddings, nt_filter_split_chains
 from rnaglib.data_loading import RNADataset, FeaturesComputer
-from rnaglib.data_loading.create_dataset import annotator_add_embeddings
 from rnaglib.splitters import RandomSplitter, SPLITTING_VARS, get_ribosomal_rnas, default_splitter_tr60_tr18
 from rnaglib.tasks import ResidueClassificationTask
 from rnaglib.utils import load_index
 from rnaglib.utils.feature_maps import BoolEncoder
 
 
-class BenchmarkProteinBindingSiteDetection(ResidueClassificationTask):
-    input_var = "nt_code"
-    target_var = 'binding_site'
-    rnaskeep = SPLITTING_VARS['ID_TR60_TE18']
-    rna_id_to_chains = SPLITTING_VARS['PDB_TO_CHAIN_TR60_TE18']
-
-    def __init__(self, root, splitter=None, **kwargs):
-        super().__init__(root=root, splitter=splitter, **kwargs)
-
-    def default_splitter(self):
-        return default_splitter_tr60_tr18()
-
-    def _nt_filter(self, x):
-        # To get it split by chains,
-        pdb_id = x.graph['pdbid'][0].lower()
-        chains = self.rna_id_to_chains[pdb_id]
-        for chain in chains:
-            wrong_chain_nodes = [node for node in list(x) if chain != node.split('.')[1]]
-            subgraph = x.copy()
-            subgraph.remove_nodes_from(wrong_chain_nodes)
-            subgraph.name = f'{pdb_id}_{chain}'
-            yield subgraph
-
-    def _annotator(self, x):
-        binding_sites = {node: (not (nodedata.get("binding_small-molecule", None) is None
-                                     and nodedata.get("binding_ion", None) is None))
-                         for node, nodedata in x.nodes.items()}
-        set_node_attributes(x, binding_sites, 'binding_site')
-
-        # Add RNA-FM embeddings
-        annotator_add_embeddings(x)
-        return x
-
-    def build_dataset(self, root):
-        features_computer = FeaturesComputer(nt_features=self.input_var,
-                                             custom_encoders_targets={self.target_var: BoolEncoder()},
-                                             extra_useful_keys=['embeddings'])
-        dataset = RNADataset.from_database(features_computer=features_computer,
-                                       dataset_path=self.dataset_path,
-                                       nt_filter=self._nt_filter,
-                                       annotator=self._annotator,
-                                       all_rnas_db=[name[:-1] + '.json' for name in self.rnaskeep],
-                                       redundancy='all',
-                                       recompute=self.recompute)
-        return dataset
+class BenchmarkclassProteinBindingSiteDetection(ResidueClassificationTask):
+    # Previoussly what was implemented was identical to RNA_SITE task
+    raise NotImplementedError
 
 
 class ProteinBindingSiteDetection(ResidueClassificationTask):
@@ -77,5 +35,5 @@ class ProteinBindingSiteDetection(ResidueClassificationTask):
 
         features_computer = FeaturesComputer(nt_features=self.input_var, nt_targets=self.target_var)
         dataset = RNADataset.from_database(features_computer=features_computer,
-                                       rna_filter=lambda x: x.graph['pdbid'][0].lower() in rnas_keep)
+                                           rna_filter=lambda x: x.graph['pdbid'][0].lower() in rnas_keep)
         return dataset

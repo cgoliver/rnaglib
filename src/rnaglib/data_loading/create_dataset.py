@@ -133,6 +133,17 @@ def database_to_dataset(dataset_path=None,
     return dataset_path, all_rnas_name, rnas
 
 
+def nt_filter_split_chains(x, rna_id_to_chains):
+    pdb_id = x.graph['pdbid'][0].lower()
+    chains = rna_id_to_chains[pdb_id]
+    for chain in chains:
+        wrong_chain_nodes = [node for node in list(x) if chain != node.split('.')[1]]
+        subgraph = x.copy()
+        subgraph.remove_nodes_from(wrong_chain_nodes)
+        subgraph.name = f'{pdb_id}_{chain}'
+        yield subgraph
+
+
 def annotator_add_embeddings(x, embs_path=None):
     if embs_path is None:
         script_dir = os.path.dirname(os.path.realpath(__file__))
