@@ -26,10 +26,11 @@ class Task:
     If None uses task's default_splitter() attribute.
     """
 
-    def __init__(self, root, recompute=False, splitter=None):
+    def __init__(self, root, recompute=False, splitter=None, debug: bool = False):
         self.root = root
         self.dataset_path = os.path.join(self.root, 'dataset')
         self.recompute = recompute
+        self.debug = debug
 
         self.dataset = self.build_dataset(root)
 

@@ -1,3 +1,4 @@
+from typing import List, Any, Tuple
 from collections import defaultdict
 import random
 
@@ -6,19 +7,29 @@ from rnaglib.utils import load_index
 graph_index = load_index()
 
 
-def split_list_in_fractions(list_to_split, split_train=0.7, split_valid=0.85, seed=0):
+def split_list_in_fractions(list_to_split: List[Any],
+                            split_train: float = 0.7,
+                            split_valid:  float = 0.15,
+                            seed: int = 0) -> Tuple[List[Any], List[Any], List[Any]]:
+    """ Split a list and return sub-lists by given fractions split and validation. The remainder of the
+    dataset is used for the test set.
+
+    :param list_to_split: list you want to split.
+    :param split_train: fraction of dataet to use for train set
+    :param split_valid: fraction of dataset to use for validation
+    """
     copy_list = list_to_split.copy()
     random.Random(seed).shuffle(copy_list)
 
     train_index, valid_index = int(split_train * len(copy_list)), int(split_valid * len(copy_list))
 
     train_list = copy_list[:train_index]
-    valid_list = copy_list[train_index:valid_index]
-    test_list = copy_list[valid_index:]
+    valid_list = copy_list[train_index:train_index + valid_index]
+    test_list = copy_list[train_index+valid_index:]
     return train_list, valid_list, test_list
 
 
-def random_split(dataset, split_train=0.7, split_valid=0.85, seed=0):
+def random_split(dataset, split_train=0.7, split_valid=0.15, seed=0):
     """
     Just randomly split a dataset
     :param dataset:

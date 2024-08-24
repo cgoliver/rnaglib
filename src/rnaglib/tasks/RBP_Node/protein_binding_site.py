@@ -9,11 +9,6 @@ from rnaglib.utils import load_index
 from rnaglib.utils.feature_maps import BoolEncoder
 
 
-class BenchmarkclassProteinBindingSiteDetection(ResidueClassificationTask):
-    # Previoussly what was implemented was identical to RNA_SITE task
-    raise NotImplementedError
-
-
 class ProteinBindingSiteDetection(ResidueClassificationTask):
     input_var = "nt_code"
     target_var = "binding_protein"
