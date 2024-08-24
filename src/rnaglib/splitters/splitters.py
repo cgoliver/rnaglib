@@ -37,6 +37,10 @@ class Splitter:
 
 
 class RandomSplitter(Splitter):
+    """" Just split a dataset randomly. Reproducible through the ``seed`` argument.
+
+    :param seed: Seed for shuffling.
+    """
     def __init__(self, seed=0, **kwargs):
         super().__init__(**kwargs)
         self.seed = seed
