@@ -3,6 +3,7 @@ import os
 import json
 import pickle
 import requests
+from pathlib import Path
 from typing import Optional, List
 from collections import defaultdict
 
@@ -101,7 +102,7 @@ def get_all_existing(dataset_path: os.PathLike, all_rnas: Optional[List[str]] = 
         return sorted(os.listdir(dataset_path))
 
     # Filter out existing ones, and print message if there is a difference
-    existing_all_rnas = [g_name for g_name in all_rnas if os.path.exists(os.path.join(dataset_path, g_name))]
+    existing_all_rnas = [g_name for g_name in all_rnas if os.path.exists(Path(dataset_path) / f"{g_name}.json")]
     size_diff = len(all_rnas) - len(existing_all_rnas)
     if size_diff > 0:
         print(f"{size_diff} graphs were missing from {dataset_path} compared to asked graphs")

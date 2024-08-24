@@ -39,7 +39,9 @@ class ClusterSplitter(Splitter):
     def cluster_split(self, dataset, frac, n=0.05, ids=None):
         """ Fast cluster-based splitting adapted from ProteinShake (https://github.com/BorgwardtLab/proteinshake_release/blob/main/structure_split.py).
             """
+        print("Computing similarity matrix...")
         similarity_matrix = self.compute_similarity_matrix(dataset)
+        print("Clustering...")
         nei = NearestNeighbors(radius=1 - self.similarity_threshold, metric='precomputed').fit(1 - similarity_matrix)
         neighbors = nei.radius_neighbors(return_distance=False)
 
@@ -158,9 +160,12 @@ class RNAalignSplitter(ClusterSplitter):
 
             todo = list(itertools.combinations(pdb_paths, 2))
             sims = Parallel(n_jobs=self.n_jobs)(delayed(rna_align_wrapper)(pdbid1, pdbid2)
-                                                for pdbid1, pdbid2 in tqdm(todo, total=len(todo)))
+                                                for pdbid1, pdbid2 in tqdm(todo, 
+                                                                           total=len(todo),
+                                                                           desc="RNAalign"))
         sim_mat = np.zeros((len(pdbids), len(pdbids)))
         sim_mat[np.triu_indices(len(pdbids), 1)] = sims
         sim_mat += sim_mat.T
         np.fill_diagonal(sim_mat, 1)
+        print(sim_mat)
         return sim_mat
