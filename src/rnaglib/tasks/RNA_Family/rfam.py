@@ -8,13 +8,13 @@ from rnaglib.splitters import RandomSplitter, get_ribosomal_rnas
 from rnaglib.utils import load_index, BoolEncoder, OneHotEncoder
 
 
-class ProteinBindingDetection(RNAClassificationTask):
+class RNAFamilyTask(RNAClassificationTask):
     input_var = "dummy"  # node level attribute
     target_var = 'rfam'  # graph level attribute
 
     def __init__(self, root, splitter=None, **kwargs):
         self.ribosomal_rnas = get_ribosomal_rnas()
-        self.rnas_keep, self.families = self.compute_rfam_families()
+        self.rnas_keep, self.families = self.compute_rfam_families(debug=kwargs['debug'])
         super().__init__(root=root, splitter=splitter, **kwargs)
         pass
 
@@ -37,12 +37,16 @@ class ProteinBindingDetection(RNAClassificationTask):
             rfam_acc = None
         return rfam_acc
 
-    def compute_rfam_families(self):
+    def compute_rfam_families(self, debug=False):
         graph_index = load_index()
         rnas_keep = []
         families = []
 
-        for graph, graph_attrs in graph_index.items():
+        todo = list(graph_index.items())
+        if debug:
+            todo = todo[:20]
+
+        for graph, graph_attrs in tqdm(todo, desc="Querying Rfam"):
             rna_id = graph.split(".")[0]
             # Selection of ribosomal DNA removed since I cannot access the server endpoint
             # if "node_" + self.target_var in graph_attrs and rna_id not in self.ribosomal_rnas:
@@ -54,6 +58,7 @@ class ProteinBindingDetection(RNAClassificationTask):
                 rnas_keep.append(rna_id)
         return rnas_keep, families
 
+    @property
     def output_mapping(self):
         # Create mapping of Rfam families for OneHotEncoder
         return {family: i for i, family in enumerate(sorted(list(set(self.families))))}
