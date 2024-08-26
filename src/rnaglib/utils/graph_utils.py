@@ -658,39 +658,3 @@ def fix_buggy_edges(graph,
     else:
         raise ValueError(f'The edge fixing strategy : {strategy} was not implemented yet')
     return graph
-
-
-if __name__ == "__main__":
-    nc_clean_dir("../data/unchopped_v4_nr", "../data/unchopped_v4_nr_nc")
-
-def get_sequences(graph: nx.Graph):
-    """ Extract ordered sequences from each chain of the RNA
-
-    :param graph: an nx.Graph of an RNA.
-    :return: dictionary mapping <PDBID>.<Chain ID> to a sequence.
-
-    """
-
-    sequences = {}
-    node_ids = {}
-    chains = set([n.split(".")[1] for n in graph.nodes()])
-    seqs = {c :[] for c in chains}
-    for nt,d in graph.nodes(data=True):
-        pdbid, ch, pos = nt.split(".")
-        nuc = d['nt_code'].upper()
-        if nuc not in ['A', 'U', 'C', 'G']:
-            nuc = 'N'
-        seqs[ch].append((nuc, int(pos)))
-    
-    for ch, seq in seqs.items():
-        sorted_seq = sorted(seq, key=lambda x:x[1])
-        sorted_ids = [f"{pdbid}.{ch}.{pos}" for _,pos in sorted_seq]
-        node_ids[f"{pdbid}.{ch}"] = sorted_ids
-
-        sorted_seq = "".join([s for s,_ in sorted_seq])
-        if len(sorted_seq) < 10 or len(sorted_seq) > 1024:
-            fail.append(f"{pdbid}.{ch}")
-            continue
-        sequences[f"{pdbid}.{ch}"] = sorted_seq
-
-    return sequences

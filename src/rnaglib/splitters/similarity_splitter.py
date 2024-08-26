@@ -1,7 +1,7 @@
 import os
 import random
 import tempfile
-from typing import Optional, Union
+from typing import Optional, Union, Tuple, List, Iterable
 from collections import defaultdict
 from pathlib import Path
 from joblib import Parallel, delayed
@@ -12,7 +12,8 @@ from sklearn.neighbors import NearestNeighbors
 from tqdm import tqdm
 from rnaglib.splitters import Splitter
 from rnaglib.data_loading.rna_dataset import RNADataset
-from rnaglib.utils import rna_align_wrapper, cdhit_wrapper, get_sequences, cif_remove_residues
+from rnaglib.utils import rna_align_wrapper, cdhit_wrapper, cif_remove_residues
+from rnaglib.algorithms import get_sequences
 
 
 class ClusterSplitter(Splitter):
@@ -33,23 +34,43 @@ class ClusterSplitter(Splitter):
 
     def __call__(self, dataset):
         train, test = self.cluster_split(dataset, self.split_test, n=0.2)
-        val, test = self.cluster_split([dataset[i] for i in test], self.split_test, ids=test, n=0.2)
+        val, test = self.cluster_split(test, self.split_test, n=0.2)
         return train, val, test
 
-    def cluster_split(self, dataset, frac, n=0.05, ids=None):
-        """ Fast cluster-based splitting adapted from ProteinShake (https://github.com/BorgwardtLab/proteinshake_release/blob/main/structure_split.py).
-            """
+    def cluster_split(self, 
+                      dataset: Iterable,
+                      frac: float,
+                      n: float = 0.05,
+                      ):
+        """ Fast cluster-based splitting adapted from ProteinShake (https://github.com/BorgwardtLab/proteinshake_release/blob/main/structure_split.py). Splits the dataset into two splits, with the guarantee
+        that no two points above ``similarity_threshold`` of each other belong to the same split.
+        Computes a similarity matrix used to identify redundant clusters based on the ``similarity_threshold``. 
+        To split the dataset, we iterate over a pool of data points until the desired size of the
+        test set is reached. The pool initially consists of the whole dataset.
+        At each step, we choose a random point from the pool and fetch all points
+        from the pool with similarity above ``similarity_threshold``, we call this the current cluster.
+        If the cluster contains more than ``test_size * n`` points, we sub-sample the cluster.
+        If the cluster would make the test set larger than ``test_size`` we sub-sample it to the
+        difference between the current test set and ``test_size``.
+        We then remove the current cluster from the pool and add it to the test set.
+        Points that remain in the pool are kept as the training set.
+
+        :param dataset: dataset to split
+        :param frac: fraction of dataset to use as the test set
+        :param n: portion of the test set size to use as largest test set clusterb size
+        """
         print("Computing similarity matrix...")
-        similarity_matrix = self.compute_similarity_matrix(dataset)
+        similarity_matrix, keep_dataset = self.compute_similarity_matrix(dataset)
         print("Clustering...")
         nei = NearestNeighbors(radius=1 - self.similarity_threshold, metric='precomputed').fit(1 - similarity_matrix)
         neighbors = nei.radius_neighbors(return_distance=False)
 
-        test_size = int(len(dataset) * frac)
+        test_size = max(1, int(len(keep_dataset) * frac))
         random.seed(self.seed)
         test = set()
         n = max(1, int(test_size * n))
-        pool = list(range(len(dataset)))
+        pool = list(range(len(keep_dataset)))
+        print(f"Building test set of size {test_size}")
         with tqdm(total=test_size, desc='Sampling split') as pbar:
             while len(test) < test_size:
                 query = random.choice(pool)
@@ -62,10 +83,7 @@ class ClusterSplitter(Splitter):
                 pbar.update(len(cluster))
         pool = sorted(list(pool))
         test = sorted(list(test))
-        if ids is None:
-            return pool, test
-        else:
-            return [ids[i] for i in pool], [ids[i] for i in test]
+        return [dataset[i] for i in pool], [dataset[i] for i in test]
 
 
 class CDHitSplitter(ClusterSplitter):
@@ -73,9 +91,9 @@ class CDHitSplitter(ClusterSplitter):
     NOTE: Make sure cd-hit is in your PATH.
     """
 
-    def compute_similarity_matrix(self, dataset: RNADataset):
+    def compute_similarity_matrix(self, dataset: RNADataset) -> Tuple[np.array, List]:
         """ Computes sequence similarity between all pairs
-        of RNAs. To deal with multi-chain RNAs we clusterb all chains independently
+        of RNAs. To deal with multi-chain RNAs we cluster all chains independently
         using CD-Hit. For a given pair of multi-chained RNAs, their overall similarity score
         is given by the Tanimoto coefficient of the sets of clusters assigned to each of the RNA's chains.
 
@@ -95,21 +113,29 @@ class CDHitSplitter(ClusterSplitter):
                                                        )
 
         idx_to_clusters = defaultdict(set)
+        idxs = set()
         for seq_id, cluster_id in ids_to_cluster.items():
             idx = seq_id.split("-")[0]
+            idxs.add(int(idx))
             idx_to_clusters[int(idx)].add(cluster_id)
+        idxs = list(sorted(idxs))
+
+        if len(idxs) != len(dataset):
+            keep_dataset = [rna for i, rna in enumerate(dataset) if i in idxs]
+            pass
+        else:
+            keep_dataset = dataset
 
         def tanimoto(set_1, set_2):
             return len(set_1 & set_2) / len(set_1 | set_2)
 
-        idxs = list(range(len(dataset)))
         sims = [tanimoto(idx_to_clusters[rna_1], idx_to_clusters[rna_2])
-                for rna_1, rna_2 in itertools.combinations(idxs, 2)]
-        sim_mat = np.zeros((len(dataset), len(dataset)))
-        sim_mat[np.triu_indices(len(dataset), 1)] = sims
+                for rna_1, rna_2 in tqdm(itertools.combinations(idxs, 2), desc="CD-Hit")]
+        sim_mat = np.zeros((len(idxs), len(idxs)))
+        sim_mat[np.triu_indices(len(idxs), 1)] = sims
         sim_mat += sim_mat.T
         np.fill_diagonal(sim_mat, 1)
-        return sim_mat
+        return sim_mat, keep_dataset
 
 
 class RNAalignSplitter(ClusterSplitter):
@@ -160,12 +186,11 @@ class RNAalignSplitter(ClusterSplitter):
 
             todo = list(itertools.combinations(pdb_paths, 2))
             sims = Parallel(n_jobs=self.n_jobs)(delayed(rna_align_wrapper)(pdbid1, pdbid2)
-                                                for pdbid1, pdbid2 in tqdm(todo, 
+                                                for pdbid1, pdbid2 in tqdm(todo,
                                                                            total=len(todo),
                                                                            desc="RNAalign"))
         sim_mat = np.zeros((len(pdbids), len(pdbids)))
         sim_mat[np.triu_indices(len(pdbids), 1)] = sims
         sim_mat += sim_mat.T
         np.fill_diagonal(sim_mat, 1)
-        print(sim_mat)
         return sim_mat
