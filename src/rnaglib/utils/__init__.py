@@ -15,7 +15,6 @@ from .graph_utils import reorder_nodes
 from .graph_utils import gap_fill
 from .graph_utils import extract_graphlet
 from .graph_utils import bfs
-from .graph_utils import get_sequences
 
 from .feature_maps import build_node_feature_parser
 from .feature_maps import build_edge_feature_parser
@@ -67,7 +66,6 @@ __all__ = ['download_graphs',
            'print_statistics',
            'rna_align_wrapper',
            'cd_hit_wrapper',
-           'get_sequences',
            'cif_remove_residues'
            ]
 
