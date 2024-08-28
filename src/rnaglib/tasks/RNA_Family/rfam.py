@@ -1,3 +1,4 @@
+import networkx as nx
 from networkx import set_node_attributes
 from tqdm import tqdm
 import requests
@@ -12,9 +13,13 @@ class RNAFamilyTask(RNAClassificationTask):
     input_var = "dummy"  # node level attribute
     target_var = 'rfam'  # graph level attribute
 
-    def __init__(self, root, splitter=None, **kwargs):
+    def __init__(self, root, max_size: int = 200, splitter=None, **kwargs):
+        self.max_size = max_size
         self.ribosomal_rnas = get_ribosomal_rnas()
-        self.rnas_keep, self.families = self.compute_rfam_families(debug=kwargs['debug'])
+        if 'debug' in kwargs:
+            self.rnas_keep, self.families = self.compute_rfam_families(debug=kwargs['debug'])
+        else:
+            self.rnas_keep, self.families = self.compute_rfam_families()
         super().__init__(root=root, splitter=splitter, **kwargs)
         pass
 
@@ -66,6 +71,15 @@ class RNAFamilyTask(RNAClassificationTask):
     def default_splitter(self):
         return RandomSplitter()
 
+    def _rna_filter(self, g: nx.Graph):
+        """ Remove RNAs that don't have a family annotation or are too large"""
+
+        if g.graph['pdbid'][0].lower() not in self.rnas_keep:
+            return False
+        if len(g.nodes()) > self.max_size:
+                return False
+        return True
+
     def _nt_filter(self, x):
         chains = list(set(s[s.index('.'):s.rindex('.') + 1] for s in x.nodes))
 
@@ -106,5 +120,5 @@ class RNAFamilyTask(RNAClassificationTask):
                                                  self.target_var: OneHotEncoder(mapping=self.output_mapping)})
         dataset = RNADataset.from_database(features_computer=features_computer,
                                        annotator=self._annotator,
-                                       rna_filter=lambda x: x.graph['pdbid'][0].lower() in self.rnas_keep)
+                                       rna_filter=self._rna_filter)
         return dataset
