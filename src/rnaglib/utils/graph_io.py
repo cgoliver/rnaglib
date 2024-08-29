@@ -1,5 +1,6 @@
 import sys
 import os
+import traceback
 import json
 import pickle
 import requests
@@ -185,6 +186,8 @@ def download(url, path=None, overwrite=True, retries=5, verify_ssl=True, log=Tru
                             sys.stdout.flush()
                 break
             except Exception as e:
+                print(e)
+                print(traceback.print_exc())
                 retries -= 1
                 if retries <= 0:
                     raise e
@@ -199,7 +202,8 @@ def download(url, path=None, overwrite=True, retries=5, verify_ssl=True, log=Tru
 def download_name_generator(version='1.0.0',
                             redundancy='nr',
                             annotated=False,
-                            record='7624873'):
+                            record='7624873',
+                            debug=False):
     """
     This returns the zenodo URL given dataset choices. 
 
@@ -210,6 +214,10 @@ def download_name_generator(version='1.0.0',
 
     """
     # Generic name
+    print("HIIII", debug)
+
+    if debug:
+        return f"https://github.com/cgoliver/rnaglib/raw/master/examples/rnaglib-debug-{version}.tar.gz"
 
     # Find remote url and get download link
     # full = https://zenodo.org/records/7624873/files/rnaglib-all-1.0.0.tar.gz?download=1
@@ -248,10 +256,12 @@ def download_graphs(redundancy='nr',
     if data_root is None:
         data_root = get_default_download_dir()
 
-    if debug: redundancy = 'debug'
-
-    tag = f"rnaglib-{redundancy}-{version}{'-chop' if chop else ''}{'-' + 'annotated' if annotated else ''}"
-    url = download_name_generator(redundancy=redundancy, version=version, annotated=annotated)
+    if debug:
+        tag = f"rnaglib-debug-{version}"
+    else:
+        tag = f"rnaglib-{redundancy}-{version}{'-chop' if chop else ''}{'-' + 'annotated' if annotated else ''}"
+    url = download_name_generator(redundancy=redundancy, version=version, annotated=annotated, debug=debug)
+    print(f"Fetching {url}")
     dl_path = os.path.join(data_root, 'downloads', tag + '.tar.gz')
     data_path = os.path.join(data_root, 'datasets')
 

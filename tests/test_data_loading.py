@@ -8,8 +8,8 @@ from rnaglib.representations import GraphRepresentation
 class TestDataset(unittest.TestCase):
     @classmethod
     def setUpClass(self):
-        rnas = [nx.Graph(name='rna1'), nx.Graph(name='rna2')]
-        self.default_dataset = RNADataset(rnas=rnas)
+        self.default_dataset = RNADataset(debug=True)
+        print(len(self.default_dataset))
         pass
 
     def test_rna_get(self):

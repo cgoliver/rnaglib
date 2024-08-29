@@ -7,7 +7,11 @@ from rnaglib.utils import download_graphs, load_graph, dump_json
 from rnaglib.utils.graph_io import get_all_existing, get_name_extension
 
 
-def database_to_dataset_loop(all_rnas_db, db_path, rna_filter=None, nt_filter=None, annotator=None,
+def database_to_dataset_loop(all_rnas_db, 
+                             db_path, 
+                             rna_filter=None, 
+                             nt_filter=None, 
+                             annotator=None,
                              features_computer: FeaturesComputer = None):
     """ Iterates through database, applying filters and annotations"""
     from tqdm import tqdm as tqdm
@@ -68,7 +72,8 @@ def database_to_dataset(dataset_path=None,
                         version='1.0.0',
                         download_dir=None,
                         redundancy='nr',
-                        annotated=False):
+                        annotated=False,
+                        debug=False):
     """
     Function to
     :param dataset_path: Path to an already saved dataset, skips dataset creation if loaded.
@@ -109,7 +114,8 @@ def database_to_dataset(dataset_path=None,
         db_path = download_graphs(redundancy=redundancy,
                                   version=version,
                                   annotated=annotated,
-                                  data_root=download_dir)
+                                  data_root=download_dir,
+                                  debug=debug)
         db_path = os.path.join(db_path, 'graphs')
 
     if all_rnas_db is None:
