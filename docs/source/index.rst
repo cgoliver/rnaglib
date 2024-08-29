@@ -28,6 +28,7 @@
    :hidden:
 
    Creating custom tasks and splits <tuto_custom_task>
+   Add your own annotations and features <tuto_custom_features>
    How is the data built? <tuto_build>
 
 

@@ -35,7 +35,7 @@ class Task:
         self.dataset = self.build_dataset(root)
 
         if splitter is None:
-            self.add_spliter(default_splitter)
+            self.splitter = self.default_splitter()
         else:
             self.splitter = splitter
         self.split()
@@ -51,36 +51,19 @@ class Task:
     def default_splitter(self):
         return RandomSplitter()
 
-    def add_splitter(self, splitter: Splitter):
-        """ Adds a splitter object to the task's splitters dictionary"""
-
-        if splitter.name in self.splitters:
-            raise ValueError, f"Splitter with name {splitter.name} already exists"
-
-        self.splitters[splitter.name] = splitter
-        pass
-
-    def get_splitter(self, split_name: str = None):
-        if split_name is None:
-            return self.default_splitter
-        else:
-            return self.splitters[split_name]
-
-    def split(self, split_name: str = None):
+    def split(self):
         """ Sets train, val, and test indices as attributes of the task. Can be accessed
         as ``self.train_ind``, etc. Will load splits if they are saved in `root` otherwise,
         recomputes from scratch by invoking ``self.splitter()``.
         """
-        splitter = self.get_splitter(split_name)
-
         if not os.path.exists(os.path.join(self.root, "train_idx.txt")) or self.recompute:
             print(">>> Computing splits...")
-            train_ind, val_ind, test_ind = splitter(self.dataset)
+            train_ind, val_ind, test_ind = self.splitter(self.dataset)
         else:
             print(">>> Loading splits...")
-            train_ind = [int(ind) for ind in open(os.path.join(self.root, "{splitter.name}_train_idx.txt"), 'r').readlines()]
-            val_ind = [int(ind) for ind in open(os.path.join(self.root, "{splitter.name}_val_idx.txt"), 'r').readlines()]
-            test_ind = [int(ind) for ind in open(os.path.join(self.root, "{splitter.name}_test_idx.txt"), 'r').readlines()]
+            train_ind = [int(ind) for ind in open(os.path.join(self.root, "train_idx.txt"), 'r').readlines()]
+            val_ind = [int(ind) for ind in open(os.path.join(self.root, "val_idx.txt"), 'r').readlines()]
+            test_ind = [int(ind) for ind in open(os.path.join(self.root, "test_idx.txt"), 'r').readlines()]
         self.train_ind = train_ind
         self.val_ind = val_ind
         self.test_ind = test_ind

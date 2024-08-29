@@ -30,7 +30,7 @@ class TestDataset(unittest.TestCase):
                     '1fmn', '2mis', '4f8u'
                     ]
 
-        da = RNADataset(all_rnas=all_rnas)
+        da = RNADataset(all_rnas=all_rnas, redundancy='all')
         assert len(da) == len(all_rnas)
 
     def test_add_representation(self):
