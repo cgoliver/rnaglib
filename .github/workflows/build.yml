@@ -24,6 +24,20 @@ jobs:
           pip install tensorflow
           pip install dgl
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+      - name: Install CD-Hit 
+        run: |
+          wget https://github.com/weizhongli/cdhit/releases/download/V4.8.1/cd-hit-v4.8.1-2019-0228.tar.gz
+          tar -xzvf cd-hit-v4.8.1-2019-0228.tar.gz
+          cd cd-hit-v4.8.1-2019-0228
+          make
+          export PATH=$(pwd):$PATH
+      - name: Install rna-align 
+        run: |
+          wget https://zhanggroup.org/RNA-align/bin/RNAalign.tar.bz2
+          tar -xvjf RNAalign.tar.bz2
+          cd RNAalign
+          g++ -O3 -ffast-math -o RNAalign RNAalign.cpp -static
+          export PATH=$(pwd):$PATH
       - name: Test with pytest
         run: |
           export PATH=$(pwd):$PATH
