@@ -272,7 +272,10 @@ def download_graphs(redundancy='nr',
         download(path=dl_path, url=url)
         if store_pdbs:
             pdb_path = Path(data_root)
-            pdb_path = pdb_path / 'structures'/ redundancy
+            if debug:
+                pdb_path = pdb_path / 'structures'/ 'debug'
+            else:
+                pdb_path = pdb_path / 'structures'/ redundancy
             pdb_path.mkdir(parents=True, exist_ok=True)
             update_RNApdb(pdb_path, nr_only=redundancy == 'nr')
         # Expand the compressed files at the right location

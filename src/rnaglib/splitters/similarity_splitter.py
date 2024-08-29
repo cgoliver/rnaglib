@@ -199,8 +199,6 @@ class RNAalignSplitter(ClusterSplitter):
         keep_idx = np.where(row_nan_count != sim_mat.shape[0] - 1)[0]
         sim_mat = sim_mat[keep_idx][:,keep_idx]
 
-        print(sim_mat.shape)
-
         keep_dataset = [rna for i, rna in enumerate(dataset) if i in keep_idx]
 
         return sim_mat, keep_dataset
