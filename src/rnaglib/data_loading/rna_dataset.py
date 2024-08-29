@@ -58,15 +58,17 @@ class RNADataset:
                  in_memory=True,
                  features_computer=None,
                  representations=None,
+                 debug=False,
                  **kwargs):
         self.in_memory = in_memory
         if rnas is None:
             if dataset_path is None:
                 # By default, use non redundant (nr), v1.0.0 dataset of rglib
                 if 'redundancy' in kwargs:
-                    dataset_path = download_graphs(redundancy=kwargs['redundancy'])
+                    dataset_path = download_graphs(redundancy=kwargs['redundancy'],
+                                                   debug=debug)
                 else:
-                    dataset_path = download_graphs(redundancy='nr')
+                    dataset_path = download_graphs(redundancy='nr', debug=debug)
                 dataset_path = os.path.join(dataset_path, 'graphs')
 
             # One can restrict the number of graphs to use
