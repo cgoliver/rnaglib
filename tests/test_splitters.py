@@ -12,14 +12,7 @@ class SplitterTest(unittest.TestCase):
 
     @classmethod
     def setUpClass(self):
-        # pick small RNAs
-        # TODO add rna size to index
-        def size_filter(rna):
-            return len(rna.nodes()) < 30
-
-        dataset = RNADataset.from_database(rna_filter=size_filter)
-        # TODO allow slicing on datasets
-        self.dataset = [rna for i, rna in enumerate(dataset) if i < 50]
+        self.dataset = RNADataset(debug=True)
         pass
 
     def check_splits(self, train, val, test):
