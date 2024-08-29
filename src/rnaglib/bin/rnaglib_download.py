@@ -26,6 +26,7 @@ def main():
                         help="To include graphlets annotations in "
                              "the graphs for kernel computations.")
     parser.add_argument("-o", "--overwrite", default=False, action='store_true', help='To overwrite existing data.')
+    parser.add_argument("-d", "--debug", default=False, action='store_true', help='To download the debug dataset.')
     parser.add_argument("-vs", "--version", default='1.0.0', type=str, help='Which data release to fetch.')
     parser.add_argument("-pdb", "--store_pdbs", default=False, action="store_true", help='Whether to store associated PDB files.')
     parser.add_argument("-dl", "--download_dir", default=None, type=str, help='Where to store the downloaded data.')
@@ -38,4 +39,5 @@ def main():
                              overwrite=args.overwrite,
                              data_root=args.download_dir,
                              verbose=True,
-                             store_pdbs=args.store_pdbs)
+                             store_pdbs=args.store_pdbs,
+                             debug=args.debug)
