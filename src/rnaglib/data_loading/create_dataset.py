@@ -14,6 +14,7 @@ def database_to_dataset_loop(all_rnas_db, db_path, rna_filter=None, nt_filter=No
     rna_list = []
 
     for rna_filename in tqdm(all_rnas_db):
+        rna_filename += ".json"
         rna_path = os.path.join(db_path, rna_filename)
         rna = load_graph(rna_path)
 
@@ -90,7 +91,7 @@ def database_to_dataset(dataset_path=None,
     if dataset_path is not None and os.path.exists(dataset_path) and not recompute:
         existing_all_rnas = get_all_existing(dataset_path=dataset_path, all_rnas=all_rnas)
         if return_rnas:
-            rnas = [load_graph(os.path.join(dataset_path, g_name)) for g_name in existing_all_rnas]
+            rnas = [load_graph(os.path.join(dataset_path, g_name + ".json")) for g_name in existing_all_rnas]
             for rna, name in zip(rnas, existing_all_rnas):
                 rna.name = get_name_extension(name)[0]
         else:
@@ -115,7 +116,7 @@ def database_to_dataset(dataset_path=None,
 
     # If no constructions args are given, just return the graphs
     if rna_filter is None and nt_filter is None and annotator is None and features_computer is None:
-        rnas = [load_graph(os.path.join(db_path, g_name)) for g_name in all_rnas_db]
+        rnas = [load_graph(Path(db_path) /  g_name + ".json") for g_name in all_rnas_db]
         return rnas
 
     # If some constructions args are given, launch processing.

@@ -99,7 +99,7 @@ def get_all_existing(dataset_path: os.PathLike, all_rnas: Optional[List[str]] = 
     """
     # By default, return a sorted listdir
     if all_rnas is None:
-        return sorted(os.listdir(dataset_path))
+        return [Path(g).stem for g in sorted(os.listdir(dataset_path))]
 
     # Filter out existing ones, and print message if there is a difference
     existing_all_rnas = [g_name for g_name in all_rnas if os.path.exists(Path(dataset_path) / f"{g_name}.json")]

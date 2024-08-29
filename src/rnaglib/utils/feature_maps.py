@@ -264,6 +264,7 @@ def build_node_feature_parser(asked_features=None, custom_encoders=None, node_fe
     If some keys don't exist, will raise an Error. However if some keys are present but problematic,
     this will just cause a printing of the problematic keys
     :param asked_features: A list of string keys that are present in the encoder
+    :param custom_encoders: Dictionary mapping feature names to encoder objects
     :return: A dict {asked_feature : EncoderObject}
     """
     # Build an asked list of features, with no redundancies
