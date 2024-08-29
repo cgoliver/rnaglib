@@ -35,10 +35,20 @@ class RNADataset:
     :param all_rnas: In the given directory, ``'dataset_path'``, one can choose to provide a list of graphs to use as filenames.
     :param in_memory: Whether to load all RNA graphs in memory or to load them on the fly
     :param features_computer: A FeaturesComputer object, useful to transform raw RNA data into tensors.
-    :param representations: List of `rnaglib.Representation` objects to apply to each item.
+    :param representations: List of :class:`~rnaglib.representations.Representation` objects to apply to each item.
 
     The dataset holds an attribute self.all_rnas = bidict({rna_name: i for i, rna_name in enumerate(all_rna_names)})
     Where rna_name is expected to match the file name the rna should be saved in.
+
+    Examples
+    ---------
+
+    Create a default dataset::
+
+        dataset = RNADataset()
+
+
+
     """
 
     def __init__(self,
