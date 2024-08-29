@@ -220,14 +220,14 @@ def download_name_generator(version='1.0.0',
     else:
         return f"https://zenodo.org/records/{record}/files/rnaglib-{redundancy}-{version}.tar.gz?download=1"
 
-
 def download_graphs(redundancy='nr',
                     version='1.0.0',
                     annotated=False,
                     chop=False,
                     overwrite=False,
                     data_root=None,
-                    verbose=False
+                    verbose=False,
+                    store_pdbs=False
                     ):
     """
     Based on the options, get the right data from the latest release and put it in download_dir.
@@ -236,6 +236,7 @@ def download_graphs(redundancy='nr',
     :param annotated: Whether to include graphlet annotations in the graphs. This will also create a hashing directory and table
     :param overwrite: To overwrite existing data
     :param download_dir: Where to save this data. Defaults to ~/.rnaglib/
+    :param store_pdbs: Whether to store assocaited PDBs in ~/.rnaglib/structures
 
     :return: the path of the data along with its hashing.
 
@@ -255,6 +256,11 @@ def download_graphs(redundancy='nr',
         print(f"Downloading to : {dl_path}")
         print(f"Saving to : {data_path}")
         download(path=dl_path, url=url)
+        if store_pdbs:
+            pdb_path = Path(data_root)
+            pdb_path = pdb_path / 'structures'/ redundancy
+            pdb_path.mkdir(parents=True, exist_ok=True)
+            update_RNApdb(pdb_path, nr_only=redundancy == 'nr')
         # Expand the compressed files at the right location
         with tarfile.open(dl_path) as tar_file:
             tar_file.extractall(path=data_path)
@@ -339,7 +345,10 @@ def get_rna_list(nr_only=False):
         "return_type": "entry"
     }
 
-    r = requests.get(f'https://search.rcsb.org/rcsbsearch/v2/query?json={json.dumps(payload)}')
+    payload = json.dumps(payload)
+    encoded_query = urllib.parse.quote(payload)
+    url = f'https://search.rcsb.org/rcsbsearch/v2/query?json={encoded_query}'
+    r = requests.get(url)
     try:
         response_dict = json.loads(r.text)
         ids = [p.lower() for p in response_dict['result_set']]
@@ -347,7 +356,7 @@ def get_rna_list(nr_only=False):
             nr_chains = [c.lower() for c in get_NRchains("4.0A")]
             ids = [pdbid.lower() for pdbid in ids if pdbid in nr_chains]
     except Exception as e:
-        print('An error occured when querying RCSB.')
+        print(f'An error occured when querying RCSB or BGSU Atlas')
         print(r.text)
         print(e)
         exit()
@@ -361,10 +370,11 @@ def get_NRlist(resolution):
     :param resolution: minimum rseolution to apply
     """
 
-    base_url = 'http://rna.bgsu.edu/rna3dhub/nrlist/download'
+    base_url = 'http://rna.bgsu.edu/rna3dhub/nrlist/download/rna'
     release = 'current'  # can be replaced with a specific release id, e.g. 0.70
     # release = '3.186'
     url = '/'.join([base_url, release, resolution])
+    print(url)
 
     df = pd.read_csv(url, header=None)
 
