@@ -48,10 +48,10 @@ def rna_align_wrapper(cif_path_1: Union[str, os.PathLike],
 
         if match:
             tm = float(match.group(1))
-            print(tm)
             return tm
         else:
             print(result.stderr)
+            print(result.stdout)
             return None
     pass
 
