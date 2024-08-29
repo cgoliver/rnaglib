@@ -3,6 +3,7 @@ import os
 import json
 import pickle
 import requests
+import urllib
 from pathlib import Path
 from typing import Optional, List
 from collections import defaultdict
@@ -227,7 +228,8 @@ def download_graphs(redundancy='nr',
                     overwrite=False,
                     data_root=None,
                     verbose=False,
-                    store_pdbs=False
+                    store_pdbs=False,
+                    debug=False
                     ):
     """
     Based on the options, get the right data from the latest release and put it in download_dir.
@@ -245,6 +247,8 @@ def download_graphs(redundancy='nr',
     hashing_path = None
     if data_root is None:
         data_root = get_default_download_dir()
+
+    if debug: redundancy = 'debug'
 
     tag = f"rnaglib-{redundancy}-{version}{'-chop' if chop else ''}{'-' + 'annotated' if annotated else ''}"
     url = download_name_generator(redundancy=redundancy, version=version, annotated=annotated)
