@@ -61,6 +61,7 @@ class ClusterSplitter(Splitter):
         """
         print("Computing similarity matrix...")
         similarity_matrix, keep_dataset = self.compute_similarity_matrix(dataset)
+        print(keep_dataset)
         print("Clustering...")
         nei = NearestNeighbors(radius=1 - self.similarity_threshold, metric='precomputed').fit(1 - similarity_matrix)
         neighbors = nei.radius_neighbors(return_distance=False)

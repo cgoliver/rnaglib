@@ -287,8 +287,12 @@ def available_pdbids(graph_dir=None,
                      version='1.0.0',
                      chop=False,
                      annotated=False,
-                     redundancy='nr'):
-    tag = f"rnaglib-{redundancy}-{version}{'-chop' if chop else ''}{'-' + 'annotated' if annotated else ''}"
+                     redundancy='nr',
+                     debug=False):
+    if debug:
+        tag = f"rnaglib-debug-{version}"
+    else:
+        tag = f"rnaglib-{redundancy}-{version}{'-chop' if chop else ''}{'-' + 'annotated' if annotated else ''}"
     if graph_dir is None:
         dl_dir = get_default_download_dir()
         graph_path = os.path.join(dl_dir, "datasets", tag, "graphs")
