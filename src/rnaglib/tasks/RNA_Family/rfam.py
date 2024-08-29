@@ -119,6 +119,6 @@ class RNAFamilyTask(RNAClassificationTask):
                                              custom_encoders_targets={
                                                  self.target_var: OneHotEncoder(mapping=self.output_mapping)})
         dataset = RNADataset.from_database(features_computer=features_computer,
-                                       annotator=self._annotator,
-                                       rna_filter=self._rna_filter)
+                                           annotator=self._annotator,
+                                           rna_filter=self._rna_filter)
         return dataset
