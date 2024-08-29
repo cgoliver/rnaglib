@@ -61,7 +61,6 @@ class ClusterSplitter(Splitter):
         """
         print("Computing similarity matrix...")
         similarity_matrix, keep_dataset = self.compute_similarity_matrix(dataset)
-        print(keep_dataset)
         print("Clustering...")
         nei = NearestNeighbors(radius=1 - self.similarity_threshold, metric='precomputed').fit(1 - similarity_matrix)
         neighbors = nei.radius_neighbors(return_distance=False)
@@ -194,4 +193,14 @@ class RNAalignSplitter(ClusterSplitter):
         sim_mat[np.triu_indices(len(pdbids), 1)] = sims
         sim_mat += sim_mat.T
         np.fill_diagonal(sim_mat, 1)
-        return sim_mat, dataset
+
+        row_nan_count = np.isnan(sim_mat).sum(axis=1)
+        # find rnas that failed against all others
+        keep_idx = np.where(row_nan_count != sim_mat.shape[0] - 1)[0]
+        sim_mat = sim_mat[keep_idx][:,keep_idx]
+
+        print(sim_mat.shape)
+
+        keep_dataset = [rna for i, rna in enumerate(dataset) if i in keep_idx]
+
+        return sim_mat, keep_dataset
