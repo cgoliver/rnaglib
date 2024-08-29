@@ -112,7 +112,8 @@ def database_to_dataset(dataset_path=None,
                                   data_root=download_dir)
         db_path = os.path.join(db_path, 'graphs')
 
-    all_rnas_db = os.listdir(db_path) if all_rnas_db is None else all_rnas_db
+    if all_rnas_db is None:
+        all_rnas_db = [f.split(".")[0] for f in os.listdir(db_path)]
 
     # If no constructions args are given, just return the graphs
     if rna_filter is None and nt_filter is None and annotator is None and features_computer is None:

@@ -193,4 +193,4 @@ class RNAalignSplitter(ClusterSplitter):
         sim_mat[np.triu_indices(len(pdbids), 1)] = sims
         sim_mat += sim_mat.T
         np.fill_diagonal(sim_mat, 1)
-        return sim_mat
+        return sim_mat, dataset

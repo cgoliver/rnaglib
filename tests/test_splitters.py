@@ -2,7 +2,6 @@ import unittest
 import tempfile
 from pathlib import Path
 
-from rnaglib.tasks import RNAFamilyTask
 from rnaglib.data_loading import RNADataset
 from rnaglib.splitters import RandomSplitter
 from rnaglib.splitters import RNAalignSplitter
