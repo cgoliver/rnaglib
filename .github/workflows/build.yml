@@ -23,6 +23,7 @@ jobs:
           cd cd-hit-v4.8.1-2019-0228
           make
           chmod u+x cd-hit
+          pwd
       - name: Export cd-hit path
         run: |
           echo $HOME/cd-hit-v4.8.1-2019-0228 >> $GITHUB_PATH
@@ -33,6 +34,7 @@ jobs:
           cd RNAalign
           g++ -O3 -ffast-math -o RNAalign RNAalign.cpp -static
           chmod u+x ./RNAalign
+          pwd
       - name: Export RNAalign path
         run: |
           echo $HOME/RNAalign >> $GITHUB_PATH
