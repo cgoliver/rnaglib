@@ -24,11 +24,15 @@ jobs:
           pip install tensorflow
           pip install dgl
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+      - name: Get rnaglib database
+        run: |
+          rnaglib_download --debug
       - name: Install CD-Hit 
         run: |
           wget https://github.com/weizhongli/cdhit/releases/download/V4.8.1/cd-hit-v4.8.1-2019-0228.tar.gz
           tar -xzvf cd-hit-v4.8.1-2019-0228.tar.gz
           cd cd-hit-v4.8.1-2019-0228
+          chmod u+x cd-hit
           make
           export PATH=$(pwd):$PATH
       - name: Install rna-align 
@@ -37,6 +41,7 @@ jobs:
           tar -xvjf RNAalign.tar.bz2
           cd RNAalign
           g++ -O3 -ffast-math -o RNAalign RNAalign.cpp -static
+          chmod u+x RNAalign
           export PATH=$(pwd):$PATH
       - name: Test with pytest
         run: |
