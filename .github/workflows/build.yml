@@ -38,8 +38,9 @@ jobs:
           echo $HOME/RNAalign >> $GITHUB_PATH
       - name: Test with pytest
         run: |
-          export PATH=$(pwd):$PATH
           echo $PATH
+          which RNAalign
+          which cd-hit
           pip install -r requirements.txt
           pip install coverage
           coverage run --source src/rnaglib -m pytest
