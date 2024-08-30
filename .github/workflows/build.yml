@@ -32,6 +32,7 @@ jobs:
           make
           chmod u+x cd-hit
           export PATH=$(pwd):$PATH
+          which cd-hit
       - name: Install rna-align 
         run: |
           wget https://zhanggroup.org/RNA-align/bin/RNAalign.tar.bz2
@@ -42,6 +43,7 @@ jobs:
           export PATH=$(pwd):$PATH
           echo $PATH
           pwd
+          which RNAalign
       - name: Test with pytest
         run: |
           export PATH=$(pwd):$PATH
