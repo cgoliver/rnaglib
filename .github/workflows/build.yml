@@ -25,20 +25,23 @@ jobs:
           chmod u+x cd-hit
           export PATH=$(pwd):$PATH
           which cd-hit
+          cd-hit
       - name: Install rna-align 
         run: |
           wget https://zhanggroup.org/RNA-align/bin/RNAalign.tar.bz2
           tar -xvjf RNAalign.tar.bz2
           cd RNAalign
           g++ -O3 -ffast-math -o RNAalign RNAalign.cpp -static
-          chmod u+x RNAalign
+          chmod u+x ./RNAalign
           export PATH=$(pwd):$PATH
           echo $PATH
           pwd
           which RNAalign
+          RNAalign
       - name: Test with pytest
         run: |
           export PATH=$(pwd):$PATH
+          echo $PATH
           pip install -r requirements.txt
           pip install coverage
           coverage run --source src/rnaglib -m pytest
