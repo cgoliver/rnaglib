@@ -12,7 +12,7 @@ class SplitterTest(unittest.TestCase):
 
     @classmethod
     def setUpClass(self):
-        self.dataset = RNADataset(debug=True)
+        self.dataset = RNADataset(debug=True, get_pdbs=True, overwrite=True)
         pass
 
     def check_splits(self, train, val, test):
@@ -35,7 +35,7 @@ class SplitterTest(unittest.TestCase):
 
     def test_RNAalignSplitter(self):
         with tempfile.TemporaryDirectory() as tmpdir:
-                splitter = RNAalignSplitter(structures_dir=Path.home() / ".rnaglib" / "structures" / "debug",
+                splitter = RNAalignSplitter(structures_dir=Path.home() / ".rnaglib/datasets/rnaglib-debug-1.0.0/structures",
                                             similarity_threshold=.3)
                 train, val, test = splitter(self.dataset)
                 self.check_splits(train, val, test)

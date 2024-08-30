@@ -234,7 +234,7 @@ def download_graphs(redundancy='nr',
                     overwrite=False,
                     data_root=None,
                     verbose=False,
-                    store_pdbs=False,
+                    get_pdbs=False,
                     debug=False
                     ):
     """
@@ -272,7 +272,7 @@ def download_graphs(redundancy='nr',
         with tarfile.open(dl_path) as tar_file:
             tar_file.extractall(path=data_path)
 
-        if store_pdbs:
+        if get_pdbs:
             pdb_path = data_path / tag / 'structures'
             pdb_path.mkdir(parents=True, exist_ok=True)
             rna_list = [Path(p).stem for p in os.listdir(data_path / tag / 'graphs')]
