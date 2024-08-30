@@ -29,8 +29,8 @@ jobs:
           wget https://github.com/weizhongli/cdhit/releases/download/V4.8.1/cd-hit-v4.8.1-2019-0228.tar.gz
           tar -xzvf cd-hit-v4.8.1-2019-0228.tar.gz
           cd cd-hit-v4.8.1-2019-0228
-          chmod u+x cd-hit
           make
+          chmod u+x cd-hit
           export PATH=$(pwd):$PATH
       - name: Install rna-align 
         run: |
