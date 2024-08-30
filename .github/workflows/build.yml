@@ -26,7 +26,7 @@ jobs:
           pwd
       - name: Export cd-hit path
         run: |
-          echo $HOME/cd-hit-v4.8.1-2019-0228 >> $GITHUB_PATH
+          echo /home/runner/work/rnaglib/rnaglib/cd-hit-v4.8.1-2019-0228 >> $GITHUB_PATH
       - name: Install rna-align 
         run: |
           wget https://zhanggroup.org/RNA-align/bin/RNAalign.tar.bz2
@@ -37,7 +37,7 @@ jobs:
           pwd
       - name: Export RNAalign path
         run: |
-          echo $HOME/RNAalign >> $GITHUB_PATH
+          echo /home/runner/work/rnaglib/rnaglib/RNAalign >> $GITHUB_PATH
       - name: Test with pytest
         run: |
           echo $PATH
