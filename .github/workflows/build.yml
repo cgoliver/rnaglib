@@ -40,6 +40,8 @@ jobs:
           g++ -O3 -ffast-math -o RNAalign RNAalign.cpp -static
           chmod u+x RNAalign
           export PATH=$(pwd):$PATH
+          echo $PATH
+          pwd
       - name: Test with pytest
         run: |
           export PATH=$(pwd):$PATH

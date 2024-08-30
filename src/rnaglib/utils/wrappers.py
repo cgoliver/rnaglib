@@ -19,6 +19,9 @@ def rna_align_wrapper(cif_path_1: Union[str, os.PathLike],
                       ):
     """ Calls RNAalign on two mmCIF files and returns the output.
     Must have RNAalign (https://zhanggroup.org/RNA-align/download.html) in your executable path."""
+    
+    assert shutil.which('RNAalign') is not None,\
+    "RNAalign installation not found. Go here https://zhanggroup.org/RNA-align/" 
 
     if not Path(cif_path_1).exists():
         raise FileNotFoundError
