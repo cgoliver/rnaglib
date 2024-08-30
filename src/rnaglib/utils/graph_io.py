@@ -214,8 +214,6 @@ def download_name_generator(version='1.0.0',
 
     """
     # Generic name
-    print("HIIII", debug)
-
     if debug:
         return f"https://github.com/cgoliver/rnaglib/raw/master/examples/rnaglib-debug-{version}.tar.gz"
 
@@ -262,25 +260,24 @@ def download_graphs(redundancy='nr',
         tag = f"rnaglib-{redundancy}-{version}{'-chop' if chop else ''}{'-' + 'annotated' if annotated else ''}"
     url = download_name_generator(redundancy=redundancy, version=version, annotated=annotated, debug=debug)
     print(f"Fetching {url}")
-    dl_path = os.path.join(data_root, 'downloads', tag + '.tar.gz')
-    data_path = os.path.join(data_root, 'datasets')
+    dl_path = Path(data_root) / 'downloads' / Path(tag + '.tar.gz')
+    data_path = Path(data_root) / 'datasets'
 
     if not os.path.exists(dl_path) or overwrite:
         print('Required database not found, launching a download. This should take about a minute')
         print(f"Downloading to : {dl_path}")
         print(f"Saving to : {data_path}")
         download(path=dl_path, url=url)
-        if store_pdbs:
-            pdb_path = Path(data_root)
-            if debug:
-                pdb_path = pdb_path / 'structures'/ 'debug'
-            else:
-                pdb_path = pdb_path / 'structures'/ redundancy
-            pdb_path.mkdir(parents=True, exist_ok=True)
-            update_RNApdb(pdb_path, nr_only=redundancy == 'nr')
         # Expand the compressed files at the right location
         with tarfile.open(dl_path) as tar_file:
             tar_file.extractall(path=data_path)
+
+        if store_pdbs:
+            pdb_path = data_path / tag / 'structures'
+            pdb_path.mkdir(parents=True, exist_ok=True)
+            rna_list = [Path(p).stem for p in os.listdir(data_path / tag / 'graphs')]
+            update_RNApdb(pdb_path, rna_list=rna_list, nr_only=redundancy == 'nr')
+
     else:
         print(f'Database was found and not overwritten')
     return os.path.join(data_root, "datasets", tag)
@@ -463,20 +460,24 @@ def get_NRchains(resolution):
     NR_list = get_NRlist(resolution)
     return parse_NRlist(NR_list)
 
-
-def update_RNApdb(pdir, nr_only=True):
+def update_RNApdb(pdir, nr_only=True, rna_list=None):
     """
     Download a list of RNA containing structures from the PDB
     overwrite exising files
 
     :param pdbdir: path containing downloaded PDBs
+    :param rna_list: list of PDBIDs to download
 
     :returns rna: list of PDBIDs that were fetched.
     """
     print(f'Updating PDB mirror in {pdir}')
     # Get a list of PDBs containing RNA
-    rna = set(get_rna_list(nr_only=nr_only))
+    if not rna_list is None:
+        rna = rna_list
+    else:
+        rna = set(get_rna_list(nr_only=nr_only))
 
+    print(rna)
     pl = PDBList()
 
     # If not fully downloaded before, download all structures
