@@ -60,6 +60,7 @@ class RNADataset:
                  representations=None,
                  debug=False,
                  get_pdbs=False,
+                 overwrite=False,
                  **kwargs):
         self.in_memory = in_memory
         if rnas is None:
@@ -68,9 +69,10 @@ class RNADataset:
                 if 'redundancy' in kwargs:
                     dataset_path = download_graphs(redundancy=kwargs['redundancy'],
                                                    debug=debug,
-                                                   get_pdbs=get_pdbs)
+                                                   get_pdbs=get_pdbs,
+                                                   overwrite=overwrite)
                 else:
-                    dataset_path = download_graphs(redundancy='nr', debug=debug, get_pdbs=get_pdbs)
+                    dataset_path = download_graphs(redundancy='nr', debug=debug, get_pdbs=get_pdbs, overwrite=overwrite)
                 dataset_path = os.path.join(dataset_path, 'graphs')
 
             # One can restrict the number of graphs to use
