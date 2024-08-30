@@ -25,7 +25,6 @@ jobs:
           chmod u+x cd-hit
           export PATH=$(pwd):$PATH
           which cd-hit
-          cd-hit
       - name: Install rna-align 
         run: |
           wget https://zhanggroup.org/RNA-align/bin/RNAalign.tar.bz2
