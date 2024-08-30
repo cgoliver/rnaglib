@@ -23,8 +23,9 @@ jobs:
           cd cd-hit-v4.8.1-2019-0228
           make
           chmod u+x cd-hit
-          export PATH=$(pwd):$PATH
-          which cd-hit
+      - name: Export cd-hit path
+        run: |
+          echo $HOME/cd-hit-v4.8.1-2019-0228 >> $GITHUB_PATH
       - name: Install rna-align 
         run: |
           wget https://zhanggroup.org/RNA-align/bin/RNAalign.tar.bz2
@@ -32,11 +33,9 @@ jobs:
           cd RNAalign
           g++ -O3 -ffast-math -o RNAalign RNAalign.cpp -static
           chmod u+x ./RNAalign
-          export PATH=$(pwd):$PATH
-          echo $PATH
-          pwd
-          which RNAalign
-          RNAalign
+      - name: Export RNAalign path
+        run: |
+          echo $HOME/RNAalign >> $GITHUB_PATH
       - name: Test with pytest
         run: |
           export PATH=$(pwd):$PATH
