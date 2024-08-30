@@ -8,7 +8,7 @@ from rnaglib.representations import GraphRepresentation
 class TestDataset(unittest.TestCase):
     @classmethod
     def setUpClass(self):
-        self.default_dataset = RNADataset(debug=True)
+        self.default_dataset = RNADataset(debug=True, overwrite=True)
         print(len(self.default_dataset))
         pass
 

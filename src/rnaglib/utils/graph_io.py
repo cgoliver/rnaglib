@@ -263,7 +263,7 @@ def download_graphs(redundancy='nr',
     dl_path = Path(data_root) / 'downloads' / Path(tag + '.tar.gz')
     data_path = Path(data_root) / 'datasets'
 
-    if not os.path.exists(dl_path) or overwrite:
+    if not os.path.exists(data_path / tag) or overwrite:
         print('Required database not found, launching a download. This should take about a minute')
         print(f"Downloading to : {dl_path}")
         print(f"Saving to : {data_path}")
@@ -273,6 +273,7 @@ def download_graphs(redundancy='nr',
             tar_file.extractall(path=data_path)
 
         if get_pdbs:
+            print("Fetching PDB structures")
             pdb_path = data_path / tag / 'structures'
             pdb_path.mkdir(parents=True, exist_ok=True)
             rna_list = [Path(p).stem for p in os.listdir(data_path / tag / 'graphs')]
