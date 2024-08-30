@@ -105,8 +105,10 @@ def cdhit_wrapper(ids, sequences, sim_thresh=0.6, n_jobs=1):
     else:
         word_size = 5
 
+    """
     assert shutil.which('cd-hit') is not None,\
     "CD-HIT installation not found. Go here https://github.com/weizhongli/cdhit to install"
+    """
 
     n_jobs = 0 if n_jobs < 0 else n_jobs
 
