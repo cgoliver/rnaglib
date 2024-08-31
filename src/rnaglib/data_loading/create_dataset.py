@@ -3,16 +3,18 @@ from networkx import set_node_attributes
 import numpy as np
 
 from rnaglib.data_loading.features import FeaturesComputer
+from rnaglib.transforms import Transform, RNAFilter, SubstructureFilter
 from rnaglib.utils import download_graphs, load_graph, dump_json
 from rnaglib.utils.graph_io import get_all_existing, get_name_extension
 
 
-def database_to_dataset_loop(all_rnas_db, 
-                             db_path, 
-                             rna_filter=None, 
-                             nt_filter=None, 
-                             annotator=None,
-                             features_computer: FeaturesComputer = None):
+def database_to_dataset_loop(all_rnas_db,
+                             db_path,
+                             rna_filter: RNAFilter = None,
+                             nt_filter: SubstructureFilter = None,
+                             annotator: Transform = None,
+                             features_computer: FeaturesComputer = None
+                             ):
     """ Iterates through database, applying filters and annotations"""
     from tqdm import tqdm as tqdm
     rna_list = []
