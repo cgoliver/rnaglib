@@ -4,7 +4,7 @@ import sys
 import pickle
 import os
 import itertools
-from typing import List, Optional, Hashable, Dict
+from typing import List, Optional, Hashable, Dict, List, Tuple
 
 
 from tqdm import tqdm
@@ -669,11 +669,11 @@ def fix_buggy_edges(graph,
 
 
 
-def get_sequences(graph: nx.Graph) -> Dict[str, str]:
-    """ Extract ordered sequences from each chain of the RNA
+def get_sequences(graph: nx.Graph) -> Tuple[Dict[str, Tuple[str, List[str]]]]:
+    """ Extract ordered sequences from each chain of the RNA.
+    Returns a dictionary mapping <pdbid.chain>: (sequence, list of node IDs)
 
     :param graph: an nx.Graph of an RNA.
-    :return: dictionary mapping <PDBID>.<Chain ID> to a sequence.
 
     """
 
@@ -698,7 +698,6 @@ def get_sequences(graph: nx.Graph) -> Dict[str, str]:
         if len(sorted_seq) < 10 or len(sorted_seq) > 1024:
             fail.append(f"{pdbid}.{ch}")
             continue
-        sequences[f"{pdbid}.{ch}"] = sorted_seq
+        sequences[f"{pdbid}.{ch}"] = (sorted_seq, node_ids[f"{pdbid}.{ch}"])
 
     return sequences
-

@@ -6,7 +6,21 @@ from rnaglib.utils import build_node_feature_parser
 class FeaturesComputer:
     """
     This class can be seen as a Transforms class, taking as input an RNA in the networkX form,
+    and computes the ``features_dict`` which maps node IDs to a tensor of features.
+    The ``features_dict`` contains keys: ``'nt_features'``for node features,
+    ``'nt_targets'`` for node-level prediction targets. In :class:`~rnaglib.data_loading.RNADataset` construction,
+    the ``FeaturesComputer.compute_features()`` method is called during the ``RNADataset`` ``__getitem__()`` call.
 
+    :param nt_features: List of keys to use as node features, choose from the `dataset[i]['rna']` node attributes dictionary.
+    :param nt_targets: List of keys to use as node features, choose from the `dataset[i]['rna']` node attributes dictionary.
+    :param custom_encoders_features:
+    :param custom_encoders_targets:
+    :param rna_features:
+    :param rna_targets:
+    :param bp_features:
+    :param bp_targets:
+    :param misc_encoder:
+    :param extra_useful_keys:
     """
 
     def __init__(self,
