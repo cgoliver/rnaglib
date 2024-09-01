@@ -3,26 +3,25 @@ from typing import List, Union, Any
 import networkx as nx
 
 class Transform:
-    """ Abstract class for modifying and updating an RNA graph.
+    """ Transforms modify and add information to an RNA graph via
+    the ``networkx.Graph`` data structure.
     Receives an RNA graph and returns an RNA graph.
     This can be applied at dataset construction time, or a retrieval.
+
+
+    Example
+    --------
+
+    Transforms are callable objects that modify an RNA graph or dataset passed to it::
+
+        >>> from rnaglib.transforms import Transform
+        >>> t = Transform()
+        >>> dataset = RNADataset(dummy=True)
+        >>> t(rna[0])
+
     """
     def __call__(self, data: Any) -> Any:
-        return self.forward(data['rna'])
+        return self.forward(data)
 
-    def forward(self):
+    def forward(self, data: Any) -> Any:
         raise NotImplementedError
-
-class Compose(Transform):
-    """ String together and apply a list of transforms """
-    def __init__(self, transforms):
-        self.transforms = transforms
-        pass
-
-    def __call__(self, data: Any) -> Any:
-        for transform in self.transforms:
-            if isinstance(list, data):
-                data = [transform(d) for d in data]
-            else:
-                data = transform(data)
-        return data

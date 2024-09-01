@@ -138,8 +138,8 @@ class RNADataset:
             rna_graph = load_graph(os.path.join(self.dataset_path, f"{rna_name}.json"))
 
         # Compute features
-        features_dict = self.features_computer.compute_features(rna_graph)
         rna_dict = {'rna': rna_graph}
+        features_dict = self.features_computer.compute_features(rna_dict)
 
         # apply representations to the res_dict
         # each is a callable that updates the res_dict
