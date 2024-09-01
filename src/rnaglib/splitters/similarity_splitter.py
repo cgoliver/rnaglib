@@ -37,7 +37,7 @@ class ClusterSplitter(Splitter):
         val, test = self.cluster_split(test, self.split_test, n=0.2)
         return train, val, test
 
-    def cluster_split(self, 
+    def cluster_split(self,
                       dataset: Iterable,
                       frac: float,
                       n: float = 0.05,
@@ -104,8 +104,8 @@ class CDHitSplitter(ClusterSplitter):
         ids, sequences = [], []
         for idx, rna in enumerate(dataset):
             seqs = get_sequences(rna['rna'])
-            ids.extend([f"{idx}-{s[0].replace('.', '-')}" for s in seqs.items()])
-            sequences.extend([s[1] for s in seqs.items()])
+            ids.extend([f"{idx}-{seq_id.replace('.', '-')}" for seq_id, (seq, _) in seqs.items()])
+            sequences.extend([seq for _,(seq,_) in seqs.items()])
 
         ids_to_cluster, cluster_to_ids = cdhit_wrapper(ids,
                                                        sequences,
