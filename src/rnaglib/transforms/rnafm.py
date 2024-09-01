@@ -6,7 +6,12 @@ import torch
 import numpy as np
 import networkx as nx
 import torch
-import fm
+
+try:
+    import fm
+except ModuleNotFoundError:
+    print("Please make sure rna-fm is installed with pip install rna-fm")
+    sys.exit()
 
 from rnaglib.transforms import Transform
 from rnaglib.utils import ListEncoder
