@@ -54,6 +54,7 @@
    Visualization <rnaglib.drawing>
    RNA Graph Edit Distance <rnaglib.ged>
    RNA Graph Kernels <rnaglib.kernels>
+   Transforms <rnaglib.transforms>
    Model Training <rnaglib.learning>
    Utils <rnaglib.utils>
    Configurations <rnaglib.config>

@@ -12,7 +12,7 @@ def database_to_dataset_loop(all_rnas_db,
                              db_path,
                              rna_filter: RNAFilter = None,
                              nt_filter: SubstructureFilter = None,
-                             annotator: Transform = None,
+                             pre_transform: Transform = None,
                              features_computer: FeaturesComputer = None
                              ):
     """ Iterates through database, applying filters and annotations"""
@@ -38,9 +38,9 @@ def database_to_dataset_loop(all_rnas_db,
             subgs = [rna]
 
         # Apply a per graph/subgraph function
-        if annotator is not None:
+        if pre_transform is not None:
             for subg in subgs:
-                annotator(subg)
+                pre_transform(subg)
 
         # Add a 'name' field to the graphs if annotator did not put one.
         rna_name, rna_extension = get_name_extension(rna_filename)
@@ -65,7 +65,7 @@ def database_to_dataset(dataset_path=None,
                         recompute=False,
                         all_rnas=None,
                         return_rnas=True,
-                        annotator=None,
+                        pre_transform=None,
                         nt_filter=None,
                         rna_filter=None,
                         features_computer=None,
@@ -91,7 +91,7 @@ def database_to_dataset(dataset_path=None,
     :param annotated: To use for pretraining
 
     :param nt_filter: Callable which takes as input an RNA dictionary and filters out some nt
-    :param annotator: Callable which takes as input an RNA dictionary and adds new key-value pairs.
+    :param pre_transform: Callable which takes as input an RNA dictionary and adds new key-value pairs.
     :param rna_filter: Callable which takes as input an RNA dictionary and returns whether we should keep it.
     """
     # If this corresponds to a dataset that was precomputed already, just return the graphs
@@ -124,7 +124,7 @@ def database_to_dataset(dataset_path=None,
         all_rnas_db = [f.split(".")[0] for f in os.listdir(db_path)]
 
     # If no constructions args are given, just return the graphs
-    if rna_filter is None and nt_filter is None and annotator is None and features_computer is None:
+    if rna_filter is None and nt_filter is None and pre_transform is None and features_computer is None:
         rnas = [load_graph(Path(db_path) /  g_name + ".json") for g_name in all_rnas_db]
         return rnas
 
@@ -133,7 +133,7 @@ def database_to_dataset(dataset_path=None,
                                     db_path=db_path,
                                     rna_filter=rna_filter,
                                     nt_filter=nt_filter,
-                                    annotator=annotator,
+                                    pre_transform=pre_transform,
                                     features_computer=features_computer)
     all_rnas_name = [rna.name for rna in rnas]
     if dataset_path is not None:

@@ -1,11 +1,14 @@
+from typing import Dict
+
 import torch
 import networkx as nx
+from rnaglib.transforms import Transform
 from rnaglib.utils import build_node_feature_parser
 
 
 class FeaturesComputer:
     """
-    This class can be seen as a Transforms class, taking as input an RNA in the networkX form,
+    This class takes as input an RNA in the networkX form
     and computes the ``features_dict`` which maps node IDs to a tensor of features.
     The ``features_dict`` contains keys: ``'nt_features'``for node features,
     ``'nt_targets'`` for node-level prediction targets. In :class:`~rnaglib.data_loading.RNADataset` construction,
@@ -19,7 +22,7 @@ class FeaturesComputer:
     :param rna_targets:
     :param bp_features:
     :param bp_targets:
-    :param misc_encoder:
+    :param post_transform:
     :param extra_useful_keys:
     """
 
@@ -32,16 +35,19 @@ class FeaturesComputer:
                  rna_targets=None,
                  bp_features=None,
                  bp_targets=None,
-                 misc_encoder=None,
+                 post_transform=None,
+                 post_transform_target=None,
                  extra_useful_keys=None,
                  ):
+
+        # For all special cases, this is what to use
+        self.post_transform = post_transform
+        self.post_transform_target = post_transform_target
+
         self.node_features_parser = build_node_feature_parser(nt_features,
                                                               custom_encoders=custom_encoders_features)
         self.node_target_parser = build_node_feature_parser(nt_targets,
                                                             custom_encoders=custom_encoders_targets)
-
-        # For all special cases, this is what to use
-        self.misc_encoder = misc_encoder
 
         # This is only useful when using a FeatureComputer to create a dataset, and avoid removing important features
         # of the graph that are not used during loading
@@ -127,7 +133,7 @@ class FeaturesComputer:
         return cleaned_graph
 
     @staticmethod
-    def encode_nodes(g, node_parser):
+    def encode_nodes(g: nx.Graph, node_parser):
         """
         Simply apply the node encoding functions in node_parser to each node in the graph
         Then use torch.cat over the result to get a tensor for each node in the graph.
@@ -137,9 +143,11 @@ class FeaturesComputer:
         :return: A dict that maps nodes to encodings
 
         """
+
         node_encodings = {}
         if len(node_parser) == 0:
             return None
+
 
         for node, attrs in g.nodes.data():
             all_node_feature_encoding = list()
@@ -153,21 +161,27 @@ class FeaturesComputer:
             node_encodings[node] = torch.cat(all_node_feature_encoding)
         return node_encodings
 
-    def compute_features(self, rna_graph):
+    def compute_features(self, rna_dict: Dict):
         """
         Add 3 dictionaries to the `rna_dict` wich maps nts, edges, and the whole graph
         to a feature vector each. The final converter uses these to include the data in the
         framework-specific object.
         """
 
+        if not self.post_transform is None:
+            self.post_transform(rna_dict)
+            self.node_features_parser[self.post_transform.name] = self.post_transform.encoder
+
         features_dict = {}
         # Get Node labels
         if len(self.node_features_parser) > 0:
-            feature_encoding = self.encode_nodes(rna_graph, node_parser=self.node_features_parser)
+            feature_encoding = self.encode_nodes(rna_dict['rna'],
+                                                 node_parser=self.node_features_parser,
+                                                 )
             features_dict['nt_features'] = feature_encoding
         if len(self.node_target_parser) > 0:
-            target_encoding = self.encode_nodes(rna_graph, node_parser=self.node_target_parser)
+            target_encoding = self.encode_nodes(rna_dict['rna'],
+                                                node_parser=self.node_target_parser,
+                                                )
             features_dict['nt_targets'] = target_encoding
-        if self.misc_encoder is not None:
-            self.misc_encoder(rna_graph, features_dict)
         return features_dict
