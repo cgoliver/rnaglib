@@ -93,10 +93,10 @@ class RNADataset:
 
             # Here we assume that rna lists contain a relevant rna.name field, which is the case
             # if it was constructed using build_dataset above
-            rna_names = set([rna['rna'].name for rna in rnas])
+            rna_names = set([rna.name for rna in rnas])
             assert '' not in rna_names and len(rna_names) == len(rnas), ("When creating a RNAdataset from rnas, please "
                                                                          "use uniquely named networkx graphs")
-            self.all_rnas = bidict({rna['rna'].name: i for i, rna in enumerate(rnas)})
+            self.all_rnas = bidict({rna.name: i for i, rna in enumerate(rnas)})
 
         # Now that we have the raw data setup, let us set up the features we want to be using:
         self.features_computer = FeaturesComputer() if features_computer is None else features_computer
