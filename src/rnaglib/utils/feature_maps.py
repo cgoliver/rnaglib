@@ -255,7 +255,7 @@ EDGE_FEATURE_MAP = {
 }
 
 
-def build_node_feature_parser(asked_features=None, custom_encoders=None, node_feature_map=NODE_FEATURE_MAP):
+def build_node_feature_parser(asked_features=None, transforms=None, node_feature_map=NODE_FEATURE_MAP):
     """
     This function will load the predefined feature maps available globally.
     Then for each of the features in 'asked feature', it will return an encoder object for each of the asked features
@@ -264,21 +264,29 @@ def build_node_feature_parser(asked_features=None, custom_encoders=None, node_fe
     If some keys don't exist, will raise an Error. However if some keys are present but problematic,
     this will just cause a printing of the problematic keys
     :param asked_features: A list of string keys that are present in the encoder
-    :param custom_encoders: Dictionary mapping feature names to encoder objects
+    :param transforms: Transform objects to compute extra features
     :return: A dict {asked_feature : EncoderObject}
     """
+    
     # Build an asked list of features, with no redundancies
     asked_features = [] if asked_features is None else asked_features
     if not isinstance(asked_features, list):
         asked_features = [asked_features]
-    if custom_encoders is not None:
-        asked_features.extend(list(custom_encoders.keys()))
     asked_features = list(set(asked_features))
+
+    # attach the transform's encoder
+    if not transforms is None:
+        if isinstance(transforms, list):
+            for t in transforms:
+                node_feature_map[t.name] = t.encoder
+                asked_features.append(transforms.name)
+        else:
+            node_feature_map[transforms.name] = transforms.encoder
+            asked_features.append(transforms.name)
+
 
     # Update the map {key:encoder} and ensure every asked feature is in this encoding map.
     node_feature_map = node_feature_map.copy()
-    if custom_encoders is not None:
-        node_feature_map.update(custom_encoders)
     if any([feature not in node_feature_map for feature in asked_features]):
         problematic_keys = tuple([feature for feature in asked_features if feature not in node_feature_map])
         raise ValueError(f'{problematic_keys} were asked as a feature or target but do not exist')
@@ -291,6 +299,8 @@ def build_node_feature_parser(asked_features=None, custom_encoders=None, node_fe
 
     # Finally, keep only the relevant keys to include in the encoding dict.
     subset_dict = {k: node_feature_map[k] for k in encoding_features}
+
+
     return subset_dict
 
 

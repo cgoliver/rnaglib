@@ -93,10 +93,10 @@ class RNADataset:
 
             # Here we assume that rna lists contain a relevant rna.name field, which is the case
             # if it was constructed using build_dataset above
-            rna_names = set([rna.name for rna in rnas])
+            rna_names = set([rna['rna'].name for rna in rnas])
             assert '' not in rna_names and len(rna_names) == len(rnas), ("When creating a RNAdataset from rnas, please "
                                                                          "use uniquely named networkx graphs")
-            self.all_rnas = bidict({rna.name: i for i, rna in enumerate(rnas)})
+            self.all_rnas = bidict({rna['rna'].name: i for i, rna in enumerate(rnas)})
 
         # Now that we have the raw data setup, let us set up the features we want to be using:
         self.features_computer = FeaturesComputer() if features_computer is None else features_computer
@@ -115,6 +115,18 @@ class RNADataset:
                       features_computer=None,
                       in_memory=True,
                       **dataset_build_params):
+        
+        # if user added annotation, try to update the encoders so it can be used
+        # as a feature
+        if 'pre_transform' in dataset_build_params:
+            if not hasattr(dataset_build_params['pre_transform'], 'encoder'):
+                print(f"WARNING: passed a transform {dataset_build_param['pre_transform']} without an encoder attribute.\
+                        Using the transform for feature computation may fail."
+                       )
+                pass
+            else:
+                features_computer.add_feature(transforms=dataset_build_params['pre_transform'])
+
         dataset_path, all_rnas_name, rnas = database_to_dataset(features_computer=features_computer,
                                                                 return_rnas=in_memory,
                                                                 **dataset_build_params)
@@ -136,9 +148,9 @@ class RNADataset:
         else:
             rna_name = self.all_rnas.inv[idx]
             rna_graph = load_graph(os.path.join(self.dataset_path, f"{rna_name}.json"))
-
-        # Compute features
+            # Compute features
         rna_dict = {'rna': rna_graph}
+
         features_dict = self.features_computer.compute_features(rna_dict)
 
         # apply representations to the res_dict

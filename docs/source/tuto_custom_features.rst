@@ -1,43 +1,43 @@
 How to add custom attributes to RNAs
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Often you will have information on hand about a particular set of RNAs which you would like to integrate into the dataset for analysis or for use by ML models. This can be the result of some experimental assay, or embeddings from a pretrained model.
+Often you will have information on hand about a particular set of RNAs which you would like to integrate into the dataset for analysis or for use by ML models. This can be the result of some experimental assay, external database lookup, embeddings from a pretrained model, etc.
 
-This tutorial will cover how to add your own annotations to an RNA dataset and how to encode it for an ML task in 2 easy steps.
-
-1. Enter your annotation
------------------------------
-
-The first step is to add a annotation to the RNAs such that the necessary information is present in the raw networkx graph representing each RNA.
-
-To do this, we write a small helper function which accepts an RNA networkx graph as input and updates its node/edge/graph attributes following any logic you like.
+This tutorial will cover two ways you can use to add data to the RNAs in rnaglib: during dataset construction (pre-transform) and during runtime (transform). In both cases, we will make use of the :class:`~rnaglib.transforms.Transform` class. 
 
 
-In this case, we will have a trivial example of an annotator which adds a node-level attribute called ``'MY_FEAT'`` whose value will be a random category with values `'A'` or `'B'`. During dataset construction, the annotator function is applied individually to each RNA.
+Adding new annotations
+--------------------------------------------
 
+The first step is to add a annotation to the RNAs such that the necessary information is present in the raw networkx graph representing each RNA by creating a new `Transform` class. 
 
 .. code-block:: python
 
-    def my_annotator(g: nx.Graph):
-        feat = {n: random.choice(['A', 'B', 'C']) for n in g.nodes()}
-        nx.set_node_attributes(g, feat, 'MY_FEAT')
+    from rnaglib.transforms import Transform
+    from rnaglib.utils import OneHotEncoder
+
+    class MyTransform(Transform):
+        name = 'MY_FEAT'
+        encoder = OneHotEncoder({'A': 0, 'B': 1, 'C': 2})
+        def forward(data: dict):
+            g = data['rna']
+            feat = {n: random.choice(['A', 'B', 'C']) for n in g.nodes()}
+            nx.set_node_attributes(g, feat, self.name)
 
 
-At this point, you could pass the annotator to the dataset constructor and your dataet will contain the information you have provided. 
+.. hint::
 
+    We optionally define the ``name`` and ``encoder`` fields which can be used by :class:`~rnaglib.data_loading.features.FeatureEncoder` objects to cast raw annotations into tensor representations for deep learning.
+
+
+Now we pass ``MyTransform`` to the dataset construction in the ``pre_transform`` field. During dataset construction (i.e. this happens only once), the transform is applied to each RNA item. In this case, that ensures that each RNA graph's nodes will have tdata in the ``'MY_FEAT'`` field. 
 
 .. code-block:: python
 
    from rnaglib.data_loading import RNADataset
-   # returns a list of PDBIDs
-    pdbids = ['2pwt', '5v3f', '379d',
-              '5bjo', '4pqv', '430d',
-              '1fmn', '2mis', '4f8u'
-              ]
-
-
-    dataset = RNADataset.from_database(all_rnas_db=self.all_rnas,
-                                       annotator=annotator,
+   t = MyTransform()
+   dataset = RNADataset.from_database(debug=True
+                                      pre_transform=t,
                                        )
 
 
@@ -49,36 +49,21 @@ Now you can access the node attribute you defined over all the RNAs.
     nx.get_node_attributes(dataset[0]['rna'], 'MY_FEAT')
 
 
-Next we will see how you can use this attribute for ML.
+Using existing annotations as features for ML tasks
+---------------------------------------------------------
 
-
-2. Encode the annotation
--------------------------------
-
-Once the raw information is stored in the graphs, we need to tell rnaglib how to convert it to a numerical representation (e.g. as one-hot encoding for categorical data). For this, we provide the :class:`~rnaglib.data_loading.FeaturesComputer` class which processes desired annotations and turns them into a numerical tensors describing all node, edge and graph features.
-
-The :class:`~rnaglib.data_loading.FeaturesComputer` object natively deals with annotations already provided by rnaglib. For it to work on custom annotations, such as in this case, we need to tell it how to deal with our annotation by passing it the appropriate :class:`~rnaglib.utils.feature_maps.Encoder`.
-We provide several ``Encoder`` objects in the ``rnaglib.utils`` subpackage which take care of converting data to numerical representations.
-Since our example is a categorical variable with 3 possible values, we will want to use the ``OneHotEncoder``.
-We pass the encoder to the ``FeaturesComputer`` in a dictionary keyed by the name of the attribute it will be applied to. If you have more than one attribute to encode, you can add it to the same dictionary.
-
-The above snippet remains almost the same, except this time we pass the ``FeaturesComputer`` object to the dataset constructor. 
-Along with an encoder, for ML we need a representation of the data so here we pass the `GraphRepresentation()` object and select the PyG framework.
+The :class:`~rnaglib.data_loading.features.FeaturesComputer` class allows us to cast annotations present in the RNAs, such as any of the available ones in :doc:`the annotation reference <rna_ref>`, or those added by the user as above into tensors for machine learning.
 
 .. code-block:: python
 
-    from rnaglib.utis import OneHotEncoder
     from rnaglib.data_loading import FeaturesComputer
     from rnaglib.representations import GraphRepresentation
 
 
-    custom_encoder = {'MY_FEAT': OneHotEncoder({'A': 0, 'B': 1, 'C': 2})}
-    ft = FeaturesComputer(custom_encoders_features=custom_encoder)
+    ft = FeaturesComputer(transforms=t)
     rep = GraphRepresentation(framework='pyg')
 
-    dataset = RNADataset.from_database(all_rnas_db=all_rnas,
-                                       annotator=annotator,
-                                       redundancy='all',
+    dataset = RNADataset.from_database(debug=True,
                                        features_computer=ft,
                                        representations=[rep])
 
