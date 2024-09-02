@@ -16,8 +16,6 @@ class FeaturesComputer:
 
     :param nt_features: List of keys to use as node features, choose from the `dataset[i]['rna']` node attributes dictionary.
     :param nt_targets: List of keys to use as node features, choose from the `dataset[i]['rna']` node attributes dictionary.
-    :param custom_encoders_features:
-    :param custom_encoders_targets:
     :param rna_features:
     :param rna_targets:
     :param bp_features:
@@ -29,25 +27,23 @@ class FeaturesComputer:
     def __init__(self,
                  nt_features=None,
                  nt_targets=None,
-                 custom_encoders_features=None,
-                 custom_encoders_targets=None,
                  rna_features=None,
                  rna_targets=None,
                  bp_features=None,
                  bp_targets=None,
-                 post_transform=None,
-                 post_transform_target=None,
+                 transforms=None,
+                 transforms_target=None,
                  extra_useful_keys=None,
                  ):
 
-        # For all special cases, this is what to use
-        self.post_transform = post_transform
-        self.post_transform_target = post_transform_target
+        self.transforms = transforms
+        self.transforms_target = transforms_target
 
+        # For all special cases, this is what to use
         self.node_features_parser = build_node_feature_parser(nt_features,
-                                                              custom_encoders=custom_encoders_features)
+                                                              transforms=transforms)
         self.node_target_parser = build_node_feature_parser(nt_targets,
-                                                            custom_encoders=custom_encoders_targets)
+                                                            transforms=transforms_target)
 
         # This is only useful when using a FeatureComputer to create a dataset, and avoid removing important features
         # of the graph that are not used during loading
@@ -59,18 +55,18 @@ class FeaturesComputer:
         self.bp_features = bp_features
         self.bp_targets = bp_targets
 
-    def add_feature(self, feature_names=None, custom_encoders=None, input_feature=True):
+    def add_feature(self, feature_names=None, transforms=None, input_feature=True):
         """
         Update the input/output feature selector with either an extra available named feature or a custom encoder
         :param feature_names: Name of the input feature to add
-        :param custom_encoders: A dict containing {named_feature: custom encoder}
+        :param transforms: A Transform object to compute new features with
         :param input_feature: Set to true to modify the input feature encoder, false for the target one
         :return: None
         """
         # Select the right node_parser and update it
         node_parser = self.node_features_parser if input_feature else self.node_target_parser
         new_node_parser = build_node_feature_parser(asked_features=feature_names,
-                                                    custom_encoders=custom_encoders)
+                                                    transforms=transforms)
         node_parser.update(new_node_parser)
 
     def remove_feature(self, feature_name=None, input_feature=True):
@@ -130,7 +126,7 @@ class FeaturesComputer:
         for key in useful_keys:
             val = nx.get_node_attributes(rna_graph, key)
             nx.set_node_attributes(cleaned_graph, name=key, values=val)
-        return cleaned_graph
+        return {'rna': cleaned_graph}
 
     @staticmethod
     def encode_nodes(g: nx.Graph, node_parser):
@@ -168,9 +164,10 @@ class FeaturesComputer:
         framework-specific object.
         """
 
-        if not self.post_transform is None:
-            self.post_transform(rna_dict)
-            self.node_features_parser[self.post_transform.name] = self.post_transform.encoder
+        if not self.transforms is None:
+            self.transforms(rna_dict)
+        if not self.transforms_target is None:
+            self.transforms_target(rna_dict)
 
         features_dict = {}
         # Get Node labels

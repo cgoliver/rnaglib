@@ -22,7 +22,7 @@ def database_to_dataset_loop(all_rnas_db,
     for rna_filename in tqdm(all_rnas_db):
         rna_filename += ".json"
         rna_path = os.path.join(db_path, rna_filename)
-        rna = load_graph(rna_path)
+        rna = {'rna': load_graph(rna_path)}
 
         # Remove whole systems
         if rna_filter is not None and not rna_filter(rna):
@@ -33,7 +33,7 @@ def database_to_dataset_loop(all_rnas_db,
             subgs = []
 
             for subg in nt_filter(rna):
-                subgs.append(subg)
+                subgs.append({'rna': subg})
         else:
             subgs = [rna]
 
@@ -45,17 +45,17 @@ def database_to_dataset_loop(all_rnas_db,
         # Add a 'name' field to the graphs if annotator did not put one.
         rna_name, rna_extension = get_name_extension(rna_filename)
         for i, subg in enumerate(subgs):
-            if subg.name == '':
+            if subg['rna'].name == '':
                 if len(subgs) == 1:
-                    subg.name = rna_name
+                    subg['rna'].name = rna_name
                 else:
-                    subg.name = f'{rna_name}_{i}'
-        assert len(subgs) == len(set([g.name for g in subgs])), ("When adding several subgraphs in nt_filter,"
+                    subg['rna'].name = f'{rna_name}_{i}'
+        assert len(subgs) == len(set([rna['rna'].name for rna in subgs])), ("When adding several subgraphs in nt_filter,"
                                                                  " make sure to use unique names for each subgraphs")
 
         # Remove useless keys
         if features_computer is not None:
-            subgs = [features_computer.remove_useless_keys(subg) for subg in subgs]
+            subgs = [features_computer.remove_useless_keys(subg['rna']) for subg in subgs]
 
         rna_list.extend(subgs)
     return rna_list
@@ -135,7 +135,7 @@ def database_to_dataset(dataset_path=None,
                                     nt_filter=nt_filter,
                                     pre_transform=pre_transform,
                                     features_computer=features_computer)
-    all_rnas_name = [rna.name for rna in rnas]
+    all_rnas_name = [rna['rna'].name for rna in rnas]
     if dataset_path is not None:
         os.makedirs(dataset_path, exist_ok=True)
         for i, rna in enumerate(rnas):

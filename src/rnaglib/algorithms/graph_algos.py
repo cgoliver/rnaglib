@@ -695,9 +695,6 @@ def get_sequences(graph: nx.Graph) -> Tuple[Dict[str, Tuple[str, List[str]]]]:
         node_ids[f"{pdbid}.{ch}"] = sorted_ids
 
         sorted_seq = "".join([s for s,_ in sorted_seq])
-        if len(sorted_seq) < 10 or len(sorted_seq) > 1024:
-            fail.append(f"{pdbid}.{ch}")
-            continue
         sequences[f"{pdbid}.{ch}"] = (sorted_seq, node_ids[f"{pdbid}.{ch}"])
 
     return sequences
