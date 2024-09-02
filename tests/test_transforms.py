@@ -22,20 +22,23 @@ class TransformsTest(unittest.TestCase):
         then look up the stored attribute at getitem time.
         """
         tr = RNAFMTransform()
-        feat = FeaturesComputer(nt_features=[tr.name])
-        dataset = RNADataset.from_database(debug=True,
-                                           features_computer=feat,
-                                           pre_transform=tr,
-                                           representations=GraphRepresentation(framework='pyg'),
-                                           )
-
-        pass
-
-    def test_post_transform(self):
-        tr = RNAFMTransform()
-        feat = FeaturesComputer(transforms=tr)
+        feat = FeaturesComputer(nt_features=['nt_code', tr.name], transforms=tr)
         dataset = RNADataset(debug=True,
                              features_computer=feat,
+                             pre_transforms=tr,
+                             representations=GraphRepresentation(framework='pyg'),
+                             )
+
+        assert dataset[0]['graph'].x is not None
+
+    def test_post_transform(self):
+        """ Apply transform during getitem call.
+        """
+        tr = RNAFMTransform()
+        feat = FeaturesComputer(nt_features=['nt_code', tr.name], transforms=tr)
+        dataset = RNADataset(debug=True,
+                             features_computer=feat,
+                             transforms=tr,
                              representations=GraphRepresentation(framework='pyg'),
                              )
         assert dataset[0]['graph'].x is not None

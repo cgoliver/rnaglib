@@ -61,8 +61,13 @@ class RNADataset:
                  debug=False,
                  get_pdbs=False,
                  overwrite=False,
+                 pre_transforms=None,
+                 transforms=None,
                  **kwargs):
         self.in_memory = in_memory
+        self.transforms = transforms
+        self.pre_transforms = pre_transforms
+
         if rnas is None:
             if dataset_path is None:
                 # By default, use non redundant (nr), v1.0.0 dataset of rglib
@@ -101,6 +106,12 @@ class RNADataset:
         # Now that we have the raw data setup, let us set up the features we want to be using:
         self.features_computer = FeaturesComputer() if features_computer is None else features_computer
 
+        # pass transforms to the features computer to make the features available to the feat_dict
+        if not pre_transforms is None:
+            # tranforms work on the dict so have to get back the graph with the 'rna' key
+            # this is annoying
+            self.rnas = [pre_transforms({'rna': rna})['rna'] for rna in self.rnas]
+
         # Finally, let us set up the list of representations that we will be using
         if representations is None:
             self.representations = []
@@ -108,6 +119,7 @@ class RNADataset:
             self.representations = [representations]
         else:
             self.representations = representations
+
 
     @classmethod
     def from_database(cls,
@@ -118,15 +130,6 @@ class RNADataset:
         
         # if user added annotation, try to update the encoders so it can be used
         # as a feature
-        if 'pre_transform' in dataset_build_params:
-            if not hasattr(dataset_build_params['pre_transform'], 'encoder'):
-                print(f"WARNING: passed a transform {dataset_build_param['pre_transform']} without an encoder attribute.\
-                        Using the transform for feature computation may fail."
-                       )
-                pass
-            else:
-                features_computer.add_feature(transforms=dataset_build_params['pre_transform'])
-
         dataset_path, all_rnas_name, rnas = database_to_dataset(features_computer=features_computer,
                                                                 return_rnas=in_memory,
                                                                 **dataset_build_params)
@@ -150,6 +153,9 @@ class RNADataset:
             rna_graph = load_graph(os.path.join(self.dataset_path, f"{rna_name}.json"))
             # Compute features
         rna_dict = {'rna': rna_graph}
+
+        if not self.transforms is None:
+            self.transforms(rna_dict)
 
         features_dict = self.features_computer.compute_features(rna_dict)
 

@@ -33,7 +33,7 @@ class RNAFMTransform(Transform):
         self.batch_converter = self.alphabet.get_batch_converter()
         self.model.eval()
 
-    def forward(self, rna_dict: Dict) -> nx.Graph:
+    def forward(self, rna_dict: Dict) -> Dict:
         # Prepare data
         seq_data = get_sequences(rna_dict['rna'])
         input_seqs = [(chain_id, seq) for chain_id, (seq, _) in seq_data.items()]

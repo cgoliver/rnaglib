@@ -64,6 +64,12 @@ class FeaturesComputer:
         :return: None
         """
         # Select the right node_parser and update it
+
+        if not hasattr(transforms, 'encoder'):
+            print(f"WARNING: passed a transform {dataset_build_param['pre_transform']} without an encoder attribute.\
+                    Using the transform for feature computation may fail."
+                   )
+
         node_parser = self.node_features_parser if input_feature else self.node_target_parser
         new_node_parser = build_node_feature_parser(asked_features=feature_names,
                                                     transforms=transforms)
@@ -126,7 +132,7 @@ class FeaturesComputer:
         for key in useful_keys:
             val = nx.get_node_attributes(rna_graph, key)
             nx.set_node_attributes(cleaned_graph, name=key, values=val)
-        return {'rna': cleaned_graph}
+        return cleaned_graph
 
     @staticmethod
     def encode_nodes(g: nx.Graph, node_parser):
@@ -164,11 +170,7 @@ class FeaturesComputer:
         framework-specific object.
         """
 
-        if not self.transforms is None:
-            self.transforms(rna_dict)
-        if not self.transforms_target is None:
-            self.transforms_target(rna_dict)
-
+        
         features_dict = {}
         # Get Node labels
         if len(self.node_features_parser) > 0:
