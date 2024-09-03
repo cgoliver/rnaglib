@@ -65,10 +65,11 @@ class FeaturesComputer:
         """
         # Select the right node_parser and update it
 
-        if not hasattr(transforms, 'encoder'):
-            print(f"WARNING: passed a transform {dataset_build_param['pre_transform']} without an encoder attribute.\
-                    Using the transform for feature computation may fail."
-                   )
+        if not transforms is None:
+            if not hasattr(transforms, 'encoder'):
+                print(f"WARNING: passed a transform {transforms} without an encoder attribute.\
+                        Using the transform for feature computation may fail."
+                       )
 
         node_parser = self.node_features_parser if input_feature else self.node_target_parser
         new_node_parser = build_node_feature_parser(asked_features=feature_names,
