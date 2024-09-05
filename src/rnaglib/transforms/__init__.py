@@ -1,17 +1,17 @@
 from .transform import Transform
-from .filters import RNAFilter
-from .filters import SubstructureFilter
+from .filters import SizeFilter
+from .filters import RNAAttributeFilter
 from .rnafm import RNAFMTransform
 from .rfam import RfamTransform
 from .chain import ChainSplitTransform
-from .chain import ChainNameTransform 
+from .chain import ChainNameTransform
 
 __all__ = ['Transform',
-           'RNAFilter',
-           'SubstructureFilter',
+           'SizeFilter',
            'ChainSplitTransform',
            'RNAFMTransform',
-           'ChainNameTransform'
+           'ChainNameTransform',
+           'RNAAttributeFilter'
            ]
 
 classes = __all__
