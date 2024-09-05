@@ -27,13 +27,13 @@ class SizeFilter(FilterTransform):
 
 class RNAAttributeFilter(FilterTransform):
     """ Reject RNAs that lack a certain annotation at the whole RNA level."""
-    def __init__(self, annotation: str):
-        self.annotation = annotation
+    def __init__(self, attribute: str):
+        self.attribute = attribute
         pass
 
-    def __call__(self, data: dict):
+    def forward(self, data: dict):
         try:
-            annot = data['rna'].graph[self.annotation]
+            annot = data['rna'].graph[self.attribute]
         except KeyError:
             return False
         else:

@@ -1,4 +1,4 @@
-from typing import List, Union, Any
+from typing import List, Union, Any, Iterable
 
 import networkx as nx
 from rnaglib.data_loading import RNADataset
@@ -23,7 +23,7 @@ class Transform:
 
     """
     def __call__(self, data: Any) -> Any:
-        if isinstance(data, (list, RNADataset)):
+        if isinstance(data, (Iterable, RNADataset)):
             for d in data:
                 yield self.forward(d)
         else:
@@ -38,9 +38,9 @@ class Transform:
 
 class FilterTransform(Transform):
     """ Reject items from a dataset based on some conditions """
-    def __call__(self, data: Any) -> Iter[Any]:
-        if isinstance(data, (list, RNADataset)):
-            return filter(data, self.forward(data))
+    def __call__(self, data: Any) -> Union[bool, Iterable[Any]]:
+        if isinstance(data, (Iterable, RNADataset)):
+            return (d for d in data if self.forward(d))
         else:
             return self.forward(data)
         pass
@@ -52,8 +52,8 @@ class PartitionTransform(Transform):
     For example, splitting a list of multi-chain RNAs into a
     flat list of single-chain RNAs.
     """
-    def __call__(self, data: Any) -> Iter[Any]
-        if isinstance(data, (list, RNADataset)):
+    def __call__(self, data: Any) -> Iterable[Any]:
+        if isinstance(data, (Iterable, RNADataset)):
             for rna in data:
                 yield from self.forward(rna)
             pass
@@ -91,8 +91,8 @@ class ComposeFilters:
 
     def __call__(self, data: dict) -> bool:
         for filter_fn in self.filters:
-            if isinstance(data, (list, RNADataset)):
-                if not all filter_fn(data):
+            if isinstance(data, (Iterable, RNADataset)):
+                if not all(filter_fn(data)):
                     return False
             elif not filter_fn(data):
                 return False

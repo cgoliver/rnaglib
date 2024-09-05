@@ -1,6 +1,6 @@
 from typing import Iterator
 
-from rnaglib.transforms import PartitionTransform
+from rnaglib.transforms import Transform, PartitionTransform
 
 class ChainSplitTransform(PartitionTransform):
     """ Split up an RNA by chain. Yields all nodes belonging to the same chain
