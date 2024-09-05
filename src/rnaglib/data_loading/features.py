@@ -2,7 +2,6 @@ from typing import Dict
 
 import torch
 import networkx as nx
-from rnaglib.transforms import Transform
 from rnaglib.utils import build_node_feature_parser
 
 

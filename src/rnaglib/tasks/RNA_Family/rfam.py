@@ -26,7 +26,7 @@ class RNAFamilyTask(RNAClassificationTask):
 
     def build_dataset(self, root):
         # Create dataset
-        full_dataset = RNADataset(debug=True)
+        full_dataset = RNADataset(debug=self.debug)
         # compute rfam annotation, only keep ones with an Rfam annot.
         tr_rfam = RfamTransform()
         rnas = tr_rfam(full_dataset)
@@ -36,12 +36,10 @@ class RNAFamilyTask(RNAClassificationTask):
         rfam_mapping = {rfam: i for i, rfam in enumerate(labels)}
         tr_rfam.encoder = OneHotEncoder(rfam_mapping)
         # split by chain
-        tr_split = ChainSplitTransform()
-        tr_chain_name = ChainNameTransform()
-        chains = [tr_chain_name(chain_subg)['rna'] for r in rnas \
-                                            for chain_subg in tr_split(r)]
+        rnas = ChainSplitTransform()(rnas)
+        rnas = ChainNameTransform()(rnas)
 
         ft = FeaturesComputer(rna_targets=[tr_rfam.name], transforms=tr_rfam)
-        new_dataset = RNADataset(rnas=chains, features_computer=ft)
+        new_dataset = RNADataset(rnas=list(rnas), features_computer=ft)
 
         return new_dataset
