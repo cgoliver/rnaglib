@@ -11,7 +11,7 @@ from .chain import ChainNameTransform
 
 __all__ = ['Transform',
            'FilterTransform',
-           'Compose',
+           'Compose'
            'PartitionTransform',
            'SizeFilter',
            'ChainSplitTransform',
