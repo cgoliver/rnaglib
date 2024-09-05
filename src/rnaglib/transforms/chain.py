@@ -1,14 +1,11 @@
 from typing import Iterator
 
-from rnaglib.transforms import Transform
+from rnaglib.transforms import PartitionTransform
 
-class ChainSplitTransform(Transform):
+class ChainSplitTransform(PartitionTransform):
     """ Split up an RNA by chain. Yields all nodes belonging to the same chain
     one chain at a time.
     """
-    def __init__(self):
-        pass
-    
     def forward(self, rna_dict: dict) -> Iterator[dict]:
         g = rna_dict['rna']
         chain_sort_nodes = sorted(list(g.nodes(data=True)), key=lambda ndata:ndata[1]['chain_name'])

@@ -3,15 +3,15 @@ from networkx import set_node_attributes
 import numpy as np
 
 from rnaglib.data_loading.features import FeaturesComputer
-from rnaglib.transforms import Transform, RNAFilter, SubstructureFilter
+from rnaglib.transforms import Transform
 from rnaglib.utils import download_graphs, load_graph, dump_json
 from rnaglib.utils.graph_io import get_all_existing, get_name_extension
 
 
 def database_to_dataset_loop(all_rnas_db,
                              db_path,
-                             rna_filter: RNAFilter = None,
-                             nt_filter: SubstructureFilter = None,
+                             rna_filter: Transform = None,
+                             nt_filter: Transform = None,
                              pre_transforms: Transform = None,
                              features_computer: FeaturesComputer = None
                              ):
