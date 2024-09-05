@@ -9,6 +9,7 @@ from rnaglib.representations import GraphRepresentation
 from rnaglib.transforms import RNAFMTransform
 from rnaglib.transforms import RfamTransform
 from rnaglib.transforms import Compose
+from rnaglib.transforms import SizeFilter
 
 class TransformsTest(unittest.TestCase):
 
@@ -28,6 +29,11 @@ class TransformsTest(unittest.TestCase):
         tr(self.dataset[0])
         tr(self.dataset)
         pass
+
+    def test_filter(self):
+        f = SizeFilter(max_size=50)
+        new_dset = list(f(self.dataset))
+        assert len(new_dset) < len(self.dataset)
 
     def test_simple_compose(self):
         g = self.dataset[0]
