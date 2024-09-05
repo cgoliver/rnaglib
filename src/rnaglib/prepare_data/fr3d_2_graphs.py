@@ -131,7 +131,6 @@ def fr3d_to_graph(rna_path):
     chem_comp['chem_type'] = struc_dict['_chem_comp.type']
     XNA_linking = [chem_comp['chem_code'][idx] for idx, tp in enumerate(chem_comp['chem_type']) if tp =='RNA linking' or tp =='DNA linking']
     # XNA_linking = [chem_comp['chem_code'][idx] for idx, tp in enumerate(chem_comp['chem_type']) if tp =='RNA linking']
-    print(f"pdbid: {pdbid}, XNA linking: {XNA_linking}")
 
     # add coords with biopython
     parser = MMCIFParser()

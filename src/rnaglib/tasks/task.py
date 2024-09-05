@@ -35,7 +35,7 @@ class Task:
         self.dataset = self.build_dataset(root)
 
         if splitter is None:
-            self.splitter = self.default_splitter()
+            self.splitter = self.default_splitter
         else:
             self.splitter = splitter
         self.split()
