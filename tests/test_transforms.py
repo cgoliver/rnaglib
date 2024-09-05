@@ -1,12 +1,23 @@
 import unittest
 import tempfile
 
+import networkx as nx
+
 from rnaglib.data_loading import RNADataset
 from rnaglib.data_loading import FeaturesComputer
 from rnaglib.representations import GraphRepresentation
 from rnaglib.transforms import RNAFMTransform
+from rnaglib.transforms import RfamTransform
+from rnaglib.transforms import Compose
 
 class TransformsTest(unittest.TestCase):
+
+    def check_ndata(self, g, attribute: str):
+        _, ndata = next(iter(g.nodes(data=True)))
+        assert attribute in ndata
+
+    def check_gdata(self, g, attribute: str):
+        assert attribute in g.graph
 
     @classmethod
     def setUpClass(self):
@@ -15,7 +26,17 @@ class TransformsTest(unittest.TestCase):
     def test_RNAFMTransform(self):
         tr = RNAFMTransform()
         tr(self.dataset[0])
+        tr(self.dataset)
         pass
+
+    def test_simple_compose(self):
+        g = self.dataset[0]
+        tr_1 = RNAFMTransform()
+        tr_2 = RfamTransform()
+        t = Compose([tr_1, tr_2])
+        t(self.dataset[0])
+        self.check_gdata(g['rna'], 'rfam')
+        self.check_ndata(g['rna'], 'rnafm')
 
     def test_pre_transform(self):
         """ Add rnafm embeddings during dataset construction from database,
