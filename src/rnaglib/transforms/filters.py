@@ -14,9 +14,10 @@ class SizeFilter(FilterTransform):
     :param min_size: smallest allowed number of residues
     :param max_size: largest allowed number of residues. Default -1 which means no upper bound.
     """
-    def __init__(self, min_size:int = 0, max_size: int = -1):
+    def __init__(self, min_size:int = 0, max_size: int = -1, **kwargs):
         self.min_size = min_size
         self.max_size = max_size
+        super().__init__(**kwargs)
 
     def forward(self, rna_dict: dict) -> bool:
         n = len(rna_dict['rna'].nodes())
@@ -27,8 +28,9 @@ class SizeFilter(FilterTransform):
 
 class RNAAttributeFilter(FilterTransform):
     """ Reject RNAs that lack a certain annotation at the whole RNA level."""
-    def __init__(self, attribute: str):
+    def __init__(self, attribute: str, **kwargs):
         self.attribute = attribute
+        super().__init__(**kwargs)
         pass
 
     def forward(self, data: dict):

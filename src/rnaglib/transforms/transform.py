@@ -1,3 +1,4 @@
+from joblib import Parallel, delayed
 from typing import List, Union, Any, Iterable, Generator
 
 import networkx as nx
@@ -22,9 +23,17 @@ class Transform:
         >>> t(rna[0])
 
     """
+    def __init__(self, parallel: bool = False, num_workers: int = -1):
+        self.parallel = parallel
+        self.num_workers = num_workers
+        pass
+
     def __call__(self, data: Any) -> Any:
         if isinstance(data, (list, Generator, RNADataset)):
-            return (self.forward(d) for d in data)
+            if self.parallel:
+                return Parallel(n_jobs=self.num_workers)(delayed(self.forward)(d) for d in data)
+            else:
+                return (self.forward(d) for d in data)
         else:
             return self.forward(data)
 
@@ -39,7 +48,12 @@ class FilterTransform(Transform):
     """ Reject items from a dataset based on some conditions """
     def __call__(self, data: Any) -> Union[bool, Iterable[Any]]:
         if isinstance(data, (list, Generator, RNADataset)):
-            return (d for d in data if self.forward(d))
+            if self.parallel:
+                keeps = Parallel(n_jobs=self.num_workers)(delayed(self.forward)(d) for d in data)
+                return (d for d, keep in zip(data, keeps) if keep)
+            else:
+                return (d for d in data if self.forward(d))
+
         else:
             return self.forward(data)
         pass
