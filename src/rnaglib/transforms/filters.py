@@ -28,7 +28,10 @@ class SizeFilter(FilterTransform):
             return n > self.min_size and n < self.max_size
 
 class RNAAttributeFilter(FilterTransform):
-    """ Reject RNAs that lack a certain annotation at the whole RNA level."""
+    """ Reject RNAs that lack a certain annotation at the whole RNA level.
+
+    :param attribute: which RNA-level attribute to look for.
+    """
     def __init__(self, attribute: str, **kwargs):
         self.attribute = attribute
         super().__init__(**kwargs)

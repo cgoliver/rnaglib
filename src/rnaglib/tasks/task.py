@@ -16,8 +16,9 @@ from rnaglib.splitters import RandomSplitter
 
 class Task:
     """ Abstract class for a benchmarking task using the rnaglib datasets.
-    This class handles the logic for building the underlying dataset which is held in an rnaglib.data_loading.RNADataset
-     object. Once the dataset is created, the splitter is invoked to create the train/val/test indices.
+    This class handles the logic for building the underlying dataset which is held in an
+    rnaglib.data_loading.RNADataset
+    object. Once the dataset is created, the splitter is invoked to create the train/val/test indices.
     Tasks also define an evaluate() function to yield appropriate model performance metrics.
 
     :param root: path to a folder where the task information will be stored for fast loading.
