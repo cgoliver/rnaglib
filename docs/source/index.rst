@@ -111,7 +111,7 @@ Source Code and Contact
 * `Source Code <https://github.com/cgoliver/rnaglib>`_.
 * Contact rnaglib@cs.mcgill.ca 
 
- Associated Repositories
+Associated Repositories
 -----------------------------------------------
 
 `RNAmigos <https://github.com/cgoliver/RNAmigos>`_ : a research paper published in Nucleic Acid Research that

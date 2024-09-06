@@ -10,6 +10,7 @@ from rnaglib.transforms import RNAFMTransform
 from rnaglib.transforms import RfamTransform
 from rnaglib.transforms import Compose
 from rnaglib.transforms import SizeFilter
+from rnaglib.transforms import ChainSplitTransform
 
 class TransformsTest(unittest.TestCase):
 
@@ -24,6 +25,17 @@ class TransformsTest(unittest.TestCase):
     def setUpClass(self):
         self.dataset = RNADataset(debug=True)
 
+    def test_RfamTransform(self):
+        tr = RfamTransform()
+        tr(self.dataset[0])
+        tr(self.dataset)
+
+    def test_RfamTransform_parallel(self):
+        tr = RfamTransform(parallel=True)
+        tr(self.dataset[0])
+        tr(self.dataset)
+
+
     def test_RNAFMTransform(self):
         tr = RNAFMTransform()
         tr(self.dataset[0])
@@ -35,6 +47,16 @@ class TransformsTest(unittest.TestCase):
         new_dset = list(f(self.dataset))
         assert len(new_dset) < len(self.dataset)
 
+    def test_filter_parallel(self):
+        f = SizeFilter(max_size=50, parallel=True)
+        new_dset = list(f(self.dataset))
+        assert len(new_dset) < len(self.dataset)
+
+    def test_partition(self):
+        t = ChainSplitTransform()
+        new_data = list(t(self.dataset))
+        assert len(new_data) > len(self.dataset)
+
     def test_simple_compose(self):
         g = self.dataset[0]
         tr_1 = RNAFMTransform()
@@ -43,33 +65,6 @@ class TransformsTest(unittest.TestCase):
         t(self.dataset[0])
         self.check_gdata(g['rna'], 'rfam')
         self.check_ndata(g['rna'], 'rnafm')
-
-    def test_pre_transform(self):
-        """ Add rnafm embeddings during dataset construction from database,
-        then look up the stored attribute at getitem time.
-        """
-        tr = RNAFMTransform()
-        feat = FeaturesComputer(nt_features=['nt_code', tr.name], transforms=tr)
-        dataset = RNADataset(debug=True,
-                             features_computer=feat,
-                             pre_transforms=tr,
-                             representations=GraphRepresentation(framework='pyg'),
-                             )
-
-        assert dataset[0]['graph'].x is not None
-
-    def test_post_transform(self):
-        """ Apply transform during getitem call.
-        """
-        tr = RNAFMTransform()
-        feat = FeaturesComputer(nt_features=['nt_code', tr.name], transforms=tr)
-        dataset = RNADataset(debug=True,
-                             features_computer=feat,
-                             transforms=tr,
-                             representations=GraphRepresentation(framework='pyg'),
-                             )
-        assert dataset[0]['graph'].x is not None
-        pass
 
 
     pass

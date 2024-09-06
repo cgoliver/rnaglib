@@ -28,11 +28,11 @@ class RNAFamilyTask(RNAClassificationTask):
         # Create dataset
         full_dataset = RNADataset(debug=self.debug)
         # compute rfam annotation, only keep ones with an Rfam annot.
-        tr_rfam = RfamTransform()
+        tr_rfam = RfamTransform(parallel=True)
         rnas = tr_rfam(full_dataset)
-        rnas = RNAAttributeFilter(attribute=tr_rfam.name)(rnas)
+        rnas = list(RNAAttributeFilter(attribute=tr_rfam.name)(rnas))
         # compute one-hot mapping of labels
-        labels = sorted(list(set([r['rna'].graph['rfam'] for r in rnas])))
+        labels = sorted(set([r['rna'].graph['rfam'] for r in rnas]))
         rfam_mapping = {rfam: i for i, rfam in enumerate(labels)}
         tr_rfam.encoder = OneHotEncoder(rfam_mapping)
         # split by chain
@@ -40,6 +40,6 @@ class RNAFamilyTask(RNAClassificationTask):
         rnas = ChainNameTransform()(rnas)
 
         ft = FeaturesComputer(rna_targets=[tr_rfam.name], transforms=tr_rfam)
-        new_dataset = RNADataset(rnas=list(rnas), features_computer=ft)
+        new_dataset = RNADataset(rnas=list((r['rna'] for r in rnas)), features_computer=ft)
 
         return new_dataset

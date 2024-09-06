@@ -27,11 +27,12 @@ class RNAFMTransform(Transform):
     name  = 'rnafm'
     encoder = ListEncoder(640)
 
-    def __init__(self):
+    def __init__(self, **kwargs):
         # Load RNA-FM model
         self.model, self.alphabet = fm.pretrained.rna_fm_t12()
         self.batch_converter = self.alphabet.get_batch_converter()
         self.model.eval()
+        super().__init__(**kwargs)
 
     def forward(self, rna_dict: Dict) -> Dict:
         # Prepare data
