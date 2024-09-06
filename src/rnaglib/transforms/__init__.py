@@ -15,13 +15,15 @@ from .names import PDBIDNameTransform
 
 __all__ = ['Transform',
            'FilterTransform',
+           'PartitionTransform',
            'Compose',
            'ComposeFilters',
-           'PartitionTransform',
-           'SizeFilter',
            'ChainSplitTransform',
            'RNAFMTransform',
+           'RfamTransform',
            'ChainNameTransform',
+           'PDBIDNameTransform',
+           'SizeFilter',
            'RNAAttributeFilter',
            'ResidueAttributeFilter',
            'RibosomalFilter'
