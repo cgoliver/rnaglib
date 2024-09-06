@@ -15,7 +15,7 @@ from .names import PDBIDNameTransform
 
 __all__ = ['Transform',
            'FilterTransform',
-           'Compose'
+           'Compose',
            'ComposeFilters',
            'PartitionTransform',
            'SizeFilter',

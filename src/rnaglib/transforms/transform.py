@@ -20,7 +20,8 @@ class Transform:
         >>> from rnaglib.transforms import Transform
         >>> t = Transform()
         >>> dataset = RNADataset(dummy=True)
-        >>> t(rna[0])
+        >>> t(dataset[0])
+        >>> t(dataset)
 
     """
     def __init__(self, parallel: bool = False, num_workers: int = -1):
@@ -81,7 +82,10 @@ class PartitionTransform(Transform):
 
 class Compose(Transform):
     """ Combine multiple transforms into one, applying
-    each individual transform on each item consecutively. """
+    each individual transform on each item consecutively.
+
+    :param transforms: List of transforms to join together.
+    """
 
     def __init__(self, transforms: List[Transform], **kwargs):
         self.transforms = transforms
