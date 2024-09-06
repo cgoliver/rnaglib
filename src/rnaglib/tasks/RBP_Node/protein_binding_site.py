@@ -1,34 +1,41 @@
 import numpy as np
-from networkx import set_node_attributes
 
-from rnaglib.data_loading.create_dataset import annotator_add_embeddings, nt_filter_split_chains
 from rnaglib.data_loading import RNADataset, FeaturesComputer
-from rnaglib.splitters import RandomSplitter, SPLITTING_VARS, get_ribosomal_rnas, default_splitter_tr60_tr18
 from rnaglib.tasks import ResidueClassificationTask
-from rnaglib.utils import load_index
-from rnaglib.utils.feature_maps import BoolEncoder
+from rnaglib.transforms import ComposeFilters
+from rnaglib.transforms import RibosomalFilter
+from rnaglib.transforms import PDBIDNameTransform
+from rnaglib.transforms import ResidueAttributeFilter
 
 
 class ProteinBindingSiteDetection(ResidueClassificationTask):
-    input_var = "nt_code"
+    """ Residue-level task where the job is to predict a binary variable
+    at each residue representing the probability that a residue belongs to
+    a protein-binding interface
+    """
+
     target_var = "binding_protein"
 
     def __init__(self, root, splitter=None, **kwargs):
-        self.ribosomal_rnas = get_ribosomal_rnas()
         super().__init__(root=root, splitter=splitter, **kwargs)
 
-    def default_splitter(self):
-        return RandomSplitter()
-
     def build_dataset(self, root):
-        graph_index = load_index()
-        rnas_keep = []
-        for graph, graph_attrs in graph_index.items():
-            rna_id = graph.split(".")[0]
-            if "node_" + self.target_var in graph_attrs and rna_id not in self.ribosomal_rnas:
-                rnas_keep.append(rna_id)
+        # get full database
+        full_dataset = RNADataset(debug=self.debug)
 
-        features_computer = FeaturesComputer(nt_features=self.input_var, nt_targets=self.target_var)
-        dataset = RNADataset.from_database(features_computer=features_computer,
-                                           rna_filter=lambda x: x.graph['pdbid'][0].lower() in rnas_keep)
+        # build the filters
+        ribo_filter = RibosomalFilter()
+        non_bind_filter = ResidueAttributeFilter(attribute=self.target_var)
+        filters = ComposeFilters([ribo_filter, non_bind_filter])
+
+        # assign a name to each remaining RNA
+        add_name  = PDBIDNameTransform()
+
+        # apply filters and transforms
+        rnas = filters(full_dataset)
+        rnas = add_name(rnas)
+
+        # initialize final dataset
+        features_computer = FeaturesComputer(nt_targets=self.target_var)
+        dataset = RNADataset(rnas=[r['rna'] for r in rnas], features_computer=features_computer)
         return dataset

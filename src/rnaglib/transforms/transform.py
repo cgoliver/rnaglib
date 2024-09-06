@@ -45,18 +45,22 @@ class Transform:
 
 
 class FilterTransform(Transform):
-    """ Reject items from a dataset based on some conditions """
+    """ Reject items from a dataset based on some conditions.
+    The ``forward()`` method returns True/False for the given RNA and
+    the ``__call__()`` method returns the RNAs which pass the ``forward()`` filter.
+    """
     def __call__(self, data: Any) -> Union[bool, Iterable[Any]]:
-        if isinstance(data, (list, Generator, RNADataset)):
-            if self.parallel:
-                keeps = Parallel(n_jobs=self.num_workers)(delayed(self.forward)(d) for d in data)
-                return (d for d, keep in zip(data, keeps) if keep)
-            else:
-                return (d for d in data if self.forward(d))
-
+        if not isinstance(data, (list, Generator, RNADataset)):
+            raise ValueError("Filter transforms only apply to collections of RNAs.")
+        if self.parallel:
+            keeps = Parallel(n_jobs=self.num_workers)(delayed(self.forward)(d) for d in data)
+            return (d for d, keep in zip(data, keeps) if keep)
         else:
-            return self.forward(data)
-        pass
+            return (d for d in data if self.forward(d))
+
+    def forward(self, data: dict) -> bool:
+        """ Returns true/ or false on the given RNA"""
+        raise NotImplementedError
     pass
 
 class PartitionTransform(Transform):
@@ -79,8 +83,9 @@ class Compose(Transform):
     """ Combine multiple transforms into one, applying
     each individual transform on each item consecutively. """
 
-    def __init__(self, transforms: List[Transform]):
+    def __init__(self, transforms: List[Transform], **kwargs):
         self.transforms = transforms
+        super().__init__(**kwargs)
         pass
 
     def forward(self, data: Any):
@@ -103,13 +108,11 @@ class ComposeFilters:
         self.filters = filters
 
     def __call__(self, data: dict) -> bool:
+        if not isinstance(data, (list, Generator, RNADataset)):
+            raise ValueError("Filter compose only works on collections of RNAs")
         for filter_fn in self.filters:
-            if isinstance(data, (list, Generator, RNADataset)):
-                if not all(filter_fn(data)):
-                    return False
-            elif not filter_fn(data):
-                return False
-        return True
+                data = (d for d in data if filter_fn.forward(d))
+        return data
 
     def __repr__(self) -> str:
         args = [f'  {filter_fn}' for filter_fn in self.filters]
