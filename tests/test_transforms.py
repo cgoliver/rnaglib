@@ -35,7 +35,6 @@ class TransformsTest(unittest.TestCase):
         tr(self.dataset[0])
         tr(self.dataset)
 
-
     def test_RNAFMTransform(self):
         tr = RNAFMTransform()
         tr(self.dataset[0])

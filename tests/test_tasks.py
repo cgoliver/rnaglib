@@ -3,6 +3,7 @@ import tempfile
 
 from rnaglib.tasks import Task
 from rnaglib.tasks import RNAFamilyTask
+from rnaglib.tasks import ProteinBindingSiteDetection
 
 class TaskTest(unittest.TestCase):
 
@@ -18,3 +19,8 @@ class TaskTest(unittest.TestCase):
             ta = RNAFamilyTask(root=tmp, debug=True)
             self.check_task(ta)
         pass
+
+    def test_ProteinBindingSiteDetectionTask(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            ta = ProteinBindingSiteDetection(root=tmp, debug=True)
+            self.check_task(ta)
