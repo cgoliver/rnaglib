@@ -7,7 +7,7 @@ from rnaglib.transforms import Transform
 from rnaglib.utils import OneHotEncoder
 
 class RfamTransform(Transform):
-    """" Obtain the Rfam classification of an RNA and store
+    """ Obtain the Rfam classification of an RNA and store
     as a graph attribute. If no annotation is found, stores ``None``.
     """
     name  = 'rfam'
