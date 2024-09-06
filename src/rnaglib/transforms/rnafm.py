@@ -18,7 +18,7 @@ from rnaglib.utils import ListEncoder
 from rnaglib.algorithms import get_sequences
 
 class RNAFMTransform(Transform):
-    """" Use the RNA-FM model to compute residue-level embeddings.
+    """ Use the RNA-FM model to compute residue-level embeddings.
     Make sure rna-fm is installed by running ``pip install rna-fm``.
     Sets a node attribute to `'rnafm'` with a numpy array of the resulting
     embedding. Go `here <https://github.com/ml4bio/RNA-FM>`_ for the RNA-FM
