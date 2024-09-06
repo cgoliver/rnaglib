@@ -26,7 +26,6 @@ class TaskTest(unittest.TestCase):
             ta = ProteinBindingSiteDetection(root=tmp, debug=True)
             self.check_task(ta)
 
-
     def test_ChemicalModification(self):
         with tempfile.TemporaryDirectory() as tmp:
             ta = ChemicalModification(root=tmp, debug=True)
