@@ -94,12 +94,13 @@ Tutorials
 Package Structure
 -----------------
 
--  :doc:`rnaglib.prepare_data`: processes raw PDB structures and
-   builds a database of 2.5D graphs with full structural annotation
 -  :doc:`rnaglib.data_loading`: custom PyTorch dataloader and dataset implementations
+-  :doc:`rnaglib.tasks`: prediction tasks for ML benchmarking.
 -  :doc:`rnaglib.transforms`: process and modify RNA data
 -  :doc:`rnaglib.representations`: graph, voxel, point cloud representations
 -  :doc:`rnaglib.learning`: learning routines and pre-built GCN models for the easiest use of the
+-  :doc:`rnaglib.prepare_data`: processes raw PDB structures and
+   builds a database of 2.5D graphs with full structural annotation
    package.
 -  :doc:`rnaglib.drawing`: utilities for visualizing 2.5D graphs
 -  :doc:`rnaglib.ged`: custom graph similarity functions
