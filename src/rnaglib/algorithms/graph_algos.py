@@ -1,10 +1,8 @@
-""" Collection of functions operating on RNA graphs """
+"""Collection of functions operating on RNA graphs"""
 
-import sys
 import pickle
 import os
-import itertools
-from typing import List, Optional, Hashable, Dict, List, Tuple
+from typing import Optional, Hashable, Dict, List, Tuple
 
 
 from tqdm import tqdm
@@ -13,8 +11,8 @@ import numpy as np
 
 from rnaglib.config.graph_keys import GRAPH_KEYS, TOOL
 
-CANONICALS = GRAPH_KEYS['canonical'][TOOL]
-VALID_EDGES = GRAPH_KEYS['edge_map'][TOOL].keys()
+CANONICALS = GRAPH_KEYS["canonical"][TOOL]
+VALID_EDGES = GRAPH_KEYS["edge_map"][TOOL].keys()
 
 
 def reorder_nodes(g: nx.DiGraph) -> nx.DiGraph:
@@ -35,9 +33,9 @@ def reorder_nodes(g: nx.DiGraph) -> nx.DiGraph:
     return reordered_graph
 
 
-def induced_edge_filter(graph: nx.DiGraph,
-                        roots: List[Hashable],
-                        depth: Optional[int] = 1) -> nx.DiGraph:
+def induced_edge_filter(
+    graph: nx.DiGraph, roots: List[Hashable], depth: Optional[int] = 1
+) -> nx.DiGraph:
     """
     Remove edges in graph introduced by the induced sugraph routine.
     Only keep edges which fall within a single node's neighbourhood.
@@ -48,7 +46,8 @@ def induced_edge_filter(graph: nx.DiGraph,
 
     :returns clean_g: cleaned graph
     """
-    # a depth of zero does not make sense for this operation as it would remove all edges
+    # a depth of zero does not make sense for this operation as it would remove
+    # all edges
     if depth < 1:
         depth = 1
     neighbourhoods = []
@@ -63,7 +62,7 @@ def induced_edge_filter(graph: nx.DiGraph,
     subgraph = subgraph.copy()
     # graph_new = graph_new.subgraph(flat_neighbors)
     kill = []
-    for (u, v) in subgraph.edges():
+    for u, v in subgraph.edges():
         for nei in neighbourhoods:
             if u in nei and v in nei:
                 break
@@ -74,9 +73,7 @@ def induced_edge_filter(graph: nx.DiGraph,
     return subgraph
 
 
-def get_nc_nodes(graph: nx.DiGraph,
-                 depth:int =4,
-                 return_index: bool = False) -> set:
+def get_nc_nodes(graph: nx.DiGraph, depth: int = 4, return_index: bool = False) -> set:
     """
     Returns indices of nodes in graph which have a non-canonical or
     looping base in their neighbourhood.
@@ -138,25 +135,36 @@ def incident_nodes(graph, nodes):
     return hits
 
 
-def nx_to_dgl(graph, edge_map, label='label'):
+def nx_to_dgl(graph, edge_map, label="label"):
     """
-        Networkx graph to DGL.
+    Networkx graph to DGL.
     """
     import dgl
 
-    graph, _, ring = pickle.load(open(graph, 'rb'))
-    edge_type = {edge: edge_map[lab] for edge, lab in (nx.get_edge_attributes(graph, label)).items()}
-    nx.set_edge_attributes(graph, name='edge_type', values=edge_type)
+    graph, _, ring = pickle.load(open(graph, "rb"))
+    edge_type = {
+        edge: edge_map[lab]
+        for edge, lab in (nx.get_edge_attributes(graph, label)).items()
+    }
+    nx.set_edge_attributes(graph, name="edge_type", values=edge_type)
     g_dgl = dgl.DGLGraph()
-    g_dgl.from_networkx(nx_graph=graph, edge_attrs=['edge_type'])
+    g_dgl.from_networkx(nx_graph=graph, edge_attrs=["edge_type"])
     return g_dgl
 
 
-def dgl_to_nx(graph, edge_map, label='label'):
+def dgl_to_nx(graph, edge_map, label="label"):
     import dgl
-    g = dgl.to_networkx(graph, edge_attrs=['edge_type'])
+
+    g = dgl.to_networkx(graph, edge_attrs=["edge_type"])
     edge_map_r = {v: k for k, v in edge_map.items()}
-    nx.set_edge_attributes(g, {(n1, n2): edge_map_r[d['edge_type'].item()] for n1, n2, d in g.edges(data=True)}, label)
+    nx.set_edge_attributes(
+        g,
+        {
+            (n1, n2): edge_map_r[d["edge_type"].item()]
+            for n1, n2, d in g.edges(data=True)
+        },
+        label,
+    )
     return g
 
 
@@ -187,7 +195,7 @@ def bfs_generator(graph, initial_node):
         yield list(depth_ring)
 
 
-def bfs(graph, initial_nodes, nc_block=False, depth=2, label='label'):
+def bfs(graph, initial_nodes, nc_block=False, depth=2, label="label"):
     """
     BFS from seed nodes given graph and initial node.
 
@@ -208,7 +216,7 @@ def bfs(graph, initial_nodes, nc_block=False, depth=2, label='label'):
             for nei in graph.neighbors(n):
                 depth_ring.add(nei)
                 e_labels.add(graph[n][nei][label])
-        if nc_block and e_labels.issubset({'CWW', 'B53', ''}):
+        if nc_block and e_labels.issubset({"CWW", "B53", ""}):
             break
         else:
             total_nodes.append(depth_ring)
@@ -216,7 +224,7 @@ def bfs(graph, initial_nodes, nc_block=False, depth=2, label='label'):
     return total_nodes
 
 
-def extract_graphlet(graph, n, size=1, label='LW'):
+def extract_graphlet(graph, n, size=1, label="LW"):
     """
     Small util to extract a graphlet around a node
 
@@ -241,10 +249,10 @@ def remove_self_loops(graph):
     graph.remove_edges_from([(n, n) for n in graph.nodes()])
 
 
-def remove_non_standard_edges(graph, label='LW'):
+def remove_non_standard_edges(graph, label="LW"):
     """
     Remove all edges whose label is not in the VALID EDGE variable
-    
+
     :param graph: Nx Graph
     :param label: The name of the labels to check
 
@@ -257,7 +265,7 @@ def remove_non_standard_edges(graph, label='LW'):
     graph.remove_edges_from(remove)
 
 
-def to_orig(graph, label='LW'):
+def to_orig(graph, label="LW"):
     """
     Deprecated, used to include only the NC
 
@@ -269,16 +277,22 @@ def to_orig(graph, label='LW'):
     H = nx.Graph()
     for n1, n2, d in graph.edges(data=True):
         if d[label] in VALID_EDGES:
-            assert d[label] != 'B35'
+            assert d[label] != "B35"
             H.add_edge(n1, n2, label=d[label])
 
-    for attrib in ['mg', 'lig', 'lig_id', 'chemically_modified',
-                   'pdb_pos', 'bgsu', 'carnaval', 'chain']:
+    for attrib in [
+        "mg",
+        "lig",
+        "lig_id",
+        "chemically_modified",
+        "pdb_pos",
+        "bgsu",
+        "carnaval",
+        "chain",
+    ]:
         graph_data = graph.nodes(data=True)
         attrib_dict = {n: graph_data[n][attrib] for n in H.nodes()}
-        nx.set_node_attributes(H,
-                               attrib_dict,
-                               attrib)
+        nx.set_node_attributes(H, attrib_dict, attrib)
 
     remove_self_loops(H)
     return H
@@ -306,7 +320,7 @@ def to_orig_all(graph_dir, dump_dir):
 def find_node(graph, chain, pos):
     """
     Get a node from its PDB identification
-    
+
     :param graph: Nx graph
     :param chain: The PDB chain
     :param pos: The PDB 'POS' field
@@ -314,12 +328,12 @@ def find_node(graph, chain, pos):
     :return: The node if it was found, else None
     """
     for n, d in graph.nodes(data=True):
-        if (n[0] == chain) and (d['nucleotide'].pdb_pos == str(pos)):
+        if (n[0] == chain) and (d["nucleotide"].pdb_pos == str(pos)):
             return n
     return None
 
 
-def has_NC(graph, label='LW'):
+def has_NC(graph, label="LW"):
     """
     Does the input graph contain non canonical edges ?
 
@@ -352,7 +366,8 @@ def has_NC_bfs(graph, node_id, depth=2):
 
 def floaters(graph):
     """
-    Try to connect floating base pairs. (Single base pair not attached to backbone).
+    Try to connect floating base pairs. (Single base pair not attached
+    to backbone).
     Otherwise remove.
 
     :param graph: Nx graph
@@ -392,8 +407,10 @@ def stack_trim(graph):
 
     :return: trimmed graph
     """
-    is_ww = lambda e, graph: 'CWW' in [info['LW'] for node, info in graph[e].items()]
-    degree = lambda i, graph, nodelist: np.sum(nx.to_numpy_matrix(graph, nodelist=nodelist)[i])
+    is_ww = lambda e, graph: "CWW" in [info["LW"] for node, info in graph[e].items()]
+    degree = lambda i, graph, nodelist: np.sum(
+        nx.to_numpy_matrix(graph, nodelist=nodelist)[i]
+    )
     cur_graph = graph.copy()
     while True:
         stacks = []
@@ -403,9 +420,9 @@ def stack_trim(graph):
                 partner = None
                 stacker = None
                 for node, info in cur_graph[n].items():
-                    if info['label'] == 'B53':
+                    if info["label"] == "B53":
                         stacker = node
-                    elif info['label'] == 'CWW':
+                    elif info["label"] == "CWW":
                         partner = node
                     else:
                         pass
@@ -414,12 +431,12 @@ def stack_trim(graph):
                 partner_2 = None
                 stacker_2 = None
                 for node, info in cur_graph[partner].items():
-                    if info['label'] == 'B53':
+                    if info["label"] == "B53":
                         stacker_2 = node
-                    elif info['label'] == 'CWW':
+                    elif info["label"] == "CWW":
                         partner_2 = node
                 try:
-                    if cur_graph[stacker][stacker_2]['label'] == 'CWW':
+                    if cur_graph[stacker][stacker_2]["label"] == "CWW":
                         stacks.append(n)
                         stacks.append(partner)
                 except KeyError:
@@ -442,9 +459,15 @@ def in_stem(graph, u, v):
 
     :return: Boolean
     """
-    non_bb = lambda graph, e: len([info['LW'] for node, info in graph[e].items() if info['LW'] not in CANONICALS])
-    is_ww = lambda graph, u, v: graph[u][v]['LW'] not in {'CWW', 'cWW'}
-    if is_ww(graph, u, v) and (non_bb(graph, u) in (1, 2)) and (non_bb(graph, v) in (1, 2)):
+    non_bb = lambda graph, e: len(
+        [info["LW"] for node, info in graph[e].items() if info["LW"] not in CANONICALS]
+    )
+    is_ww = lambda graph, u, v: graph[u][v]["LW"] not in {"CWW", "cWW"}
+    if (
+        is_ww(graph, u, v)
+        and (non_bb(graph, u) in (1, 2))
+        and (non_bb(graph, v) in (1, 2))
+    ):
         return True
     return False
 
@@ -452,7 +475,7 @@ def in_stem(graph, u, v):
 def gap_fill(original_graph, graph_to_expand):
     """
     If we subgraphed, get rid of all degree 1 nodes by completing them with one more hop
-    
+
     :param original_graph: nx graph
     :param graph_to_expand: nx graph that needs to be expanded to fix dangles
 
@@ -470,7 +493,7 @@ def gap_fill(original_graph, graph_to_expand):
 def symmetric_elabels(graph):
     """
     Make edge labels symmetric for a graph.
-    
+
     :param graph: Nx graph
 
     :return: Same graph but edges are now symmetric and calling undirected is straightforward.
@@ -478,19 +501,19 @@ def symmetric_elabels(graph):
     H = graph.copy()
     new_e_labels = {}
     for n1, n2, d in graph.edges(data=True):
-        old_label = d['label']
-        if old_label not in ['B53', 'B35']:
+        old_label = d["label"]
+        if old_label not in ["B53", "B35"]:
             new_label = old_label[0] + "".join(sorted(old_label[1:]))
         else:
-            new_label = 'B53'
+            new_label = "B53"
         new_e_labels[(n1, n2)] = new_label
-    nx.set_edge_attributes(H, new_e_labels, 'label')
+    nx.set_edge_attributes(H, new_e_labels, "label")
     return H
 
 
 def relabel_graphs(graph_dir, dump_path):
     """
-        Take graphs in graph_dir and dump symmetrized in dump_path.
+    Take graphs in graph_dir and dump symmetrized in dump_path.
     """
     for g in tqdm(os.listdir(graph_dir)):
         graph = nx.read_gpickle(os.path.join(graph_dir, g))
@@ -501,11 +524,7 @@ def relabel_graphs(graph_dir, dump_path):
 
 
 def weisfeiler_lehman_graph_hash(
-        graph,
-        edge_attr=None,
-        node_attr=None,
-        iterations=3,
-        digest_size=16
+    graph, edge_attr=None, node_attr=None, iterations=3, digest_size=16
 ):
     """Return Weisfeiler Lehman (WL) graph hash.
 
@@ -590,25 +609,26 @@ def weisfeiler_lehman_graph_hash(
 
     def neighborhood_aggregate(graph, node, node_labels, edge_attr=None):
         """
-            Compute new labels for given node by aggregating
-            the labels of each node's neighbors.
+        Compute new labels for given node by aggregating
+        the labels of each node's neighbors.
         """
         label_list = [node_labels[node]]
         for nei in graph.neighbors(node):
             prefix = "" if not edge_attr else graph[node][nei][edge_attr]
             label_list.append(prefix + node_labels[nei])
-        return ''.join(sorted(label_list))
+        return "".join(sorted(label_list))
 
     def weisfeiler_lehman_step(graph, labels, edge_attr=None, node_attr=None):
         """
-            Apply neighborhood aggregation to each node
-            in the graph.
-            Computes a dictionary with labels for each node.
+        Apply neighborhood aggregation to each node
+        in the graph.
+        Computes a dictionary with labels for each node.
         """
         new_labels = dict()
         for node in graph.nodes():
-            new_labels[node] = neighborhood_aggregate(graph, node, labels,
-                                                      edge_attr=edge_attr)
+            new_labels[node] = neighborhood_aggregate(
+                graph, node, labels, edge_attr=edge_attr
+            )
         return new_labels
 
     items = []
@@ -620,32 +640,29 @@ def weisfeiler_lehman_graph_hash(
         elif node_attr:
             node_labels[node] = str(graph.nodes[node][node_attr])
         else:
-            node_labels[node] = ''
+            node_labels[node] = ""
 
     for k in range(iterations):
-        node_labels = weisfeiler_lehman_step(graph, node_labels,
-                                             edge_attr=edge_attr)
+        node_labels = weisfeiler_lehman_step(graph, node_labels, edge_attr=edge_attr)
         counter = Counter()
         # count node labels
         for node, d in node_labels.items():
             h = blake2b(digest_size=digest_size)
-            h.update(d.encode('ascii'))
+            h.update(d.encode("ascii"))
             counter.update([h.hexdigest()])
         # sort the counter, extend total counts
         items.extend(sorted(counter.items(), key=lambda x: x[0]))
 
     # hash the final counter
     h = blake2b(digest_size=digest_size)
-    h.update(str(tuple(items)).encode('ascii'))
+    h.update(str(tuple(items)).encode("ascii"))
     h = h.hexdigest()
     return h
 
 
-def fix_buggy_edges(graph,
-                    label='LW',
-                    strategy='remove',
-                    edge_map=GRAPH_KEYS['edge_map'][TOOL]
-                    ):
+def fix_buggy_edges(
+    graph, label="LW", strategy="remove", edge_map=GRAPH_KEYS["edge_map"][TOOL]
+):
     """
     Sometimes some edges have weird names such as t.W representing a fuzziness.
     We just remove those as they don't deliver a good information
@@ -655,7 +672,7 @@ def fix_buggy_edges(graph,
     In the future maybe add an edge type in the edge map ?
     :return:
     """
-    if strategy == 'remove':
+    if strategy == "remove":
         # Filter weird edges for now
         to_remove = list()
         for start_node, end_node, nodedata in graph.edges(data=True):
@@ -664,37 +681,37 @@ def fix_buggy_edges(graph,
         for start_node, end_node in to_remove:
             graph.remove_edge(start_node, end_node)
     else:
-        raise ValueError(f'The edge fixing strategy : {strategy} was not implemented yet')
+        raise ValueError(
+            f"The edge fixing strategy : {strategy} was not implemented yet"
+        )
     return graph
 
 
-
 def get_sequences(graph: nx.Graph) -> Tuple[Dict[str, Tuple[str, List[str]]]]:
-    """ Extract ordered sequences from each chain of the RNA.
+    """Extract ordered sequences from each chain of the RNA.
     Returns a dictionary mapping <pdbid.chain>: (sequence, list of node IDs)
 
     :param graph: an nx.Graph of an RNA.
 
     """
 
-    fail = []
     sequences = {}
     node_ids = {}
     chains = set([n.split(".")[1] for n in graph.nodes()])
-    seqs = {c :[] for c in chains}
-    for nt,d in graph.nodes(data=True):
+    seqs = {c: [] for c in chains}
+    for nt, d in graph.nodes(data=True):
         pdbid, ch, pos = nt.split(".")
-        nuc = d['nt_code'].upper()
-        if nuc not in ['A', 'U', 'C', 'G']:
-            nuc = 'N'
+        nuc = d["nt_code"].upper()
+        if nuc not in ["A", "U", "C", "G"]:
+            nuc = "N"
         seqs[ch].append((nuc, int(pos)))
-    
+
     for ch, seq in seqs.items():
-        sorted_seq = sorted(seq, key=lambda x:x[1])
-        sorted_ids = [f"{pdbid}.{ch}.{pos}" for _,pos in sorted_seq]
+        sorted_seq = sorted(seq, key=lambda x: x[1])
+        sorted_ids = [f"{pdbid}.{ch}.{pos}" for _, pos in sorted_seq]
         node_ids[f"{pdbid}.{ch}"] = sorted_ids
 
-        sorted_seq = "".join([s for s,_ in sorted_seq])
+        sorted_seq = "".join([s for s, _ in sorted_seq])
         sequences[f"{pdbid}.{ch}"] = (sorted_seq, node_ids[f"{pdbid}.{ch}"])
 
     return sequences

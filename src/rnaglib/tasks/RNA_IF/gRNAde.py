@@ -8,7 +8,7 @@ import os
 import torch
 from sklearn.metrics import matthews_corrcoef, f1_score, accuracy_score, roc_auc_score
 from networkx import set_node_attributes
-from rnaglib.data_loading import BoolEncoder
+from rnaglib.encoders import BoolEncoder
 
 
 class DasSplitter(Splitter):

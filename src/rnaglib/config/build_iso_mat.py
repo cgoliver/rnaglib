@@ -2,11 +2,11 @@ import os
 import sys
 import numpy as np
 
-script_dir = os.path.dirname(os.path.realpath(__file__))
-if __name__ == "__main__":
-    sys.path.append(os.path.join(script_dir, '..', '..'))
-
 from rnaglib.config.graph_keys import EDGE_MAP_RGLIB
+
+""" Isostericity matrix parsing and loading.
+
+"""
 
 s = """
 ,CHH,TWH,CWW,THS,CWS,CSS,CWH,CHS,TWS,TSS,TWW,THH,B53
@@ -54,7 +54,7 @@ key_map = {bp: i for i, bp in enumerate(keys)}
 
 def get_undirected_iso(bpa, bpb):
     """
-    Given two directed edges, get the values from the undirected isostericity matrix
+    Given two directed edges, get the values from the undirected isostericity matrix.
 
     :param bpa: LW edge code
     :type bpa: str
@@ -74,7 +74,7 @@ def get_undirected_iso(bpa, bpb):
 
 def build_iso():
     """
-    This function builds a directed isostericity matrix
+    Build a directed isostericity matrix.
 
     The heuristic is as follows :
     - It has a diagonal of ones : max similarity is self
