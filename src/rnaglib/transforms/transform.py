@@ -1,8 +1,8 @@
 from joblib import Parallel, delayed
-from typing import List, Union, Any, Iterable, Generator
+from typing import List, Union, Any, Iterable, Generator, TYPE_CHECKING
 
 import networkx as nx
-from rnaglib.data_loading import RNADataset
+
 
 class Transform:
     """ Transforms modify and add information to an RNA graph via
@@ -19,7 +19,7 @@ class Transform:
 
         >>> from rnaglib.transforms import Transform
         >>> t = Transform()
-        >>> dataset = RNADataset(dummy=True)
+        >>> dataset = 'RNADataset'(debug=True)
         >>> t(dataset[0])
         >>> t(dataset)
 
@@ -30,6 +30,7 @@ class Transform:
         pass
 
     def __call__(self, data: Any) -> Any:
+        RNADataset = __import__('rnaglib.data_loading').data_loading.RNADataset
         if isinstance(data, (list, Generator, RNADataset)):
             if self.parallel:
                 return Parallel(n_jobs=self.num_workers)(delayed(self.forward)(d) for d in data)
@@ -51,6 +52,7 @@ class FilterTransform(Transform):
     the ``__call__()`` method returns the RNAs which pass the ``forward()`` filter.
     """
     def __call__(self, data: Any) -> Union[bool, Iterable[Any]]:
+        RNADataset = __import__('rnaglib.data_loading').data_loading.RNADataset
         if not isinstance(data, (list, Generator, RNADataset)):
             raise ValueError("Filter transforms only apply to collections of RNAs.")
         if self.parallel:
@@ -71,6 +73,7 @@ class PartitionTransform(Transform):
     flat list of single-chain RNAs.
     """
     def __call__(self, data: Any) -> Iterable[Any]:
+        RNADataset = __import__('rnaglib.data_loading').data_loading.RNADataset
         if isinstance(data, (list, Generator, RNADataset)):
             for rna in data:
                 yield from self.forward(rna)
@@ -112,6 +115,7 @@ class ComposeFilters:
         self.filters = filters
 
     def __call__(self, data: dict) -> bool:
+        RNADataset = __import__('rnaglib.data_loading').data_loading.RNADataset
         if not isinstance(data, (list, Generator, RNADataset)):
             raise ValueError("Filter compose only works on collections of RNAs")
         for filter_fn in self.filters:

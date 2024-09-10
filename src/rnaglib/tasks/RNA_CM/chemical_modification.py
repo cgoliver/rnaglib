@@ -1,5 +1,6 @@
-from rnaglib.data_loading import RNADataset, FeaturesComputer
+from rnaglib.data_loading import RNADataset
 from rnaglib.tasks import ResidueClassificationTask
+from rnaglib.transforms import FeaturesComputer
 from rnaglib.transforms import ResidueAttributeFilter
 from rnaglib.transforms import PDBIDNameTransform
 

@@ -1,11 +1,14 @@
-from typing import Dict
+from typing import Dict, Union, List, TYPE_CHECKING
 
 import torch
 import networkx as nx
-from rnaglib.utils import build_node_feature_parser
 
 
-class FeaturesComputer:
+from rnaglib.config import NODE_FEATURE_MAP, EDGE_FEATURE_MAP
+from rnaglib.transforms import Transform
+
+
+class FeaturesComputer(Transform):
     """
     This class takes as input an RNA in the networkX form
     and computes the ``features_dict`` which maps node IDs to a tensor of features.
@@ -24,25 +27,20 @@ class FeaturesComputer:
     """
 
     def __init__(self,
-                 nt_features=None,
-                 nt_targets=None,
-                 rna_features=None,
-                 rna_targets=None,
-                 bp_features=None,
-                 bp_targets=None,
-                 transforms=None,
-                 transforms_target=None,
-                 extra_useful_keys=None,
+                 nt_features: Union[List, str] = None,
+                 nt_targets: Union[List, str] = None,
+                 rna_features: Union[List, str] = None,
+                 rna_targets: Union[List, str] = None,
+                 bp_features: Union[List, str] = None,
+                 bp_targets: Union[List, str] = None,
+                 extra_useful_keys: Union[List, str] = None,
+                 custom_encoders: dict = None
                  ):
 
-        self.transforms = transforms
-        self.transforms_target = transforms_target
-
-        # For all special cases, this is what to use
-        self.node_features_parser = build_node_feature_parser(nt_features,
-                                                              transforms=transforms)
-        self.node_target_parser = build_node_feature_parser(nt_targets,
-                                                            transforms=transforms_target)
+        self.rna_features_parser = self.build_feature_parser(rna_features, custom_encoders=custom_encoders)
+        self.rna_targets_parser = self.build_feature_parser(rna_targets, custom_encoders=custom_encoders)
+        self.node_features_parser = self.build_feature_parser(nt_features, custom_encoders=custom_encoders)
+        self.node_targets_parser = self.build_feature_parser(nt_targets, custom_encoders=custom_encoders)
 
         # This is only useful when using a FeatureComputer to create a dataset, and avoid removing important features
         # of the graph that are not used during loading
@@ -54,7 +52,7 @@ class FeaturesComputer:
         self.bp_features = bp_features
         self.bp_targets = bp_targets
 
-    def add_feature(self, feature_names=None, transforms=None, input_feature=True):
+    def add_feature(self, feature_names=None, custom_encoders=None, input_feature=True):
         """
         Update the input/output feature selector with either an extra available named feature or a custom encoder
         :param feature_names: Name of the input feature to add
@@ -64,15 +62,8 @@ class FeaturesComputer:
         """
         # Select the right node_parser and update it
 
-        if not transforms is None:
-            if not hasattr(transforms, 'encoder'):
-                print(f"WARNING: passed a transform {transforms} without an encoder attribute.\
-                        Using the transform for feature computation may fail."
-                       )
-
         node_parser = self.node_features_parser if input_feature else self.node_target_parser
-        new_node_parser = build_node_feature_parser(asked_features=feature_names,
-                                                    transforms=transforms)
+        new_node_parser = self.build_feature_parser(asked_features=feature_names, custom_encoders=custom_encoders)
         node_parser.update(new_node_parser)
 
     def remove_feature(self, feature_name=None, input_feature=True):
@@ -134,6 +125,34 @@ class FeaturesComputer:
             nx.set_node_attributes(cleaned_graph, name=key, values=val)
         return cleaned_graph
 
+
+    @staticmethod
+    def encode_rna(g: nx.Graph, parser):
+        """
+        Simply apply the rna encoding functions in ``parser`` for all features. 
+        Then use torch.cat over the result to get a tensor for each node in the graph.
+
+        :param g: a nx graph
+        :param node_parser: {feature_name : encoder}
+        :return: A dict that maps nodes to encodings
+
+        """
+
+        encodings = {}
+        if len(parser) == 0:
+            return None
+
+        all_feature_encoding = list()
+        for i, (feature, feature_encoder) in enumerate(parser.items()):
+            try:
+                feature_encoding = feature_encoder.encode(feature)
+            except KeyError:
+                feature_encoding = feature_encoder.encode_default()
+            all_feature_encoding.append(feature_encoding)
+        encodings = torch.cat(all_feature_encoding)
+        return encodings
+
+
     @staticmethod
     def encode_nodes(g: nx.Graph, node_parser):
         """
@@ -163,7 +182,66 @@ class FeaturesComputer:
             node_encodings[node] = torch.cat(all_node_feature_encoding)
         return node_encodings
 
-    def compute_features(self, rna_dict: Dict):
+    
+    def build_feature_parser(self,
+                             asked_features: Union[List, str] = None,
+                             custom_encoders: dict = None,
+                             feature_map: dict = None
+                             ) -> dict:
+        """
+        This function will load the predefined feature maps available globally.
+        Then for each of the features in 'asked feature', it will return an encoder object for each of the asked features
+        in the form of a dict {asked_feature : EncoderObject}
+
+        If some keys don't exist, will raise an Error. However if some keys are present but problematic,
+        this will just cause a printing of the problematic keys
+        :param asked_features: A list of string keys that are present in the encoder
+        :param transforms: Transform objects to compute extra features
+        :param feature_map: Dictionary mapping feature key to an Encoder() object.
+        :return: A dict {asked_feature : EncoderObject}
+        """
+
+        if asked_features is None:
+            return {}
+        
+        # default to node-feature map
+        if feature_map is None:
+            feature_map = {**NODE_FEATURE_MAP, **EDGE_FEATURE_MAP}
+        else:
+            feature_map = feature_map.copy()
+        # Build an asked list of features, with no redundancies
+        asked_features = [] if asked_features is None else asked_features
+        if not isinstance(asked_features, list):
+            asked_features = [asked_features]
+        asked_features = list(set(asked_features))
+
+        # attach the transform's encoder
+        if not custom_encoders is None:
+            for feature, encoder in custom_encoders.items():
+                feature_map[feature] = encoder
+                asked_features.append(feature)
+
+        # Update the map {key:encoder} and ensure every asked feature is in this encoding map.
+        if any([feature not in feature_map for feature in asked_features]):
+            problematic_keys = tuple([feature for feature in asked_features if feature not in feature_map])
+            raise ValueError(f'{problematic_keys} were asked as a feature or target but do not exist')
+
+        # Filter out None encoder functions, we don't know how to encode those...
+        encoding_features = [feature for feature in asked_features if feature_map[feature] is not None]
+        if len(encoding_features) < len(asked_features):
+            unencodable_keys = [feature for feature in asked_features if feature_map[feature] is None]
+            print(f'{unencodable_keys} were asked as a feature or target but do not exist')
+
+        # Finally, keep only the relevant keys to include in the encoding dict.
+        subset_dict = {k: feature_map[k] for k in encoding_features}
+
+        return subset_dict
+
+
+    def build_edge_feature_parser(self, asked_features=None):
+        raise NotImplementedError
+
+    def forward(self, rna_dict: Dict):
         """
         Add 3 dictionaries to the `rna_dict` wich maps nts, edges, and the whole graph
         to a feature vector each. The final converter uses these to include the data in the
@@ -172,15 +250,23 @@ class FeaturesComputer:
 
         
         features_dict = {}
+        if len(self.rna_features_parser) > 0:
+            rna_feature_encoding = self.encode_rna(rna_dict['rna'], parser=self.rna_features_parser)
+            features_dict['rna_features'] = rna_feature_encoding
+
+        if len(self.rna_targets_parser) > 0:
+            rna_targets_encoding = self.encode_rna(rna_dict['rna'], parser=self.rna_targets_parser)
+            features_dict['rna_targets'] = rna_targets_encoding
         # Get Node labels
         if len(self.node_features_parser) > 0:
             feature_encoding = self.encode_nodes(rna_dict['rna'],
                                                  node_parser=self.node_features_parser,
                                                  )
             features_dict['nt_features'] = feature_encoding
-        if len(self.node_target_parser) > 0:
+        if len(self.node_targets_parser) > 0:
             target_encoding = self.encode_nodes(rna_dict['rna'],
-                                                node_parser=self.node_target_parser,
+                                                node_parser=self.node_targets_parser,
                                                 )
             features_dict['nt_targets'] = target_encoding
         return features_dict
+

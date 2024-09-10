@@ -3,7 +3,7 @@ import unittest
 import networkx as nx
 
 from rnaglib.data_loading import RNADataset
-from rnaglib.representations import GraphRepresentation
+from rnaglib.transforms import GraphRepresentation
 
 class TestDataset(unittest.TestCase):
     @classmethod

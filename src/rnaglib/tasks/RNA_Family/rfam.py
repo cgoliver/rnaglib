@@ -3,11 +3,12 @@ from networkx import set_node_attributes
 from tqdm import tqdm
 import requests
 
-from rnaglib.data_loading import RNADataset, FeaturesComputer
+from rnaglib.data_loading import RNADataset
 from rnaglib.tasks import RNAClassificationTask
 from rnaglib.splitters import RandomSplitter, get_ribosomal_rnas
-from rnaglib.utils import OneHotEncoder
+from rnaglib.data_loading import OneHotEncoder
 from rnaglib.transforms import ChainSplitTransform, RfamTransform, ChainNameTransform, RNAAttributeFilter
+from rnaglib.transforms import FeaturesComputer
 
 
 class RNAFamilyTask(RNAClassificationTask):
@@ -39,7 +40,7 @@ class RNAFamilyTask(RNAClassificationTask):
         rnas = ChainSplitTransform()(rnas)
         rnas = ChainNameTransform()(rnas)
 
-        ft = FeaturesComputer(rna_targets=[tr_rfam.name], transforms=tr_rfam)
+        ft = FeaturesComputer(rna_targets=[tr_rfam.name], custom_encoders={tr_rfam.name: tr_rfam.encoder})
         new_dataset = RNADataset(rnas=list((r['rna'] for r in rnas)), features_computer=ft)
 
         return new_dataset

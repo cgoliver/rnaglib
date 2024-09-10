@@ -1,8 +1,9 @@
-from rnaglib.data_loading import RNADataset, FeaturesComputer
+from rnaglib.data_loading import RNADataset
+from rnaglib.transforms import FeaturesComputer
 from rnaglib.tasks import ResidueClassificationTask
 from rnaglib.splitters import RandomSplitter
 from networkx import set_node_attributes
-from rnaglib.utils import BoolEncoder
+from rnaglib.data_loading import BoolEncoder
 
 import torch
 from sklearn.metrics import matthews_corrcoef, f1_score, accuracy_score, roc_auc_score

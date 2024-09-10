@@ -139,6 +139,9 @@ class Task:
     def __eq__(self, other):
         return self.task_id == other.task_id
 
+    def __repr__(self) -> str:
+        return f'{self.__class__.__name__}()'
+
 
 class ResidueClassificationTask(Task):
     def __init__(self, **kwargs):

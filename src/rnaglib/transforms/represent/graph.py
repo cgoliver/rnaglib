@@ -1,14 +1,16 @@
 import torch
 import networkx as nx
 
-from rnaglib.representations import Representation
 from rnaglib.config.graph_keys import GRAPH_KEYS, TOOL
-from rnaglib.utils import fix_buggy_edges
+from rnaglib.algorithms import fix_buggy_edges
 
+from .representation import Representation
 
 class GraphRepresentation(Representation):
     """
-    Converts RNA into a graph
+    Converts RNA into a Leontis-Westhof graph (2.5D) where nodes are residues
+    and edges are either base pairs or backbones. Base pairs are annotated with the
+    Leontis-Westhof classification for canonical and non-canonical base pairs.
     """
 
     def __init__(self,
@@ -72,10 +74,14 @@ class GraphRepresentation(Representation):
         # for some reason from_networkx is not working so doing by hand
         # not super efficient at the moment
         node_map = {n: i for i, n in enumerate(sorted(graph.nodes()))}
-        x = torch.stack([features_dict['nt_features'][n] for n in
-                         sorted(graph.nodes())]) if 'nt_features' in features_dict else None
-        y = torch.stack(
-            [features_dict['nt_targets'][n] for n in sorted(graph.nodes())]) if 'nt_targets' in features_dict else None
+        x, y  = None, None
+        if 'nt_features' in features_dict:
+            x = torch.stack([features_dict['nt_features'][n] for n in
+                             node_map.keys()]) if 'nt_features' in features_dict else None
+        if 'nt_targets' in features_dict:
+            y = torch.stack(
+                [features_dict['nt_targets'][n] for n in node_map.keys()])
+
         edge_index = [[node_map[u], node_map[v]] for u, v in sorted(graph.edges())]
         edge_index = torch.tensor(edge_index, dtype=torch.long).T
         edge_attrs = [self.edge_map[data[self.etype_key]] for u, v, data in sorted(graph.edges(data=True))]
