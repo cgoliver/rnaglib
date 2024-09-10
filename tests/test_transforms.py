@@ -4,8 +4,8 @@ import tempfile
 import networkx as nx
 
 from rnaglib.data_loading import RNADataset
-from rnaglib.data_loading import FeaturesComputer
-from rnaglib.representations import GraphRepresentation
+from rnaglib.transforms import FeaturesComputer
+from rnaglib.transforms import GraphRepresentation
 from rnaglib.transforms import RNAFMTransform
 from rnaglib.transforms import RfamTransform
 from rnaglib.transforms import Compose

@@ -14,7 +14,7 @@ except ModuleNotFoundError:
     sys.exit()
 
 from rnaglib.transforms import Transform
-from rnaglib.utils import ListEncoder
+from rnaglib.encoders import ListEncoder
 from rnaglib.algorithms import get_sequences
 
 class RNAFMTransform(Transform):

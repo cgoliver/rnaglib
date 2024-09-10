@@ -1,11 +1,14 @@
-from rnaglib.tasks import RNAClassificationTask
-from rnaglib.splitters import RandomSplitter
-from rnaglib.data_loading import RNADataset, FeaturesComputer
-from rnaglib.utils import OneHotEncoder
+import os
 
 import pandas as pd
 from networkx import set_node_attributes
-import os
+
+from rnaglib.tasks import RNAClassificationTask
+from rnaglib.splitters import RandomSplitter
+from rnaglib.data_loading import RNADataset
+from rnaglib.data_loading import OneHotEncoder
+from rnaglib.transforms import FeaturesComputer
+
 
 
 class GMSM(RNAClassificationTask):

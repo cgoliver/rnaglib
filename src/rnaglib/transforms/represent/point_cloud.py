@@ -1,7 +1,7 @@
 import torch
 import numpy as np
 
-from rnaglib.representations import Representation
+from .representation import Representation
 
 
 def get_point_cloud_dict(rna_graph, features_dict, sort=False):

@@ -1,6 +1,7 @@
 import unittest
 import tempfile
 
+from rnaglib.transforms import GraphRepresentation
 from rnaglib.tasks import Task
 from rnaglib.tasks import RNAFamilyTask
 from rnaglib.tasks import ProteinBindingSiteDetection
@@ -9,6 +10,10 @@ from rnaglib.tasks import ChemicalModification
 class TaskTest(unittest.TestCase):
 
     def check_task(self, task: Task):
+        # check target var is there
+        print(task)
+        task.dataset.add_representation(GraphRepresentation(framework='pyg'))
+        print(task.dataset[0]['graph'])
         assert task.target_var is not None
 
         assert task.train_ind is not None

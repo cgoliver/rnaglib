@@ -1,19 +1,20 @@
 import os
 from networkx import set_node_attributes
-from typing import Callable
+from typing import Callable, TYPE_CHECKING
 import numpy as np
 
-from rnaglib.data_loading.features import FeaturesComputer
 from rnaglib.utils import download_graphs, load_graph, dump_json
 from rnaglib.utils.graph_io import get_all_existing, get_name_extension
 
+if TYPE_CHECKING:
+    from rnaglib.data_loading.features import FeaturesComputer
 
 def database_to_dataset_loop(all_rnas_db,
                              db_path,
                              rna_filter: Callable = None,
                              nt_filter: Callable = None,
                              pre_transforms: Callable = None,
-                             features_computer: FeaturesComputer = None
+                             features_computer: 'FeaturesComputer' = None
                              ):
     """ Iterates through database, applying filters and annotations"""
     from tqdm import tqdm as tqdm

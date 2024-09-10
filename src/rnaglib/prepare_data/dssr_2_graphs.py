@@ -14,9 +14,10 @@ import subprocess
 from subprocess import check_output
 
 from rnaglib.utils import dump_json
-from rnaglib.utils import reorder_nodes 
-from rnaglib.prepare_data import add_graph_annotations
-from rnaglib.prepare_data import filter_dot_edges
+from rnaglib.algorithms import reorder_nodes
+
+from .annotations import add_graph_annotations
+from .filters import filter_dot_edges
 
 
 def dssr_exec(cif):

@@ -13,7 +13,7 @@ import numpy as np
 from sklearn.decomposition import PCA
 import networkx as nx
 
-from rnaglib.utils import dangle_trim, gap_fill
+from rnaglib.algorithms import dangle_trim, gap_fill
 from rnaglib.utils import load_json, dump_json
 
 def block_pca(residues):

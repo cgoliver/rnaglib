@@ -7,22 +7,11 @@ from collections.abc import Iterable
 from bidict import bidict
 import networkx as nx
 
-from rnaglib.representations import Representation
-from rnaglib.data_loading.features import FeaturesComputer
+from rnaglib.transforms import Representation
+from rnaglib.transforms import FeaturesComputer
 from rnaglib.data_loading.create_dataset import database_to_dataset
 from rnaglib.utils import download_graphs, load_graph, dump_json
 from rnaglib.utils.graph_io import get_all_existing, get_name_extension
-
-class RNA(nx.Graph):
-    """ Thin wrapper on the RNA graph so we can compare RNAs, inherits
-    from the nx.Graph class. """
-    def __init__(self, name):
-        self.name = name
-        super().__init__()
-
-    def __hash__(self, name):
-        return self.name
-    pass
 
 class RNADataset:
     """
@@ -157,7 +146,7 @@ class RNADataset:
         if not self.transforms is None:
             self.transforms(rna_dict)
 
-        features_dict = self.features_computer.compute_features(rna_dict)
+        features_dict = self.features_computer(rna_dict)
 
         # apply representations to the res_dict
         # each is a callable that updates the res_dict

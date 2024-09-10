@@ -4,7 +4,6 @@ from typing import Dict
 import requests
 
 from rnaglib.transforms import Transform
-from rnaglib.utils import OneHotEncoder
 
 class RfamTransform(Transform):
     """ Obtain the Rfam classification of an RNA and store

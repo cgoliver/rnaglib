@@ -3,9 +3,9 @@ import unittest
 import networkx as nx
 
 from rnaglib.data_loading import RNADataset
-from rnaglib.data_loading import FeaturesComputer
+from rnaglib.transforms import FeaturesComputer
 from rnaglib.transforms import RNAFMTransform
-from rnaglib.representations import GraphRepresentation
+from rnaglib.transforms import GraphRepresentation
 
 class TestDataset(unittest.TestCase):
     @classmethod
@@ -47,7 +47,7 @@ class TestDataset(unittest.TestCase):
         then look up the stored attribute at getitem time.
         """
         tr = RNAFMTransform()
-        feat = FeaturesComputer(nt_features=['nt_code', tr.name], transforms=tr)
+        feat = FeaturesComputer(nt_features=['nt_code', tr.name], custom_encoders={tr.name: tr.encoder} )
         dataset = RNADataset(debug=True,
                              features_computer=feat,
                              pre_transforms=tr,
@@ -60,7 +60,7 @@ class TestDataset(unittest.TestCase):
         """ Apply transform during getitem call.
         """
         tr = RNAFMTransform()
-        feat = FeaturesComputer(nt_features=['nt_code', tr.name], transforms=tr)
+        feat = FeaturesComputer(nt_features=['nt_code', tr.name], custom_encoders={tr.name: tr.encoder})
         dataset = RNADataset(debug=True,
                              features_computer=feat,
                              transforms=tr,

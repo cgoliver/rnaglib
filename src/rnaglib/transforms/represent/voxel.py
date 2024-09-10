@@ -7,8 +7,8 @@ import numpy as np
 from sklearn.gaussian_process.kernels import RBF
 import torch
 
-from rnaglib.representations import Representation
-from rnaglib.representations.point_cloud import get_point_cloud_dict
+from .representation import Representation
+from .point_cloud import get_point_cloud_dict
 
 
 def get_bins(coords, spacing, padding, xyz_min=None, xyz_max=None):

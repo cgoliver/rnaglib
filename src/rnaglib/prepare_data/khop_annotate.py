@@ -12,8 +12,8 @@ import multiprocessing as mlt
 import networkx as nx
 from tqdm import tqdm
 
-from rnaglib.utils import build_hash_table, Hasher
-from rnaglib.utils import extract_graphlet
+from rnaglib.algorithms import build_hash_table, Hasher
+from rnaglib.algorithms import extract_graphlet
 from rnaglib.utils import load_json
 from rnaglib.config import GRAPH_KEYS, TOOL
 

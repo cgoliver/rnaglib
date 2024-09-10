@@ -1,11 +1,12 @@
 from networkx import set_node_attributes
 
 from rnaglib.data_loading.create_dataset import annotator_add_embeddings, nt_filter_split_chains
-from rnaglib.data_loading import RNADataset, FeaturesComputer
+from rnaglib.data_loading import RNADataset
+from rnaglib.transforms import FeaturesComputer
 from rnaglib.splitters import RandomSplitter, SPLITTING_VARS, default_splitter_tr60_tr18
 from rnaglib.tasks import ResidueClassificationTask
 from rnaglib.utils import load_index
-from rnaglib.utils.feature_maps import BoolEncoder
+from rnaglib.data_loading import BoolEncoder
 
 
 class BenchmarkBindingSiteDetection(ResidueClassificationTask):
