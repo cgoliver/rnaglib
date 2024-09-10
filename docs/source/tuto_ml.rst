@@ -13,7 +13,7 @@ It revolves around the usual Dataset and Dataloader objects, along with a Repres
 * The `Features_Computer` object can be thought of as Transforms class, selecting relevant node or graph features
 and transforming them into tensors ready to be used in deep learning.
 * The `Representation` object will return our data in a certain representation (e.g. graphs, voxels, point clouds) as
-  well as cast to different data science and ML frameworks (DGL, pytorch-geometric, networkx).
+well as cast to different data science and ML frameworks (DGL, pytorch-geometric, networkx).
 * The `get_loader` function encapsulates automatic data splitting and collating and returns appropriate PyTorch data loaders.
 
 
