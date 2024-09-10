@@ -1,12 +1,46 @@
-
 ``rnaglib.algorithms``
 ========================
 
 
-Graph Algorithms
-------------------------------
 
 .. automodule:: rnaglib.algorithms
-   :members:
-   :undoc-members:
-   :show-inheritance:
+
+
+Traversal
+----------
+
+.. autosummary::
+   :toctree: generated/
+
+   bfs
+
+
+
+Graph Comparison 
+------------------------------
+
+.. autosummary::
+   :toctree: generated/
+
+   ged
+   SimFunctionNode
+
+
+Hashing
+---------
+
+
+.. autosummary::
+   :toctree: generated/
+
+   Hasher
+
+
+Sampling
+-----------
+
+  
+.. autosummary::
+   :toctree: generated/
+
+   extract_graphlet
