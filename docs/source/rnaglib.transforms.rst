@@ -65,3 +65,28 @@ for splitting the RNA into substructures (e.g. by chain ID, binding pockets, etc
 
     PartitionTransform
     ChainSplitTransform
+
+
+Representations
+---------------------
+
+These transforms convert a raw RNA into a geometric representation such as graph, voxel and point cloud.
+
+.. autosummary::
+    :toctree: generated/
+
+    Representation 
+    GraphRepresentation
+    PointCloudRepresentation
+    VoxelRepresentation 
+
+Featurizers
+-------------
+
+These transforms take an annotation in the RNA and cast it into a feature vector.
+
+
+.. autosummary::
+    :toctree: generated/
+
+    FeaturesComputer
