@@ -5,6 +5,7 @@ from rnaglib.data_loading import RNADataset
 from rnaglib.transforms import FeaturesComputer
 from rnaglib.transforms import RNAFMTransform
 
+
 class TransformsTest(unittest.TestCase):
 
     @classmethod
@@ -12,13 +13,13 @@ class TransformsTest(unittest.TestCase):
         self.dataset = RNADataset(debug=True)
 
     def test_default_feature(self):
-        ft = FeaturesComputer(nt_features=['nt_code'])
+        ft = FeaturesComputer(nt_features=["nt_code"])
         ft(self.dataset[0])
         pass
 
     def test_add_feature(self):
-        ft = FeaturesComputer(nt_features=['nt_code'])
-        ft.add_feature('alpha')
+        ft = FeaturesComputer(nt_features=["nt_code"])
+        ft.add_feature("alpha")
         ft(self.dataset[0])
         pass
 
@@ -26,13 +27,15 @@ class TransformsTest(unittest.TestCase):
         t = RNAFMTransform()
         ft = FeaturesComputer()
         ft.add_feature(t.name, custom_encoders={t.name: t.encoder})
-        feat_dict = ft(self.dataset[0])
+        feat_dict = ft(t(self.dataset[0]))
 
     def test_add_dataset_features(self):
-        self.dataset.features_computer.add_feature(['nt_code'])
+        self.dataset.features_computer.add_feature(["nt_code"])
         pass
 
     def test_add_dataset_custom_features(self):
         t = RNAFMTransform()
-        self.dataset.features_computer.add_feature(t.name, custom_encoders={t.name: t.encoder})
+        self.dataset.features_computer.add_feature(
+            t.name, custom_encoders={t.name: t.encoder}
+        )
         pass
