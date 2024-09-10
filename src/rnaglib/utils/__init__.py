@@ -15,24 +15,26 @@ from .misc import cif_remove_residues
 
 from .task_utils import print_statistics
 
-from .wrappers import rna_align_wrapper, cdhit_wrapper
+from .wrappers import rna_align_wrapper, cdhit_wrapper, locarna_wrapper
 
-__all__ = ['download_graphs',
-           'available_pdbids',
-           'get_rna_list',
-           'graph_from_pdbid',
-           'load_graph',
-           'dump_json',
-           'load_json',
-           'update_RNApdb',
-           'build_feature_parser',
-           'build_edge_feature_parser',
-           'listdir_fullpath',
-           'load_index',
-           'print_statistics',
-           'rna_align_wrapper',
-           'cdhit_wrapper',
-           'cif_remove_residues',
-           ]
+__all__ = [
+    "download_graphs",
+    "available_pdbids",
+    "get_rna_list",
+    "graph_from_pdbid",
+    "load_graph",
+    "dump_json",
+    "load_json",
+    "update_RNApdb",
+    "build_feature_parser",
+    "build_edge_feature_parser",
+    "listdir_fullpath",
+    "load_index",
+    "print_statistics",
+    "rna_align_wrapper",
+    "cdhit_wrapper",
+    "cif_remove_residues",
+    "locarna_wrapper",
+]
 
 classes = __all__
