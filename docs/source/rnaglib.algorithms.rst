@@ -2,7 +2,6 @@
 ========================
 
 
-
 .. automodule:: rnaglib.algorithms
 
 

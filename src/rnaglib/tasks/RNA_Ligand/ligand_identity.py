@@ -6,7 +6,7 @@ from networkx import set_node_attributes
 from rnaglib.tasks import RNAClassificationTask
 from rnaglib.splitters import RandomSplitter
 from rnaglib.data_loading import RNADataset
-from rnaglib.data_loading import OneHotEncoder
+from rnaglib.encoders import OneHotEncoder
 from rnaglib.transforms import FeaturesComputer
 
 

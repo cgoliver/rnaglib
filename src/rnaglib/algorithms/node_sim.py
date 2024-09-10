@@ -1,6 +1,7 @@
 """
 Functions for comparing node similarity.
 """
+
 import os
 import sys
 
@@ -17,15 +18,19 @@ from rnaglib.config.graph_keys import GRAPH_KEYS, TOOL
 from rnaglib.config.build_iso_mat import iso_mat as iso_matrix
 
 
-class SimFunctionNode():
+class SimFunctionNode:
 
-    def __init__(self,
-                 method,
-                 depth,
-                 decay=0.5,
-                 idf=False,
-                 normalization=None,
-                 hash_init_path=os.path.join(script_dir, '..', 'data', 'hashing', 'NR_chops_hash.p')):
+    def __init__(
+        self,
+        method,
+        depth,
+        decay=0.5,
+        idf=False,
+        normalization=None,
+        hash_init_path=os.path.join(
+            script_dir, "..", "data", "hashing", "NR_chops_hash.p"
+        ),
+    ):
         """
         Factory object to compute all node similarities. These methods take as input an annotated pair of nodes
         and compare them.
@@ -62,7 +67,7 @@ class SimFunctionNode():
         values of ged and reuse them based on the hash.
         """
 
-        POSSIBLE_METHODS = {'R_1', 'R_iso', 'hungarian', 'R_graphlets', 'graphlet'}
+        POSSIBLE_METHODS = {"R_1", "R_iso", "hungarian", "R_graphlets", "graphlet"}
         assert method in POSSIBLE_METHODS
 
         self.method = method
@@ -72,7 +77,7 @@ class SimFunctionNode():
 
         self.hash_init_path = hash_init_path
 
-        edge_map = GRAPH_KEYS['edge_map'][TOOL]
+        edge_map = GRAPH_KEYS["edge_map"][TOOL]
         self.edge_map = edge_map
 
         # Placeholders for the hashing information. We defer its creation into the call of the object for parallel use.
@@ -81,14 +86,16 @@ class SimFunctionNode():
         self.hash_table = {}
 
         if idf:
-            self.idf = GRAPH_KEYS['idf'][TOOL]
+            self.idf = GRAPH_KEYS["idf"][TOOL]
         else:
             self.idf = None
 
-        if self.method in ['R_1', 'R_iso', 'R_graphlets']:
+        if self.method in ["R_1", "R_iso", "R_graphlets"]:
             # depth+1 and -1 term at the end account for skipping the 0th hop in the rings.
             # we increase the size of the geometric sum by 1 and subtract 1 to remove the 0th term.
-            self.norm_factor = ((1 - self.decay ** (self.depth + 1)) / (1 - self.decay)) - 1
+            self.norm_factor = (
+                (1 - self.decay ** (self.depth + 1)) / (1 - self.decay)
+            ) - 1
         else:
             self.norm_factor = 1.0
 
@@ -99,7 +106,7 @@ class SimFunctionNode():
         :return: None, modify self.
         """
         print(f">>> loading hash table from {hash_init_path}")
-        self.hasher, self.hash_table = pickle.load(open(hash_init_path, 'rb'))
+        self.hasher, self.hash_table = pickle.load(open(hash_init_path, "rb"))
 
     def compare(self, rings1, rings2):
         """
@@ -116,27 +123,27 @@ class SimFunctionNode():
          :return: Normalized comparison score between the nodes
         """
         # We only load the hashing table when we make a first computation, a lazy optimization
-        if self.method in ['R_ged', 'R_graphlets', 'graphlet'] and self.hasher is None:
+        if self.method in ["R_ged", "R_graphlets", "graphlet"] and self.hasher is None:
             self.add_hashtable(hash_init_path=self.hash_init_path)
 
-        if self.method == 'graphlet':
+        if self.method == "graphlet":
             return self.graphlet(rings1, rings2)
 
-        if self.method == 'hungarian':
+        if self.method == "hungarian":
             return self.hungarian(rings1, rings2)
 
         res = 0
-        if self.method == 'R_graphlets':
+        if self.method == "R_graphlets":
             for k in range(0, self.depth):
                 value = self.R_graphlets(rings1[k], rings2[k])
                 res += self.decay ** (k + 1) * value
         else:
             for k in range(1, self.depth + 1):
-                if self.method == 'R_1':
+                if self.method == "R_1":
                     value = self.R_1(rings1[k], rings2[k])
                 else:
                     value = self.R_iso(rings1[k], rings2[k])
-                res += self.decay ** k * value
+                res += self.decay**k * value
         return res / self.norm_factor
 
     def normalize(self, unnormalized, max_score):
@@ -147,11 +154,11 @@ class SimFunctionNode():
         :param max_score: the best possible matching score of the sequences we are given
         :return: a score in [0,1]
         """
-        if self.normalization == 'sqrt':
-            power = (1 / (np.sqrt(max_score) / 5))
+        if self.normalization == "sqrt":
+            power = 1 / (np.sqrt(max_score) / 5)
             return (unnormalized / max_score) ** power
-        elif self.normalization == 'log':
-            power = (1 / (np.log(max_score) + 1))
+        elif self.normalization == "log":
+            power = 1 / (np.log(max_score) + 1)
             return (unnormalized / max_score) ** power
         return unnormalized / max_score
 
@@ -170,7 +177,10 @@ class SimFunctionNode():
             return max(len(ring1), len(ring2))
         else:
             # This is what you obtain when matching all the nodes to themselves
-            return max(sum([self.idf[node] ** 2 for node in ring1]), sum([self.idf[node] ** 2 for node in ring2]))
+            return max(
+                sum([self.idf[node] ** 2 for node in ring1]),
+                sum([self.idf[node] ** 2 for node in ring2]),
+            )
 
     @staticmethod
     def delta_indices_sim(i, j, distance=False):
@@ -215,7 +225,9 @@ class SimFunctionNode():
 
         # If we are not bb, also use isostericity.
         if not bb:
-            res_isostericity = iso_matrix[self.edge_map[node_i_type], self.edge_map[node_j_type]]
+            res_isostericity = iso_matrix[
+                self.edge_map[node_i_type], self.edge_map[node_j_type]
+            ]
             score += res_isostericity
 
         if self.idf is not None:
@@ -275,16 +287,16 @@ class SimFunctionNode():
 
             return (loc_min / loc_max) ** 1.5
 
-        sim_bb_53 = R_1_like_bb(feat_1['B53'], feat_2['B53'])
-        sim_bb_35 = R_1_like_bb(feat_1['B35'], feat_2['B35'])
+        sim_bb_53 = R_1_like_bb(feat_1["B53"], feat_2["B53"])
+        sim_bb_35 = R_1_like_bb(feat_1["B35"], feat_2["B35"])
         sim_bb = (sim_bb_53 + sim_bb_35) / 2
 
         # === Then deal with NC ===
 
         # On average the edge rings only have 0.68 edges that are not BB
         # Therefore bruteforcing is acceptable
-        nc_list1 = [i for i in list1 if i not in ['B53', 'B35']]
-        nc_list2 = [i for i in list2 if i not in ['B53', 'B35']]
+        nc_list1 = [i for i in list1 if i not in ["B53", "B35"]]
+        nc_list2 = [i for i in list2 if i not in ["B53", "B35"]]
 
         def compare_smooth(ring1, ring2):
             """
@@ -301,10 +313,15 @@ class SimFunctionNode():
 
             # This makes loading go from 0.17 to 2.6
             # cost = np.array(self.get_cost_matrix(ring1, ring2))
-            cost = np.array([[self.get_cost_nodes(node_i, node_j) for node_j in ring2] for node_i in ring1])
+            cost = np.array(
+                [
+                    [self.get_cost_nodes(node_i, node_j) for node_j in ring2]
+                    for node_i in ring1
+                ]
+            )
             cost = -cost
             row_ind, col_ind = linear_sum_assignment(cost)
-            unnormalized = - np.array(cost[row_ind, col_ind]).sum()
+            unnormalized = -np.array(cost[row_ind, col_ind]).sum()
 
             length = self.get_length(ring1, ring2)
             return self.normalize(unnormalized, length)
@@ -327,8 +344,15 @@ class SimFunctionNode():
             if len(ring2) > len(ring1):
                 ring1, ring2 = ring2, ring1
             perms = set(itertools.permutations(ring1))
-            all_costs = [sum([self.get_cost_nodes(perm[i], node_j) for i, node_j in enumerate(ring2)]) for
-                         perm in perms]
+            all_costs = [
+                sum(
+                    [
+                        self.get_cost_nodes(perm[i], node_j)
+                        for i, node_j in enumerate(ring2)
+                    ]
+                )
+                for perm in perms
+            ]
             unnormalized = max(all_costs)
 
             length = self.get_length(ring1, ring2)
@@ -365,7 +389,7 @@ class SimFunctionNode():
             can, noncan = [], []
             for k in range(1, depth + 1):
                 for value in rings[k]:
-                    if value in ['B53', 'B35']:
+                    if value in ["B53", "B35"]:
                         can.append((value, k))
                     else:
                         noncan.append((value, k))
@@ -376,14 +400,22 @@ class SimFunctionNode():
                 return 1
             if len(ring1) == 0 or len(ring2) == 0:
                 return 0
-            cm = [[self.get_cost_nodes(node_i, node_j, bb=bb, pos=pos) for node_j in ring2] for node_i in ring1]
+            cm = [
+                [
+                    self.get_cost_nodes(node_i, node_j, bb=bb, pos=pos)
+                    for node_j in ring2
+                ]
+                for node_i in ring1
+            ]
             # Dont forget the minus for minimization
             cost = -np.array(cm)
             row_ind, col_ind = linear_sum_assignment(cost)
-            unnormalized = - np.array(cost[row_ind, col_ind]).sum()
+            unnormalized = -np.array(cost[row_ind, col_ind]).sum()
             # If the cost also includes distance information, we need to divide by two
             factor_two = 2 if bb is False and len(ring1[0]) == 2 else 1
-            length = self.get_length([node[0] for node in ring1], [node[0] for node in ring2])
+            length = self.get_length(
+                [node[0] for node in ring1], [node[0] for node in ring2]
+            )
             return self.normalize(unnormalized / factor_two, length)
 
         can1, noncan1 = rings_to_lists(rings1, depth=self.depth)
@@ -411,12 +443,25 @@ class SimFunctionNode():
         if pos:
             g_1, p_1 = node_i
             g_2, p_2 = node_j
-            ged = get_ged_hashtable(g_1, g_2, self.GED_table, self.hash_table, normed=True, similarity=similarity)
+            ged = get_ged_hashtable(
+                g_1,
+                g_2,
+                self.GED_table,
+                self.hash_table,
+                normed=True,
+                similarity=similarity,
+            )
             delta = SimFunctionNode.delta_indices_sim(p_1, p_2, distance=not similarity)
             return ged + delta
         else:
-            return get_ged_hashtable(node_i, node_j, self.GED_table, self.hash_table, normed=True,
-                                     similarity=similarity)
+            return get_ged_hashtable(
+                node_i,
+                node_j,
+                self.GED_table,
+                self.hash_table,
+                normed=True,
+                similarity=similarity,
+            )
 
     def R_graphlets(self, ring1, ring2):
         """
@@ -442,10 +487,17 @@ class SimFunctionNode():
 
             # Try the similarity version the bonus we get is that we use the normalization also used for riso
             # And therefore we avoid a double exponential
-            cost = - np.array(
-                [[self.graphlet_cost_nodes(node_i, node_j, similarity=True) for node_j in ring2] for node_i in ring1])
+            cost = -np.array(
+                [
+                    [
+                        self.graphlet_cost_nodes(node_i, node_j, similarity=True)
+                        for node_j in ring2
+                    ]
+                    for node_i in ring1
+                ]
+            )
             row_ind, col_ind = linear_sum_assignment(cost)
-            unnormalized = - np.array(cost[row_ind, col_ind]).sum()
+            unnormalized = -np.array(cost[row_ind, col_ind]).sum()
 
             length = self.get_length(ring1, ring2, graphlets=True)
             return self.normalize(unnormalized, length)
@@ -471,8 +523,14 @@ class SimFunctionNode():
                 ring1, ring2 = ring2, ring1
             perms = set(itertools.permutations(ring1))
             all_costs = [
-                sum([self.graphlet_cost_nodes(perm[i], node_j, similarity=True) for i, node_j in enumerate(ring2)]) for
-                perm in perms]
+                sum(
+                    [
+                        self.graphlet_cost_nodes(perm[i], node_j, similarity=True)
+                        for i, node_j in enumerate(ring2)
+                    ]
+                )
+                for perm in perms
+            ]
             unnormalized = max(all_costs)
 
             length = self.get_length(ring1, ring2, graphlets=True)
@@ -514,11 +572,17 @@ class SimFunctionNode():
         ringlist1 = rings_to_lists_g(rings1, depth=self.depth)
         ringlist2 = rings_to_lists_g(rings2, depth=self.depth)
 
-        cost = - np.array(
-            [[self.graphlet_cost_nodes(node_i, node_j, pos=True, similarity=True) for node_j in ringlist2]
-             for node_i in ringlist1])
+        cost = -np.array(
+            [
+                [
+                    self.graphlet_cost_nodes(node_i, node_j, pos=True, similarity=True)
+                    for node_j in ringlist2
+                ]
+                for node_i in ringlist1
+            ]
+        )
         row_ind, col_ind = linear_sum_assignment(cost)
-        unnormalized = - np.array(cost[row_ind, col_ind]).sum()
+        unnormalized = -np.array(cost[row_ind, col_ind]).sum()
 
         # Because we have pos
         unnormalized /= 2
@@ -541,7 +605,7 @@ def graph_edge_freqs(graphs, stop=False):
     # get document frequencies
     num_docs = 0
     for graph in graphs:
-        labels = {e['label'] for _, _, e in graph.edges(data=True)}
+        labels = {e["label"] for _, _, e in graph.edges(data=True)}
         graph_counts.update(labels)
         num_docs += 1
         if num_docs > 100 and stop:
@@ -560,10 +624,14 @@ def pdist_list(rings, node_sim):
     """
     rings_values = [list(ring.values()) for ring in rings]
     nodes = list(itertools.chain.from_iterable(rings_values))
-    assert node_sim.compare(nodes[0][1], nodes[0][1]) == 1, "Identical rings giving non 1 similarity."
+    assert (
+        node_sim.compare(nodes[0][1], nodes[0][1]) == 1
+    ), "Identical rings giving non 1 similarity."
 
-    sims = [node_sim.compare(n1[1], n2[1])
-            for i, (n1, n2) in enumerate(itertools.combinations(nodes, 2))]
+    sims = [
+        node_sim.compare(n1[1], n2[1])
+        for i, (n1, n2) in enumerate(itertools.combinations(nodes, 2))
+    ]
 
     return sims
 
@@ -575,7 +643,7 @@ def k_block_list(rings, node_sim):
 
     :param rings: a list of rings, dictionnaries {node : (nodelist, edgelist)}
     :param node_sim: the pairwise node comparison function
-    :return: A whole similarity matrix in the form of a numpy array that follows the order of rings 
+    :return: A whole similarity matrix in the form of a numpy array that follows the order of rings
     """
 
     node_rings = [ring_values for node, ring_values in rings]
@@ -583,17 +651,20 @@ def k_block_list(rings, node_sim):
     # rings_values = [list(ring.values()) for ring in rings]
     # node_rings = list(itertools.chain.from_iterable(rings_values))
     block = np.zeros((len(node_rings), len(node_rings)))
-    assert node_sim.compare(node_rings[0], node_rings[0]) > 0.99, "Identical rings giving non 1 similarity."
-    sims = [node_sim.compare(n1, n2)
-            for i, (n1, n2) in enumerate(itertools.combinations(node_rings, 2))]
+    assert (
+        node_sim.compare(node_rings[0], node_rings[0]) > 0.99
+    ), "Identical rings giving non 1 similarity."
+    sims = [
+        node_sim.compare(n1, n2)
+        for i, (n1, n2) in enumerate(itertools.combinations(node_rings, 2))
+    ]
     block[np.triu_indices(len(node_rings), 1)] = sims
     block += block.T
     block += np.eye(len(node_rings))
     return block
 
 
-def simfunc_time(simfuncs, graph_path, batches=1, batch_size=5,
-                 names=None):
+def simfunc_time(simfuncs, graph_path, batches=1, batch_size=5, names=None):
     """
     Do time benchmark on a list of simfunc.
 
@@ -613,7 +684,7 @@ def simfunc_time(simfuncs, graph_path, batches=1, batch_size=5,
     graphlist = os.listdir(graph_path)
     for ind, simfunc in enumerate(simfuncs):
         print(f">>> DOING KERNEL {simfunc.method}")
-        level = 'graphlet' if simfunc.method == 'graphlet' else 'edge'
+        level = "graphlet" if simfunc.method == "graphlet" else "edge"
         batch_times = []
         for b in range(batches):
             shuffle(graphlist)
@@ -622,11 +693,11 @@ def simfunc_time(simfuncs, graph_path, batches=1, batch_size=5,
             print(f">>> batch {b}")
             for i in range(batch_size):
                 start = perf_counter()
-                G = pickle.load(open(os.path.join(graph_path, graphlist[i]), 'rb'))
+                G = pickle.load(open(os.path.join(graph_path, graphlist[i]), "rb"))
                 loading_times.append(perf_counter() - start)
-                graph = G['graph']
+                graph = G["graph"]
                 for node in graph.nodes():
-                    ringlist.append(G['rings'][level][node])
+                    ringlist.append(G["rings"][level][node])
 
             print(f">>> tot batch loading, {sum(loading_times)}")
             print(f">>> avg time per loading, {np.mean(loading_times)}")
@@ -647,11 +718,14 @@ def simfunc_time(simfuncs, graph_path, batches=1, batch_size=5,
             print(f">>> min comparison, {min(times)}")
             # batch_times.append((sum(times) + sum(loading_times)) / len(times))
             batch_time = sum(times) + sum(loading_times)
-            rows.append({'batch_time': batch_time,
-                         'kernel': simfunc.method,
-                         'comparisons': len(times),
-                         'batch_num': b
-                         })
+            rows.append(
+                {
+                    "batch_time": batch_time,
+                    "kernel": simfunc.method,
+                    "comparisons": len(times),
+                    "batch_num": b,
+                }
+            )
             batch_times.append(batch_time)
         if not names is None:
             label = names[ind]
@@ -665,7 +739,7 @@ def simfunc_time(simfuncs, graph_path, batches=1, batch_size=5,
     # plt.show()
 
     df = pd.DataFrame.from_dict(rows)
-    df.to_csv('kernel_times_2.csv')
+    df.to_csv("kernel_times_2.csv")
     pass
 
 
@@ -675,17 +749,19 @@ if __name__ == "__main__":
     hash_graphlets_to_use = "thursday"
     graph_path = os.path.join("..", "data", "annotated", hash_graphlets_to_use)
     graphs = os.listdir(graph_path)
-    data1 = pickle.load(open(os.path.join(graph_path, graphs[0]), 'rb'))
-    data2 = pickle.load(open(os.path.join(graph_path, graphs[1]), 'rb'))
-    G, rings1 = data1['graph'], data1['rings']['graphlet']
-    H, rings2 = data2['graph'], data2['rings']['graphlet']
+    data1 = pickle.load(open(os.path.join(graph_path, graphs[0]), "rb"))
+    data2 = pickle.load(open(os.path.join(graph_path, graphs[1]), "rb"))
+    G, rings1 = data1["graph"], data1["rings"]["graphlet"]
+    H, rings2 = data2["graph"], data2["rings"]["graphlet"]
     # G, rings1 = data1['graph'], data1['rings']['edge']
     # H, rings2 = data2['graph'], data2['rings']['edge']
-    simfunc_r1 = SimFunctionNode('R_1', 2)
-    simfunc_hung = SimFunctionNode('hungarian', 2)
-    simfunc_iso = SimFunctionNode('R_iso', 2, idf=True)
-    simfunc_r_graphlet = SimFunctionNode('R_graphlets', 2, hash_init=hash_graphlets_to_use)
-    simfunc_graphlet = SimFunctionNode('graphlet', 2, hash_init=hash_graphlets_to_use)
+    simfunc_r1 = SimFunctionNode("R_1", 2)
+    simfunc_hung = SimFunctionNode("hungarian", 2)
+    simfunc_iso = SimFunctionNode("R_iso", 2, idf=True)
+    simfunc_r_graphlet = SimFunctionNode(
+        "R_graphlets", 2, hash_init=hash_graphlets_to_use
+    )
+    simfunc_graphlet = SimFunctionNode("graphlet", 2, hash_init=hash_graphlets_to_use)
     simfunc = simfunc_r_graphlet
     for node1, ring1 in rings1.items():
         for node2, ring2 in rings2.items():

@@ -6,7 +6,7 @@ import requests
 from rnaglib.data_loading import RNADataset
 from rnaglib.tasks import RNAClassificationTask
 from rnaglib.splitters import RandomSplitter, get_ribosomal_rnas
-from rnaglib.data_loading import OneHotEncoder
+from rnaglib.encoders import OneHotEncoder
 from rnaglib.transforms import ChainSplitTransform, RfamTransform, ChainNameTransform, RNAAttributeFilter
 from rnaglib.transforms import FeaturesComputer
 

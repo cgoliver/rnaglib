@@ -6,7 +6,7 @@ from rnaglib.transforms import FeaturesComputer
 from rnaglib.splitters import RandomSplitter, SPLITTING_VARS, default_splitter_tr60_tr18
 from rnaglib.tasks import ResidueClassificationTask
 from rnaglib.utils import load_index
-from rnaglib.data_loading import BoolEncoder
+from rnaglib.encoders import BoolEncoder
 
 
 class BenchmarkBindingSiteDetection(ResidueClassificationTask):

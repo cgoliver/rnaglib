@@ -1,7 +1,9 @@
 ``rnaglib.prepare_data``
 =============================
 
-Functions to build data releases from raw PDBs.
+Constructing databases of RNAs along with their annotations. The resulting
+databases are stored in a local folder and accessed by ``RNADataset`` to build
+datasets.
 
 .. currentmodule:: rnaglib.prepare_data
 
