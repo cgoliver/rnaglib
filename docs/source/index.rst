@@ -46,11 +46,11 @@
    :hidden:
 
    Algorithms <rnaglib.algorithms>
-   Data Building <rnaglib.prepare_data>
-   Transforms <rnaglib.transforms>
+   Databases <rnaglib.prepare_data>
    Datasets <rnaglib.data_loading>
+   Transforms <rnaglib.transforms>
    ML Tasks <rnaglib.tasks>
-   Data Splitters <rnaglib.splitters>
+   Dataset Splitters <rnaglib.splitters>
    Visualization <rnaglib.drawing>
    Model Training <rnaglib.learning>
    Utils <rnaglib.utils>
@@ -99,8 +99,6 @@ Package Structure
    builds a database of 2.5D graphs with full structural annotation
    package.
 -  :doc:`rnaglib.drawing`: utilities for visualizing 2.5D graphs
--  :doc:`rnaglib.ged`: custom graph similarity functions
--  :doc:`rnaglib.kernels`: custom local neighbourhood similarity functions
 
 Source Code and Contact
 --------------------------
