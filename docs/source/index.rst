@@ -47,14 +47,11 @@
 
    Algorithms <rnaglib.algorithms>
    Data Building <rnaglib.prepare_data>
-   Data Loading <rnaglib.data_loading>
-   Data Representations <rnaglib.representations>
-   Prediction Tasks <rnaglib.tasks>
+   Transforms <rnaglib.transforms>
+   Datasets <rnaglib.data_loading>
+   ML Tasks <rnaglib.tasks>
    Data Splitters <rnaglib.splitters>
    Visualization <rnaglib.drawing>
-   RNA Graph Edit Distance <rnaglib.ged>
-   RNA Graph Kernels <rnaglib.kernels>
-   Transforms <rnaglib.transforms>
    Model Training <rnaglib.learning>
    Utils <rnaglib.utils>
    Configurations <rnaglib.config>
@@ -97,7 +94,6 @@ Package Structure
 -  :doc:`rnaglib.data_loading`: custom PyTorch dataloader and dataset implementations
 -  :doc:`rnaglib.tasks`: prediction tasks for ML benchmarking.
 -  :doc:`rnaglib.transforms`: process and modify RNA data
--  :doc:`rnaglib.representations`: graph, voxel, point cloud representations
 -  :doc:`rnaglib.learning`: learning routines and pre-built GCN models for the easiest use of the
 -  :doc:`rnaglib.prepare_data`: processes raw PDB structures and
    builds a database of 2.5D graphs with full structural annotation
