@@ -3,19 +3,19 @@ Functions for comparing node similarity.
 """
 
 import os
-import sys
 
-from collections import defaultdict, Counter, OrderedDict
+from collections import defaultdict, Counter
 import itertools
 import matplotlib.pyplot as plt
-import networkx as nx
 import numpy as np
 import pickle
 from scipy.optimize import linear_sum_assignment
 
-from .graphlet_hash import *
 from rnaglib.config.graph_keys import GRAPH_KEYS, TOOL
 from rnaglib.config.build_iso_mat import iso_mat as iso_matrix
+from .graphlet_hash import *
+
+script_dir = os.path.dirname(os.path.abspath(__file__))
 
 
 class SimFunctionNode:
@@ -32,10 +32,12 @@ class SimFunctionNode:
         ),
     ):
         """
-        Factory object to compute all node similarities. These methods take as input an annotated pair of nodes
+        Factory object to compute all node similarities.
+        These methods take as input an annotated pair of nodes
         and compare them.
 
-        These methods are detailed in the supplemental of the paper, but include five methods. These methods frequently
+        These methods are detailed in the supplemental of the paper, but include five methods.
+        These methods frequently
         rely on the hungarian algorithm, an algorithm that finds optimal matches according to a cost function.
 
         Three of them compare the edges :
@@ -43,12 +45,15 @@ class SimFunctionNode:
         - R_1 compares the histograms of each ring, possibly with an idf weighting (to emphasize differences
           in rare edges)
         - R_iso compares each ring with the best matching based on the isostericity values
-        - hungarian compares the whole annotation, with the rings being differentiated with an additional 'depth' field.
+        - hungarian compares the whole annotation, with the rings being
+        differentiated with an additional 'depth' field.
 
         Then all the nodes are compared based on isostericity and this depth field.
 
-        Two of them compare the graphlets. The underlying idea is that just comparing lists of edges does not
-        constraint the graph structure, while the assembling of graphlet does it more (exceptions can be found but
+        Two of them compare the graphlets. The underlying idea is that just
+        comparing lists of edges does not
+        constraint the graph structure, while the assembling of graphlet does it more
+        (exceptions can be found but
         for most graphs, knowing all graphlets at each depth enables recreating the graph) :
 
         - R_graphlets works like R_iso except that the isostericity is replaced by the GED
@@ -59,7 +64,8 @@ class SimFunctionNode:
         :param decay: When using rings comparison function, the weight decay of importance based on the depth (the
         closest rings weigh more as they are central to the comparison)
         :param idf: Whether to use IDF weighting on the frequency of labels.
-        :param normalization: We experiment with three normalization scheme, the basal one is just a division of the
+        :param normalization: We experiment with three normalization scheme,
+                              the basal one is just a division of the
         score by the maximum value, 'sqrt' denotes using the square root of the ratio as a power of the raw value and
         'log' uses the log. The underlying idea is that we want to put more emphasis on the long matches than on just
         matching a few nodes

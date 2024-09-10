@@ -5,43 +5,35 @@
     Output: hash code
 """
 
-import sys
 import os
-import pickle
-from itertools import product
-from collections import Counter
-from tqdm import tqdm
-from hashlib import blake2b
 
-import networkx as nx
+from tqdm import tqdm
 from networkx.algorithms.graph_hashing import weisfeiler_lehman_graph_hash as wl
 import numpy as np
 
-script_dir = os.path.dirname(os.path.realpath(__file__))
-if __name__ == "__main__":
-    sys.path.append(os.path.join(script_dir, '..', '..'))
+from rnaglib.utils import load_json
+from rnaglib.config import iso_mat as iso_matrix
+from rnaglib.config import GRAPH_KEYS, TOOL
+from .rna_ged_nx import ged
+from .graph_algos import extract_graphlet
 
-from rnaglib.algorithms import bfs, extract_graphlet
-from rnaglib.utils.graph_io import load_json
-from rnaglib.config.build_iso_mat import iso_mat as iso_matrix
-from rnaglib.config.graph_keys import GRAPH_KEYS, TOOL
-from rnaglib.ged.rna_ged_nx import ged
-
-e_key = GRAPH_KEYS['bp_type'][TOOL]
-indel_vector = GRAPH_KEYS['indel_vector'][TOOL]
-edge_map = GRAPH_KEYS['edge_map'][TOOL]
+e_key = GRAPH_KEYS["bp_type"][TOOL]
+indel_vector = GRAPH_KEYS["indel_vector"][TOOL]
+edge_map = GRAPH_KEYS["edge_map"][TOOL]
 sub_matrix = np.ones_like(iso_matrix) - iso_matrix
 
 
 class Hasher:
-    def __init__(self,
-                 method='WL',
-                 string_hash_size=8,
-                 graphlet_hash_size=16,
-                 symmetric_edges=True,
-                 wl_hops=2,
-                 label='LW',
-                 directed=True):
+    def __init__(
+        self,
+        method="WL",
+        string_hash_size=8,
+        graphlet_hash_size=16,
+        symmetric_edges=True,
+        wl_hops=2,
+        label="LW",
+        directed=True,
+    ):
         """
         The hasher object. Once created, it will hash new graphs and optionnaly, one can run it onto
         a whole graph dir to create the hashtable once and for all.
@@ -85,21 +77,21 @@ class Hasher:
         if self.symmetric_edges:
             for u, v in graph.edges():
                 label = graph[u][v][self.label]
-                if label != 'B53':
+                if label != "B53":
                     prefix, suffix = label[0], label[1:]
                     graph[u][v][self.label] = prefix + "".join(sorted(suffix))
         return wl(graph, edge_attr=self.label, iterations=self.wl_hops)
 
-    def get_hash_table(self,
-                       graph_dir,
-                       max_graphs=0):
-        self.hash_table = build_hash_table(graph_dir,
-                                           hasher=self,
-                                           max_graphs=max_graphs,
-                                           graphlet_size=self.wl_hops,
-                                           mode='count',
-                                           label=self.label,
-                                           directed=self.directed)
+    def get_hash_table(self, graph_dir, max_graphs=0):
+        self.hash_table = build_hash_table(
+            graph_dir,
+            hasher=self,
+            max_graphs=max_graphs,
+            graphlet_size=self.wl_hops,
+            mode="count",
+            label=self.label,
+            directed=self.directed,
+        )
 
     def get_node_hash(self, graph, n):
         """
@@ -109,7 +101,9 @@ class Hasher:
         :param n:
         :return:
         """
-        return self.hash(extract_graphlet(graph, n, size=self.wl_hops, label=self.label))
+        return self.hash(
+            extract_graphlet(graph, n, size=self.wl_hops, label=self.label)
+        )
 
 
 '''
@@ -142,14 +136,16 @@ def WL_step_edges(G, labels):
 '''
 
 
-def build_hash_table(graph_dir,
-                     hasher,
-                     graphlets=True,
-                     max_graphs=0,
-                     graphlet_size=1,
-                     mode='count',
-                     label='LW',
-                     directed=True):
+def build_hash_table(
+    graph_dir,
+    hasher,
+    graphlets=True,
+    max_graphs=0,
+    graphlet_size=1,
+    mode="count",
+    label="LW",
+    directed=True,
+):
     """
 
     Iterates over nodes of the graphs in graph dir and fill a hash table with their graphlets hashes
@@ -168,38 +164,43 @@ def build_hash_table(graph_dir,
     if max_graphs:
         graphlist = graphlist[:max_graphs]
     for g in tqdm(graphlist):
-        print(f'getting hashes : doing graph {g}')
+        print(f"getting hashes : doing graph {g}")
         G = load_json(os.path.join(graph_dir, g))
         if not directed:
             G = G.to_undirected()
         if graphlets:
-            todo = [extract_graphlet(G, n, size=graphlet_size, label=label) for n in G.nodes()]
+            todo = [
+                extract_graphlet(G, n, size=graphlet_size, label=label)
+                for n in G.nodes()
+            ]
         else:
             todo = [G]
         for i, n in enumerate(todo):
             h = hasher.hash(n)
             if h not in hash_table:
-                if mode == 'append':
-                    hash_table[h] = {'graphs': [n]}
+                if mode == "append":
+                    hash_table[h] = {"graphs": [n]}
                 else:
-                    hash_table[h] = {'graph': n, 'count': 1}
+                    hash_table[h] = {"graph": n, "count": 1}
             else:
                 # see if collision
-                if mode == 'append':
-                    hash_table[h]['graphs'].append(n)
+                if mode == "append":
+                    hash_table[h]["graphs"].append(n)
                 else:
-                    hash_table[h]['count'] += 1
+                    hash_table[h]["count"] += 1
     return hash_table
 
 
-def get_ged_hashtable(h_G,
-                      h_H,
-                      GED_table,
-                      graphlet_table,
-                      normed=True,
-                      beta=.50,
-                      timeout=60,
-                      similarity=False):
+def get_ged_hashtable(
+    h_G,
+    h_H,
+    GED_table,
+    graphlet_table,
+    normed=True,
+    beta=0.50,
+    timeout=60,
+    similarity=False,
+):
     """
     Get the GED between two hashes.
 
@@ -226,8 +227,8 @@ def get_ged_hashtable(h_G,
     except:
         pass
 
-    G = graphlet_table[h_G]['graph']
-    H = graphlet_table[h_H]['graph']
+    G = graphlet_table[h_G]["graph"]
+    H = graphlet_table[h_H]["graph"]
 
     distance = ged(G, H, timeout=timeout)
 
