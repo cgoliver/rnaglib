@@ -7,13 +7,11 @@ from rnaglib.tasks import RNAFamilyTask
 from rnaglib.tasks import ProteinBindingSiteDetection
 from rnaglib.tasks import ChemicalModification
 
+
 class TaskTest(unittest.TestCase):
 
     def check_task(self, task: Task):
-        # check target var is there
-        print(task)
-        task.dataset.add_representation(GraphRepresentation(framework='pyg'))
-        print(task.dataset[0]['graph'])
+        task.dataset.add_representation(GraphRepresentation(framework="pyg"))
         assert task.target_var is not None
 
         assert task.train_ind is not None
@@ -35,4 +33,3 @@ class TaskTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             ta = ChemicalModification(root=tmp, debug=True)
             self.check_task(ta)
-

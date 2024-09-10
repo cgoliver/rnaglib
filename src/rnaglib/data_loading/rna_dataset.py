@@ -1,4 +1,5 @@
 import os
+import copy
 
 from bidict import bidict
 from typing import Dict
@@ -12,6 +13,7 @@ from rnaglib.transforms import FeaturesComputer
 from rnaglib.data_loading.create_dataset import database_to_dataset
 from rnaglib.utils import download_graphs, load_graph, dump_json
 from rnaglib.utils.graph_io import get_all_existing, get_name_extension
+
 
 class RNADataset:
     """
@@ -40,19 +42,21 @@ class RNADataset:
 
     """
 
-    def __init__(self,
-                 rnas=None,
-                 dataset_path=None,
-                 all_rnas=None,
-                 in_memory=True,
-                 features_computer=None,
-                 representations=None,
-                 debug=False,
-                 get_pdbs=False,
-                 overwrite=False,
-                 pre_transforms=None,
-                 transforms=None,
-                 **kwargs):
+    def __init__(
+        self,
+        rnas=None,
+        dataset_path=None,
+        all_rnas=None,
+        in_memory=True,
+        features_computer=None,
+        representations=None,
+        debug=False,
+        get_pdbs=False,
+        overwrite=False,
+        pre_transforms=None,
+        transforms=None,
+        **kwargs,
+    ):
         self.in_memory = in_memory
         self.transforms = transforms
         self.pre_transforms = pre_transforms
@@ -60,46 +64,68 @@ class RNADataset:
         if rnas is None:
             if dataset_path is None:
                 # By default, use non redundant (nr), v1.0.0 dataset of rglib
-                if 'redundancy' in kwargs:
-                    dataset_path = download_graphs(redundancy=kwargs['redundancy'],
-                                                   debug=debug,
-                                                   get_pdbs=get_pdbs,
-                                                   overwrite=overwrite)
+                if "redundancy" in kwargs:
+                    dataset_path = download_graphs(
+                        redundancy=kwargs["redundancy"],
+                        debug=debug,
+                        get_pdbs=get_pdbs,
+                        overwrite=overwrite,
+                    )
                 else:
-                    dataset_path = download_graphs(redundancy='nr', debug=debug, get_pdbs=get_pdbs, overwrite=overwrite)
-                dataset_path = os.path.join(dataset_path, 'graphs')
+                    dataset_path = download_graphs(
+                        redundancy="nr",
+                        debug=debug,
+                        get_pdbs=get_pdbs,
+                        overwrite=overwrite,
+                    )
+                dataset_path = os.path.join(dataset_path, "graphs")
 
             # One can restrict the number of graphs to use
-            existing_all_rnas = get_all_existing(dataset_path=dataset_path, all_rnas=all_rnas)
+            existing_all_rnas = get_all_existing(
+                dataset_path=dataset_path, all_rnas=all_rnas
+            )
             if in_memory:
-                self.rnas = [load_graph(os.path.join(dataset_path, f"{g_name}.json")) for g_name in existing_all_rnas]
+                self.rnas = [
+                    load_graph(os.path.join(dataset_path, f"{g_name}.json"))
+                    for g_name in existing_all_rnas
+                ]
             else:
                 self.rnas = None
                 self.dataset_path = dataset_path
 
             # Keep track of a list_id <=> system mapping. First remove extensions
-            existing_all_rna_names = [get_name_extension(rna, permissive=True)[0] for rna in existing_all_rnas]
-            self.all_rnas = bidict({rna: i for i, rna in enumerate(existing_all_rna_names)})
+            existing_all_rna_names = [
+                get_name_extension(rna, permissive=True)[0] for rna in existing_all_rnas
+            ]
+            self.all_rnas = bidict(
+                {rna: i for i, rna in enumerate(existing_all_rna_names)}
+            )
         else:
-            assert in_memory, ("Conflicting arguments: if an RNADataset is instantiated with a list of graphs, "
-                               "it must use 'in_memory=True'")
+            assert in_memory, (
+                "Conflicting arguments: if an RNADataset is instantiated with a list of graphs, "
+                "it must use 'in_memory=True'"
+            )
             self.rnas = rnas
 
             # Here we assume that rna lists contain a relevant rna.name field, which is the case
             # if it was constructed using build_dataset above
             rna_names = set([rna.name for rna in rnas])
-            assert '' not in rna_names and len(rna_names) == len(rnas), ("When creating a RNAdataset from rnas, please "
-                                                                         "use uniquely named networkx graphs")
+            assert "" not in rna_names and len(rna_names) == len(rnas), (
+                "When creating a RNAdataset from rnas, please "
+                "use uniquely named networkx graphs"
+            )
             self.all_rnas = bidict({rna.name: i for i, rna in enumerate(rnas)})
 
         # Now that we have the raw data setup, let us set up the features we want to be using:
-        self.features_computer = FeaturesComputer() if features_computer is None else features_computer
+        self.features_computer = (
+            FeaturesComputer() if features_computer is None else features_computer
+        )
 
         # pass transforms to the features computer to make the features available to the feat_dict
         if not pre_transforms is None:
             # tranforms work on the dict so have to get back the graph with the 'rna' key
             # this is annoying
-            self.rnas = [pre_transforms({'rna': rna})['rna'] for rna in self.rnas]
+            self.rnas = [pre_transforms({"rna": rna})["rna"] for rna in self.rnas]
 
         # Finally, let us set up the list of representations that we will be using
         if representations is None:
@@ -109,39 +135,44 @@ class RNADataset:
         else:
             self.representations = representations
 
-
     @classmethod
-    def from_database(cls,
-                      representations=None,
-                      features_computer=None,
-                      in_memory=True,
-                      **dataset_build_params):
-        
+    def from_database(
+        cls,
+        representations=None,
+        features_computer=None,
+        in_memory=True,
+        **dataset_build_params,
+    ):
+
         # if user added annotation, try to update the encoders so it can be used
         # as a feature
-        dataset_path, all_rnas_name, rnas = database_to_dataset(features_computer=features_computer,
-                                                                return_rnas=in_memory,
-                                                                **dataset_build_params)
-        return cls(rnas=rnas,
-                   dataset_path=dataset_path,
-                   all_rnas=all_rnas_name,
-                   representations=representations,
-                   features_computer=features_computer,
-                   in_memory=in_memory)
+        dataset_path, all_rnas_name, rnas = database_to_dataset(
+            features_computer=features_computer,
+            return_rnas=in_memory,
+            **dataset_build_params,
+        )
+        return cls(
+            rnas=rnas,
+            dataset_path=dataset_path,
+            all_rnas=all_rnas_name,
+            representations=representations,
+            features_computer=features_computer,
+            in_memory=in_memory,
+        )
 
     def __len__(self):
         return len(self.all_rnas)
 
     def __getitem__(self, idx):
-        """ Fetches one RNA and converts it from raw data to a dictionary
-        with representations and annotations to be used by loaders """
+        """Fetches one RNA and converts it from raw data to a dictionary
+        with representations and annotations to be used by loaders"""
         if self.in_memory:
             rna_graph = self.rnas[idx]
         else:
             rna_name = self.all_rnas.inv[idx]
             rna_graph = load_graph(os.path.join(self.dataset_path, f"{rna_name}.json"))
             # Compute features
-        rna_dict = {'rna': rna_graph}
+        rna_dict = {"rna": rna_graph}
 
         if not self.transforms is None:
             self.transforms(rna_dict)
@@ -155,14 +186,21 @@ class RNADataset:
         return rna_dict
 
     def add_representation(self, representations):
-        representations = [representations] if not isinstance(representations, list) else representations
+        representations = (
+            [representations]
+            if not isinstance(representations, list)
+            else representations
+        )
         self.representations.extend(representations)
 
     def remove_representation(self, names):
         names = [names] if not isinstance(names, Iterable) else names
         for name in names:
-            self.representations = [representation for representation in self.representations if
-                                    representation.name != name]
+            self.representations = [
+                representation
+                for representation in self.representations
+                if representation.name != name
+            ]
 
     def subset(self, list_of_ids=None, list_of_names=None):
         """
@@ -186,19 +224,21 @@ class RNADataset:
         return subset
 
     def save(self, dump_path, recompute=False):
-        """ Save a local copy of the dataset"""
+        """Save a local copy of the dataset"""
         if os.path.exists(dump_path) and not recompute:
             return
         os.makedirs(dump_path, exist_ok=True)
         for rna_name, i in self.all_rnas.items():
             if not self.in_memory:
-                rna_graph = load_graph(os.path.join(self.dataset_path, f"{rna_name}.json"))
+                rna_graph = load_graph(
+                    os.path.join(self.dataset_path, f"{rna_name}.json")
+                )
             else:
                 rna_graph = self.rnas[i]
             dump_json(os.path.join(dump_path, f"{rna_name}.json"), rna_graph)
 
     def get_pdbid(self, pdbid):
-        """ Grab an RNA by its pdbid """
+        """Grab an RNA by its pdbid"""
         rna_idx = self.all_rnas[pdbid.lower()]
         return self.__getitem__(rna_idx)
 
@@ -207,13 +247,25 @@ class RNADataset:
             assert list(self.all_rnas) == [rna.name for rna in self.rnas]
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     from rnaglib.representations import GraphRepresentation
 
-    features_computer = FeaturesComputer(nt_features='nt_code', nt_targets='binding_protein')
-    graph_rep = GraphRepresentation(framework='dgl')
-    all_rnas = ['1a9n.json', '1b23.json', '1b7f.json', '1csl.json', '1d4r.json', '1dfu.json', '1duq.json',
-                '1e8o.json', '1ec6.json', '1et4.json']
+    features_computer = FeaturesComputer(
+        nt_features="nt_code", nt_targets="binding_protein"
+    )
+    graph_rep = GraphRepresentation(framework="dgl")
+    all_rnas = [
+        "1a9n.json",
+        "1b23.json",
+        "1b7f.json",
+        "1csl.json",
+        "1d4r.json",
+        "1dfu.json",
+        "1duq.json",
+        "1e8o.json",
+        "1ec6.json",
+        "1et4.json",
+    ]
     all_rna_names = [name[:-5] for name in all_rnas]
     script_dir = os.path.dirname(os.path.realpath(__file__))
     dataset_path = os.path.join(script_dir, "../data/test")
@@ -254,7 +306,9 @@ if __name__ == '__main__':
     # subset2 = subset.subset(list_of_ids=[1, 3, 4])
 
     # Test saving
-    supervised_dataset = RNADataset(dataset_path=dataset_path, representations=graph_rep, in_memory=True)
+    supervised_dataset = RNADataset(
+        dataset_path=dataset_path, representations=graph_rep, in_memory=True
+    )
     # supervised_dataset.save(os.path.join(script_dir, "../data/test_dump"))
     supervised_dataset.check_consistency()
     a = 1

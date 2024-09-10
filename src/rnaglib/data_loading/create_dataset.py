@@ -9,15 +9,18 @@ from rnaglib.utils.graph_io import get_all_existing, get_name_extension
 if TYPE_CHECKING:
     from rnaglib.data_loading.features import FeaturesComputer
 
-def database_to_dataset_loop(all_rnas_db,
-                             db_path,
-                             rna_filter: Callable = None,
-                             nt_filter: Callable = None,
-                             pre_transforms: Callable = None,
-                             features_computer: 'FeaturesComputer' = None
-                             ):
-    """ Iterates through database, applying filters and annotations"""
+
+def database_to_dataset_loop(
+    all_rnas_db,
+    db_path,
+    rna_filter: Callable = None,
+    nt_filter: Callable = None,
+    pre_transforms: Callable = None,
+    features_computer: "FeaturesComputer" = None,
+):
+    """Iterates through database, applying filters and annotations"""
     from tqdm import tqdm as tqdm
+
     rna_list = []
 
     for rna_filename in tqdm(all_rnas_db):
@@ -41,18 +44,20 @@ def database_to_dataset_loop(all_rnas_db,
         # Apply a per graph/subgraph function
         if pre_transforms is not None:
             for subg in subgs:
-                pre_transforms({'rna': subg})
+                pre_transforms({"rna": subg})
 
         # Add a 'name' field to the graphs if annotator did not put one.
         rna_name, rna_extension = get_name_extension(rna_filename)
         for i, subg in enumerate(subgs):
-            if subg.name == '':
+            if subg.name == "":
                 if len(subgs) == 1:
                     subg.name = rna_name
                 else:
-                    subg.name = f'{rna_name}_{i}'
-        assert len(subgs) == len(set([rna.name for rna in subgs])), ("When adding several subgraphs in nt_filter,"
-                                                                 " make sure to use unique names for each subgraphs")
+                    subg.name = f"{rna_name}_{i}"
+        assert len(subgs) == len(set([rna.name for rna in subgs])), (
+            "When adding several subgraphs in nt_filter,"
+            " make sure to use unique names for each subgraphs"
+        )
 
         # Remove useless keys
         if features_computer is not None:
@@ -62,21 +67,23 @@ def database_to_dataset_loop(all_rnas_db,
     return rna_list
 
 
-def database_to_dataset(dataset_path=None,
-                        recompute=False,
-                        all_rnas=None,
-                        return_rnas=True,
-                        pre_transforms=None,
-                        nt_filter=None,
-                        rna_filter=None,
-                        features_computer=None,
-                        db_path=None,
-                        all_rnas_db=None,
-                        version='1.0.0',
-                        download_dir=None,
-                        redundancy='nr',
-                        annotated=False,
-                        debug=False):
+def database_to_dataset(
+    dataset_path=None,
+    recompute=False,
+    all_rnas=None,
+    return_rnas=True,
+    pre_transforms=None,
+    nt_filter=None,
+    rna_filter=None,
+    features_computer=None,
+    db_path=None,
+    all_rnas_db=None,
+    version="1.0.0",
+    download_dir=None,
+    redundancy="nr",
+    annotated=False,
+    debug=False,
+):
     """
     Function to
     :param dataset_path: Path to an already saved dataset, skips dataset creation if loaded.
@@ -97,9 +104,14 @@ def database_to_dataset(dataset_path=None,
     """
     # If this corresponds to a dataset that was precomputed already, just return the graphs
     if dataset_path is not None and os.path.exists(dataset_path) and not recompute:
-        existing_all_rnas = get_all_existing(dataset_path=dataset_path, all_rnas=all_rnas)
+        existing_all_rnas = get_all_existing(
+            dataset_path=dataset_path, all_rnas=all_rnas
+        )
         if return_rnas:
-            rnas = [load_graph(os.path.join(dataset_path, g_name + ".json")) for g_name in existing_all_rnas]
+            rnas = [
+                load_graph(os.path.join(dataset_path, g_name + ".json"))
+                for g_name in existing_all_rnas
+            ]
             for rna, name in zip(rnas, existing_all_rnas):
                 rna.name = get_name_extension(name)[0]
         else:
@@ -114,28 +126,37 @@ def database_to_dataset(dataset_path=None,
     # is the one fetched by the downloading process to ensure it matches the data we iterate over.
     # TODO, check annotations and pretraining still work
     if db_path is None:
-        db_path = download_graphs(redundancy=redundancy,
-                                  version=version,
-                                  annotated=annotated,
-                                  data_root=download_dir,
-                                  debug=debug)
-        db_path = os.path.join(db_path, 'graphs')
+        db_path = download_graphs(
+            redundancy=redundancy,
+            version=version,
+            annotated=annotated,
+            data_root=download_dir,
+            debug=debug,
+        )
+        db_path = os.path.join(db_path, "graphs")
 
     if all_rnas_db is None:
         all_rnas_db = [f.split(".")[0] for f in os.listdir(db_path)]
 
     # If no constructions args are given, just return the graphs
-    if rna_filter is None and nt_filter is None and pre_transforms is None and features_computer is None:
-        rnas = [load_graph(Path(db_path) /  g_name + ".json") for g_name in all_rnas_db]
+    if (
+        rna_filter is None
+        and nt_filter is None
+        and pre_transforms is None
+        and features_computer is None
+    ):
+        rnas = [load_graph(Path(db_path) / g_name + ".json") for g_name in all_rnas_db]
         return rnas
 
     # If some constructions args are given, launch processing.
-    rnas = database_to_dataset_loop(all_rnas_db=all_rnas_db,
-                                    db_path=db_path,
-                                    rna_filter=rna_filter,
-                                    nt_filter=nt_filter,
-                                    pre_transforms=pre_transforms,
-                                    features_computer=features_computer)
+    rnas = database_to_dataset_loop(
+        all_rnas_db=all_rnas_db,
+        db_path=db_path,
+        rna_filter=rna_filter,
+        nt_filter=nt_filter,
+        pre_transforms=pre_transforms,
+        features_computer=features_computer,
+    )
     all_rnas_name = [rna.name for rna in rnas]
     if dataset_path is not None:
         os.makedirs(dataset_path, exist_ok=True)
@@ -145,13 +166,13 @@ def database_to_dataset(dataset_path=None,
 
 
 def nt_filter_split_chains(x, rna_id_to_chains):
-    pdb_id = x.graph['pdbid'][0].lower()
+    pdb_id = x.graph["pdbid"][0].lower()
     chains = rna_id_to_chains[pdb_id]
     for chain in chains:
-        wrong_chain_nodes = [node for node in list(x) if chain != node.split('.')[1]]
+        wrong_chain_nodes = [node for node in list(x) if chain != node.split(".")[1]]
         subgraph = x.copy()
         subgraph.remove_nodes_from(wrong_chain_nodes)
-        subgraph.name = f'{pdb_id}_{chain}'
+        subgraph.name = f"{pdb_id}_{chain}"
         yield subgraph
 
 
@@ -159,11 +180,13 @@ def annotator_add_embeddings(x, embs_path=None):
     if embs_path is None:
         script_dir = os.path.dirname(os.path.realpath(__file__))
         embs_path = os.path.join(script_dir, "../data/rnafm_chain_embs")
-    all_chains = {node.rsplit('.', 1)[0] for node in x.nodes}
+    all_chains = {node.rsplit(".", 1)[0] for node in x.nodes}
     all_chain_embs = {}
     for chain in all_chains:
         chain_embs = np.load(os.path.join(embs_path, f"{chain}.npz"))
         all_chain_embs.update(chain_embs)
     # needs to be list or won't be json serialisable
-    embeddings = {node: all_chain_embs[node].tolist() for node, nodedata in x.nodes.items()}
-    set_node_attributes(x, embeddings, 'embeddings')
+    embeddings = {
+        node: all_chain_embs[node].tolist() for node, nodedata in x.nodes.items()
+    }
+    set_node_attributes(x, embeddings, "embeddings")
