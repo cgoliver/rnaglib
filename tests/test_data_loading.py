@@ -7,19 +7,23 @@ from rnaglib.transforms import FeaturesComputer
 from rnaglib.transforms import RNAFMTransform
 from rnaglib.transforms import GraphRepresentation
 
+
 class TestDataset(unittest.TestCase):
     @classmethod
     def setUpClass(self):
-        self.default_dataset = RNADataset(debug=True, overwrite=True)
-        print(len(self.default_dataset))
+        self.default_dataset = RNADataset(debug=True)
+        pass
+
+    def test_in_memorY(self):
+        RNADataset(debug=True, in_memory=True)
         pass
 
     def test_rna_get(self):
         rna = self.default_dataset[0]
-        assert 'rna' in rna
+        assert "rna" in rna
 
     def test_dataset_from_list(self):
-        rnas = [nx.Graph(name='rna1'), nx.Graph(name='rna2')]
+        rnas = [nx.Graph(name="rna1"), nx.Graph(name="rna2")]
         da = RNADataset(rnas=rnas)
         assert len(da) == len(rnas)
         pass
@@ -43,32 +47,36 @@ class TestDataset(unittest.TestCase):
         pass
 
     def test_pre_transform(self):
-        """ Add rnafm embeddings during dataset construction from database,
+        """Add rnafm embeddings during dataset construction from database,
         then look up the stored attribute at getitem time.
         """
         tr = RNAFMTransform()
-        feat = FeaturesComputer(nt_features=['nt_code', tr.name], custom_encoders={tr.name: tr.encoder} )
-        dataset = RNADataset(debug=True,
-                             features_computer=feat,
-                             pre_transforms=tr,
-                             representations=GraphRepresentation(framework='pyg'),
-                             )
+        feat = FeaturesComputer(
+            nt_features=["nt_code", tr.name], custom_encoders={tr.name: tr.encoder}
+        )
+        dataset = RNADataset(
+            debug=True,
+            features_computer=feat,
+            pre_transforms=tr,
+            representations=GraphRepresentation(framework="pyg"),
+        )
 
-        assert dataset[0]['graph'].x is not None
+        assert dataset[0]["graph"].x is not None
 
     def test_post_transform(self):
-        """ Apply transform during getitem call.
-        """
+        """Apply transform during getitem call."""
         tr = RNAFMTransform()
-        feat = FeaturesComputer(nt_features=['nt_code', tr.name], custom_encoders={tr.name: tr.encoder})
-        dataset = RNADataset(debug=True,
-                             features_computer=feat,
-                             transforms=tr,
-                             representations=GraphRepresentation(framework='pyg'),
-                             )
-        assert dataset[0]['graph'].x is not None
+        feat = FeaturesComputer(
+            nt_features=["nt_code", tr.name], custom_encoders={tr.name: tr.encoder}
+        )
+        dataset = RNADataset(
+            debug=True,
+            features_computer=feat,
+            transforms=tr,
+            representations=GraphRepresentation(framework="pyg"),
+        )
+        assert dataset[0]["graph"].x is not None
         pass
-
 
 
 if __name__ == "__main__":

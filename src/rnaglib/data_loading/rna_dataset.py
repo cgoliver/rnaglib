@@ -1,13 +1,17 @@
+"""Main class for collections of RNAs."""
+
 import os
 import copy
 
 from bidict import bidict
-from typing import Dict
+from pathlib import Path
+from typing import Dict, List, Union
 from collections.abc import Iterable
 
 from bidict import bidict
 import networkx as nx
 
+from rnaglib.transforms import Transform
 from rnaglib.transforms import Representation
 from rnaglib.transforms import FeaturesComputer
 from rnaglib.data_loading.create_dataset import database_to_dataset
@@ -18,12 +22,12 @@ from rnaglib.utils.graph_io import get_all_existing, get_name_extension
 class RNADataset:
     """
     This class is the main object to hold the core RNA data annotations.
+
     The ``RNAglibDataset.all_rnas`` object is a list of networkx objects that holds all the annotations for each RNA in the dataset.
-    You can also access individual RNAs on-disk with ``RNAGlibDataset()[idx]`` or ``RNAGlibDataset().get_pdbid('1b23')``
 
     :param rnas: One can instantiate directly from a list of RNA files
     :param dataset_path: The path to the folder containing the graphs.
-    :param all_rnas: In the given directory, ``'dataset_path'``, one can choose to provide a list of graphs to use as filenames.
+    :param rna_id_subset: In the given directory, ``'dataset_path'``, one can choose to provide a list of graphs filenames to keep instead of using all available.
     :param in_memory: Whether to load all RNA graphs in memory or to load them on the fly
     :param features_computer: A FeaturesComputer object, useful to transform raw RNA data into tensors.
     :param representations: List of :class:`~rnaglib.representations.Representation` objects to apply to each item.
@@ -33,10 +37,32 @@ class RNADataset:
 
     Examples
     ---------
-
     Create a default dataset::
 
-        dataset = RNADataset()
+        >>> from rnaglib.data_loading import RNADataset
+        >>> dataset = RNADataset()
+
+
+    Access the first item in the dataset::
+
+        >>> dataset[0]
+
+
+    Each item is a dictionary with the key 'rna' holding annotations as a networkx Graph.
+
+        >>> dataset['rna'].nodes()
+        >>> dataset['rna'].edges()
+
+
+    Access an RNA by its PDBID::
+
+        >>> dataset.get_pdbid('4nlf')
+
+
+
+
+    .. Hint::
+        Pass ``debug=True`` to ``RNADataset`` to quickly load a small dataset for testing.
 
 
 
@@ -44,17 +70,17 @@ class RNADataset:
 
     def __init__(
         self,
-        rnas=None,
-        dataset_path=None,
-        all_rnas=None,
-        in_memory=True,
-        features_computer=None,
-        representations=None,
-        debug=False,
-        get_pdbs=False,
-        overwrite=False,
-        pre_transforms=None,
-        transforms=None,
+        rnas: List[nx.Graph] = None,
+        dataset_path: Union[str, os.PathLike] = None,
+        rna_id_subset: List[str] = None,
+        in_memory: bool = True,
+        features_computer: FeaturesComputer = None,
+        representations: Representation = None,
+        debug: bool = False,
+        get_pdbs: bool = True,
+        overwrite: bool = False,
+        pre_transforms: Union[List[Transform], Transform] = None,
+        transforms: Union[List[Transform], Transform] = None,
         **kwargs,
     ):
         self.in_memory = in_memory
@@ -78,15 +104,17 @@ class RNADataset:
                         get_pdbs=get_pdbs,
                         overwrite=overwrite,
                     )
-                dataset_path = os.path.join(dataset_path, "graphs")
+                self.dataset_path = os.path.join(dataset_path, "graphs")
+                self.structures_path = os.path.join(dataset_path, "structures")
 
             # One can restrict the number of graphs to use
             existing_all_rnas = get_all_existing(
-                dataset_path=dataset_path, all_rnas=all_rnas
+                dataset_path=self.dataset_path, all_rnas=rna_id_subset
             )
+
             if in_memory:
                 self.rnas = [
-                    load_graph(os.path.join(dataset_path, f"{g_name}.json"))
+                    load_graph(os.path.join(self.dataset_path, f"{g_name}.json"))
                     for g_name in existing_all_rnas
                 ]
             else:
@@ -143,7 +171,13 @@ class RNADataset:
         in_memory=True,
         **dataset_build_params,
     ):
+        """Run the steps to build a dataset from scratch.
 
+        :param cls: the ``RNADataset`` class instance.
+        :param representations: which representations to apply.
+        :param in_memory: whetherb to store dataset in memory or on disk.
+        :param dataset_build_params: parameters for the ``database_to_dataset`` function.
+        """
         # if user added annotation, try to update the encoders so it can be used
         # as a feature
         dataset_path, all_rnas_name, rnas = database_to_dataset(
@@ -161,18 +195,27 @@ class RNADataset:
         )
 
     def __len__(self):
+        """Return the length of the current dataset."""
         return len(self.all_rnas)
 
     def __getitem__(self, idx):
-        """Fetches one RNA and converts it from raw data to a dictionary
-        with representations and annotations to be used by loaders"""
+        """Fetch one RNA and converts item from raw data to a dictionary.
+
+        Applies representations and annotations to be used by loaders.
+
+        :param idx: Index of dataset item to fetch.
+        """
+        rna_name = self.all_rnas.inv[idx]
+
         if self.in_memory:
             rna_graph = self.rnas[idx]
         else:
-            rna_name = self.all_rnas.inv[idx]
-            rna_graph = load_graph(os.path.join(self.dataset_path, f"{rna_name}.json"))
-            # Compute features
-        rna_dict = {"rna": rna_graph}
+            rna_graph = load_graph(nx_path)
+
+        nx_path = Path(self.dataset_path) / f"{rna_name}.json"
+        cif_path = Path(self.structures_path) / f"{rna_name}.cif"
+        # Compute features
+        rna_dict = {"rna": rna_graph, "nx_path": nx_path, "cif_path": cif_path}
 
         if not self.transforms is None:
             self.transforms(rna_dict)
@@ -185,7 +228,16 @@ class RNADataset:
             rna_dict[rep.name] = rep(rna_graph, features_dict)
         return rna_dict
 
-    def add_representation(self, representations):
+    def add_representation(
+        self, representations: Union[List[Representation], Representation]
+    ):
+        """Add a representation object to dataset.
+
+        Provided representations are added on the fly to the dataset.
+
+        :param representations: List of ``Representation`` objects to add.
+
+        """
         representations = (
             [representations]
             if not isinstance(representations, list)
@@ -204,7 +256,7 @@ class RNADataset:
 
     def subset(self, list_of_ids=None, list_of_names=None):
         """
-        Create another dataset with only the specified graphs
+        Create another dataset with only the specified graphs.
 
         :param list_of_names: a list of rna names (no extension is expected)
         :param list_of_ids: a list of rna ids
