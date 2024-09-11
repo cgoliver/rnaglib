@@ -215,7 +215,7 @@ class RNADataset:
         nx_path = Path(self.dataset_path) / f"{rna_name}.json"
         cif_path = Path(self.structures_path) / f"{rna_name}.cif"
         # Compute features
-        rna_dict = {"rna": rna_graph, "nx_path": nx_path, "cif_path": cif_path}
+        rna_dict = {"rna": rna_graph, "graph_path": nx_path, "cif_path": cif_path}
 
         if not self.transforms is None:
             self.transforms(rna_dict)
