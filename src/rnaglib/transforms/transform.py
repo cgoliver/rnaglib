@@ -1,3 +1,4 @@
+import os
 from joblib import Parallel, delayed
 from typing import List, Union, Any, Iterable, Generator, TYPE_CHECKING
 
@@ -11,6 +12,9 @@ class Transform:
     This can be applied at dataset construction time, or a retrieval.
     Implementation inspired by torch-geometric Transforms library.
 
+    :param parallel: whether to run the transform in parallel.
+    :param num_workers: if running in parallel, number of jobs to use.
+
 
     Example
     --------
@@ -19,13 +23,17 @@ class Transform:
 
         >>> from rnaglib.transforms import Transform
         >>> t = Transform()
-        >>> dataset = 'RNADataset'(debug=True)
+        >>> dataset = RNADataset(debug=True)
         >>> t(dataset[0])
         >>> t(dataset)
 
     """
 
-    def __init__(self, parallel: bool = False, num_workers: int = -1):
+    def __init__(
+        self,
+        parallel: bool = False,
+        num_workers: int = -1,
+    ):
         self.parallel = parallel
         self.num_workers = num_workers
         pass
@@ -49,6 +57,26 @@ class Transform:
         return f"{self.__class__.__name__}()"
 
 
+class AnnotationTransform(Transform):
+    """A transform that computes an annotation for the RNA.
+
+    Same logic as the base class but implements caching logic.
+    """
+
+    def __init__(
+        self,
+        use_cache: bool = False,
+        cache_path: Union[str, os.PathLike] = None,
+        load_cache_path: Union[str, os.PathLike] = None,
+        **kwargs,
+    ):
+
+        super().__init__(**kwargs)
+        pass
+
+    pass
+
+
 class FilterTransform(Transform):
     """Reject items from a dataset based on some conditions.
     The ``forward()`` method returns True/False for the given RNA and
@@ -57,15 +85,22 @@ class FilterTransform(Transform):
 
     def __call__(self, data: Any) -> Union[bool, Iterable[Any]]:
         RNADataset = __import__("rnaglib.data_loading").data_loading.RNADataset
+        print("initial length ", len(data))
         if not isinstance(data, (list, Generator, RNADataset)):
             raise ValueError("Filter transforms only apply to collections of RNAs.")
+
         if self.parallel:
             keeps = Parallel(n_jobs=self.num_workers)(
                 delayed(self.forward)(d) for d in data
             )
-            return (d for d, keep in zip(data, keeps) if keep)
+            keep_rnas = (d for d, keep in zip(data, keeps) if keep)
         else:
-            return (d for d in data if self.forward(d))
+            keep_rnas = (d for d in data if self.forward(d))
+
+        if isinstance(data, RNADataset):
+            return RNADataset(rnas=[r["rna"] for r in keep_rnas])
+        else:
+            return keep_rnas
 
     def forward(self, data: dict) -> bool:
         """Returns true/ or false on the given RNA"""
@@ -90,6 +125,10 @@ class PartitionTransform(Transform):
         else:
             yield from self.forward(data)
         pass
+
+    def new_name(self, rna_partition: dict):
+        """Compute the name of the given partition of RNA"""
+        raise NotImplementedError
 
     pass
 

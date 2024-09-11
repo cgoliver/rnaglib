@@ -12,6 +12,7 @@ from rnaglib.transforms import Compose
 from rnaglib.transforms import SizeFilter
 from rnaglib.transforms import ChainSplitTransform
 
+
 class TransformsTest(unittest.TestCase):
 
     def check_ndata(self, g, attribute: str):
@@ -38,7 +39,7 @@ class TransformsTest(unittest.TestCase):
     def test_RNAFMTransform(self):
         tr = RNAFMTransform()
         tr(self.dataset[0])
-        tr(self.dataset)
+        list(tr(self.dataset))
         pass
 
     def test_filter(self):
@@ -62,9 +63,7 @@ class TransformsTest(unittest.TestCase):
         tr_2 = RfamTransform()
         t = Compose([tr_1, tr_2])
         t(self.dataset[0])
-        self.check_gdata(g['rna'], 'rfam')
-        self.check_ndata(g['rna'], 'rnafm')
-
+        self.check_gdata(g["rna"], "rfam")
+        self.check_ndata(g["rna"], "rnafm")
 
     pass
-
