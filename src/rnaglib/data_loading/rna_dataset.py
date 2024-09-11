@@ -117,6 +117,9 @@ class RNADataset:
                     load_graph(os.path.join(self.dataset_path, f"{g_name}.json"))
                     for g_name in existing_all_rnas
                 ]
+                for rna, name in zip(self.rnas, existing_all_rnas):
+                    rna.name = name
+
             else:
                 self.rnas = None
                 self.dataset_path = dataset_path
@@ -205,15 +208,22 @@ class RNADataset:
 
         :param idx: Index of dataset item to fetch.
         """
+        if idx >= len(self):
+            raise IndexError
+
         rna_name = self.all_rnas.inv[idx]
+        nx_path, cif_path = None, None
+        if hasattr(self, "dataset_path"):
+            nx_path = Path(self.dataset_path) / f"{rna_name}.json"
+
+        if hasattr(self, "structures_path"):
+            cif_path = Path(self.structures_path) / f"{rna_name}.cif"
 
         if self.in_memory:
             rna_graph = self.rnas[idx]
         else:
             rna_graph = load_graph(nx_path)
 
-        nx_path = Path(self.dataset_path) / f"{rna_name}.json"
-        cif_path = Path(self.structures_path) / f"{rna_name}.cif"
         # Compute features
         rna_dict = {"rna": rna_graph, "graph_path": nx_path, "cif_path": cif_path}
 
