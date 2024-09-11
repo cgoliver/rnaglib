@@ -14,8 +14,9 @@ class TestDataset(unittest.TestCase):
         self.default_dataset = RNADataset(debug=True)
         pass
 
-    def test_in_memorY(self):
-        RNADataset(debug=True, in_memory=True)
+    def test_in_memory(self):
+        d = RNADataset(debug=True, in_memory=True)
+        print(d[0])
         pass
 
     def test_rna_get(self):
