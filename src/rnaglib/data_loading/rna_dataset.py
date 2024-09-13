@@ -122,7 +122,6 @@ class RNADataset:
 
             else:
                 self.rnas = None
-                self.dataset_path = dataset_path
 
             # Keep track of a list_id <=> system mapping. First remove extensions
             existing_all_rna_names = [
@@ -213,6 +212,7 @@ class RNADataset:
 
         rna_name = self.all_rnas.inv[idx]
         nx_path, cif_path = None, None
+
         if hasattr(self, "dataset_path"):
             nx_path = Path(self.dataset_path) / f"{rna_name}.json"
 
@@ -222,7 +222,7 @@ class RNADataset:
         if self.in_memory:
             rna_graph = self.rnas[idx]
         else:
-            rna_graph = load_graph(nx_path)
+            rna_graph = load_graph(str(nx_path))
 
         # Compute features
         rna_dict = {"rna": rna_graph, "graph_path": nx_path, "cif_path": cif_path}

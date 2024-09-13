@@ -282,7 +282,6 @@ def download_graphs(
     url = download_name_generator(
         redundancy=redundancy, version=version, annotated=annotated, debug=debug
     )
-    print(f"Fetching {url}")
     dl_path = Path(data_root) / "downloads" / Path(tag + ".tar.gz")
     data_path = Path(data_root) / "datasets"
 
@@ -290,6 +289,7 @@ def download_graphs(
         print(
             "Required database not found, launching a download. This should take about a minute"
         )
+        print(f"Fetching {url}")
         print(f"Downloading to : {dl_path}")
         print(f"Saving to : {data_path}")
         download(path=dl_path, url=url)
