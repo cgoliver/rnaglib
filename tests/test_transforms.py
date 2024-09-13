@@ -42,6 +42,15 @@ class TransformsTest(unittest.TestCase):
         list(tr(self.dataset))
         pass
 
+    """
+    def test_RNAFMTransform_chunk(self):
+        tr = RNAFMTransform()
+        d = RNADataset(redundancy="all", in_memory=False)
+        big_g = d.get_pdbid("4x66")
+        print(len(big_g["rna"].nodes()))
+        tr(big_g)
+    """
+
     def test_filter(self):
         f = SizeFilter(max_size=50)
         new_dset = list(f(self.dataset))
