@@ -125,7 +125,7 @@ All tasks follow a similar pattern.
 ```python
 
 from rnaglib.tasks import BindingSiteDetection
-from rnaglib.representations import GraphRepresentation
+from rnaglib.transforms import GraphRepresentation
 
 # Load the task data and annotations
 ta = BindingSiteDetection('my_root')
