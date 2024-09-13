@@ -84,6 +84,8 @@ class FilterTransform(Transform):
     """
 
     def __call__(self, data: Any) -> Union[bool, Iterable[Any]]:
+        """Apply the filter and return an iterator over the RNAs that pass."""
+
         RNADataset = __import__("rnaglib.data_loading").data_loading.RNADataset
         print("initial length ", len(data))
         if not isinstance(data, (list, Generator, RNADataset)):
@@ -93,14 +95,9 @@ class FilterTransform(Transform):
             keeps = Parallel(n_jobs=self.num_workers)(
                 delayed(self.forward)(d) for d in data
             )
-            keep_rnas = (d for d, keep in zip(data, keeps) if keep)
+            return (d for d, keep in zip(data, keeps) if keep)
         else:
-            keep_rnas = (d for d in data if self.forward(d))
-
-        if isinstance(data, RNADataset):
-            return RNADataset(rnas=[r["rna"] for r in keep_rnas])
-        else:
-            return keep_rnas
+            return (d for d in data if self.forward(d))
 
     def forward(self, data: dict) -> bool:
         """Returns true/ or false on the given RNA"""
