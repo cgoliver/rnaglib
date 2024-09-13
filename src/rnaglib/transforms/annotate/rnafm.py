@@ -1,6 +1,6 @@
 import os
 import json
-from typing import Dict
+from typing import Dict, Tuple, List
 
 import torch
 import numpy as np
@@ -17,26 +17,59 @@ from rnaglib.transforms import Transform
 from rnaglib.encoders import ListEncoder
 from rnaglib.algorithms import get_sequences
 
+
 class RNAFMTransform(Transform):
-    """ Use the RNA-FM model to compute residue-level embeddings.
+    """Use the RNA-FM model to compute residue-level embeddings.
     Make sure rna-fm is installed by running ``pip install rna-fm``.
     Sets a node attribute to `'rnafm'` with a numpy array of the resulting
     embedding. Go `here <https://github.com/ml4bio/RNA-FM>`_ for the RNA-FM
     source code.
+
+    :param chunking_strategy: how to process sequences longer than 1024. ``'simple'`` just
+    splits into non-overlapping segments.
+    :param chunk_size: size of chunks to use (default is 512)
+
+    .. note::
+        Maximum size for basic RNA-FM model is 1024. If sequence is larger
+        than 1024 we apply ``'chunking_strategy'`` to process the sequence.
     """
-    name  = 'rnafm'
+
+    name = "rnafm"
     encoder = ListEncoder(640)
 
-    def __init__(self, **kwargs):
+    def __init__(
+        self, chunking_strategy: str = "simple", chunk_size: int = 512, **kwargs
+    ):
         # Load RNA-FM model
         self.model, self.alphabet = fm.pretrained.rna_fm_t12()
         self.batch_converter = self.alphabet.get_batch_converter()
+        self.chunking_strategy = chunking_strategy
+        self.chunk_size = chunk_size
         self.model.eval()
         super().__init__(**kwargs)
 
+    def basic_chunking(self, seq):
+        return [
+            seq[i : i + self.chunk_size] for i in range(0, len(seq), self.chunk_size)
+        ]
+
+    def chunk(self, seq_data: List[Tuple]) -> List[Tuple]:
+        """Apply a chunking strategy to sequences longer than 1024."""
+
+        chunked = {}
+        for chain_id, (seq, nodes) in seq_data.items():
+            if self.chunking_strategy == "simple":
+                chunks = self.basic_chunking(list(zip(seq, nodes)))
+
+            for i, chunk in enumerate(chunks):
+                nodelist = [n for _, n in chunk]
+                seq = "".join([s for s, _ in chunk])
+                chunked[chain_id + "_" + str(i)] = (seq, nodelist)
+        return chunked
+
     def forward(self, rna_dict: Dict) -> Dict:
         # Prepare data
-        seq_data = get_sequences(rna_dict['rna'])
+        seq_data = self.chunk(get_sequences(rna_dict["rna"]))
         input_seqs = [(chain_id, seq) for chain_id, (seq, _) in seq_data.items()]
         batch_labels, batch_strs, batch_tokens = self.batch_converter(input_seqs)
 
@@ -45,9 +78,9 @@ class RNAFMTransform(Transform):
             results = self.model(batch_tokens, repr_layers=[12])
         token_embeddings = results["representations"][12]
 
-        for i, (chain_id, (seq, node_ids)) in enumerate(seq_data.items()):
-            Z = token_embeddings[i,:len(seq)]
-            emb_dict = {n:list(Z[i].detach().numpy()) for i,n in enumerate(node_ids)}
-            nx.set_node_attributes(rna_dict['rna'], emb_dict, self.name)
+        for i, (_, (seq, node_ids)) in enumerate(seq_data.items()):
+            Z = token_embeddings[i, : len(seq)]
+            emb_dict = {n: list(Z[i].detach().numpy()) for i, n in enumerate(node_ids)}
+            nx.set_node_attributes(rna_dict["rna"], emb_dict, self.name)
 
         return rna_dict

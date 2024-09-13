@@ -691,6 +691,9 @@ def get_sequences(graph: nx.Graph) -> Tuple[Dict[str, Tuple[str, List[str]]]]:
     """Extract ordered sequences from each chain of the RNA.
     Returns a dictionary mapping <pdbid.chain>: (sequence, list of node IDs)
 
+    .. warning::
+        Currently does not handle missing residues. If a residue is missing it is simply skipped.
+
     :param graph: an nx.Graph of an RNA.
 
     """
