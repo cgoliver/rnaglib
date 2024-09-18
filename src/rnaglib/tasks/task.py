@@ -10,12 +10,12 @@ import torch.nn.functional as F
 import numpy as np
 from sklearn.metrics import matthews_corrcoef, f1_score, accuracy_score, roc_auc_score
 
-from rnaglib.data_loading import Collater
-from rnaglib.splitters import RandomSplitter
+from rnaglib.data_loading import RNADataset, Collater
+from rnaglib.splitters import Splitter, RandomSplitter
 
 
 class Task:
-    """ Abstract class for a benchmarking task using the rnaglib datasets.
+    """Abstract class for a benchmarking task using the rnaglib datasets.
     This class handles the logic for building the underlying dataset which is held in an
     rnaglib.data_loading.RNADataset
     object. Once the dataset is created, the splitter is invoked to create the train/val/test indices.
@@ -27,48 +27,68 @@ class Task:
     If None uses task's default_splitter() attribute.
     """
 
-    def __init__(self, root, recompute=False, splitter=None, debug: bool = False):
+    def __init__(
+        self,
+        root: Union[str, os.PathLike],
+        recompute: bool = False,
+        splitter: Splitter = None,
+        debug: bool = False,
+        save: bool = True,
+    ):
         self.root = root
-        self.dataset_path = os.path.join(self.root, 'dataset')
+        self.dataset_path = os.path.join(self.root, "dataset")
         self.recompute = recompute
         self.debug = debug
+        self.splitter = self.default_splitter if splitter is None else splitter
 
-        self.dataset = self.build_dataset(root)
-
-        if splitter is None:
-            self.splitter = self.default_splitter
-        else:
-            self.splitter = splitter
-        self.split()
-
-        os.makedirs(root, exist_ok=True)
+        # create or load dataset
         if not os.path.exists(root) or recompute:
-            self.write()
+            print("Creating task dataset from scratch...")
+            dataset = self.build_dataset()
+            train_ind, val_ind, test_ind = self.split()
+            if save:
+                self.write()
+        else:
+            dataset, (train_ind, val_ind, test_ind) = self.load()
 
-    def build_dataset(self, root):
+        self.dataset = dataset
+        self.train_ind = train_ind
+        self.val_ind = val_ind
+        self.test_ind = test_ind
+
+    def build_dataset(self):
+        """Tasks must implement this method. Executing the method should result in a list of ``.json`` files
+        saved in ``{root}/dataset``."""
         raise NotImplementedError
 
     @property
     def default_splitter(self):
         return RandomSplitter()
 
+    def load(self):
+        """Load dataset and splits from disk."""
+        # load splits
+        print(">>> Loading splits...")
+        train_ind = [
+            int(ind)
+            for ind in open(os.path.join(self.root, "train_idx.txt"), "r").readlines()
+        ]
+        val_ind = [
+            int(ind)
+            for ind in open(os.path.join(self.root, "val_idx.txt"), "r").readlines()
+        ]
+        test_ind = [
+            int(ind)
+            for ind in open(os.path.join(self.root, "test_idx.txt"), "r").readlines()
+        ]
+
+        dataset = RNADataset(dataset_path=self.dataset_path)
+
+        return dataset, (train_ind, val_ind, test_ind)
+
     def split(self):
-        """ Sets train, val, and test indices as attributes of the task. Can be accessed
-        as ``self.train_ind``, etc. Will load splits if they are saved in `root` otherwise,
-        recomputes from scratch by invoking ``self.splitter()``.
-        """
-        if not os.path.exists(os.path.join(self.root, "train_idx.txt")) or self.recompute:
-            print(">>> Computing splits...")
-            train_ind, val_ind, test_ind = self.splitter(self.dataset)
-        else:
-            print(">>> Loading splits...")
-            train_ind = [int(ind) for ind in open(os.path.join(self.root, "train_idx.txt"), 'r').readlines()]
-            val_ind = [int(ind) for ind in open(os.path.join(self.root, "val_idx.txt"), 'r').readlines()]
-            test_ind = [int(ind) for ind in open(os.path.join(self.root, "test_idx.txt"), 'r').readlines()]
-        self.train_ind = train_ind
-        self.val_ind = val_ind
-        self.test_ind = test_ind
-        return train_ind, val_ind, test_ind
+        """Calls the splitter and returns train, val, test splits."""
+        return self.splitter(self.dataset)
 
     def get_split_datasets(self):
         train_ind, val_ind, test_ind = self.split()
@@ -82,19 +102,19 @@ class Task:
 
     def get_split_loaders(self, **dataloader_kwargs):
         # If datasets were not already precomputed
-        if 'train_dataset' not in self.__dict__:
+        if "train_dataset" not in self.__dict__:
             self.get_split_datasets()
 
         # If no collater is provided we need one
         if dataloader_kwargs is None:
-            dataloader_kwargs = {'collate_fn': Collater(self.train_dataset)}
-        if 'collate_fn' not in dataloader_kwargs:
+            dataloader_kwargs = {"collate_fn": Collater(self.train_dataset)}
+        if "collate_fn" not in dataloader_kwargs:
             collater = Collater(self.train_dataset)
-            dataloader_kwargs['collate_fn'] = collater
+            dataloader_kwargs["collate_fn"] = collater
 
         # Now build the loaders
         train_loader = DataLoader(dataset=self.train_dataset, **dataloader_kwargs)
-        dataloader_kwargs['shuffle'] = False
+        dataloader_kwargs["shuffle"] = False
         val_loader = DataLoader(dataset=self.val_dataset, **dataloader_kwargs)
         test_loader = DataLoader(dataset=self.test_dataset, **dataloader_kwargs)
         self.train_dataloader = train_loader
@@ -107,8 +127,8 @@ class Task:
 
     @cached_property
     def task_id(self):
-        """ Task hash is a hash of all RNA ids and node IDs in the dataset"""
-        h = hashlib.new('sha256')
+        """Task hash is a hash of all RNA ids and node IDs in the dataset"""
+        h = hashlib.new("sha256")
         for rna in self.dataset.rnas:
             h.update(rna.name.encode("utf-8"))
             for nt in sorted(rna.nodes()):
@@ -119,18 +139,18 @@ class Task:
         return h.hexdigest()
 
     def write(self):
-        """ Save task data and splits to root. Creates a folder in ``root`` called
+        """Save task data and splits to root. Creates a folder in ``root`` called
         ``'graphs'`` which stores the RNAs that form the dataset, and three `.txt` files (`'{train, val, test}_idx.txt'`,
         one for each split with a list of indices.
         """
         if not os.path.exists(self.dataset_path) or self.recompute:
             print(">>> Saving dataset.")
             self.dataset.save(self.dataset_path, recompute=self.recompute)
-        with open(os.path.join(self.root, 'train_idx.txt'), 'w') as idx:
+        with open(os.path.join(self.root, "train_idx.txt"), "w") as idx:
             [idx.write(str(ind) + "\n") for ind in self.train_ind]
-        with open(os.path.join(self.root, 'val_idx.txt'), 'w') as idx:
+        with open(os.path.join(self.root, "val_idx.txt"), "w") as idx:
             [idx.write(str(ind) + "\n") for ind in self.val_ind]
-        with open(os.path.join(self.root, 'test_idx.txt'), 'w') as idx:
+        with open(os.path.join(self.root, "test_idx.txt"), "w") as idx:
             [idx.write(str(ind) + "\n") for ind in self.test_ind]
         with open(os.path.join(self.root, "task_id.txt"), "w") as tid:
             tid.write(self.task_id)
@@ -140,7 +160,7 @@ class Task:
         return self.task_id == other.task_id
 
     def __repr__(self) -> str:
-        return f'{self.__class__.__name__}()'
+        return f"{self.__class__.__name__}()"
 
 
 class ResidueClassificationTask(Task):
@@ -156,7 +176,7 @@ class ResidueClassificationTask(Task):
 
         with torch.no_grad():
             for batch in loader:
-                graph = batch['graph']
+                graph = batch["graph"]
                 graph = graph.to(device)
                 out = model(graph)
                 loss = criterion(out, torch.flatten(graph.y).long())
@@ -220,13 +240,11 @@ class RNAClassificationTask(Task):
         mcc = matthews_corrcoef(all_labels, all_preds)
 
         # Calculate F1 score
-        f1 = f1_score(all_labels, all_preds, average='macro')
+        f1 = f1_score(all_labels, all_preds, average="macro")
 
-        print(f'Loss: {avg_loss:.4f}')
-        print(f'Accuracy: {accuracy:.4f}')
-        print(f'Matthews Correlation Coefficient: {mcc:.4f}')
-        print(f'F1 Score: {f1:.4f}')
+        print(f"Loss: {avg_loss:.4f}")
+        print(f"Accuracy: {accuracy:.4f}")
+        print(f"Matthews Correlation Coefficient: {mcc:.4f}")
+        print(f"F1 Score: {f1:.4f}")
 
         return avg_loss, accuracy, mcc, f1
-
-
