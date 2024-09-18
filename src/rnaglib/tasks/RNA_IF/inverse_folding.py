@@ -27,7 +27,7 @@ class InverseFolding(ResidueClassificationTask):
         total_loss = 0
         with torch.no_grad():
             for batch in loader:
-                graph = batch['graph']
+                graph = batch["graph"]
                 graph = graph.to(device)
                 out = model(graph)
                 loss = criterion(out, graph.y)  # torch.flatten(graph.y).long())
@@ -46,14 +46,16 @@ class InverseFolding(ResidueClassificationTask):
             all_probs = torch.cat(all_probs, dim=0)
 
             accuracy = accuracy_score(all_labels, all_preds)
-            f1 = f1_score(all_labels, all_preds, average='weighted')
-            auc = roc_auc_score(all_labels, all_probs, average='weighted', multi_class='ovr')
+            f1 = f1_score(all_labels, all_preds, average="weighted")
+            auc = roc_auc_score(
+                all_labels, all_probs, average="weighted", multi_class="ovr"
+            )
             mcc = matthews_corrcoef(all_labels, all_preds)
 
-            print(f'Test Accuracy: {accuracy:.4f}')
-            print(f'Test F1 Score: {f1:.4f}')
-            print(f'Test AUC: {auc:.4f}')
-            print(f'Test MCC: {mcc:.4f}')
+            print(f"Test Accuracy: {accuracy:.4f}")
+            print(f"Test F1 Score: {f1:.4f}")
+            print(f"Test AUC: {auc:.4f}")
+            print(f"Test MCC: {mcc:.4f}")
 
             return accuracy, f1, auc, avg_loss, mcc
 
@@ -61,21 +63,21 @@ class InverseFolding(ResidueClassificationTask):
         return RandomSplitter()
 
     def _annotator(self, x):
-        dummy = {
-            node: 1
-            for node, nodedata in x.nodes.items()
-        }
-        set_node_attributes(x, dummy, 'dummy')
+        dummy = {node: 1 for node, nodedata in x.nodes.items()}
+        set_node_attributes(x, dummy, "dummy")
         return x
 
-    def build_dataset(self, root):
-        print('building dataset task')
+    def build_dataset(self):
+        print("building dataset task")
 
-        features_computer = FeaturesComputer(nt_targets=[self.target_var],
-                                             nt_features=[self.input_var],
-                                             custom_encoders_features={self.input_var: BoolEncoder()})
-        dataset = RNADataset.from_database(features_computer=features_computer,
-                                       rna_filter=lambda x: x.graph['pdbid'][0],
-                                       annotator=self._annotator,
-                                       )
+        features_computer = FeaturesComputer(
+            nt_targets=[self.target_var],
+            nt_features=[self.input_var],
+            custom_encoders_features={self.input_var: BoolEncoder()},
+        )
+        dataset = RNADataset.from_database(
+            features_computer=features_computer,
+            rna_filter=lambda x: x.graph["pdbid"][0],
+            annotator=self._annotator,
+        )
         return dataset
