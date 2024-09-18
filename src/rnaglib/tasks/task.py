@@ -42,23 +42,32 @@ class Task:
         self.splitter = self.default_splitter if splitter is None else splitter
 
         # create or load dataset
-        if not os.path.exists(root) or recompute:
+        print(root)
+        if not os.path.exists(self.dataset_path) or recompute:
             print("Creating task dataset from scratch...")
             dataset = self.build_dataset()
-            train_ind, val_ind, test_ind = self.split()
-            if save:
-                self.write()
+            train_ind, val_ind, test_ind = self.split(dataset)
         else:
             dataset, (train_ind, val_ind, test_ind) = self.load()
 
         self.dataset = dataset
+        self.dataset.features_computer = self.features_computer
+
         self.train_ind = train_ind
         self.val_ind = val_ind
         self.test_ind = test_ind
 
+        if save:
+            self.write()
+
     def build_dataset(self):
         """Tasks must implement this method. Executing the method should result in a list of ``.json`` files
         saved in ``{root}/dataset``."""
+        raise NotImplementedError
+
+    @property
+    def features_computer(self):
+        """Define a FeaturesComputer object to set which input and output variables will be used in the task."""
         raise NotImplementedError
 
     @property
@@ -86,15 +95,14 @@ class Task:
 
         return dataset, (train_ind, val_ind, test_ind)
 
-    def split(self):
+    def split(self, dataset):
         """Calls the splitter and returns train, val, test splits."""
-        return self.splitter(self.dataset)
+        return self.splitter(dataset)
 
     def get_split_datasets(self):
-        train_ind, val_ind, test_ind = self.split()
-        train_set = self.dataset.subset(train_ind)
-        val_set = self.dataset.subset(val_ind)
-        test_set = self.dataset.subset(test_ind)
+        train_set = self.dataset.subset(self.train_ind)
+        val_set = self.dataset.subset(self.val_ind)
+        test_set = self.dataset.subset(self.test_ind)
         self.train_dataset = train_set
         self.val_dataset = val_set
         self.test_dataset = test_set
