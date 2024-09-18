@@ -52,7 +52,8 @@ def get_loader(dataset,
                split_train=0.7,
                split_valid=0.85,
                verbose=False,
-               framework='dgl'
+               framework='dgl',
+               persistent_workers=True,
                ):
     """ Fetch a loader object for a given dataset.
 
@@ -67,11 +68,12 @@ def get_loader(dataset,
     :return: torch.utils.data.DataLoader
 
     """
+    persistent_workers = False if num_workers == 0 else persistent_workers
 
     collater = Collater(dataset=dataset)
     if not split:
         loader = DataLoader(dataset=dataset, shuffle=True, batch_size=batch_size,
-                            num_workers=num_workers, collate_fn=collater)
+                            num_workers=num_workers, collate_fn=collater, persistent_workers=persistent_workers)
         return loader
 
     else:
@@ -93,11 +95,14 @@ def get_loader(dataset,
                 return None
 
         train_loader = safe_loader_creation(dataset=train_set, shuffle=True, batch_size=batch_size,
-                                            num_workers=num_workers, collate_fn=collater)
+                                            num_workers=num_workers, collate_fn=collater,
+                                            persistent_workers=persistent_workers)
         valid_loader = safe_loader_creation(dataset=valid_set, shuffle=True, batch_size=batch_size,
-                                            num_workers=num_workers, collate_fn=collater)
+                                            num_workers=num_workers, collate_fn=collater,
+                                            persistent_workers=persistent_workers)
         test_loader = safe_loader_creation(dataset=test_set, shuffle=True, batch_size=batch_size,
-                                           num_workers=num_workers, collate_fn=collater)
+                                           num_workers=num_workers, collate_fn=collater,
+                                           persistent_workers=persistent_workers)
         return train_loader, valid_loader, test_loader
 
 
