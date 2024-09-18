@@ -226,6 +226,7 @@ class RNADataset:
             rna_graph = self.rnas[idx]
         else:
             rna_graph = load_graph(str(nx_path))
+            rna_graph.name = rna_name
 
         # Compute features
         rna_dict = {"rna": rna_graph, "graph_path": nx_path, "cif_path": cif_path}
