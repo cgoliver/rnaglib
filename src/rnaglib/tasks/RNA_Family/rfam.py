@@ -46,7 +46,6 @@ class RNAFamilyTask(RNAClassificationTask):
         # compute one-hot mapping of labels
         labels = sorted(set([r["rna"].graph["rfam"] for r in rnas]))
         rfam_mapping = {rfam: i for i, rfam in enumerate(labels)}
-        print(rfam_mapping)
         self.metadata["label_mapping"] = rfam_mapping
         # split by chain
         rnas = ChainSplitTransform()(rnas)
