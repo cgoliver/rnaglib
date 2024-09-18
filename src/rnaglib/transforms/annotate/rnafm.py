@@ -49,9 +49,7 @@ class RNAFMTransform(Transform):
         super().__init__(**kwargs)
 
     def basic_chunking(self, seq):
-        return [
-            seq[i : i + self.chunk_size] for i in range(0, len(seq), self.chunk_size)
-        ]
+        return [seq[i : i + self.chunk_size] for i in range(0, len(seq), self.chunk_size)]
 
     def chunk(self, seq_data: List[Tuple]) -> List[Tuple]:
         """Apply a chunking strategy to sequences longer than 1024."""
@@ -60,7 +58,6 @@ class RNAFMTransform(Transform):
         for chain_id, (seq, nodes) in seq_data.items():
             if self.chunking_strategy == "simple":
                 chunks = self.basic_chunking(list(zip(seq, nodes)))
-
             for i, chunk in enumerate(chunks):
                 nodelist = [n for _, n in chunk]
                 seq = "".join([s for s, _ in chunk])
@@ -82,5 +79,4 @@ class RNAFMTransform(Transform):
             Z = token_embeddings[i, : len(seq)]
             emb_dict = {n: list(Z[i].detach().numpy()) for i, n in enumerate(node_ids)}
             nx.set_node_attributes(rna_dict["rna"], emb_dict, self.name)
-
         return rna_dict

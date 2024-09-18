@@ -11,9 +11,9 @@ from collections.abc import Iterable
 from bidict import bidict
 import networkx as nx
 
-from rnaglib.transforms import Transform
-from rnaglib.transforms import Representation
-from rnaglib.transforms import FeaturesComputer
+from rnaglib.transforms.transform import Transform
+from rnaglib.transforms.represent import Representation
+from rnaglib.transforms.featurize import FeaturesComputer
 from rnaglib.data_loading.create_dataset import database_to_dataset
 from rnaglib.utils import download_graphs, load_graph, dump_json
 from rnaglib.utils.graph_io import get_all_existing, get_name_extension
@@ -69,26 +69,28 @@ class RNADataset:
     """
 
     def __init__(
-        self,
-        rnas: List[nx.Graph] = None,
-        dataset_path: Union[str, os.PathLike] = None,
-        rna_id_subset: List[str] = None,
-        in_memory: bool = True,
-        features_computer: FeaturesComputer = None,
-        representations: Representation = None,
-        debug: bool = False,
-        get_pdbs: bool = True,
-        overwrite: bool = False,
-        pre_transforms: Union[List[Transform], Transform] = None,
-        transforms: Union[List[Transform], Transform] = None,
-        **kwargs,
+            self,
+            rnas: List[nx.Graph] = None,
+            dataset_path: Union[str, os.PathLike] = None,
+            rna_id_subset: List[str] = None,
+            in_memory: bool = True,
+            features_computer: FeaturesComputer = None,
+            representations: Union[List[Representation], Representation] = None,
+            debug: bool = False,
+            get_pdbs: bool = True,
+            overwrite: bool = False,
+            pre_transforms: Union[List[Transform], Transform] = None,
+            transforms: Union[List[Transform], Transform] = None,
+            **kwargs,
     ):
         self.in_memory = in_memory
         self.transforms = transforms
         self.pre_transforms = pre_transforms
 
         if rnas is None:
-            if dataset_path is None:
+            if dataset_path is not None:
+                self.dataset_path = dataset_path
+            else:
                 # By default, use non redundant (nr), v1.0.0 dataset of rglib
                 if "redundancy" in kwargs:
                     dataset_path = download_graphs(
@@ -108,13 +110,14 @@ class RNADataset:
                 self.structures_path = os.path.join(dataset_path, "structures")
 
             # One can restrict the number of graphs to use
-            existing_all_rnas = get_all_existing(
+            existing_all_rnas, extension = get_all_existing(
                 dataset_path=self.dataset_path, all_rnas=rna_id_subset
             )
+            self.extension = extension
 
             if in_memory:
                 self.rnas = [
-                    load_graph(os.path.join(self.dataset_path, f"{g_name}.json"))
+                    load_graph(os.path.join(self.dataset_path, f"{g_name}{extension}"))
                     for g_name in existing_all_rnas
                 ]
                 for rna, name in zip(self.rnas, existing_all_rnas):
@@ -167,11 +170,11 @@ class RNADataset:
 
     @classmethod
     def from_database(
-        cls,
-        representations=None,
-        features_computer=None,
-        in_memory=True,
-        **dataset_build_params,
+            cls,
+            representations=None,
+            features_computer=None,
+            in_memory=True,
+            **dataset_build_params,
     ):
         """Run the steps to build a dataset from scratch.
 
@@ -214,7 +217,7 @@ class RNADataset:
         nx_path, cif_path = None, None
 
         if hasattr(self, "dataset_path"):
-            nx_path = Path(self.dataset_path) / f"{rna_name}.json"
+            nx_path = Path(self.dataset_path) / f"{rna_name}{self.extension}"
 
         if hasattr(self, "structures_path"):
             cif_path = Path(self.structures_path) / f"{rna_name}.cif"
@@ -239,7 +242,7 @@ class RNADataset:
         return rna_dict
 
     def add_representation(
-        self, representations: Union[List[Representation], Representation]
+            self, representations: Union[List[Representation], Representation]
     ):
         """Add a representation object to dataset.
 
