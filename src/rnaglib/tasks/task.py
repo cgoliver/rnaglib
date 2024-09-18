@@ -1,5 +1,6 @@
 import os
 import hashlib
+from pathlib import Path
 import json
 from functools import cached_property
 from typing import Union, Optional
@@ -11,6 +12,7 @@ import numpy as np
 from sklearn.metrics import matthews_corrcoef, f1_score, accuracy_score, roc_auc_score
 
 from rnaglib.data_loading import RNADataset, Collater
+from rnaglib.transforms import FeaturesComputer
 from rnaglib.splitters import Splitter, RandomSplitter
 
 
@@ -41,14 +43,16 @@ class Task:
         self.debug = debug
         self.splitter = self.default_splitter if splitter is None else splitter
 
+        self.metadata = self.init_metadata()
+
         # create or load dataset
-        print(root)
         if not os.path.exists(self.dataset_path) or recompute:
             print("Creating task dataset from scratch...")
             dataset = self.build_dataset()
             train_ind, val_ind, test_ind = self.split(dataset)
         else:
-            dataset, (train_ind, val_ind, test_ind) = self.load()
+            dataset, metadata, (train_ind, val_ind, test_ind) = self.load()
+            self.metadata = metadata
 
         self.dataset = dataset
         self.dataset.features_computer = self.features_computer
@@ -60,40 +64,24 @@ class Task:
         if save:
             self.write()
 
-    def build_dataset(self):
+    def build_dataset(self) -> RNADataset:
         """Tasks must implement this method. Executing the method should result in a list of ``.json`` files
-        saved in ``{root}/dataset``."""
+        saved in ``{root}/dataset``. All the RNA graphs should contain all the annotations needed to run the task (e.g. node/edge attributes)
+        """
         raise NotImplementedError
 
+    def init_metadata(self) -> dict:
+        """Optionally adds some key/value pairs to self.metadata."""
+        return {}
+
     @property
-    def features_computer(self):
+    def features_computer(self) -> FeaturesComputer:
         """Define a FeaturesComputer object to set which input and output variables will be used in the task."""
-        raise NotImplementedError
+        return FeaturesComputer()
 
     @property
     def default_splitter(self):
         return RandomSplitter()
-
-    def load(self):
-        """Load dataset and splits from disk."""
-        # load splits
-        print(">>> Loading splits...")
-        train_ind = [
-            int(ind)
-            for ind in open(os.path.join(self.root, "train_idx.txt"), "r").readlines()
-        ]
-        val_ind = [
-            int(ind)
-            for ind in open(os.path.join(self.root, "val_idx.txt"), "r").readlines()
-        ]
-        test_ind = [
-            int(ind)
-            for ind in open(os.path.join(self.root, "test_idx.txt"), "r").readlines()
-        ]
-
-        dataset = RNADataset(dataset_path=self.dataset_path)
-
-        return dataset, (train_ind, val_ind, test_ind)
 
     def split(self, dataset):
         """Calls the splitter and returns train, val, test splits."""
@@ -154,15 +142,41 @@ class Task:
         if not os.path.exists(self.dataset_path) or self.recompute:
             print(">>> Saving dataset.")
             self.dataset.save(self.dataset_path, recompute=self.recompute)
-        with open(os.path.join(self.root, "train_idx.txt"), "w") as idx:
+        with open(Path(self.root) / "train_idx.txt", "w") as idx:
             [idx.write(str(ind) + "\n") for ind in self.train_ind]
-        with open(os.path.join(self.root, "val_idx.txt"), "w") as idx:
+        with open(Path(self.root) / "val_idx.txt", "w") as idx:
             [idx.write(str(ind) + "\n") for ind in self.val_ind]
-        with open(os.path.join(self.root, "test_idx.txt"), "w") as idx:
+        with open(Path(self.root) / "test_idx.txt", "w") as idx:
             [idx.write(str(ind) + "\n") for ind in self.test_ind]
-        with open(os.path.join(self.root, "task_id.txt"), "w") as tid:
+        with open(Path(self.root) / "task_id.txt", "w") as tid:
             tid.write(self.task_id)
+        with open(Path(self.root) / "metadata.json", "w") as meta:
+            json.dump(self.metadata, meta, indent=4)
         print(">>> Done")
+
+    def load(self):
+        """Load dataset and splits from disk."""
+        # load splits
+        print(">>> Loading splits...")
+        train_ind = [
+            int(ind)
+            for ind in open(os.path.join(self.root, "train_idx.txt"), "r").readlines()
+        ]
+        val_ind = [
+            int(ind)
+            for ind in open(os.path.join(self.root, "val_idx.txt"), "r").readlines()
+        ]
+        test_ind = [
+            int(ind)
+            for ind in open(os.path.join(self.root, "test_idx.txt"), "r").readlines()
+        ]
+
+        dataset = RNADataset(dataset_path=self.dataset_path)
+
+        with open(Path(self.root) / "metadata.json", "r") as meta:
+            metadata = json.load(meta)
+
+        return dataset, metadata, (train_ind, val_ind, test_ind)
 
     def __eq__(self, other):
         return self.task_id == other.task_id
