@@ -30,6 +30,12 @@ class RNAFamilyTask(RNAClassificationTask):
         super().__init__(root=root, splitter=splitter, **kwargs)
         pass
 
+    def features_computer(self):
+        return FeaturesComputer(
+            rna_targets=["rfam"],
+            custom_encoders={"rfam": OneHotEncoder(self.metadata["label_mapping"])},
+        )
+
     def build_dataset(self):
         # Create dataset
         full_dataset = RNADataset(debug=self.debug)
@@ -40,7 +46,8 @@ class RNAFamilyTask(RNAClassificationTask):
         # compute one-hot mapping of labels
         labels = sorted(set([r["rna"].graph["rfam"] for r in rnas]))
         rfam_mapping = {rfam: i for i, rfam in enumerate(labels)}
-        tr_rfam.encoder = OneHotEncoder(rfam_mapping)
+        print(rfam_mapping)
+        self.metadata["label_mapping"] = rfam_mapping
         # split by chain
         rnas = ChainSplitTransform()(rnas)
         rnas = ChainNameTransform()(rnas)
