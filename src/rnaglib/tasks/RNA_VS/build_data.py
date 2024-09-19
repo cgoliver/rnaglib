@@ -14,7 +14,7 @@ from rnaglib.utils import graph_from_pdbid, graph_io
 
 def build_data(root, recompute=False):
     script_dir = os.path.dirname(__file__)
-    json_dump = os.path.join(script_dir, "../data/rna_vs/dataset_as_json.json")
+    json_dump = os.path.join(script_dir, "../data/rna_vs/dataset.p")
     train_groups, test_groups = pickle.load(open(json_dump, 'rb'))
     all_groups = {**train_groups, **test_groups}
 
