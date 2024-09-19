@@ -6,7 +6,7 @@ import pickle
 import requests
 import urllib
 from pathlib import Path
-from typing import Optional, List
+from typing import Optional, List, Tuple
 from collections import defaultdict
 
 import requests
@@ -93,8 +93,8 @@ def get_name_extension(filename, permissive=False):
 
 
 def get_all_existing(
-    dataset_path: os.PathLike, all_rnas: Optional[List[str]] = None
-) -> List[str]:
+        dataset_path: os.PathLike, all_rnas: Optional[List[str]] = None
+) -> Tuple[List[str], str]:
     """
     Return list of graph IDs in a given dataset directory in sorted() order. If you pass ``all_rnas``
     as a list of, returns the graph IDs in ``all_rnas`` that have a matching file in the dataset folder.
@@ -103,22 +103,24 @@ def get_all_existing(
     :param all_rnas: list of RNA names to search for (e.g. ``'1aju'`` will match ``'1aju.json'`` in ``dataset_path``.
     :return: List of filenames in ``dataset_path``
     """
+    _, extension = get_name_extension(os.listdir(dataset_path)[0])
+
     # By default, return a sorted listdir
     if all_rnas is None:
-        return [Path(g).stem for g in sorted(os.listdir(dataset_path))]
+        return [Path(g).stem for g in sorted(os.listdir(dataset_path))], extension
 
     # Filter out existing ones, and print message if there is a difference
     existing_all_rnas = [
         g_name
         for g_name in all_rnas
-        if os.path.exists(Path(dataset_path) / f"{g_name}.json")
+        if os.path.exists(Path(dataset_path) / f"{g_name}{extension}")
     ]
     size_diff = len(all_rnas) - len(existing_all_rnas)
     if size_diff > 0:
         print(
             f"{size_diff} graphs were missing from {dataset_path} compared to asked graphs"
         )
-    return existing_all_rnas
+    return existing_all_rnas, extension
 
 
 def get_default_download_dir():
@@ -221,7 +223,7 @@ def download(url, path=None, overwrite=True, retries=5, verify_ssl=True, log=Tru
 
 
 def download_name_generator(
-    version="1.0.0", redundancy="nr", annotated=False, record="7624873", debug=False
+        version="1.0.0", redundancy="nr", annotated=False, record="7624873", debug=False
 ):
     """
     This returns the zenodo URL given dataset choices.
@@ -248,15 +250,15 @@ def download_name_generator(
 
 
 def download_graphs(
-    redundancy="nr",
-    version="1.0.0",
-    annotated=False,
-    chop=False,
-    overwrite=False,
-    data_root=None,
-    verbose=False,
-    get_pdbs=False,
-    debug=False,
+        redundancy="nr",
+        version="1.0.0",
+        annotated=False,
+        chop=False,
+        overwrite=False,
+        data_root=None,
+        verbose=False,
+        get_pdbs=False,
+        debug=False,
 ):
     """
     Based on the options, get the right data from the latest release and put it in download_dir.
@@ -310,12 +312,12 @@ def download_graphs(
 
 
 def available_pdbids(
-    graph_dir=None,
-    version="1.0.0",
-    chop=False,
-    annotated=False,
-    redundancy="nr",
-    debug=False,
+        graph_dir=None,
+        version="1.0.0",
+        chop=False,
+        annotated=False,
+        redundancy="nr",
+        debug=False,
 ):
     if debug:
         tag = f"rnaglib-debug-{version}"
@@ -336,13 +338,13 @@ def available_pdbids(
 
 
 def graph_from_pdbid(
-    pdbid,
-    graph_dir=None,
-    version="1.0.0",
-    annotated=False,
-    chop=False,
-    redundancy="nr",
-    graph_format="json",
+        pdbid,
+        graph_dir=None,
+        version="1.0.0",
+        annotated=False,
+        chop=False,
+        redundancy="nr",
+        graph_format="json",
 ):
     """Fetch an annotated graph with a PDBID.
 

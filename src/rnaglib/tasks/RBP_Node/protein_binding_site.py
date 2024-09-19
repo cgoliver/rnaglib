@@ -18,7 +18,7 @@ class ProteinBindingSiteDetection(ResidueClassificationTask):
     def __init__(self, root, splitter=None, **kwargs):
         super().__init__(root=root, splitter=splitter, **kwargs)
 
-    def build_dataset(self, root):
+    def build_dataset(self):
         # get full database
         full_dataset = RNADataset(debug=self.debug)
 

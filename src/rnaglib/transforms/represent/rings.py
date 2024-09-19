@@ -1,8 +1,8 @@
 import random
 import torch
 
-from rnaglib.kernels.node_sim import k_block_list
-from rnaglib.representations import Representation
+from rnaglib.algorithms import k_block_list
+from rnaglib.transforms.represent import Representation
 
 
 class RingRepresentation(Representation):

@@ -117,7 +117,6 @@ def build_ring_tree_from_graph(graph, depth=5, hasher=None, hash_table=None):
         dict_ring['node'][node] = rings['node']
         dict_ring['edge'][node] = rings['edge']
         dict_ring['graphlet'][node] = rings['graphlet']
-
     return dict_ring
 
 
@@ -215,7 +214,7 @@ def annotate_all(dump_path='../data/annotated/sample_v2',
 if __name__ == '__main__':
     # import doctest
     # doctest.testmod()
-
+    script_dir = os.path.dirname(os.path.realpath(__file__))
     parser = argparse.ArgumentParser()
     parser.add_argument("-g", "--graph_path", default=os.path.join(script_dir, '../data/samples_v2_chunks')
                         , type=str, help="The path of the graphs directory you want to annotate.")

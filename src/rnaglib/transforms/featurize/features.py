@@ -231,13 +231,16 @@ class FeaturesComputer(Transform):
         asked_features = [] if asked_features is None else asked_features
         if not isinstance(asked_features, list):
             asked_features = [asked_features]
-        asked_features = list(set(asked_features))
+        # Make a non redundant list that keeps the features order
+        nr_asked_feature = []
+        for item in asked_features:
+            if item not in nr_asked_feature:
+                nr_asked_feature.append(item)
 
         # attach the transform's encoder
-        if not custom_encoders is None:
+        if custom_encoders is not None:
             for feature, encoder in custom_encoders.items():
                 feature_map[feature] = encoder
-                asked_features.append(feature)
 
         # Update the map {key:encoder} and ensure every asked feature is in this encoding map.
         if any([feature not in feature_map for feature in asked_features]):
@@ -287,6 +290,7 @@ class FeaturesComputer(Transform):
                 rna_dict["rna"], parser=self.rna_targets_parser
             )
             features_dict["rna_targets"] = rna_targets_encoding
+
         # Get Node labels
         if len(self.node_features_parser) > 0:
             feature_encoding = self.encode_nodes(
