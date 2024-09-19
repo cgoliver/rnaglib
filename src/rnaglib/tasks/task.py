@@ -57,7 +57,7 @@ class Task:
             self.metadata = metadata
 
         self.dataset = dataset
-        self.dataset.features_computer = self.get_features_computer()
+        self.dataset.features_computer = self.get_task_vars()
 
         self.train_ind = train_ind
         self.val_ind = val_ind
@@ -78,7 +78,8 @@ class Task:
         """Optionally adds some key/value pairs to self.metadata."""
         return {}
 
-    def get_features_computer(self) -> FeaturesComputer:
+    @property
+    def get_task_vars(self) -> FeaturesComputer:
         """Define a FeaturesComputer object to set which input and output variables will be used in the task."""
         return FeaturesComputer()
 

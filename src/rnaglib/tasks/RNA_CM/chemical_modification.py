@@ -15,13 +15,13 @@ class ChemicalModification(ResidueClassificationTask):
     def __init__(self, root, splitter=None, **kwargs):
         super().__init__(root=root, splitter=splitter, **kwargs)
 
-    def get_features_computer(self):
+    def get_task_vars(self):
         return FeaturesComputer(nt_targets=self.target_var)
 
     def process(self):
-        rnas = ResidueAttributeFilter(attribute=self.target_var)(
-            RNADataset(debug=self.debug)
-        )
+        rnas = ResidueAttributeFilter(
+            attribute=self.target_var, value_checker=lambda val: val == True
+        )(RNADataset(debug=self.debug))
         rnas = PDBIDNameTransform()(rnas)
         dataset = RNADataset(rnas=[r["rna"] for r in rnas])
         return dataset
