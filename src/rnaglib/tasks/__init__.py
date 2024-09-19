@@ -10,16 +10,16 @@ from .RNA_Ligand.ligand_identity import GMSM
 from .RNA_Site.binding_site import BindingSiteDetection, BenchmarkBindingSiteDetection
 
 __all__ = [
-    'Task',
-    'ResidueClassificationTask',
-    'RNAClassificationTask',
-    'BindingSiteDetection',
-    'ProteinBindingSiteDetection',
-    'ChemicalModification',
-    'InverseFolding',
-    'gRNAde',
-    'GMSM',
-    'RNAFamilyTask'
+    "Task",
+    "ResidueClassificationTask",
+    "RNAClassificationTask",
+    "BindingSiteDetection",
+    "ProteinBindingSiteDetection",
+    "ChemicalModification",
+    "InverseFolding",
+    "gRNAde",
+    "GMSM",
+    "RNAFamilyTask",
 ]
 
 classes = __all__

@@ -11,9 +11,11 @@ import torch.nn.functional as F
 import numpy as np
 from sklearn.metrics import matthews_corrcoef, f1_score, accuracy_score, roc_auc_score
 
+
 from rnaglib.data_loading import RNADataset, Collater
 from rnaglib.transforms import FeaturesComputer
 from rnaglib.splitters import Splitter, RandomSplitter
+from rnaglib.utils import DummyResidueModel
 
 
 class Task:
@@ -48,23 +50,25 @@ class Task:
         # create or load dataset
         if not os.path.exists(self.dataset_path) or recompute:
             print("Creating task dataset from scratch...")
-            dataset = self.build_dataset()
+            dataset = self.process()
             train_ind, val_ind, test_ind = self.split(dataset)
         else:
             dataset, metadata, (train_ind, val_ind, test_ind) = self.load()
             self.metadata = metadata
 
         self.dataset = dataset
-        self.dataset.features_computer = self.features_computer
+        self.dataset.features_computer = self.get_features_computer()
 
         self.train_ind = train_ind
         self.val_ind = val_ind
         self.test_ind = test_ind
 
+        self.set_loaders()
+
         if save:
             self.write()
 
-    def build_dataset(self) -> RNADataset:
+    def process(self) -> RNADataset:
         """Tasks must implement this method. Executing the method should result in a list of ``.json`` files
         saved in ``{root}/dataset``. All the RNA graphs should contain all the annotations needed to run the task (e.g. node/edge attributes)
         """
@@ -74,8 +78,7 @@ class Task:
         """Optionally adds some key/value pairs to self.metadata."""
         return {}
 
-    @property
-    def features_computer(self) -> FeaturesComputer:
+    def get_features_computer(self) -> FeaturesComputer:
         """Define a FeaturesComputer object to set which input and output variables will be used in the task."""
         return FeaturesComputer()
 
@@ -87,13 +90,22 @@ class Task:
         """Calls the splitter and returns train, val, test splits."""
         return self.splitter(dataset)
 
+    def set_loaders(self):
+        """Sets the dataset and loader properties.
+        Call this each time you modify ``self.dataset``."""
+
+        self.train_dataset, self.val_dataset, self.test_dataset = (
+            self.get_split_datasets()
+        )
+
+        self.train_dataloader, self.val_dataloader, self.test_dataloader = (
+            self.get_split_loaders()
+        )
+
     def get_split_datasets(self):
         train_set = self.dataset.subset(self.train_ind)
         val_set = self.dataset.subset(self.val_ind)
         test_set = self.dataset.subset(self.test_ind)
-        self.train_dataset = train_set
-        self.val_dataset = val_set
-        self.test_dataset = test_set
         return train_set, val_set, test_set
 
     def get_split_loaders(self, **dataloader_kwargs):
@@ -113,12 +125,9 @@ class Task:
         dataloader_kwargs["shuffle"] = False
         val_loader = DataLoader(dataset=self.val_dataset, **dataloader_kwargs)
         test_loader = DataLoader(dataset=self.test_dataset, **dataloader_kwargs)
-        self.train_dataloader = train_loader
-        self.val_dataloader = val_loader
-        self.test_dataloader = test_loader
         return train_loader, val_loader, test_loader
 
-    def evaluate(self, model, test_loader, criterion, device):
+    def evaluate(self, model) -> dict:
         raise NotImplementedError
 
     @cached_property
@@ -189,84 +198,34 @@ class ResidueClassificationTask(Task):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-    def evaluate(self, model, loader, criterion, device):
+    @property
+    def dummy_model(self) -> torch.nn:
+        return DummyResidueModel()
+
+    def evaluate(self, model: torch.nn, device: str = "cpu") -> dict:
         model.eval()
         all_probs = []
         all_preds = []
         all_labels = []
-        total_loss = 0
 
         with torch.no_grad():
-            for batch in loader:
+            for batch in self.test_dataloader:
                 graph = batch["graph"]
                 graph = graph.to(device)
                 out = model(graph)
-                loss = criterion(out, torch.flatten(graph.y).long())
-                total_loss += loss.item()
 
-                probs = F.softmax(out, dim=1)
-                preds = out.argmax(dim=1)
-                all_probs.extend(probs[:, 1].cpu().tolist())
-                all_preds.extend(preds.cpu().tolist())
-                all_labels.extend(graph.cpu().y.tolist())
-
-        avg_loss = total_loss / len(loader)
+                preds = out > 0.5
+                all_probs.extend(out.cpu().flatten().tolist())
+                all_preds.extend(preds.cpu().flatten().tolist())
+                all_labels.extend(graph.cpu().y.flatten().tolist())
 
         accuracy = accuracy_score(all_labels, all_preds)
         f1 = f1_score(all_labels, all_preds)
         auc = roc_auc_score(all_labels, all_probs)
         mcc = matthews_corrcoef(all_labels, all_preds)
 
-        # print(f'Accuracy: {accuracy:.4f}')
-        # print(f'F1 Score: {f1:.4f}')
-        # print(f'AUC: {auc:.4f}')
-        # print(f'MCC: {mcc:.4f}')
-
-        return accuracy, f1, auc, avg_loss, mcc
+        return {"accuracy": accuracy, "mcc": mcc, "f1": f1}
 
 
 class RNAClassificationTask(Task):
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-
-    def evaluate(self, model, test_loader, criterion, device):
-        model.eval()
-
-        all_preds = []
-        all_labels = []
-        all_probs = []
-        test_loss = 0
-
-        with torch.no_grad():
-            for data in test_loader:
-                data = data.to(device)
-                outputs = model(data)
-                loss = criterion(outputs, data.y)
-                test_loss += loss.item()
-
-                probs = torch.nn.functional.softmax(outputs, dim=1)
-                _, predicted = torch.max(outputs.data, 1)
-
-                all_preds.extend(predicted.cpu().numpy())
-                all_labels.extend(data.y.cpu().numpy())
-                all_probs.extend(probs.cpu().numpy())
-
-        all_preds = np.array(all_preds)
-        all_labels = np.array(all_labels)
-        all_probs = np.array(all_probs)
-
-        accuracy = (all_preds == all_labels).mean()
-        avg_loss = test_loss / len(test_loader)
-
-        # Calculate MCC
-        mcc = matthews_corrcoef(all_labels, all_preds)
-
-        # Calculate F1 score
-        f1 = f1_score(all_labels, all_preds, average="macro")
-
-        print(f"Loss: {avg_loss:.4f}")
-        print(f"Accuracy: {accuracy:.4f}")
-        print(f"Matthews Correlation Coefficient: {mcc:.4f}")
-        print(f"F1 Score: {f1:.4f}")
-
-        return avg_loss, accuracy, mcc, f1
+    pass

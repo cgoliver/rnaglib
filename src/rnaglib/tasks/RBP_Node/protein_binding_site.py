@@ -18,7 +18,10 @@ class ProteinBindingSiteDetection(ResidueClassificationTask):
     def __init__(self, root, splitter=None, **kwargs):
         super().__init__(root=root, splitter=splitter, **kwargs)
 
-    def build_dataset(self):
+    def get_features_computer(self):
+        return FeaturesComputer(nt_targets=self.target_var)
+
+    def process(self):
         # get full database
         full_dataset = RNADataset(debug=self.debug)
 
@@ -35,8 +38,5 @@ class ProteinBindingSiteDetection(ResidueClassificationTask):
         rnas = add_name(rnas)
 
         # initialize final dataset
-        features_computer = FeaturesComputer(nt_targets=self.target_var)
-        dataset = RNADataset(
-            rnas=[r["rna"] for r in rnas], features_computer=features_computer
-        )
+        dataset = RNADataset(rnas=[r["rna"] for r in rnas])
         return dataset

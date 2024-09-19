@@ -36,7 +36,7 @@ class RNAFamilyTask(RNAClassificationTask):
             custom_encoders={"rfam": OneHotEncoder(self.metadata["label_mapping"])},
         )
 
-    def build_dataset(self):
+    def process(self):
         # Create dataset
         full_dataset = RNADataset(debug=self.debug)
         # compute rfam annotation, only keep ones with an Rfam annot.
@@ -54,8 +54,6 @@ class RNAFamilyTask(RNAClassificationTask):
         ft = FeaturesComputer(
             rna_targets=[tr_rfam.name], custom_encoders={tr_rfam.name: tr_rfam.encoder}
         )
-        new_dataset = RNADataset(
-            rnas=list((r["rna"] for r in rnas)), features_computer=ft
-        )
+        new_dataset = RNADataset(rnas=list((r["rna"] for r in rnas)))
 
         return new_dataset
