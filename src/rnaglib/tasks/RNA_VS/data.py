@@ -97,13 +97,13 @@ class VSRNATestDataset(VSRNADataset):
 
 if __name__ == '__main__':
     import pickle
-    from rnaglib.data_loading import FeaturesComputer
-    from rnaglib.representations.graph import GraphRepresentation
+    from rnaglib.transforms import FeaturesComputer
+    from rnaglib.transforms import GraphRepresentation
     from rnaglib.tasks.RNA_VS.build_data import build_data
     from rnaglib.tasks.RNA_VS.ligands import MolGraphEncoder
 
     script_dir = os.path.dirname(__file__)
-    json_dump = os.path.join(script_dir, "../data/rna_vs/dataset_as_json.json")
+    json_dump = os.path.join(script_dir, "../data/rna_vs/dataset.p")
     trainval_groups, test_groups = pickle.load(open(json_dump, 'rb'))
 
     root = "../data/rna_vs"

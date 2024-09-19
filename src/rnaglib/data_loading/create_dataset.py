@@ -113,7 +113,7 @@ def database_to_dataset(
                 for g_name in existing_all_rnas
             ]
             for rna, name in zip(rnas, existing_all_rnas):
-                rna.name = get_name_extension(name)[0]
+                rna.name = name 
         else:
             rnas = None
         return dataset_path, existing_all_rnas, rnas
