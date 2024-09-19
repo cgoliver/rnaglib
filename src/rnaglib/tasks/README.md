@@ -1,4 +1,3 @@
-
 # `rnaglib`'s task module
 
 The new tasks module allows the use and creation of a variety of machine learning tasks on RNA structure. 
@@ -7,12 +6,12 @@ Each task definition is found in its named directory ([RNA_CM](./RNA_CM), [RNA_I
 
 We provide a short tutorial on (1) using an existing tasks to assess model perfomance and (2) building custom tasks using modular `rnaglib` functionality.
 
-Code to reproduce the results included in the correspoding submission can be found in the `experiments/` directory.
+Code to reproduce the results included in the corresponding submission can be found in the `experiments/` directory.
 
 
 
 ## Tutorial 1: Using an existing task for model evaluation
-`rnaglib`'s task module provides you with readymade dataset splits for your model evaluation in just a few lines of code.
+`rnaglib`'s task module provides you with ready-made dataset splits for your model evaluation in just a few lines of code.
 
 0.) Generate necessary index files
 
@@ -150,3 +149,30 @@ class TutorialTask(ResidueClassificationTask):
 ```
 
 8.) Don't forget to add your task name to the `__init__.py` file. (And if you feel like it, submit a pull request ;) )
+
+
+# Full demo
+
+```python
+from rnaglib.tasks import BindingSiteDetection
+from rnaglib.data_loading import FeaturesComputer
+from rnaglib.representations import GraphRepresentation
+
+# Create a task
+task = BindingSiteDetection(root="my_root")
+
+# Choose your features, here the nucleotide code
+task.dataset.features_computer = FeaturesComputer(nt_features=['nt_code'])
+
+# Choose your representation, here Pytorch Geometric graphs
+task.dataset.add_representation(GraphRepresentation(framework='pyg'))
+
+# You can access train/val/test loaders
+train_loader, _, _ = task.get_split_loaders()
+
+# Define your model and training
+model=MyModel()
+...
+
+final_result = task.evaluate(model)
+```

@@ -104,12 +104,12 @@ def database_to_dataset(
     """
     # If this corresponds to a dataset that was precomputed already, just return the graphs
     if dataset_path is not None and os.path.exists(dataset_path) and not recompute:
-        existing_all_rnas = get_all_existing(
+        existing_all_rnas, extension = get_all_existing(
             dataset_path=dataset_path, all_rnas=all_rnas
         )
         if return_rnas:
             rnas = [
-                load_graph(os.path.join(dataset_path, g_name + ".json"))
+                load_graph(os.path.join(dataset_path, g_name + extension))
                 for g_name in existing_all_rnas
             ]
             for rna, name in zip(rnas, existing_all_rnas):
