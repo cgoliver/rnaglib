@@ -30,7 +30,7 @@ class RNAFamilyTask(RNAClassificationTask):
         super().__init__(root=root, splitter=splitter, **kwargs)
         pass
 
-    def features_computer(self):
+    def get_task_vars(self):
         return FeaturesComputer(
             rna_targets=["rfam"],
             custom_encoders={"rfam": OneHotEncoder(self.metadata["label_mapping"])},
@@ -51,9 +51,6 @@ class RNAFamilyTask(RNAClassificationTask):
         rnas = ChainSplitTransform()(rnas)
         rnas = ChainNameTransform()(rnas)
 
-        ft = FeaturesComputer(
-            rna_targets=[tr_rfam.name], custom_encoders={tr_rfam.name: tr_rfam.encoder}
-        )
         new_dataset = RNADataset(rnas=list((r["rna"] for r in rnas)))
 
         return new_dataset

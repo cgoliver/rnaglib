@@ -18,7 +18,7 @@ class ProteinBindingSiteDetection(ResidueClassificationTask):
     def __init__(self, root, splitter=None, **kwargs):
         super().__init__(root=root, splitter=splitter, **kwargs)
 
-    def get_features_computer(self):
+    def get_task_vars(self):
         return FeaturesComputer(nt_targets=self.target_var)
 
     def process(self):
@@ -27,7 +27,9 @@ class ProteinBindingSiteDetection(ResidueClassificationTask):
 
         # build the filters
         ribo_filter = RibosomalFilter()
-        non_bind_filter = ResidueAttributeFilter(attribute=self.target_var)
+        non_bind_filter = ResidueAttributeFilter(
+            attribute=self.target_var, value_checker=lambda val: val is not None
+        )
         filters = ComposeFilters([ribo_filter, non_bind_filter])
 
         # assign a name to each remaining RNA

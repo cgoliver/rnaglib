@@ -18,17 +18,10 @@
    :caption: Tutorials
    :hidden:
 
-   Machine Learning on Benchmark Datasets <tuto_tasks>
    What is an RNA 2.5D graph? <what_is>
    A tour of RNA 2.5D graphs <tuto_2.5d>
-
-.. toctree::
-   :maxdepth: 2
-   :caption: Advanced Tutorials 
-   :hidden:
-
-   Creating custom tasks and splits <tuto_custom_task>
-   Add your own annotations and features <tuto_custom_features>
+   ML Tasks API <tuto_custom_task>
+   RNA Transforms <tuto_transforms>
    How is the data built? <tuto_build>
 
 
