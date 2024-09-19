@@ -7,8 +7,8 @@ import torch.optim as optim
 
 from rnaglib.tasks.RNA_VS.task import VSTask
 from rnaglib.tasks.RNA_VS.model import RNAEncoder, LigandGraphEncoder, Decoder, VSModel
-from rnaglib.representations.graph import GraphRepresentation
-from rnaglib.data_loading import FeaturesComputer
+from rnaglib.transforms import GraphRepresentation
+from rnaglib.transforms import FeaturesComputer
 
 # Create a task
 root = "../data/RNA_VS"

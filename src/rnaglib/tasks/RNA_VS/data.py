@@ -97,8 +97,8 @@ class VSRNATestDataset(VSRNADataset):
 
 if __name__ == '__main__':
     import pickle
-    from rnaglib.data_loading import FeaturesComputer
-    from rnaglib.representations.graph import GraphRepresentation
+    from rnaglib.transforms import FeaturesComputer
+    from rnaglib.transforms import GraphRepresentation
     from rnaglib.tasks.RNA_VS.build_data import build_data
     from rnaglib.tasks.RNA_VS.ligands import MolGraphEncoder
 
