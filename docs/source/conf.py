@@ -20,12 +20,12 @@ print(sys.path)
 
 # -- Project information -----------------------------------------------------
 
-project = 'rnaglib'
-copyright = '2021, Vincent Mallet et al.'
-author = 'Vincent Mallet, Carlos Oliver, Jonathan Broadbent, William L. Hamilton, Jerome Waldispuhl'
+project = "rnaglib"
+copyright = "2021, Vincent Mallet et al."
+author = "Vincent Mallet, Carlos Oliver, Jonathan Broadbent, William L. Hamilton, Jerome Waldispuhl"
 
 # The full version, including alpha/beta/rc tags
-release = '0.0.1'
+release = "0.0.1"
 
 
 # -- General configuration ---------------------------------------------------
@@ -34,22 +34,24 @@ release = '0.0.1'
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
-    'sphinx.ext.autodoc',
-    'sphinx.ext.autosummary',
-    'sphinx.ext.intersphinx',
-    'sphinx.ext.mathjax',
-    'sphinx.ext.napoleon',
-    'sphinx.ext.viewcode',
-    'sphinx_autodoc_typehints',
-    'myst_parser'
+    "sphinx.ext.autodoc",
+    "sphinx.ext.autosummary",
+    "sphinx.ext.intersphinx",
+    "sphinx.ext.mathjax",
+    "sphinx.ext.napoleon",
+    "sphinx.ext.viewcode",
+    "sphinx_autodoc_typehints",
+    "myst_parser",
 ]
 
+html_favicon = "images/favicon.png"
+
 myst_enable_extensions = [
-             "substitution",
-             ]
-extensions += ['sphinx-prompt', 'sphinx_substitution_extensions']
+    "substitution",
+]
+extensions += ["sphinx-prompt", "sphinx_substitution_extensions"]
 # Add any paths that contain templates here, relative to this directory.
-templates_path = ['_templates']
+templates_path = ["_templates"]
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
@@ -57,17 +59,19 @@ templates_path = ['_templates']
 exclude_patterns = []
 
 
-autoclass_content = 'both'
-autodoc_member_order = 'bysource'
+autoclass_content = "both"
+autodoc_member_order = "bysource"
 
 # -- Options for HTML output -------------------------------------------------
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-html_theme = 'nature'
-html_logo = 'https://jwgitlab.cs.mcgill.ca/cgoliver/rnaglib/-/raw/zenodo/images/rgl.png'
-html_sidebars = { '**': ['globaltoc.html', 'relations.html', 'sourcelink.html', 'searchbox.html'] }
+html_theme = "nature"
+html_logo = "https://jwgitlab.cs.mcgill.ca/cgoliver/rnaglib/-/raw/zenodo/images/rgl.png"
+html_sidebars = {
+    "**": ["globaltoc.html", "relations.html", "sourcelink.html", "searchbox.html"]
+}
 
 
 # Add any paths that contain custom static files (such as style sheets) here,
@@ -76,6 +80,4 @@ html_sidebars = { '**': ['globaltoc.html', 'relations.html', 'sourcelink.html', 
 # html_static_path = ['_static']
 
 
-source_suffix = {   '.rst': 'restructuredtext',
-                    '.txt': 'markdown',
-                    '.md': 'markdown'}
+source_suffix = {".rst": "restructuredtext", ".txt": "markdown", ".md": "markdown"}
