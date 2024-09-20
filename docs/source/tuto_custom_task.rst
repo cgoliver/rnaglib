@@ -49,6 +49,7 @@ An instance of the ``Task`` class packages the following attributes:
 - ``splitter``: method for partitioning the dataset into train, validation, and test subsets.
 - ``target_vars``: method for setting and encoding input and target variables.
 - ``evaluate``: method which accepts a model and returns performance metrics.
+- ``metadata``: this is a simple (optional) dictionary that holds useful info about the task (e.g. task type, number of classes, etc.)
 
 Once the task processing is complete, all task data is dumped into ``root`` which is a path passed to the task init method.
 
@@ -80,6 +81,9 @@ Here is a minimal template for a custom task::
             # managed by creating a FeaturesComputer object
             # ...
             pass
+
+        def init_metadata(self):
+            return {'task_name': 'my task'}
 
 
 In this tutorial we will walk through the steps to create a task with the aim of predicting for each residue, whether or not it will be chemically modified, and a more advanced example we will build the task of predicting the Rfam classification of an RNA.
@@ -244,6 +248,33 @@ Here is the ful task implementation::
 
         def default_splitter(self) -> Splitter:
             return RNAalignSplitter(similarity_threshold=0.6)
+
+
+Metadata
+~~~~~~~~~~~~~~~
+
+Each task holds a ``metadata`` attribute which is a simple dictionary holding useful information about the task (e.g. number of classes, task type, name, description). You can modify this during task setup and it is saved to disk once the task is built.
+
+Task saving and loading
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Once the task is completely built (dataset and splits), the task class automatically calls its ``write()`` method which dumps to the ``root`` directory all the information necessary to skip processing if the task is re-loaded.
+
+Your ``root`` directory will look something like::
+
+        my_root/
+            train_idx.txt
+            val_idx.txt
+            test_idx.txt
+            task_id.txt
+            metadata.json
+            dataset/
+                1abc.json
+                2xzy.json
+                ...
+
+The task folder contains 3 ``.txt`` files with the indices for each split. The ``metadata.json`` file stores any additional information relevant to the task, the ``task_id.txt`` file holds a unique identifier for the task which is built by hashing all the RNAs and splits so that if anything about the task changes the ID will be different, and bfinally the ``dataset/`` folder holds ``.json`` files which can be loaded into RNA dicts and used to re-instantiate the task.
+
 
 
 Customize Splitting
