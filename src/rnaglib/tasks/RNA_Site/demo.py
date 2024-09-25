@@ -1,5 +1,5 @@
 from rnaglib.tasks import BindingSiteDetection
-from rnaglib.representations import GraphRepresentation
+from rnaglib.transforms import GraphRepresentation
 from rnaglib.data_loading import Collater
 from rnaglib.learning.task_models import RGCN_node
 
@@ -32,11 +32,13 @@ else:
 
 # Splitting dataset
 
-train_ind, val_ind, test_ind = ta.split()
+
+#train_ind, val_ind, test_ind = ta.split()
+train_ind, val_ind, test_ind = ta.train_ind, ta.val_ind, ta.test_ind
+
 train_set = ta.dataset.subset(train_ind)
 val_set = ta.dataset.subset(val_ind)
 test_set = ta.dataset.subset(test_ind)
-
 
 # Creating loaders
 
@@ -61,7 +63,7 @@ def count_unique_edge_attrs(train_loader):
         unique_edge_attrs.update(batch['graph'].edge_attr.tolist())
     return len(unique_edge_attrs)
 
-num_unique_edge_attrs = count_unique_edge_attrs(train_loader)
+num_unique_edge_attrs = 20 #count_unique_edge_attrs(train_loader) # needs to be fixed, as function returns 19
 num_node_features = train_set[0]['graph'].x.shape[1]
 num_classes = 2 
 
@@ -71,7 +73,8 @@ print(f"# node features {num_node_features}, # classes {num_classes}, # edge att
 learning_rate = 0.0001
 epochs = 100
 
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+#device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+device = 'cpu'
 model = RGCN_node(num_node_features, num_classes, num_unique_edge_attrs)
 model = model.to(device)
 optimizer = optim.Adam(model.parameters(), lr=learning_rate)

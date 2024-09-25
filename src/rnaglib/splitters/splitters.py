@@ -45,7 +45,7 @@ class RandomSplitter(Splitter):
         super().__init__(**kwargs)
         self.seed = seed
 
-    def __call__(self, dataset):
+    def __call__(self, dataset): 
         return random_split(dataset,
                             split_train=self.split_train,
                             split_valid=self.split_valid,
