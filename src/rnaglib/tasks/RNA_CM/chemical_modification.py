@@ -5,6 +5,7 @@ from rnaglib.transforms import ResidueAttributeFilter
 from rnaglib.transforms import PDBIDNameTransform
 
 
+
 class ChemicalModification(ResidueClassificationTask):
     """Residue-level binary classification task to predict whether or not a given
     residue is chemically modified.

@@ -36,14 +36,13 @@ ta.dataset.features_computer.add_feature("nt_code")
 
 # Splitting dataset
 
-train_ind, val_ind, test_ind = ta.split()
+train_ind, val_ind, test_ind = ta.train_ind, ta.val_ind, ta.test_ind 
 train_set = ta.dataset.subset(train_ind)
 val_set = ta.dataset.subset(val_ind)
 test_set = ta.dataset.subset(test_ind)
 
 print(train_set[0])
 print(len(train_set))
-
 
 # Creating loaders
 
