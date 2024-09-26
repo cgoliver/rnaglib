@@ -14,12 +14,13 @@ class ProteinBindingSiteDetection(ResidueClassificationTask):
     """
 
     target_var = "binding_protein"
+    input_var = "nt_code"
 
     def __init__(self, root, splitter=None, **kwargs):
         super().__init__(root=root, splitter=splitter, **kwargs)
 
     def get_task_vars(self):
-        return FeaturesComputer(nt_targets=self.target_var)
+        return FeaturesComputer(nt_features=self.input_var, nt_targets=self.target_var)
 
     def process(self):
         # get full database
@@ -38,7 +39,6 @@ class ProteinBindingSiteDetection(ResidueClassificationTask):
         # apply filters and transforms
         rnas = filters(full_dataset)
         rnas = add_name(rnas)
-
         # initialize final dataset
         dataset = RNADataset(rnas=[r["rna"] for r in rnas])
         return dataset
