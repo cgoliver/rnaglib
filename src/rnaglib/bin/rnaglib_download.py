@@ -39,5 +39,5 @@ def main():
                              overwrite=args.overwrite,
                              data_root=args.download_dir,
                              verbose=True,
-                             store_pdbs=args.store_pdbs,
+                             get_pdbs=args.store_pdbs,
                              debug=args.debug)
