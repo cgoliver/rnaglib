@@ -39,7 +39,7 @@ task.dataset.add_representation(representation)
 3.) Lastly, split your task dataset.
 
 ```python
-train_ind, val_ind, test_ind = task.split()
+train_ind, val_ind, test_ind = task.split(task.dataset)
 train_set = task.dataset.subset(train_ind)
 val_set = task.dataset.subset(val_ind)
 test_set = task.dataset.subset(test_ind)
