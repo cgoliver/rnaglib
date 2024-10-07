@@ -23,8 +23,8 @@ $ rnaglib_index
 When instantiating the task, custom splitters or other arguments can be passed if needed.
  ```python
 from rnaglib.tasks import BindingSiteDetection
-from rnaglib.representations import GraphRepresentation
-from rnaglib.data_loading import RNADataset, FeaturesComputer
+from rnaglib.transforms import GraphRepresentation, FeaturesComputer
+from rnaglib.data_loading import RNADataset
 
 task = BindingSiteDetection(root='tutorial') # You can pass arguments to use a custom splitter or dataset etc. if desired.
 ```
