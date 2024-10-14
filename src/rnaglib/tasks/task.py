@@ -63,8 +63,6 @@ class Task:
         self.val_ind = val_ind
         self.test_ind = test_ind
 
-        self.set_loaders()
-
         if save:
             self.write()
 
