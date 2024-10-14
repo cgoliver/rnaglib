@@ -155,20 +155,19 @@ class TutorialTask(ResidueClassificationTask):
 
 ```python
 from rnaglib.tasks import BindingSiteDetection
-from rnaglib.data_loading import FeaturesComputer
-from rnaglib.representations import GraphRepresentation
+from rnaglib.transforms import FeaturesComputer, GraphRepresentation
 
 # Create a task
 task = BindingSiteDetection(root="my_root")
 
-# Choose your features, here the nucleotide code
-task.dataset.features_computer = FeaturesComputer(nt_features=['nt_code'])
+# Choose your features, here the nucleotide code, and your targets, here the binding site
+task.dataset.features_computer = FeaturesComputer(nt_features=['nt_code'], nt_targets='binding_site', custom_encoders= {'binding_site' : BoolEncoder()})
 
 # Choose your representation, here Pytorch Geometric graphs
 task.dataset.add_representation(GraphRepresentation(framework='pyg'))
 
-# You can access train/val/test loaders
-train_loader, _, _ = task.get_split_loaders()
+# Set train/val/test loaders
+task.set_loaders()
 
 # Define your model and training
 model=MyModel()
