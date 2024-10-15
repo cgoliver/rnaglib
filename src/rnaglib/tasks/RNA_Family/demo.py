@@ -11,8 +11,8 @@ import torch.nn.functional as F
 from torch_geometric.loader import DataLoader as PygLoader
 
 
-from rnaglib.tasks import ProteinBindingDetection
-from rnaglib.representations import GraphRepresentation
+from rnaglib.tasks import RNAFamilyTask
+from rnaglib.transforms import GraphRepresentation
 from rnaglib.learning.task_models import RGCN_graph
 
 parser = argparse.ArgumentParser()
@@ -30,12 +30,12 @@ if args.frompickle is True:
 
 else:
     print('generating task')
-    ta = ProteinBindingDetection('RBP-Graph')
+    ta = RNAFamilyTask('RNA-Family', debug=True, recompute=True)
     ta.dataset.add_representation(GraphRepresentation(framework='pyg'))
 
 # Splitting data
 
-train_ind, val_ind, test_ind = ta.split()
+train_ind, val_ind, test_ind = ta.train_ind, ta.val_ind, ta.test_ind
 train_set = ta.dataset.subset(train_ind)
 val_set = ta.dataset.subset(val_ind)
 test_set = ta.dataset.subset(test_ind)
@@ -46,7 +46,7 @@ train_graphs = list((d['graph'] for d in train_set))
 val_graphs = list((d['graph'] for d in val_set))
 test_graphs = list((d['graph'] for d in test_set))
 
-
+'''
 def node_to_graph_label(dataset):
     for data in dataset:
         positive_index = torch.where(data.y[0] == 1)[0][0]
@@ -56,6 +56,7 @@ def node_to_graph_label(dataset):
 train_graphs = node_to_graph_label(train_graphs)
 val_graphs = node_to_graph_label(val_graphs)
 test_graphs = node_to_graph_label(test_graphs)
+'''
 
 # Creating loaders
 pyg_train_loader = PygLoader(train_graphs, batch_size=8, shuffle=True)

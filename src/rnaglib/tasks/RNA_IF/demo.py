@@ -1,5 +1,5 @@
 from rnaglib.tasks import InverseFolding
-from rnaglib.representations import GraphRepresentation
+from rnaglib.transforms import GraphRepresentation
 from rnaglib.data_loading import Collater
 from rnaglib.learning.task_models import RGCN_node
 

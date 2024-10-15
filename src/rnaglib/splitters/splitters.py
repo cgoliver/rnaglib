@@ -73,6 +73,22 @@ def default_splitter_tr60_tr18():
     test_names = [f"{name[:-1]}_{name[-1]}" for name in SPLITTING_VARS['TE18'] if name != '1f1tA']
     return NameSplitter(train_names, val_names, test_names)
 
+class TR60TR18Splitter(Splitter):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.train_names = [f"{name[:-1]}_{name[-1]}" for name in SPLITTING_VARS['TR60'][:-6]]
+        self.val_names = [f"{name[:-1]}_{name[-1]}" for name in SPLITTING_VARS['TR60'][-6:]]
+        self.test_names = [f"{name[:-1]}_{name[-1]}" for name in SPLITTING_VARS['TE18'] if name != '1f1tA']
+
+    def __call__(self, dataset):
+        all_names = set(self.train_names + self.val_names + self.test_names)
+        missing = all_names - set(dataset.all_rnas.keys())
+        
+        if missing:
+            raise ValueError(f"Incompatible preprocessing for TR60TR18 splitter. Missing RNAs: {', '.join(missing)}")
+        
+        return NameSplitter(self.train_names, self.val_names, self.test_names)
+
 
 def get_ribosomal_rnas():
     url = "https://search.rcsb.org/rcsbsearch/v2/query"

@@ -87,7 +87,6 @@ class FilterTransform(Transform):
         """Apply the filter and return an iterator over the RNAs that pass."""
 
         RNADataset = __import__("rnaglib.data_loading").data_loading.RNADataset
-        print("initial length ", len(data))
         if not isinstance(data, (list, Generator, RNADataset)):
             raise ValueError("Filter transforms only apply to collections of RNAs.")
 

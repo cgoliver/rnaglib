@@ -24,6 +24,7 @@ class RNAFamilyTask(RNAClassificationTask):
     """
 
     target_var = "rfam"  # graph level attribute
+    input_var = "nt_code"  # node level attribute
 
     def __init__(self, root, max_size: int = 200, splitter=None, **kwargs):
         self.max_size = max_size
@@ -32,6 +33,7 @@ class RNAFamilyTask(RNAClassificationTask):
 
     def get_task_vars(self):
         return FeaturesComputer(
+            nt_features=['nt_code'],
             rna_targets=["rfam"],
             custom_encoders={"rfam": OneHotEncoder(self.metadata["label_mapping"])},
         )
