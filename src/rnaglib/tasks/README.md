@@ -23,8 +23,8 @@ $ rnaglib_index
 When instantiating the task, custom splitters or other arguments can be passed if needed.
  ```python
 from rnaglib.tasks import BindingSiteDetection
-from rnaglib.representations import GraphRepresentation
-from rnaglib.data_loading import RNADataset, FeaturesComputer
+from rnaglib.transforms import GraphRepresentation, FeaturesComputer
+from rnaglib.data_loading import RNADataset
 
 task = BindingSiteDetection(root='tutorial') # You can pass arguments to use a custom splitter or dataset etc. if desired.
 ```
@@ -39,10 +39,11 @@ task.dataset.add_representation(representation)
 3.) Lastly, split your task dataset.
 
 ```python
-train_ind, val_ind, test_ind = task.split()
-train_set = task.dataset.subset(train_ind)
-val_set = task.dataset.subset(val_ind)
-test_set = task.dataset.subset(test_ind)
+# get access to train indices
+print(self.train_ind)
+# get access to the loaders
+for batch in task.train_dataloader():
+    ...
 ```
 
 Here you go, these splits are now ready to be used by your model of choice and can for example be passed to a `DataLoader`.
@@ -155,20 +156,19 @@ class TutorialTask(ResidueClassificationTask):
 
 ```python
 from rnaglib.tasks import BindingSiteDetection
-from rnaglib.data_loading import FeaturesComputer
-from rnaglib.representations import GraphRepresentation
+from rnaglib.transforms import FeaturesComputer, GraphRepresentation
 
 # Create a task
 task = BindingSiteDetection(root="my_root")
 
-# Choose your features, here the nucleotide code
-task.dataset.features_computer = FeaturesComputer(nt_features=['nt_code'])
+# Choose your features, here the nucleotide code, and your targets, here the binding site
+task.dataset.features_computer = FeaturesComputer(nt_features=['nt_code'], nt_targets='binding_site', custom_encoders= {'binding_site' : BoolEncoder()})
 
 # Choose your representation, here Pytorch Geometric graphs
 task.dataset.add_representation(GraphRepresentation(framework='pyg'))
 
-# You can access train/val/test loaders
-train_loader, _, _ = task.get_split_loaders()
+# Set train/val/test loaders
+task.set_loaders()
 
 # Define your model and training
 model=MyModel()
