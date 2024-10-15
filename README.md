@@ -124,26 +124,31 @@ All tasks follow a similar pattern.
 
 ```python
 
+from torch.nn import BCELoss
 from rnaglib.tasks import BindingSiteDetection
 from rnaglib.transforms import GraphRepresentation
 
 # Load the task data and annotations
-ta = BindingSiteDetection('my_root')
+ta = BindingSiteDetection("my_root")
 
 # Select a data representation and framework (see docs for support of other data modalities and deep learning frameworks)
 
-ta.dataset.add_representation(GraphRepresentation(framework='pyg'))
+ta.dataset.add_representation(GraphRepresentation(framework="pyg"))
+
+train_loader, val_loader, test_loader = ta.get_split_loaders()
+
+# most tasks ship with a dummy model for debugging, gives random outputs of the right shape
+model = ta.dummy_model
 
 # Access the predefined splits
-
-train_ind, val_ind, test_ind = ta.split()
-train_set = ta.dataset.subset(train_ind)
-val_set = ta.dataset.subset(val_ind)
-test_set = ta.dataset.subset(test_ind)
+for batch in train_loader:
+    pred = ta.dummy_model(batch["graph"])
+    y = batch["graph"].y
+    loss = BCELoss()(y, pred)
 
 ```
 
-All you need after this to implement a full training and evaluation loop is standard ML boilerplate. Have a look at one
+Have a look at a full implemenation in one 
 of the [demos](https://github.com/cgoliver/rnaglib/blob/master/src/rnaglib/tasks/RNA_Site/demo.py) for a full example.
 
 ### Create your own ML tasks (**new**)

@@ -33,6 +33,6 @@ def print_statistics(loader):
 
 class DummyResidueModel(torch.nn.Module):
     def forward(self, g):
-        return torch.randn(1, g.x.shape[0])
+        return torch.rand(g.x.shape[0], 1)
 
     pass

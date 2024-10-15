@@ -63,8 +63,9 @@ class BenchmarkBindingSiteDetection(ResidueClassificationTask):
         )
         return dataset
 
-'''
-class BindingSiteDetectionDepr(ResidueClassificationTask):
+
+"""
+class BindingSiteDetection(ResidueClassificationTask):
     target_var = "binding_small-molecule"
     input_var = "nt_code"
 
@@ -94,7 +95,9 @@ class BindingSiteDetectionDepr(ResidueClassificationTask):
 
         return dataset
     
-'''
+"""
+
+
 class BindingSiteDetection(ResidueClassificationTask):
     target_var = "binding_site"
     input_var = "nt_code"
@@ -102,17 +105,20 @@ class BindingSiteDetection(ResidueClassificationTask):
     def __init__(self, root, splitter=None, **kwargs):
         super().__init__(root=root, splitter=splitter, **kwargs)
 
-
     def process(self) -> RNADataset:
         rnas = BindingSiteAnnotator()(RNADataset(debug=self.debug))
         dataset = RNADataset(rnas=[r["rna"] for r in rnas])
         rnas = ResidueAttributeFilter(
             attribute=self.target_var, value_checker=lambda val: val == True
-            )(dataset)
+        )(dataset)
         rnas = PDBIDNameTransform()(rnas)
-  
+
         dataset = RNADataset(rnas=[r["rna"] for r in rnas])
         return dataset
-    
+
     def get_task_vars(self) -> FeaturesComputer:
-        return FeaturesComputer(nt_features=['nt_code'], nt_targets=self.target_var, custom_encoders= {self.target_var : BoolEncoder()})
+        return FeaturesComputer(
+            nt_features=["nt_code"],
+            nt_targets=self.target_var,
+            custom_encoders={self.target_var: BoolEncoder()},
+        )

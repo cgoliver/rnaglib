@@ -63,10 +63,10 @@ class Task:
         self.val_ind = val_ind
         self.test_ind = test_ind
 
-        self.set_loaders()
-
         if save:
             self.write()
+
+        # self.set_loaders()
 
     def process(self) -> RNADataset:
         """Tasks must implement this method. Executing the method should result in a list of ``.json`` files
@@ -112,20 +112,20 @@ class Task:
     def get_split_loaders(self, **dataloader_kwargs):
         # If datasets were not already precomputed
         if "train_dataset" not in self.__dict__:
-            self.get_split_datasets()
+            train_set, val_set, test_set = self.get_split_datasets()
 
         # If no collater is provided we need one
         if dataloader_kwargs is None:
-            dataloader_kwargs = {"collate_fn": Collater(self.train_dataset)}
+            dataloader_kwargs = {"collate_fn": Collater(train_set)}
         if "collate_fn" not in dataloader_kwargs:
-            collater = Collater(self.train_dataset)
+            collater = Collater(train_set)
             dataloader_kwargs["collate_fn"] = collater
 
         # Now build the loaders
-        train_loader = DataLoader(dataset=self.train_dataset, **dataloader_kwargs)
+        train_loader = DataLoader(dataset=train_set, **dataloader_kwargs)
         dataloader_kwargs["shuffle"] = False
-        val_loader = DataLoader(dataset=self.val_dataset, **dataloader_kwargs)
-        test_loader = DataLoader(dataset=self.test_dataset, **dataloader_kwargs)
+        val_loader = DataLoader(dataset=val_set, **dataloader_kwargs)
+        test_loader = DataLoader(dataset=test_set, **dataloader_kwargs)
         return train_loader, val_loader, test_loader
 
     def evaluate(self, model) -> dict:
