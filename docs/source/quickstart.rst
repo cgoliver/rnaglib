@@ -48,4 +48,34 @@ For that we have the ``RNADataset`` object.::
 This object holds the same objects as above but also supports ML functionalities such as converting the RNAs to different representations (graphs, point clouds, voxels) and to different frameworks (dgl, torch, pytorch geometric)
 See the ML :doc:`tutorial <tuto_ml>` for more on model training and tasks.
 
+Train a model on an RNA Task
+____________________________________
+
+The :mod:`rnaglib.tasks` library contains all utilities necessary for loading predefined tasks with splits and evaluation functions.::
+
+
+    from torch.nn import BCELoss
+    from rnaglib.tasks import BindingSiteDetection
+    from rnaglib.transforms import GraphRepresentation
+
+    # Load the task data and annotations
+    ta = BindingSiteDetection("my_root")
+
+    # Select a data representation and framework (see docs for support of other data modalities and deep learning frameworks)
+
+    ta.dataset.add_representation(GraphRepresentation(framework="pyg"))
+
+    train_loader, val_loader, test_loader = ta.get_split_loaders()
+
+    # most tasks ship with a dummy model for debugging, gives random outputs of the right shape
+    model = ta.dummy_model
+
+    # Access the predefined splits
+    for batch in train_loader:
+        pred = ta.dummy_model(batch["graph"])
+        y = batch["graph"].y
+        loss = BCELoss()(y, pred)
+
+
+
 
