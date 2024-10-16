@@ -17,7 +17,6 @@ from rnaglib.transforms import FeaturesComputer
 from rnaglib.splitters import Splitter, RandomSplitter
 from rnaglib.utils import DummyResidueModel
 
-
 class Task:
     """Abstract class for a benchmarking task using the rnaglib datasets.
     This class handles the logic for building the underlying dataset which is held in an
@@ -43,25 +42,23 @@ class Task:
         self.dataset_path = os.path.join(self.root, "dataset")
         self.recompute = recompute
         self.debug = debug
-        self.splitter = self.default_splitter if splitter is None else splitter
-
         self.metadata = self.init_metadata()
 
-        # create or load dataset
+        # Load or create dataset
         if not os.path.exists(self.dataset_path) or recompute:
             print("Creating task dataset from scratch...")
-            dataset = self.process()
-            train_ind, val_ind, test_ind = self.split(dataset)
+            self.dataset = self.process()
         else:
-            dataset, metadata, (train_ind, val_ind, test_ind) = self.load()
-            self.metadata = metadata
+            self.dataset, self.metadata, (self.train_ind, self.val_ind, self.test_ind) = self.load()
 
-        self.dataset = dataset
+        # Set splitter after dataset is available
+        self.splitter = self.default_splitter if splitter is None else splitter
+
+        # Split dataset if it wasn't loaded from file
+        if not hasattr(self, 'train_ind'):
+            self.train_ind, self.val_ind, self.test_ind = self.split(self.dataset)
+
         self.dataset.features_computer = self.get_task_vars()
-
-        self.train_ind = train_ind
-        self.val_ind = val_ind
-        self.test_ind = test_ind
 
         if save:
             self.write()
@@ -198,8 +195,8 @@ class Task:
 
 
 class ResidueClassificationTask(Task):
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
+    def __init__(self, root, splitter=None, **kwargs):
+        super().__init__(root=root, splitter=splitter, **kwargs)
 
     @property
     def dummy_model(self) -> torch.nn:
