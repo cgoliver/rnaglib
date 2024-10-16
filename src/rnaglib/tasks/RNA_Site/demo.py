@@ -40,6 +40,8 @@ train_set = ta.dataset.subset(train_ind)
 val_set = ta.dataset.subset(val_ind)
 test_set = ta.dataset.subset(test_ind)
 
+# future: train_set, val_set, test_set = ta.get_split_loaders()
+
 # Creating loaders
 
 print('Creating loaders')

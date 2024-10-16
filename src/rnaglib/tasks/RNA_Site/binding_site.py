@@ -13,8 +13,67 @@ from rnaglib.encoders import BoolEncoder
 from rnaglib.transforms import ResidueAttributeFilter
 from rnaglib.transforms import PDBIDNameTransform
 from rnaglib.transforms import BindingSiteAnnotator
+from rnaglib.transforms import NameFilter
 
+class BenchmarkBindingSiteDetection(ResidueClassificationTask):
+    target_var = "binding_site"
+    input_var = "nt_code"
 
+    def __init__(self, root, splitter=None, **kwargs):
+        super().__init__(root=root, splitter=splitter, **kwargs)
+    
+    '''
+    @property
+    def default_splitter(self):
+        return default_splitter_tr60_tr18()
+    '''
+    #TODO: Implement the default splitter
+    
+    def process(self) -> RNADataset:
+        rnas = RNADataset(debug=False, redundancy='all', rna_id_subset=SPLITTING_VARS['PDB_TO_CHAIN_TR60_TE18'].keys())
+        dataset = RNADataset(rnas=[r["rna"] for r in rnas])
+        # TODO: remove wrong chains using  SPLITTING_VARS["PDB_TO_CHAIN_TR60_TE18"]
+        rnas = BindingSiteAnnotator()(dataset)
+        rnas = PDBIDNameTransform()(rnas)
+        dataset = RNADataset(rnas=[r["rna"] for r in rnas]) 
+        return dataset
+
+    #TODO Implement addition of RNA-FM embeddings, if requested
+
+    def get_task_vars(self) -> FeaturesComputer:
+        return FeaturesComputer(
+            nt_features=["nt_code"],
+            nt_targets=self.target_var,
+            custom_encoders={self.target_var: BoolEncoder()},
+        )
+
+class BindingSiteDetection(ResidueClassificationTask):
+    #TODO: The more logical target variable is binding_small-molecule, but not discussed yet.
+    target_var = "binding_site"
+    input_var = "nt_code"
+
+    def __init__(self, root, splitter=None, **kwargs):
+        super().__init__(root=root, splitter=splitter, **kwargs)
+
+    def process(self) -> RNADataset:
+        rnas = BindingSiteAnnotator()(RNADataset(debug=self.debug))
+        dataset = RNADataset(rnas=[r["rna"] for r in rnas])
+        rnas = ResidueAttributeFilter(
+            attribute=self.target_var, value_checker=lambda val: val == True
+        )(dataset)
+        rnas = PDBIDNameTransform()(rnas)
+
+        dataset = RNADataset(rnas=[r["rna"] for r in rnas])
+        return dataset
+
+    def get_task_vars(self) -> FeaturesComputer:
+        return FeaturesComputer(
+            nt_features=["nt_code"],
+            nt_targets=self.target_var,
+            custom_encoders={self.target_var: BoolEncoder()},
+        )
+
+'''
 class BenchmarkBindingSiteDetection(ResidueClassificationTask):
     input_var = "nt_code"
     target_var = "binding_site"
@@ -64,7 +123,6 @@ class BenchmarkBindingSiteDetection(ResidueClassificationTask):
         return dataset
 
 
-"""
 class BindingSiteDetection(ResidueClassificationTask):
     target_var = "binding_small-molecule"
     input_var = "nt_code"
@@ -95,30 +153,5 @@ class BindingSiteDetection(ResidueClassificationTask):
 
         return dataset
     
-"""
+'''
 
-
-class BindingSiteDetection(ResidueClassificationTask):
-    target_var = "binding_site"
-    input_var = "nt_code"
-
-    def __init__(self, root, splitter=None, **kwargs):
-        super().__init__(root=root, splitter=splitter, **kwargs)
-
-    def process(self) -> RNADataset:
-        rnas = BindingSiteAnnotator()(RNADataset(debug=self.debug))
-        dataset = RNADataset(rnas=[r["rna"] for r in rnas])
-        rnas = ResidueAttributeFilter(
-            attribute=self.target_var, value_checker=lambda val: val == True
-        )(dataset)
-        rnas = PDBIDNameTransform()(rnas)
-
-        dataset = RNADataset(rnas=[r["rna"] for r in rnas])
-        return dataset
-
-    def get_task_vars(self) -> FeaturesComputer:
-        return FeaturesComputer(
-            nt_features=["nt_code"],
-            nt_targets=self.target_var,
-            custom_encoders={self.target_var: BoolEncoder()},
-        )
