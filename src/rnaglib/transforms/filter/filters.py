@@ -146,3 +146,26 @@ class RibosomalFilter(FilterTransform):
                 return False
 
         return True
+
+class NameFilter(FilterTransform):
+    """
+    Filter RNAs based on their names.
+    
+    This filter keeps only the RNAs whose names are present in the provided list.
+
+    :param names: A list of RNA names to keep.
+    """
+
+    def __init__(self, names: list, **kwargs):
+        self.names = set(names)  # Convert to set for faster lookup
+        super().__init__(**kwargs)
+
+    def forward(self, data: dict) -> bool:
+        """
+        Check if the RNA's name is in the list of allowed names.
+
+        :param data: Dictionary containing RNA data.
+        :return: True if the RNA's name is in the allowed list, False otherwise.
+        """
+        rna_name = data["rna"].name
+        return rna_name in self.names
