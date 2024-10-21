@@ -147,10 +147,11 @@ class RibosomalFilter(FilterTransform):
 
         return True
 
+
 class NameFilter(FilterTransform):
     """
     Filter RNAs based on their names.
-    
+
     This filter keeps only the RNAs whose names are present in the provided list.
 
     :param names: A list of RNA names to keep.
@@ -169,3 +170,41 @@ class NameFilter(FilterTransform):
         """
         rna_name = data["rna"].name
         return rna_name in self.names
+
+
+class ChainFilter(FilterTransform):
+    """
+    Filter RNAs based on valid chain names for each structure.
+    Keeps any RNA with at least one residue having a valid chain name,
+    and removes residues with invalid chain names from kept RNAs.
+
+    :param valid_chains_dict: Dictionary mapping structure names to lists of valid chain names.
+    """
+
+    def __init__(self, valid_chains_dict: dict, **kwargs):
+        self.valid_chains_dict = valid_chains_dict
+        super().__init__(**kwargs)
+
+    def forward(self, data: dict) -> bool:
+        g = data["rna"]
+        structure_name = g.name
+        valid_chains = set(self.valid_chains_dict.get(structure_name, []))
+
+        nodes_to_remove = []
+        has_valid_node = False
+
+        for node, ndata in g.nodes(data=True):
+            if ndata["chain_name"] in valid_chains:
+                has_valid_node = True
+            else:
+                nodes_to_remove.append(node)
+
+        if has_valid_node:
+            # Remove nodes with invalid chain names
+            g.remove_nodes_from(nodes_to_remove)
+            return True
+        else:
+            return False
+
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}(valid_chains_dict={self.valid_chains_dict})"
