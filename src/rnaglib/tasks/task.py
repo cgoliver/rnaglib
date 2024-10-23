@@ -226,7 +226,7 @@ class ResidueClassificationTask(Task):
         auc = roc_auc_score(all_labels, all_probs)
         mcc = matthews_corrcoef(all_labels, all_preds)
 
-        return {"accuracy": accuracy, "mcc": mcc, "f1": f1}
+        return {"accuracy": accuracy, "mcc": mcc, "f1": f1, "auc":auc}
 
 
 class RNAClassificationTask(Task):
