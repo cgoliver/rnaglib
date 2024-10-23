@@ -89,7 +89,7 @@ class Task:
     def set_datasets(self):
         """Sets the train, val and test datasets
         Call this each time you modify ``self.dataset``."""
-
+        self.train_ind, self.val_ind, self.test_ind = self.split(self.dataset)
         self.train_dataset = self.dataset.subset(self.train_ind)
         self.val_dataset = self.dataset.subset(self.val_ind)
         self.test_dataset = self.dataset.subset(self.test_ind)
@@ -202,14 +202,16 @@ class ResidueClassificationTask(Task):
     def dummy_model(self) -> torch.nn:
         return DummyResidueModel()
 
-    def evaluate(self, model: torch.nn, device: str = "cpu") -> dict:
+    def evaluate(self, model: torch.nn, loader = None, device: str = "cpu") -> dict:
         model.eval()
         all_probs = []
         all_preds = []
         all_labels = []
+        if loader == None:
+            loader = self.test_dataloader
 
         with torch.no_grad():
-            for batch in self.test_dataloader:
+            for batch in loader:
                 graph = batch["graph"]
                 graph = graph.to(device)
                 out = model(graph)
