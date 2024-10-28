@@ -14,9 +14,7 @@ parser.add_argument(
 )
 args = parser.parse_args()
 
-
 # Creating task
-
 if args.frompickle is True:
     print("loading task from pickle")
     file_path = Path(__file__).parent / "data" / "binding_site.pkl"
@@ -37,22 +35,17 @@ num_node_features = info["num_node_features"]
 num_classes = info["num_classes"]
 num_unique_edge_attrs = info["num_edge_attributes"]
 
-
 # Define model
 learning_rate = 0.0001
-epochs = 5  # 100
-
-device = "cpu"
-
+epochs = 100
+device = "cuda" if torch.cuda.is_available() else "cpu"
 model = RGCN_node(num_node_features, num_classes, num_unique_edge_attrs)
 model = model.to(device)
 optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 criterion = torch.nn.CrossEntropyLoss()
 
-# Evaluate function
-
+# Training
 for epoch in range(epochs):
-    # Training step
     model.train()
     for batch in train_loader:
         graph = batch["graph"]
@@ -71,7 +64,6 @@ for epoch in range(epochs):
         f"Train Loss: {train_metrics['loss']:.4f}, Val Loss: {val_metrics['loss']:.4f}, "
         f"Train Acc: {train_metrics['accuracy']:.4f}, Val Acc: {val_metrics['accuracy']:.4f}"
     )
-
 
 # Final evaluation
 test_metrics = ta.evaluate(model, test_loader, device, criterion)
