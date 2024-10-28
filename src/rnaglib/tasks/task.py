@@ -17,6 +17,7 @@ from rnaglib.transforms import FeaturesComputer
 from rnaglib.splitters import Splitter, RandomSplitter
 from rnaglib.utils import DummyResidueModel
 
+
 class Task:
     """Abstract class for a benchmarking task using the rnaglib datasets.
     This class handles the logic for building the underlying dataset which is held in an
@@ -49,13 +50,17 @@ class Task:
             print("Creating task dataset from scratch...")
             self.dataset = self.process()
         else:
-            self.dataset, self.metadata, (self.train_ind, self.val_ind, self.test_ind) = self.load()
+            (
+                self.dataset,
+                self.metadata,
+                (self.train_ind, self.val_ind, self.test_ind),
+            ) = self.load()
 
         # Set splitter after dataset is available
         self.splitter = self.default_splitter if splitter is None else splitter
 
         # Split dataset if it wasn't loaded from file
-        if not hasattr(self, 'train_ind'):
+        if not hasattr(self, "train_ind"):
             self.train_ind, self.val_ind, self.test_ind = self.split(self.dataset)
 
         self.dataset.features_computer = self.get_task_vars()
@@ -108,10 +113,14 @@ class Task:
             dataloader_kwargs["collate_fn"] = collater
 
         # Now build the loaders
-        self.train_dataloader = DataLoader(dataset=self.train_dataset, **dataloader_kwargs)
+        self.train_dataloader = DataLoader(
+            dataset=self.train_dataset, **dataloader_kwargs
+        )
         dataloader_kwargs["shuffle"] = False
         self.val_dataloader = DataLoader(dataset=self.val_dataset, **dataloader_kwargs)
-        self.test_dataloader = DataLoader(dataset=self.test_dataset, **dataloader_kwargs)
+        self.test_dataloader = DataLoader(
+            dataset=self.test_dataset, **dataloader_kwargs
+        )
 
     def get_split_datasets(self, recompute=True):
         # If datasets were not already computed or if we want to recompute them to account
@@ -193,6 +202,52 @@ class Task:
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}()"
 
+    @property
+    def describe(self):
+        """
+        Get description of task dataset, including dimensions needed for model initialization
+        and other relevant statistics. Prints the description and returns it as a dict.
+
+        Returns:
+            dict: Contains dataset information and model dimensions
+        """
+        # Get dimensions from first graph
+        first_graph = self.dataset[0]["graph"]
+        num_node_features = first_graph.x.shape[1]
+
+        # Get unique edge attributes and classes from dataset
+        unique_edge_attrs = set()
+        classes = set()
+        class_counts = {0: 0, 1: 0}  # Initialize counts
+
+        for i in range(len(self.dataset)):
+            graph = self.dataset[i]["graph"]
+            unique_edge_attrs.update(graph.edge_attr.tolist())
+            classes.update(graph.y.unique().tolist())
+            # Count classes in this graph
+            for cls in classes:
+                class_counts[int(cls)] += sum(graph.y == cls).item()
+
+        info = {
+            "num_node_features": num_node_features,
+            "num_classes": len(classes),
+            "num_edge_attributes": len(unique_edge_attrs),
+            "dataset_size": len(self.dataset),
+            "class_distribution": class_counts,
+        }
+
+        # Print description
+        print("Dataset Description:")
+        print(f"Number of node features: {info['num_node_features']}")
+        print(f"Number of classes: {info['num_classes']}")
+        print(f"Number of edge attributes: {info['num_edge_attributes']}")
+        print(f"Dataset size: {info['dataset_size']} graphs")
+        print("\nClass distribution:")
+        for cls, count in info["class_distribution"].items():
+            print(f"Class {cls}: {count} nodes")
+
+        return info
+
 
 class ResidueClassificationTask(Task):
     def __init__(self, root, splitter=None, **kwargs):
@@ -202,13 +257,26 @@ class ResidueClassificationTask(Task):
     def dummy_model(self) -> torch.nn:
         return DummyResidueModel()
 
-    def evaluate(self, model: torch.nn, loader = None, device: str = "cpu") -> dict:
+    def evaluate(
+        self, model: torch.nn, loader, device: str = "cpu", criterion=None
+    ) -> dict:
+        """
+        Evaluate model performance on a dataset
+
+        Args:
+            model: The model to evaluate
+            loader: Data loader to use
+            device: Device to run evaluation on
+            criterion: Loss function
+
+        Returns:
+            dict: Dictionary containing metrics including loss if criterion provided
+        """
         model.eval()
         all_probs = []
         all_preds = []
         all_labels = []
-        if loader == None:
-            loader = self.test_dataloader
+        total_loss = 0
 
         with torch.no_grad():
             for batch in loader:
@@ -216,17 +284,29 @@ class ResidueClassificationTask(Task):
                 graph = graph.to(device)
                 out = model(graph)
 
-                preds = out > 0.5
-                all_probs.extend(out.cpu().flatten().tolist())
-                all_preds.extend(preds.cpu().flatten().tolist())
-                all_labels.extend(graph.cpu().y.flatten().tolist())
+                if criterion is not None:
+                    loss = criterion(out, torch.flatten(graph.y).long())
+                    total_loss += loss.item()
 
-        accuracy = accuracy_score(all_labels, all_preds)
-        f1 = f1_score(all_labels, all_preds)
-        auc = roc_auc_score(all_labels, all_probs)
-        mcc = matthews_corrcoef(all_labels, all_preds)
+                # Take probabilities for positive class only
+                probs = torch.softmax(out, dim=1)[:, 1]  # Get prob of class 1
+                preds = (probs > 0.5).float()
 
-        return {"accuracy": accuracy, "mcc": mcc, "f1": f1, "auc":auc}
+                all_probs.extend(probs.cpu().tolist())
+                all_preds.extend(preds.cpu().tolist())
+                all_labels.extend(graph.y.cpu().flatten().tolist())
+
+        metrics = {
+            "accuracy": accuracy_score(all_labels, all_preds),
+            "f1": f1_score(all_labels, all_preds),
+            "auc": roc_auc_score(all_labels, all_probs),
+            "mcc": matthews_corrcoef(all_labels, all_preds),
+        }
+
+        if criterion is not None:
+            metrics["loss"] = total_loss / len(loader)
+
+        return metrics
 
 
 class RNAClassificationTask(Task):
