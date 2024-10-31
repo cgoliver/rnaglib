@@ -27,6 +27,7 @@ else:
     ta.dataset.add_representation(GraphRepresentation(framework="pyg"))
 
 # Splitting dataset
+print("Splitting Dataset")
 train_loader, val_loader, test_loader = ta.get_split_loaders()
 
 # Printing statistics

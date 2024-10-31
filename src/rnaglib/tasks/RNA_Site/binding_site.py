@@ -56,18 +56,18 @@ class BenchmarkBindingSiteDetection(ResidueClassificationTask):
 
 class BindingSiteDetection(ResidueClassificationTask):
     # TODO: The more logical target variable is binding_small-molecule, but not discussed yet. (THen the annotator can be removed)
-    target_var = "binding_site"
+    target_var = "binding_small-molecule"
     input_var = "nt_code"
 
     def __init__(self, root, splitter=None, **kwargs):
         super().__init__(root=root, splitter=splitter, **kwargs)
 
     def process(self) -> RNADataset:
-        rnas = BindingSiteAnnotator()(RNADataset(debug=self.debug))
-        dataset = RNADataset(rnas=[r["rna"] for r in rnas])
+        dataset = RNADataset(debug=self.debug)
         rnas = ResidueAttributeFilter(
-            attribute=self.target_var, value_checker=lambda val: val == True
+            attribute=self.target_var, value_checker=lambda val: val is not None
         )(dataset)
+
         rnas = PDBIDNameTransform()(rnas)
 
         dataset = RNADataset(rnas=[r["rna"] for r in rnas])
