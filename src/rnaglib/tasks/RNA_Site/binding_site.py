@@ -48,7 +48,7 @@ class BenchmarkBindingSiteDetection(ResidueClassificationTask):
 
     def get_task_vars(self) -> FeaturesComputer:
         return FeaturesComputer(
-            nt_features=["nt_code"],
+            nt_features=self.input_var,
             nt_targets=self.target_var,
             custom_encoders={self.target_var: BoolEncoder()},
         )
@@ -74,8 +74,4 @@ class BindingSiteDetection(ResidueClassificationTask):
         return dataset
 
     def get_task_vars(self) -> FeaturesComputer:
-        return FeaturesComputer(
-            nt_features=["nt_code"],
-            nt_targets=self.target_var,
-            custom_encoders={self.target_var: BoolEncoder()},
-        )
+        return FeaturesComputer(nt_features=self.input_var, nt_targets=self.target_var)
