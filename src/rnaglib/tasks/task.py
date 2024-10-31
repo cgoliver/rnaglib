@@ -257,9 +257,7 @@ class ResidueClassificationTask(Task):
     def dummy_model(self) -> torch.nn:
         return DummyResidueModel()
 
-    def evaluate(
-        self, model: torch.nn, loader, device: str = "cpu", criterion=None
-    ) -> dict:
+    def evaluate(self, model: torch.nn, loader) -> dict:
         """
         Evaluate model performance on a dataset
 
@@ -281,11 +279,11 @@ class ResidueClassificationTask(Task):
         with torch.no_grad():
             for batch in loader:
                 graph = batch["graph"]
-                graph = graph.to(device)
+                graph = graph.to(model.device)
                 out = model(graph)
 
-                if criterion is not None:
-                    loss = criterion(out, torch.flatten(graph.y).long())
+                if model.criterion is not None:
+                    loss = model.criterion(out, graph.y.long())
                     total_loss += loss.item()
 
                 # Take probabilities for positive class only
@@ -303,7 +301,7 @@ class ResidueClassificationTask(Task):
             "mcc": matthews_corrcoef(all_labels, all_preds),
         }
 
-        if criterion is not None:
+        if model.criterion is not None:
             metrics["loss"] = total_loss / len(loader)
 
         return metrics

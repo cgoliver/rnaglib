@@ -25,49 +25,25 @@ else:
     print("generating task")
     ta = BindingSiteDetection("RNA-Site")
     ta.dataset.add_representation(GraphRepresentation(framework="pyg"))
+    # Splitting dataset
+    print("Splitting Dataset")
+    ta.get_split_loaders()
 
-# Splitting dataset
-print("Splitting Dataset")
-train_loader, val_loader, test_loader = ta.get_split_loaders()
 
 # Printing statistics
 info = ta.describe
 num_node_features = info["num_node_features"]
 num_classes = info["num_classes"]
 num_unique_edge_attrs = info["num_edge_attributes"]
+# need to set to 20 (or actual edge type cardinality) manually if not all edges are present, such as in debugging
 
-# Define model
-learning_rate = 0.0001
-epochs = 100
-device = "cuda" if torch.cuda.is_available() else "cpu"
+# Train model
 model = RGCN_node(num_node_features, num_classes, num_unique_edge_attrs)
-model = model.to(device)
-optimizer = optim.Adam(model.parameters(), lr=learning_rate)
-criterion = torch.nn.CrossEntropyLoss()
-
-# Training
-for epoch in range(epochs):
-    model.train()
-    for batch in train_loader:
-        graph = batch["graph"]
-        graph = graph.to(device)
-        optimizer.zero_grad()
-        out = model(graph)
-        loss = criterion(out, torch.flatten(graph.y).long())
-        loss.backward()
-        optimizer.step()
-
-    # Evaluation
-    train_metrics = ta.evaluate(model, train_loader, device, criterion)
-    val_metrics = ta.evaluate(model, val_loader, device, criterion)
-    print(
-        f"Epoch {epoch + 1}, "
-        f"Train Loss: {train_metrics['loss']:.4f}, Val Loss: {val_metrics['loss']:.4f}, "
-        f"Train Acc: {train_metrics['accuracy']:.4f}, Val Acc: {val_metrics['accuracy']:.4f}"
-    )
+model.configure_training(learning_rate=0.001)
+model.train_model(ta, epochs=100)
 
 # Final evaluation
-test_metrics = ta.evaluate(model, test_loader, device, criterion)
+test_metrics = ta.evaluate(model, ta.test_dataloader)
 print(
     f"Test Loss: {test_metrics['loss']:.4f}, "
     f"Test Accuracy: {test_metrics['accuracy']:.4f}, "
