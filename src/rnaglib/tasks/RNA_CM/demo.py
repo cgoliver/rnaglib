@@ -2,8 +2,6 @@ from rnaglib.tasks import ChemicalModification
 from rnaglib.transforms import GraphRepresentation
 from rnaglib.learning.task_models import RGCN_node
 
-import torch.optim as optim
-import torch
 import argparse
 from pathlib import Path
 import dill as pickle
