@@ -292,7 +292,7 @@ class ResidueClassificationTask(Task):
 
                 all_probs.extend(probs.cpu().tolist())
                 all_preds.extend(preds.cpu().tolist())
-                all_labels.extend(graph.y.cpu().flatten().tolist())
+                all_labels.extend(graph.y.long().cpu().tolist())
 
         metrics = {
             "accuracy": accuracy_score(all_labels, all_preds),
