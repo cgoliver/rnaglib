@@ -1,10 +1,13 @@
-from rnaglib.tasks import BindingSiteDetection
-from rnaglib.transforms import GraphRepresentation
-from rnaglib.learning.task_models import RGCN_node
+"""Demo for training a simple model using an rnaglib task"""
 
 import argparse
 from pathlib import Path
 import dill as pickle
+
+from rnaglib.tasks import BindingSiteDetection
+from rnaglib.transforms import GraphRepresentation
+from rnaglib.learning.task_models import RGCN_node
+
 
 parser = argparse.ArgumentParser()
 parser.add_argument(
@@ -33,7 +36,7 @@ info = ta.describe
 num_node_features = info["num_node_features"]
 num_classes = info["num_classes"]
 num_unique_edge_attrs = info["num_edge_attributes"]
-# need to set to 20 (or actual edge type cardinality) manually if not all edges are present, such as in debugging
+# need to set to 20 (or actual edge type #) if not all edges are present, such as in debugging
 
 # Train model
 model = RGCN_node(num_node_features, num_classes, num_unique_edge_attrs)

@@ -207,7 +207,6 @@ class Task:
         """
         Get description of task dataset, including dimensions needed for model initialization
         and other relevant statistics. Prints the description and returns it as a dict.
-
         Returns:
             dict: Contains dataset information and model dimensions
         """
@@ -215,18 +214,24 @@ class Task:
         first_graph = self.dataset[0]["graph"]
         num_node_features = first_graph.x.shape[1]
 
-        # Get unique edge attributes and classes from dataset
+        # Dynamic class counting
+        class_counts = {}
         unique_edge_attrs = set()
         classes = set()
-        class_counts = {0: 0, 1: 0}  # Initialize counts
 
+        # Collect statistics from dataset
         for i in range(len(self.dataset)):
             graph = self.dataset[i]["graph"]
             unique_edge_attrs.update(graph.edge_attr.tolist())
-            classes.update(graph.y.unique().tolist())
+            graph_classes = graph.y.unique().tolist()
+            classes.update(graph_classes)
+
             # Count classes in this graph
-            for cls in classes:
-                class_counts[int(cls)] += sum(graph.y == cls).item()
+            for cls in graph_classes:
+                cls_int = int(cls)
+                if cls_int not in class_counts:
+                    class_counts[cls_int] = 0
+                class_counts[cls_int] += sum(graph.y == cls).item()
 
         info = {
             "num_node_features": num_node_features,
@@ -243,8 +248,8 @@ class Task:
         print(f"Number of edge attributes: {info['num_edge_attributes']}")
         print(f"Dataset size: {info['dataset_size']} graphs")
         print("\nClass distribution:")
-        for cls, count in info["class_distribution"].items():
-            print(f"Class {cls}: {count} nodes")
+        for cls in sorted(class_counts.keys()):
+            print(f"Class {cls}: {class_counts[cls]} nodes")
 
         return info
 
