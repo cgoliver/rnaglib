@@ -38,7 +38,6 @@ class GraphRepresentation(Representation):
         pass
 
     def __call__(self, rna_graph, features_dict):
-        # print(f"Converting to {self.framework}")
         if self.clean_edges:
             base_graph = fix_buggy_edges(graph=rna_graph)
         else:

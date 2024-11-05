@@ -55,7 +55,6 @@ class BenchmarkBindingSiteDetection(ResidueClassificationTask):
 
 
 class BindingSiteDetection(ResidueClassificationTask):
-    # TODO: The more logical target variable is binding_small-molecule, but not discussed yet. (THen the annotator can be removed)
     target_var = "binding_small-molecule"
     input_var = "nt_code"
 

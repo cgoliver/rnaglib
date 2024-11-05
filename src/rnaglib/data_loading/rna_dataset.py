@@ -235,7 +235,6 @@ class RNADataset:
             self.transforms(rna_dict)
 
         features_dict = self.features_computer(rna_dict)
-
         # apply representations to the res_dict
         # each is a callable that updates the res_dict
         for rep in self.representations:
