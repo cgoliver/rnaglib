@@ -16,7 +16,7 @@ from rnaglib.transforms import (
 from rnaglib.transforms import FeaturesComputer
 
 
-class RNAFamilyTask(RNAClassificationTask):
+class RNAFamily(RNAClassificationTask):
     """Predict the Rfam family of a given RNA chain.
     This is a multi-class classification task. Of course, this task is solved
     by definition since families are constructted algorithmically using covariance models. However it can still test the ability of a model to capture characteristic
@@ -33,7 +33,7 @@ class RNAFamilyTask(RNAClassificationTask):
 
     def get_task_vars(self):
         return FeaturesComputer(
-            nt_features=['nt_code'],
+            nt_features=["nt_code"],
             rna_targets=["rfam"],
             custom_encoders={"rfam": OneHotEncoder(self.metadata["label_mapping"])},
         )
