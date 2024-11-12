@@ -143,7 +143,8 @@ class RNADataset:
             # Here we assume that rna lists contain a relevant rna.name field, which is the case
             # if it was constructed using build_dataset above
             rna_names = set([rna.name for rna in rnas])
-            assert "" not in rna_names and len(rna_names) == len(rnas), (
+            assert "" not in rna_names, "Empty RNA name found"
+            assert len(rna_names) == len(rnas), (
                 "When creating a RNAdataset from rnas, please "
                 "use uniquely named networkx graphs"
             )
@@ -314,7 +315,7 @@ class RNADataset:
 
 
 if __name__ == "__main__":
-    from rnaglib.representations import GraphRepresentation
+    from rnaglib.transforms import GraphRepresentation
 
     features_computer = FeaturesComputer(
         nt_features="nt_code", nt_targets="binding_protein"
