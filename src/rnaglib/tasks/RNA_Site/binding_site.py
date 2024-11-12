@@ -11,7 +11,6 @@ from rnaglib.data_loading import RNADataset
 from rnaglib.transforms import FeaturesComputer
 from rnaglib.splitters import SPLITTING_VARS, default_splitter_tr60_tr18
 from rnaglib.tasks import ResidueClassificationTask
-from rnaglib.utils import load_index
 from rnaglib.encoders import BoolEncoder
 from rnaglib.transforms import ResidueAttributeFilter
 from rnaglib.transforms import PDBIDNameTransform, ChainNameTransform
