@@ -181,7 +181,7 @@ class ChainFilter(FilterTransform):
     :param valid_chains_dict: Dictionary mapping structure names to lists of valid chain names.
     """
 
-    def __init__(self, valid_chains_dict: dict, **kwargs)
+    def __init__(self, valid_chains_dict: dict, **kwargs):
         self.valid_chains_dict = {
             pdb.lower(): [chain for chain in chains]  # .upper()
             for pdb, chains in valid_chains_dict.items()
