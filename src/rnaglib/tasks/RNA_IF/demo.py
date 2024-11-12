@@ -1,10 +1,13 @@
-from rnaglib.tasks import InverseFolding
-from rnaglib.transforms import GraphRepresentation
-from rnaglib.learning.task_models import RGCN_node
+"""Demo for training a simple model using an rnaglib task"""
 
 import argparse
 from pathlib import Path
 import dill as pickle
+
+from rnaglib.tasks import InverseFolding
+from rnaglib.transforms import GraphRepresentation
+from rnaglib.learning.task_models import RGCN_node
+
 
 parser = argparse.ArgumentParser()
 parser.add_argument(
@@ -14,17 +17,17 @@ args = parser.parse_args()
 
 # Creating task
 if args.frompickle is True:
-    print("loading task from pickle")
+    print("Loading task from pickle")
     file_path = Path(__file__).parent / "data" / "binding_site.pkl"
 
     with open(file_path, "rb") as file:
         ta = pickle.load(file)
 else:
-    print("generating task")
-    ta = InverseFolding("RNA-IF", debug=True, recompute=True)
+    print("Generating task")
+    ta = InverseFolding("RNA-IF", recompute=True)
     ta.dataset.add_representation(GraphRepresentation(framework="pyg"))
     # Splitting dataset
-    print("Splitting Dataset")
+    print("Splitting dataset")
     ta.get_split_loaders()
 
 
@@ -32,8 +35,8 @@ else:
 info = ta.describe
 num_node_features = info["num_node_features"]
 num_classes = info["num_classes"]
-num_unique_edge_attrs = 20  # info["num_edge_attributes"]
-# need to set to 20 (or actual edge type cardinality) manually if not all edges are present, such as in debugging
+num_unique_edge_attrs = info["num_edge_attributes"]
+# need to set to 20 (or actual edge type #)  if not all edges are present, such as in debugging
 
 # Train model
 model = RGCN_node(num_node_features, num_classes, num_unique_edge_attrs)
