@@ -11,7 +11,6 @@ from rnaglib.data_loading import RNADataset
 from rnaglib.transforms import FeaturesComputer
 from rnaglib.splitters import SPLITTING_VARS, default_splitter_tr60_tr18
 from rnaglib.tasks import ResidueClassificationTask
-from rnaglib.utils import load_index
 from rnaglib.encoders import BoolEncoder
 from rnaglib.transforms import ResidueAttributeFilter
 from rnaglib.transforms import PDBIDNameTransform, ChainNameTransform
@@ -48,34 +47,29 @@ class BenchmarkBindingSiteDetection(ResidueClassificationTask):
 
     def get_task_vars(self) -> FeaturesComputer:
         return FeaturesComputer(
-            nt_features=["nt_code"],
+            nt_features=self.input_var,
             nt_targets=self.target_var,
             custom_encoders={self.target_var: BoolEncoder()},
         )
 
 
 class BindingSiteDetection(ResidueClassificationTask):
-    # TODO: The more logical target variable is binding_small-molecule, but not discussed yet. (THen the annotator can be removed)
-    target_var = "binding_site"
+    target_var = "binding_small-molecule"
     input_var = "nt_code"
 
     def __init__(self, root, splitter=None, **kwargs):
         super().__init__(root=root, splitter=splitter, **kwargs)
 
     def process(self) -> RNADataset:
-        rnas = BindingSiteAnnotator()(RNADataset(debug=self.debug))
-        dataset = RNADataset(rnas=[r["rna"] for r in rnas])
+        dataset = RNADataset(debug=self.debug)
         rnas = ResidueAttributeFilter(
-            attribute=self.target_var, value_checker=lambda val: val == True
+            attribute=self.target_var, value_checker=lambda val: val is not None
         )(dataset)
+
         rnas = PDBIDNameTransform()(rnas)
 
         dataset = RNADataset(rnas=[r["rna"] for r in rnas])
         return dataset
 
     def get_task_vars(self) -> FeaturesComputer:
-        return FeaturesComputer(
-            nt_features=["nt_code"],
-            nt_targets=self.target_var,
-            custom_encoders={self.target_var: BoolEncoder()},
-        )
+        return FeaturesComputer(nt_features=self.input_var, nt_targets=self.target_var)

@@ -3,6 +3,7 @@ import json
 from typing import Union, Optional
 import gemmi
 from torch.utils.data import Subset
+import torch
 
 
 def listdir_fullpath(d):
@@ -35,21 +36,26 @@ def get_dataset(loader):
     else:
         return loader.dataset
 
-def load_index(redundancy='nr', version='1.0.0', glib_path=f"{os.path.expanduser('~')}/.rnaglib"):
+
+def load_index(
+    redundancy="nr", version="1.0.0", glib_path=f"{os.path.expanduser('~')}/.rnaglib"
+):
     index_file = os.path.join(glib_path, f"indexes/rnaglib-{redundancy}-{version}.json")
 
     try:
-        with open(index_file, 'r') as indx:
+        with open(index_file, "r") as indx:
             return json.load(indx)
     except FileNotFoundError:
         print(f"Index file not found at {index_file}. Run rnaglib_index")
         return None
 
-def cif_remove_residues(cif_path: Union[str, os.PathLike],
-                        keep_residues: Optional[list],
-                        out_path: Union[str, os.PathLike]
-                        ):
-    """ Remove all residues from a cif file except for those in `keep_residues` list.
+
+def cif_remove_residues(
+    cif_path: Union[str, os.PathLike],
+    keep_residues: Optional[list],
+    out_path: Union[str, os.PathLike],
+):
+    """Remove all residues from a cif file except for those in `keep_residues` list.
     Save the new cif to `out_path`.
 
     :param cif_path: path to input cif

@@ -80,8 +80,8 @@ class ClusterSplitter(Splitter):
         with tqdm(total=test_size, desc="Sampling split") as pbar:
             while len(test) < test_size:
                 query = random.choice(pool)
-                cluster = set(neighbors[query])
-                pool = list(set(pool) - cluster)
+                cluster = list(set(neighbors[query]))
+                pool = list(set(pool) - set(cluster))
                 # if cluster is too big, subsample it
                 if len(cluster) > n:
                     cluster = random.sample(cluster, n)
