@@ -158,7 +158,7 @@ class NameFilter(FilterTransform):
     """
 
     def __init__(self, names: list, **kwargs):
-        self.names = set(names)  # Convert to set for faster lookup
+        self.names = {name.lower() for name in names} 
         super().__init__(**kwargs)
 
     def forward(self, data: dict) -> bool:
@@ -182,19 +182,24 @@ class ChainFilter(FilterTransform):
     """
 
     def __init__(self, valid_chains_dict: dict, **kwargs):
-        self.valid_chains_dict = valid_chains_dict
+        self.valid_chains_dict = {
+            pdb.lower(): [chain for chain in chains]  # .upper()
+            for pdb, chains in valid_chains_dict.items()
+        }
+        print("valid chains from chain filter")
+        print(self.valid_chains_dict["7q4o"])
         super().__init__(**kwargs)
 
     def forward(self, data: dict) -> bool:
         g = data["rna"]
         structure_name = g.name
         valid_chains = set(self.valid_chains_dict.get(structure_name, []))
-
         nodes_to_remove = []
         has_valid_node = False
 
         for node, ndata in g.nodes(data=True):
-            if ndata["chain_name"] in valid_chains:
+            chain_name = ndata["chain_name"]  # .upper()
+            if chain_name in valid_chains:
                 has_valid_node = True
             else:
                 nodes_to_remove.append(node)

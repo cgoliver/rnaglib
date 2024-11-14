@@ -5,19 +5,19 @@ from rnaglib.transforms import ResidueAttributeFilter
 from rnaglib.transforms import PDBIDNameTransform
 
 
-
 class ChemicalModification(ResidueClassificationTask):
     """Residue-level binary classification task to predict whether or not a given
     residue is chemically modified.
     """
 
     target_var = "is_modified"
+    input_var = "nt_code"
 
     def __init__(self, root, splitter=None, **kwargs):
         super().__init__(root=root, splitter=splitter, **kwargs)
 
     def get_task_vars(self):
-        return FeaturesComputer(nt_targets=self.target_var)
+        return FeaturesComputer(nt_targets=self.target_var, nt_features=self.input_var)
 
     def process(self):
         rnas = ResidueAttributeFilter(
