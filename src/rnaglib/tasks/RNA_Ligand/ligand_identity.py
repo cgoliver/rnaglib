@@ -50,20 +50,23 @@ class GMSM(RNAClassificationTask):
         x.remove_nodes_from(wrong_nodes)
         return [x]
 
-    def build_dataset(self):
+    def process(self):
         features_computer = FeaturesComputer(
             nt_features=self.input_var,
             nt_targets=self.target_var,
-            custom_encoders_targets={
+            custom_encoders={
                 self.target_var: OneHotEncoder(mapping=self.mapping)
             },
         )
-        dataset = RNADataset.from_database(
-            features_computer=features_computer,
-            annotator=self._annotator,
-            nt_filter=self._nt_filter,
-            rna_filter=lambda x: x.graph["pdbid"][0].lower() in self.rnas_keep,
-            all_rnas=[name + ".json" for name in self.rnas_keep],  # for testing [0:10]
-            redundancy="all",
+        rna_filter = NameFilter(
+            names = self.rnas_keep
         )
+        rnas = RNADataset(debug=False, redundancy='all', rna_id_subset=[name + ".json" for name in self.rnas_keep], features_computer=features_computer)
+        rnas = LigandAnnotator()(rnas)
+        rnas = LigandNTFilter()(rnas)
+        rnas = rna_filter(rnas)
+        dataset = RNADataset(rnas=[r["rna"] for r in rnas])
         return dataset
+    def get_task_vars(self) -> FeaturesComputer:
+        return FeaturesComputer(nt_features=self.input_var, nt_targets=self.target_var)
+

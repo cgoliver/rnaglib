@@ -54,7 +54,7 @@ class RNAAttributeFilter(FilterTransform):
     pass
 
 
-class ResidueAttributeFilter(FilterTransform):
+class   ResidueAttributeFilter(FilterTransform):
     """Reject RNAs that lack a certain annotation at the whole residue-level.
 
     :param attribute: which node-level attribute to look for.
