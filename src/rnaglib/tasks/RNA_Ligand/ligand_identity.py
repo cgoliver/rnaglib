@@ -33,23 +33,6 @@ class GMSM(RNAClassificationTask):
         super().__init__(root=root, splitter=splitter, **kwargs)
         pass
 
-    def default_splitter(self):
-        return RandomSplitter()
-
-    def _annotator(self, x):
-        ligand_codes = {
-            node: int(self.data.loc[self.data.nid == node, "label"].values[0])
-            # remove .values[0] when playing with _nt_filter
-            for node, nodedata in x.nodes.items()
-        }
-        set_node_attributes(x, ligand_codes, "ligand_code")
-        return x
-
-    def _nt_filter(self, x):
-        wrong_nodes = [node for node in x if node not in self.nodes_keep]
-        x.remove_nodes_from(wrong_nodes)
-        return [x]
-
     def process(self):
         features_computer = FeaturesComputer(
             nt_features=self.input_var,
@@ -61,7 +44,7 @@ class GMSM(RNAClassificationTask):
         rna_filter = NameFilter(
             names = self.rnas_keep
         )
-        rnas = RNADataset(debug=False, redundancy='all', rna_id_subset=[name + ".json" for name in self.rnas_keep], features_computer=features_computer)
+        rnas = RNADataset(debug=False, redundancy='all', rna_id_subset=[name for name in self.rnas_keep], features_computer=features_computer)
         rnas = LigandAnnotator()(rnas)
         rnas = LigandNTFilter()(rnas)
         rnas = rna_filter(rnas)
