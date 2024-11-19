@@ -14,10 +14,6 @@ class ChainSplitTransform(PartitionTransform):
             list(g.nodes(data=True)), key=lambda ndata: ndata[1]["chain_name"]
         )
         current_chain_name = chain_sort_nodes[0][1]["chain_name"]  # .upper()
-        if g.name == "7q4o":
-            print("current chain name from chain split")
-            print(current_chain_name)
-
         current_chain_nodes = []
         for node, ndata in chain_sort_nodes:
             if ndata["chain_name"] == current_chain_name:  # .upper()
