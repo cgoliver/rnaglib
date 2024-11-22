@@ -38,7 +38,6 @@ class GraphRepresentation(Representation):
         pass
 
     def __call__(self, rna_graph, features_dict):
-        # print(f"Converting to {self.framework}")
         if self.clean_edges:
             base_graph = fix_buggy_edges(graph=rna_graph)
         else:
@@ -93,6 +92,9 @@ class GraphRepresentation(Representation):
         if "nt_targets" in features_dict:
             # We use torch cat since we are not developing multi-target models. For multi target cases, please use torch.stack.
             y = torch.cat([features_dict["nt_targets"][n] for n in node_map.keys()])
+        if "rna_targets" in features_dict:
+            print(features_dict)
+            y = torch.tensor(features_dict["rna_targets"])
 
         edge_index = [[node_map[u], node_map[v]] for u, v in sorted(graph.edges())]
         edge_index = torch.tensor(edge_index, dtype=torch.long).T
