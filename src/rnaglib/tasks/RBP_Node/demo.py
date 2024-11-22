@@ -13,9 +13,7 @@ from pathlib import Path
 import dill as pickle
 
 parser = argparse.ArgumentParser()
-parser.add_argument(
-    "-p", "--frompickle", action="store_true", help="To load task from pickle"
-)
+parser.add_argument("-p", "--frompickle", action="store_true", help="To load task from pickle")
 args = parser.parse_args()
 
 # Creating task
@@ -48,12 +46,11 @@ features_computer.add_feature(
 # Printing statistics
 info = ta.describe
 num_node_features = info["num_node_features"]
-num_classes = info["num_classes"]
 num_unique_edge_attrs = info["num_edge_attributes"]
 # need to set to 20 (or actual edge type cardinality) manually if not all edges are present, such as in debugging
 
 # Train model
-model = RGCN_node(num_node_features, num_classes, num_unique_edge_attrs)
+model = RGCN_node(num_node_features, 1, num_unique_edge_attrs, final_activation="sigmoid")
 model.configure_training(learning_rate=0.001)
 model.train_model(ta, epochs=100)
 

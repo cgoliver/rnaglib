@@ -19,20 +19,14 @@ class RGCN_graph(torch.nn.Module):
 
         # Input layer
         if num_layers > 0:
-            self.convs.append(
-                RGCNConv(num_node_features, hidden_channels, num_unique_edge_attrs)
-            )
+            self.convs.append(RGCNConv(num_node_features, hidden_channels, num_unique_edge_attrs))
 
         # Hidden layers
         for _ in range(num_layers - 1):
-            self.convs.append(
-                RGCNConv(hidden_channels, hidden_channels, num_unique_edge_attrs)
-            )
+            self.convs.append(RGCNConv(hidden_channels, hidden_channels, num_unique_edge_attrs))
 
         # Output layer
-        self.fc = torch.nn.Linear(
-            hidden_channels if num_layers > 0 else num_node_features, num_classes
-        )
+        self.fc = torch.nn.Linear(hidden_channels if num_layers > 0 else num_node_features, num_classes)
 
     def forward(self, data):
         x, edge_index, edge_type, batch = (
@@ -60,6 +54,7 @@ class RGCN_node(torch.nn.Module):
         num_layers=2,
         hidden_channels=128,
         dropout_rate=0.5,
+        final_activation=None,
     ):
         super().__init__()
         self.num_layers = num_layers
@@ -69,9 +64,7 @@ class RGCN_node(torch.nn.Module):
 
         in_channels = num_node_features
         for i in range(num_layers):
-            self.convs.append(
-                RGCNConv(in_channels, hidden_channels, num_unique_edge_attrs)
-            )
+            self.convs.append(RGCNConv(in_channels, hidden_channels, num_unique_edge_attrs))
             self.bns.append(BatchNorm1d(hidden_channels))
             self.dropouts.append(Dropout(dropout_rate))
             in_channels = hidden_channels
@@ -83,6 +76,11 @@ class RGCN_node(torch.nn.Module):
         self.criterion = torch.nn.CrossEntropyLoss()
         self.optimizer = None
         self.device = None
+        if not self.final_activation is None:
+            if self.final_activation == "sigmoid":
+                self.final_activation = torch.nn.Sigmoid()
+            if self.final_activation == "softmax":
+                self.final_activation = torch.nn.Softmax()
 
     def forward(self, data):
         x, edge_index, edge_type = data.x, data.edge_index, data.edge_attr
@@ -95,11 +93,11 @@ class RGCN_node(torch.nn.Module):
 
         # Apply final linear layer
         x = self.final_linear(x)
+        if not self.final_activation is None:
+            self.final_activation(x)
         return x
 
-    def configure_training(
-        self, learning_rate=0.001, device="cuda" if torch.cuda.is_available() else "cpu"
-    ):
+    def configure_training(self, learning_rate=0.001, device="cuda" if torch.cuda.is_available() else "cpu"):
         """Configure training settings."""
         self.device = device
         self.to(device)

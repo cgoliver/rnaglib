@@ -3,7 +3,7 @@ import tempfile
 
 from rnaglib.transforms import GraphRepresentation
 from rnaglib.tasks import Task
-from rnaglib.tasks import RNAFamilyTask
+from rnaglib.tasks import RNAFamily
 from rnaglib.tasks import ProteinBindingSiteDetection
 from rnaglib.tasks import ChemicalModification
 
@@ -18,9 +18,9 @@ class TaskTest(unittest.TestCase):
         assert task.test_ind is not None
         assert task.val_ind is not None
 
-    def test_RNAFamilyTask(self):
+    def test_RNAFamily(self):
         with tempfile.TemporaryDirectory() as tmp:
-            ta = RNAFamilyTask(root=tmp, debug=True)
+            ta = RNAFamily(root=tmp, debug=True)
             self.check_task(ta)
         pass
 
@@ -41,6 +41,6 @@ class TaskTest(unittest.TestCase):
             ta.dataset.add_representation(GraphRepresentation(framework="pyg"))
             ta.dataset.features_computer.add_feature(feature_names="nt_code")
             # refresh loaders
-            ta.set_loaders()
-            ta.evaluate(ta.dummy_model)
+            train_load, val_load, test_load = ta.get_split_loaders()
+            ta.evaluate(ta.dummy_model, test_load)
         pass
