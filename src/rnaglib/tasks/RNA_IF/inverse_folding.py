@@ -1,12 +1,19 @@
-from rnaglib.data_loading import RNADataset
-from rnaglib.transforms import FeaturesComputer
-from rnaglib.tasks import ResidueClassificationTask
-from rnaglib.splitters import RandomSplitter
-from networkx import set_node_attributes
-from rnaglib.encoders import BoolEncoder
+"""Inverse Folding task definitions"""
 
 import torch
-from sklearn.metrics import matthews_corrcoef, f1_score, accuracy_score, roc_auc_score
+import numpy as np
+from sklearn.metrics import (
+    matthews_corrcoef,
+    f1_score,
+    accuracy_score,
+    roc_auc_score,
+    confusion_matrix,
+)
+
+from rnaglib.data_loading import RNADataset
+from rnaglib.transforms import FeaturesComputer, DummyAnnotator
+from rnaglib.tasks import ResidueClassificationTask
+from rnaglib.encoders import BoolEncoder, NucleotideEncoder
 
 
 class InverseFolding(ResidueClassificationTask):
@@ -15,69 +22,120 @@ class InverseFolding(ResidueClassificationTask):
 
     def __init__(self, root, splitter=None, **kwargs):
         super().__init__(root=root, splitter=splitter, **kwargs)
-        pass
 
-    pass
+    def process(self) -> RNADataset:
+        dataset = RNADataset(debug=self.debug)
+        rnas = DummyAnnotator()(dataset)
+        dataset = RNADataset(rnas=[r["rna"] for r in rnas])
+        return dataset
 
-    def evaluate(self, model, loader, criterion, device):
+    def get_task_vars(self) -> FeaturesComputer:
+        return FeaturesComputer(
+            nt_features=self.input_var,
+            nt_targets=self.target_var,
+            custom_encoders={
+                self.input_var: BoolEncoder(),
+                self.target_var: NucleotideEncoder(),
+            },
+        )
+
+    def evaluate(self, model: torch.nn, loader) -> dict:
+        """
+        Evaluate model performance on nucleotide prediction task
+        Args:
+            model: The model to evaluate
+            loader: Data loader to use
+        Returns:
+            dict: Dictionary containing metrics including loss if criterion provided
+
+        Note: Label 0 represents non-standard/unknown nucleotides and is excluded
+        from performance metrics to focus on ACGU prediction quality.
+        """
         model.eval()
+        all_probs = []
         all_preds = []
         all_labels = []
-        all_probs = []
         total_loss = 0
+
         with torch.no_grad():
             for batch in loader:
                 graph = batch["graph"]
-                graph = graph.to(device)
+                graph = graph.to(model.device)
                 out = model(graph)
-                loss = criterion(out, graph.y)  # torch.flatten(graph.y).long())
-                total_loss += loss.item()
+
+                if model.criterion is not None:
+                    loss = model.criterion(out, graph.y.long())
+                    total_loss += loss.item()
+
+                # Get probabilities and predictions
                 probs = torch.softmax(out, dim=1)
-                preds = out.argmax(dim=1)
-                all_preds.extend(preds.tolist())
-                labels = graph.y.argmax(dim=1)
-                all_labels.extend(labels.tolist())
-                all_probs.append(probs.cpu())
+                preds = torch.argmax(out, dim=1)
 
-            avg_loss = total_loss / len(loader)
+                # Store results
+                all_probs.extend(probs.cpu().numpy())
+                all_preds.extend(preds.cpu().numpy())
+                all_labels.extend(graph.y.long().cpu().numpy())
 
-            all_preds = torch.tensor(all_preds)
-            all_labels = torch.tensor(all_labels)
-            all_probs = torch.cat(all_probs, dim=0)
+        # Convert to numpy arrays for metric calculation
+        all_probs = np.array(all_probs)
+        all_preds = np.array(all_preds)
+        all_labels = np.array(all_labels)
 
-            accuracy = accuracy_score(all_labels, all_preds)
-            f1 = f1_score(all_labels, all_preds, average="weighted")
-            auc = roc_auc_score(
-                all_labels, all_probs, average="weighted", multi_class="ovr"
-            )
-            mcc = matthews_corrcoef(all_labels, all_preds)
+        # Create mask for standard nucleotides (exclude 0s)
+        valid_mask = all_labels != 0
 
-            print(f"Test Accuracy: {accuracy:.4f}")
-            print(f"Test F1 Score: {f1:.4f}")
-            print(f"Test AUC: {auc:.4f}")
-            print(f"Test MCC: {mcc:.4f}")
+        # Calculate metrics only on standard nucleotides
+        metrics = {
+            # Note that accuracy is equivalent to sequence recovery rate
+            "accuracy": accuracy_score(all_labels[valid_mask], all_preds[valid_mask]),
+            "mcc": matthews_corrcoef(all_labels[valid_mask], all_preds[valid_mask]),
+            "macro_f1": f1_score(
+                all_labels[valid_mask], all_preds[valid_mask], average="macro"
+            ),
+            "weighted_f1": f1_score(
+                all_labels[valid_mask], all_preds[valid_mask], average="weighted"
+            ),
+            "per_class_f1": f1_score(
+                all_labels[valid_mask], all_preds[valid_mask], average=None
+            ).tolist(),
+        }
 
-            return accuracy, f1, auc, avg_loss, mcc
+        # Add confusion matrix (including non-standard nucleotides)
+        cm = confusion_matrix(all_labels, all_preds)
+        metrics["confusion_matrix"] = cm.tolist()
 
-    def default_splitter(self):
-        return RandomSplitter()
+        # Calculate coverage (percentage of predictions that are standard nucleotides)
+        metrics["coverage"] = (all_preds != 0).mean()
 
-    def _annotator(self, x):
-        dummy = {node: 1 for node, nodedata in x.nodes.items()}
-        set_node_attributes(x, dummy, "dummy")
-        return x
+        # Calculate per-class metrics for standard nucleotides
+        for i, nuc in enumerate(["X", "A", "C", "G", "U"]):  # Include 'X' for 0
+            if i == 0:  # Skip AUC calculation for non-standard class
+                continue
 
-    def build_dataset(self):
-        print("building dataset task")
+            binary_labels = all_labels == i
+            binary_probs = all_probs[:, i]
 
-        features_computer = FeaturesComputer(
-            nt_targets=[self.target_var],
-            nt_features=[self.input_var],
-            custom_encoders_features={self.input_var: BoolEncoder()},
-        )
-        dataset = RNADataset.from_database(
-            features_computer=features_computer,
-            rna_filter=lambda x: x.graph["pdbid"][0],
-            annotator=self._annotator,
-        )
-        return dataset
+            # Only calculate AUC for standard nucleotides where they should appear
+            valid_positions = all_labels != 0
+            try:
+                metrics[f"auc_{nuc}"] = roc_auc_score(
+                    binary_labels[valid_positions], binary_probs[valid_positions]
+                )
+            except ValueError:
+                metrics[f"auc_{nuc}"] = float("nan")
+
+        # Add average AUC
+        valid_aucs = [
+            v for k, v in metrics.items() if k.startswith("auc_") and not np.isnan(v)
+        ]
+        if valid_aucs:
+            metrics["mean_auc"] = np.mean(valid_aucs)
+
+        if model.criterion is not None:
+            metrics["loss"] = total_loss / len(loader)
+
+        # Add non-standard nucleotide statistics
+        metrics["non_standard_ratio"] = (all_labels == 0).mean()
+        metrics["non_standard_prediction_rate"] = (all_preds == 0).mean()
+
+        return metrics
