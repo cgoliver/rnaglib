@@ -65,6 +65,13 @@ To load graphs and train with pytorch geometric:
 pip install torch_geometric
 ```
 
+Advanced data splitting of datasets (i.e. by sequence or structure-based similarity) depends on executables [cd-hit](https://sites.google.com/view/cd-hit) and [RNAalign](https://zhanggroup.org/RNA-align/download.html). You may install these yourself or use the convenience script provided in this repo as follows, though we do not guarantee it will work on any system and has only bee tested on linux:
+
+```
+chmod u+x install_dependencies.sh
+./install_dependencids /my/path/to/executables
+```
+
 
 ## Setup: updating RNA structure database
 

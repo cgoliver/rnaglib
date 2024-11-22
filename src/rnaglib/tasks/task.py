@@ -113,14 +113,10 @@ class Task:
             dataloader_kwargs["collate_fn"] = collater
 
         # Now build the loaders
-        self.train_dataloader = DataLoader(
-            dataset=self.train_dataset, **dataloader_kwargs
-        )
+        self.train_dataloader = DataLoader(dataset=self.train_dataset, **dataloader_kwargs)
         dataloader_kwargs["shuffle"] = False
         self.val_dataloader = DataLoader(dataset=self.val_dataset, **dataloader_kwargs)
-        self.test_dataloader = DataLoader(
-            dataset=self.test_dataset, **dataloader_kwargs
-        )
+        self.test_dataloader = DataLoader(dataset=self.test_dataset, **dataloader_kwargs)
 
     def get_split_datasets(self, recompute=True):
         # If datasets were not already computed or if we want to recompute them to account
@@ -136,7 +132,7 @@ class Task:
             self.set_loaders(**dataloader_kwargs)
         return self.train_dataloader, self.val_dataloader, self.test_dataloader
 
-    def evaluate(self, model) -> dict:
+    def evaluate(self, model, loader) -> dict:
         raise NotImplementedError
 
     @cached_property
@@ -176,18 +172,9 @@ class Task:
         """Load dataset and splits from disk."""
         # load splits
         print(">>> Loading splits...")
-        train_ind = [
-            int(ind)
-            for ind in open(os.path.join(self.root, "train_idx.txt"), "r").readlines()
-        ]
-        val_ind = [
-            int(ind)
-            for ind in open(os.path.join(self.root, "val_idx.txt"), "r").readlines()
-        ]
-        test_ind = [
-            int(ind)
-            for ind in open(os.path.join(self.root, "test_idx.txt"), "r").readlines()
-        ]
+        train_ind = [int(ind) for ind in open(os.path.join(self.root, "train_idx.txt"), "r").readlines()]
+        val_ind = [int(ind) for ind in open(os.path.join(self.root, "val_idx.txt"), "r").readlines()]
+        test_ind = [int(ind) for ind in open(os.path.join(self.root, "test_idx.txt"), "r").readlines()]
 
         dataset = RNADataset(dataset_path=self.dataset_path)
 
@@ -265,6 +252,7 @@ class ResidueClassificationTask(Task):
     def evaluate(self, model: torch.nn, loader) -> dict:
         """
         Evaluate model performance on a dataset
+        NOTE: This only works for binary classification at the moment.
 
         Args:
             model: The model to evaluate
@@ -285,14 +273,13 @@ class ResidueClassificationTask(Task):
             for batch in loader:
                 graph = batch["graph"]
                 graph = graph.to(model.device)
-                out = model(graph)
+                probs = model(graph)
 
                 if model.criterion is not None:
-                    loss = model.criterion(out, graph.y.long())
+                    loss = model.criterion(probs, graph.y.long())
                     total_loss += loss.item()
 
                 # Take probabilities for positive class only
-                probs = torch.softmax(out, dim=1)[:, 1]  # Get prob of class 1
                 preds = (probs > 0.5).float()
 
                 all_probs.extend(probs.cpu().tolist())
