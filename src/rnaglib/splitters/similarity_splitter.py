@@ -35,7 +35,7 @@ class ClusterSplitter(Splitter):
         super().__init__(**kwargs)
         pass
 
-    def __call__(self, dataset):
+    def forward(self, dataset):
         train, test = self.cluster_split(dataset, self.split_test, n=0.2)
         val, test = self.cluster_split(test, self.split_test, n=0.2)
         return train, val, test
@@ -66,9 +66,7 @@ class ClusterSplitter(Splitter):
         print("Computing similarity matrix...")
         similarity_matrix, keep_dataset = self.compute_similarity_matrix(dataset)
         print("Clustering...")
-        nei = NearestNeighbors(
-            radius=1 - self.similarity_threshold, metric="precomputed"
-        ).fit(1 - similarity_matrix)
+        nei = NearestNeighbors(radius=1 - self.similarity_threshold, metric="precomputed").fit(1 - similarity_matrix)
         neighbors = nei.radius_neighbors(return_distance=False)
 
         test_size = max(1, int(len(keep_dataset) * frac))
@@ -112,17 +110,10 @@ class CDHitSplitter(ClusterSplitter):
         ids, sequences = [], []
         for idx, rna in enumerate(dataset):
             seqs = get_sequences(rna["rna"])
-            ids.extend(
-                [
-                    f"{idx}-{seq_id.replace('.', '-')}"
-                    for seq_id, (seq, _) in seqs.items()
-                ]
-            )
+            ids.extend([f"{idx}-{seq_id.replace('.', '-')}" for seq_id, (seq, _) in seqs.items()])
             sequences.extend([seq for _, (seq, _) in seqs.items()])
 
-        ids_to_cluster, cluster_to_ids = cdhit_wrapper(
-            ids, sequences, sim_thresh=self.similarity_threshold
-        )
+        ids_to_cluster, cluster_to_ids = cdhit_wrapper(ids, sequences, sim_thresh=self.similarity_threshold)
 
         idx_to_clusters = defaultdict(set)
         idxs = set()
@@ -180,22 +171,17 @@ class RNAalignSplitter(ClusterSplitter):
 
     def compute_similarity_matrix(self, dataset: RNADataset):
         """Computes pairwise structural similarity between all pairs
-        of RNAs using rna-align. Stalls with very large RNA (> 200 nts). Currently only supports whole RNA alignments. For subgraph tasks, will need to edit the corresponding cif file.
+        of RNAs using rna-align. Stalls with larger RNA (> 200 nts).
 
         :param dataset: RNA dataset to compute similarity over.
         :returns np.array: Array of pairwise similarities in order of given dataset.
         """
         pdbids = [rna["rna"].graph["pdbid"][0] for rna in dataset]
-        pdb_paths = (
-            Path(self.structures_dir) / f"{pdbid.lower()}.cif" for pdbid in pdbids
-        )
+        pdb_paths = (Path(self.structures_dir) / f"{pdbid.lower()}.cif" for pdbid in pdbids)
 
         with tempfile.TemporaryDirectory() as tmpdir:
             if self.use_substructures:
-                reslists = [
-                    [(n.split(".")[1], n.split(".")[2]) for n in rna["rna"].nodes()]
-                    for rna in dataset
-                ]
+                reslists = [[(n.split(".")[1], n.split(".")[2]) for n in rna["rna"].nodes()] for rna in dataset]
                 new_paths = []
                 for idx, (cif_path, reslist) in enumerate(zip(pdb_paths, reslists)):
                     new_cif = Path(tmpdir) / f"{idx}.cif"
