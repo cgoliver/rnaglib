@@ -30,7 +30,7 @@ class TestDataset(unittest.TestCase):
         pdbids = [rna["rna"].graph["pdbid"][0] for rna in d]
         pdb_paths = (Path(d.structures_path) / f"{pdbid.lower()}.cif" for pdbid in pdbids)
         for path in pdb_paths:
-            print(f"checking : " path)
+            print(f"checking : {path}")
             assert os.path.exists(path)
         pass
 
