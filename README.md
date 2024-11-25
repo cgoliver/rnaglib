@@ -139,7 +139,6 @@ from rnaglib.transforms import GraphRepresentation
 ta = BindingSiteDetection("my_root")
 
 # Select a data representation and framework (see docs for support of other data modalities and deep learning frameworks)
-
 ta.dataset.add_representation(GraphRepresentation(framework="pyg"))
 
 train_loader, val_loader, test_loader = ta.get_split_loaders()

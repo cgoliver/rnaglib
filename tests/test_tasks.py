@@ -13,7 +13,6 @@ class TaskTest(unittest.TestCase):
     def check_task(self, task: Task):
         task.dataset.add_representation(GraphRepresentation(framework="pyg"))
         assert task.target_var is not None
-
         assert task.train_ind is not None
         assert task.test_ind is not None
         assert task.val_ind is not None
