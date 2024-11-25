@@ -22,7 +22,7 @@ class ProteinBindingSiteDetection(ResidueClassificationTask):
     def get_task_vars(self):
         return FeaturesComputer(nt_features=self.input_var, nt_targets=self.target_var)
 
-    def process(self):
+    def process(self, recompute=False):
         # get full database
         full_dataset = RNADataset(debug=self.debug)
 

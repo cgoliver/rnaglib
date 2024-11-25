@@ -8,6 +8,7 @@ from rnaglib.splitters import RNAalignSplitter
 from rnaglib.splitters import CDHitSplitter
 from rnaglib.utils import available_pdbids
 
+
 class SplitterTest(unittest.TestCase):
 
     @classmethod
@@ -35,17 +36,16 @@ class SplitterTest(unittest.TestCase):
 
     def test_RNAalignSplitter(self):
         with tempfile.TemporaryDirectory() as tmpdir:
-                splitter = RNAalignSplitter(structures_dir=Path.home() / ".rnaglib/datasets/rnaglib-debug-1.0.0/structures",
-                                            similarity_threshold=.3)
-                train, val, test = splitter(self.dataset)
-                self.check_splits(train, val, test)
+            splitter = RNAalignSplitter(structures_dir=self.dataset.structures_path, similarity_threshold=0.3)
+            train, val, test = splitter(self.dataset)
+            self.check_splits(train, val, test)
 
         pass
 
     def test_CDHitSplitter(self):
         with tempfile.TemporaryDirectory() as tmpdir:
-                splitter = CDHitSplitter(similarity_threshold=.5)
-                train, val, test = splitter(self.dataset)
-                self.check_splits(train, val, test)
+            splitter = CDHitSplitter(similarity_threshold=0.5)
+            train, val, test = splitter(self.dataset)
+            self.check_splits(train, val, test)
 
         pass

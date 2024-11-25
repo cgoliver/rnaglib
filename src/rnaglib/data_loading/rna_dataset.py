@@ -69,19 +69,19 @@ class RNADataset:
     """
 
     def __init__(
-        self,
-        rnas: List[nx.Graph] = None,
-        dataset_path: Union[str, os.PathLike] = None,
-        rna_id_subset: List[str] = None,
-        in_memory: bool = True,
-        features_computer: FeaturesComputer = None,
-        representations: Union[List[Representation], Representation] = None,
-        debug: bool = False,
-        get_pdbs: bool = True,
-        overwrite: bool = False,
-        pre_transforms: Union[List[Transform], Transform] = None,
-        transforms: Union[List[Transform], Transform] = None,
-        **kwargs,
+            self,
+            rnas: List[nx.Graph] = None,
+            dataset_path: Union[str, os.PathLike] = None,
+            rna_id_subset: List[str] = None,
+            in_memory: bool = True,
+            features_computer: FeaturesComputer = None,
+            representations: Union[List[Representation], Representation] = None,
+            debug: bool = False,
+            get_pdbs: bool = True,
+            overwrite: bool = False,
+            pre_transforms: Union[List[Transform], Transform] = None,
+            transforms: Union[List[Transform], Transform] = None,
+            **kwargs,
     ):
         self.in_memory = in_memory
         self.transforms = transforms
@@ -171,11 +171,11 @@ class RNADataset:
 
     @classmethod
     def from_database(
-        cls,
-        representations=None,
-        features_computer=None,
-        in_memory=True,
-        **dataset_build_params,
+            cls,
+            representations=None,
+            features_computer=None,
+            in_memory=True,
+            **dataset_build_params,
     ):
         """Run the steps to build a dataset from scratch.
 
@@ -243,7 +243,7 @@ class RNADataset:
         return rna_dict
 
     def add_representation(
-        self, representations: Union[List[Representation], Representation]
+            self, representations: Union[List[Representation], Representation]
     ):
         """Add a representation object to dataset.
 
@@ -252,12 +252,8 @@ class RNADataset:
         :param representations: List of ``Representation`` objects to add.
 
         """
-        print(f">>> Adding {representations} representations.")
-        representations = (
-            [representations]
-            if not isinstance(representations, list)
-            else representations
-        )
+        representations = [representations] if not isinstance(representations, list) else representations
+        print(f">>> Adding {str([repr.name for repr in representations])} representations.")
         self.representations.extend(representations)
 
     def remove_representation(self, names):
@@ -269,7 +265,7 @@ class RNADataset:
                 if representation.name != name
             ]
 
-    def subset(self, list_of_ids=None, list_of_names=None):
+    def subset(self, list_of_ids=None, list_of_names=None, deep_copy=True):
         """
         Create another dataset with only the specified graphs.
 
@@ -283,7 +279,7 @@ class RNADataset:
             list_of_ids = [self.all_rnas[name] for name in list_of_names]
 
         # Copy existing dataset, subset the bidict of names and the rna if in_memory
-        subset = copy.deepcopy(self)
+        subset = copy.deepcopy(self) if deep_copy else copy.copy(self)
         if self.in_memory:
             subset.rnas = [self.rnas[i] for i in list_of_ids]
         subset_names = [self.all_rnas.inv[i] for i in list_of_ids]

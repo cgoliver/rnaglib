@@ -102,18 +102,18 @@ class RGCN_node(torch.nn.Module):
         num_layers=2,
         hidden_channels=128,
         dropout_rate=0.5,
+        final_activation=None,
     ):
         super().__init__()
         self.num_layers = num_layers
         self.convs = torch.nn.ModuleList()
         self.bns = torch.nn.ModuleList()
         self.dropouts = torch.nn.ModuleList()
+        self.final_activation = final_activation
 
         in_channels = num_node_features
         for i in range(num_layers):
-            self.convs.append(
-                RGCNConv(in_channels, hidden_channels, num_unique_edge_attrs)
-            )
+            self.convs.append(RGCNConv(in_channels, hidden_channels, num_unique_edge_attrs))
             self.bns.append(BatchNorm1d(hidden_channels))
             self.dropouts.append(Dropout(dropout_rate))
             in_channels = hidden_channels
@@ -125,6 +125,11 @@ class RGCN_node(torch.nn.Module):
         self.criterion = torch.nn.CrossEntropyLoss()
         self.optimizer = None
         self.device = None
+        if not self.final_activation is None:
+            if self.final_activation == "sigmoid":
+                self.final_activation = torch.nn.Sigmoid()
+            if self.final_activation == "softmax":
+                self.final_activation = torch.nn.Softmax()
 
     def forward(self, data):
         x, edge_index, edge_type = data.x, data.edge_index, data.edge_attr
@@ -137,11 +142,11 @@ class RGCN_node(torch.nn.Module):
 
         # Apply final linear layer
         x = self.final_linear(x)
+        if not self.final_activation is None:
+            self.final_activation(x)
         return x
 
-    def configure_training(
-        self, learning_rate=0.001, device="cuda" if torch.cuda.is_available() else "cpu"
-    ):
+    def configure_training(self, learning_rate=0.001, device="cuda" if torch.cuda.is_available() else "cpu"):
         """Configure training settings."""
         self.device = device
         self.to(device)
@@ -159,7 +164,11 @@ class RGCN_node(torch.nn.Module):
                 graph = batch["graph"].to(self.device)
                 self.optimizer.zero_grad()
                 out = self(graph)
-                loss = self.criterion(out, graph.y.long())
+                target = graph.y.long()
+                # If n_classes = 1, flatten
+                if len(target.shape)==2 and target.shape[1]==1:
+                    target = target.flatten()
+                loss = self.criterion(out, target)
                 loss.backward()
                 self.optimizer.step()
 
