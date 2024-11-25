@@ -30,10 +30,13 @@ def dump_json(filename, graph):
     # This is important for nx versionning retrocompatibility
     try:
         from networkx.readwrite import json_graph
+
         g_json = json_graph.node_link_data(graph)
     except Exception as e:
         g_json = nx.node_link_data(graph, edges="links")
-    json.dump(g_json, open(filename, "w"), indent=2)
+
+    with open(filename, "w") as f:
+        json.dump(g_json, f, indent=2)
 
 
 def load_json(filename):
@@ -49,6 +52,7 @@ def load_json(filename):
     # This is important for nx versionning retrocompatibility
     try:
         from networkx.readwrite import json_graph
+
         out_graph = json_graph.node_link_graph(js_graph)
     except Exception as e:
         out_graph = nx.node_link_graph(js_graph, edges="links")
@@ -102,7 +106,7 @@ def get_name_extension(filename, permissive=False):
 
 
 def get_all_existing(
-        dataset_path: os.PathLike, all_rnas: Optional[List[str]] = None
+    dataset_path: os.PathLike, all_rnas: Optional[List[str]] = None
 ) -> Tuple[List[str], str]:
     """
     Return list of graph IDs in a given dataset directory in sorted() order. If you pass ``all_rnas``
@@ -232,7 +236,7 @@ def download(url, path=None, overwrite=True, retries=5, verify_ssl=True, log=Tru
 
 
 def download_name_generator(
-        version="1.0.0", redundancy="nr", annotated=False, record="7624873", debug=False
+    version="1.0.0", redundancy="nr", annotated=False, record="7624873", debug=False
 ):
     """
     This returns the zenodo URL given dataset choices.
@@ -259,15 +263,15 @@ def download_name_generator(
 
 
 def download_graphs(
-        redundancy="nr",
-        version="1.0.0",
-        annotated=False,
-        chop=False,
-        overwrite=False,
-        data_root=None,
-        verbose=False,
-        get_pdbs=False,
-        debug=False,
+    redundancy="nr",
+    version="1.0.0",
+    annotated=False,
+    chop=False,
+    overwrite=False,
+    data_root=None,
+    verbose=False,
+    get_pdbs=False,
+    debug=False,
 ):
     """
     Based on the options, get the right data from the latest release and put it in download_dir.
@@ -321,12 +325,12 @@ def download_graphs(
 
 
 def available_pdbids(
-        graph_dir=None,
-        version="1.0.0",
-        chop=False,
-        annotated=False,
-        redundancy="nr",
-        debug=False,
+    graph_dir=None,
+    version="1.0.0",
+    chop=False,
+    annotated=False,
+    redundancy="nr",
+    debug=False,
 ):
     if debug:
         tag = f"rnaglib-debug-{version}"
@@ -347,13 +351,13 @@ def available_pdbids(
 
 
 def graph_from_pdbid(
-        pdbid,
-        graph_dir=None,
-        version="1.0.0",
-        annotated=False,
-        chop=False,
-        redundancy="nr",
-        graph_format="json",
+    pdbid,
+    graph_dir=None,
+    version="1.0.0",
+    annotated=False,
+    chop=False,
+    redundancy="nr",
+    graph_format="json",
 ):
     """Fetch an annotated graph with a PDBID.
 

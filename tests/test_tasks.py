@@ -7,6 +7,14 @@ from rnaglib.tasks import RNAFamily
 from rnaglib.tasks import ProteinBindingSiteDetection
 from rnaglib.tasks import ChemicalModification
 
+from rnaglib.tasks import RNAFamily
+from rnaglib.tasks import ProteinBindingSiteDetection
+from rnaglib.tasks import ChemicalModification
+from rnaglib.tasks import InverseFolding
+from rnaglib.tasks import gRNAde
+from rnaglib.tasks import GMSM
+from rnaglib.tasks import BindingSiteDetection, BenchmarkBindingSiteDetection
+
 
 class TaskTest(unittest.TestCase):
 
@@ -31,6 +39,31 @@ class TaskTest(unittest.TestCase):
     def test_ChemicalModification(self):
         with tempfile.TemporaryDirectory() as tmp:
             ta = ChemicalModification(root=tmp, debug=True)
+            self.check_task(ta)
+
+    def test_InverseFolding(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            ta = InverseFolding(root=tmp, debug=True)
+            self.check_task(ta)
+
+    def test_gRNAde(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            ta = gRNAde(root=tmp, debug=True)
+            self.check_task(ta)
+
+    def test_GMSM(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            ta = GMSM(root=tmp, debug=True)
+            self.check_task(ta)
+
+    def test_BindingSiteDetection(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            ta = BindingSiteDetection(root=tmp, debug=True)
+            self.check_task(ta)
+
+    def test_BenchmarkBindingSiteDetection(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            ta = BenchmarkBindingSiteDetection(root=tmp, debug=True)
             self.check_task(ta)
 
     def test_eval(self):

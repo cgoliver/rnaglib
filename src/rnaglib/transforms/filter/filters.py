@@ -158,7 +158,7 @@ class NameFilter(FilterTransform):
     """
 
     def __init__(self, names: list, **kwargs):
-        self.names = {name.lower() for name in names} 
+        self.names = {name.lower() for name in names}
         super().__init__(**kwargs)
 
     def forward(self, data: dict) -> bool:
@@ -186,8 +186,6 @@ class ChainFilter(FilterTransform):
             pdb.lower(): [chain for chain in chains]  # .upper()
             for pdb, chains in valid_chains_dict.items()
         }
-        print("valid chains from chain filter")
-        print(self.valid_chains_dict["7q4o"])
         super().__init__(**kwargs)
 
     def forward(self, data: dict) -> bool:
