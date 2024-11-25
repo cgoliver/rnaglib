@@ -32,7 +32,10 @@ def print_statistics(loader):
 
 
 class DummyResidueModel(torch.nn.Module):
+    def __init__(self):
+        super(DummyResidueModel, self).__init__()
+        self.device = torch.device("cpu")  # Default device is CPU
+        self.criterion = None
+
     def forward(self, g):
         return torch.rand(g.x.shape[0], 1)
-
-    pass

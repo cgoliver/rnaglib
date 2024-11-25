@@ -71,7 +71,7 @@ import torch.nn.functional as F
 from torch_geometric.loader import DataLoader as PygLoader
 
 
-from rnaglib.tasks import RNAFamilyTask
+from rnaglib.tasks import RNAFamily
 from rnaglib.transforms import GraphRepresentation
 from rnaglib.learning.task_models import RGCN_graph
 
@@ -90,7 +90,7 @@ if args.frompickle is True:
 
 else:
     print('generating task')
-    ta = RNAFamilyTask('RNA-Family', debug=True, recompute=True)
+    ta = RNAFamily('RNA-Family', debug=True, recompute=True)
     ta.dataset.add_representation(GraphRepresentation(framework='pyg'))
 
 # Splitting data

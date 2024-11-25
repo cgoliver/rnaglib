@@ -65,6 +65,13 @@ To load graphs and train with pytorch geometric:
 pip install torch_geometric
 ```
 
+Advanced data splitting of datasets (i.e. by sequence or structure-based similarity) depends on executables [cd-hit](https://sites.google.com/view/cd-hit) and [RNAalign](https://zhanggroup.org/RNA-align/download.html). You may install these yourself or use the convenience script provided in this repo as follows, though we do not guarantee it will work on any system and has only bee tested on linux:
+
+```
+chmod u+x install_dependencies.sh
+./install_dependencids /my/path/to/executables
+```
+
 
 ## Setup: updating RNA structure database
 
@@ -132,7 +139,6 @@ from rnaglib.transforms import GraphRepresentation
 ta = BindingSiteDetection("my_root")
 
 # Select a data representation and framework (see docs for support of other data modalities and deep learning frameworks)
-
 ta.dataset.add_representation(GraphRepresentation(framework="pyg"))
 
 train_loader, val_loader, test_loader = ta.get_split_loaders()
