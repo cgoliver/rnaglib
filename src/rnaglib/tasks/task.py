@@ -223,6 +223,7 @@ class Task:
         for i in range(len(self.dataset)):
             graph = self.dataset[i]["graph"]
             unique_edge_attrs.update(graph.edge_attr.tolist())
+            
             graph_classes = graph.y.unique().tolist()
             classes.update(graph_classes)
 
@@ -313,4 +314,43 @@ class ResidueClassificationTask(Task):
 
 
 class RNAClassificationTask(Task):
-    pass
+
+    def __init__(self, root, splitter=None, **kwargs):
+        super().__init__(root=root, splitter=splitter, **kwargs)
+
+    def evaluate(self, model: torch.nn, loader) -> dict:
+        """Evaluate the model on the given dataloader for graph-level predictions."""
+        model.eval()
+        all_probs = []
+        all_preds = []
+        all_labels = []
+        total_loss = 0
+
+        with torch.no_grad():
+            for batch in loader:
+                graph = batch["graph"].to(model.device)
+                out = model(graph)
+
+                if model.criterion is not None:
+                    loss = model.criterion(out, graph.y.long())
+                    total_loss += loss.item()
+
+                # Take probabilities for positive class only (assuming binary classification)
+                probs = torch.softmax(out, dim=1)[:, 1]  # Get prob of class 1
+                preds = (probs > 0.5).float()
+
+                all_probs.extend(probs.cpu().tolist())
+                all_preds.extend(preds.cpu().tolist())
+                all_labels.extend(graph.y.long().cpu().tolist())
+
+        metrics = {
+            "accuracy": accuracy_score(all_labels, all_preds),
+            "f1": f1_score(all_labels, all_preds),
+            "auc": roc_auc_score(all_labels, all_probs),
+            "mcc": matthews_corrcoef(all_labels, all_preds),
+        }
+
+        if model.criterion is not None:
+            metrics["loss"] = total_loss / len(loader)
+
+        return metrics
