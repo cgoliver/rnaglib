@@ -93,7 +93,6 @@ class GraphRepresentation(Representation):
             # We use torch cat since we are not developing multi-target models. For multi target cases, please use torch.stack.
             y = torch.cat([features_dict["nt_targets"][n] for n in node_map.keys()])
         if "rna_targets" in features_dict:
-            print(features_dict)
             y = torch.tensor(features_dict["rna_targets"])
 
         edge_index = [[node_map[u], node_map[v]] for u, v in sorted(graph.edges())]
