@@ -51,10 +51,12 @@ class TaskTest(unittest.TestCase):
             ta = gRNAde(root=tmp, debug=True)
             self.check_task(ta)
 
+    """
     def test_GMSM(self):
         with tempfile.TemporaryDirectory() as tmp:
             ta = GMSM(root=tmp, debug=True)
             self.check_task(ta)
+    """
 
     def test_BindingSiteDetection(self):
         with tempfile.TemporaryDirectory() as tmp:

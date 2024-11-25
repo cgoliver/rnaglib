@@ -9,6 +9,7 @@ from rnaglib.data_loading import RNADataset
 from rnaglib.encoders import OneHotEncoder
 from rnaglib.transforms import FeaturesComputer, NTSubgraphTransform, LigandAnnotator, NameFilter
 
+
 class LigandNTFilter(NTSubgraphTransform):
 
     data = pd.read_csv(os.path.join(os.path.dirname(__file__), "data/gmsm_dataset.csv"))
@@ -18,7 +19,7 @@ class LigandNTFilter(NTSubgraphTransform):
         if node in self.nodes_keep:
             return True
         return False
-    
+
 
 class GMSM(RNAClassificationTask):
     input_var = "nt_code"
@@ -50,16 +51,14 @@ class GMSM(RNAClassificationTask):
         x.remove_nodes_from(wrong_nodes)
         return [x]
 
-    def build_dataset(self):
-        features_computer = FeaturesComputer(
-            nt_features=self.input_var,
+    def get_task_vars(self) -> FeaturesComputer:
+        return FeaturesComputer(
             nt_targets=self.target_var,
-            custom_encoders_targets={
-                self.target_var: OneHotEncoder(mapping=self.mapping)
-            },
+            custom_encoders_targets={self.target_var: OneHotEncoder(mapping=self.mapping)},
         )
+
+    def process(self):
         dataset = RNADataset.from_database(
-            features_computer=features_computer,
             annotator=self._annotator,
             nt_filter=self._nt_filter,
             rna_filter=lambda x: x.graph["pdbid"][0].lower() in self.rnas_keep,
