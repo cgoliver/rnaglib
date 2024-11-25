@@ -61,6 +61,7 @@ class RGCN_node(torch.nn.Module):
         self.convs = torch.nn.ModuleList()
         self.bns = torch.nn.ModuleList()
         self.dropouts = torch.nn.ModuleList()
+        self.final_activation = final_activation
 
         in_channels = num_node_features
         for i in range(num_layers):
@@ -115,7 +116,11 @@ class RGCN_node(torch.nn.Module):
                 graph = batch["graph"].to(self.device)
                 self.optimizer.zero_grad()
                 out = self(graph)
-                loss = self.criterion(out, graph.y.long())
+                target = graph.y.long()
+                # If n_classes = 1, flatten
+                if len(target.shape)==2 and target.shape[1]==1:
+                    target = target.flatten()
+                loss = self.criterion(out, target)
                 loss.backward()
                 self.optimizer.step()
 

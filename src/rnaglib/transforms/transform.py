@@ -70,11 +70,7 @@ class AnnotationTransform(Transform):
         load_cache_path: Union[str, os.PathLike] = None,
         **kwargs,
     ):
-
         super().__init__(**kwargs)
-        pass
-
-    pass
 
 
 class FilterTransform(Transform):

@@ -11,7 +11,6 @@ import torch.nn.functional as F
 import numpy as np
 from sklearn.metrics import matthews_corrcoef, f1_score, accuracy_score, roc_auc_score
 
-
 from rnaglib.data_loading import RNADataset, Collater
 from rnaglib.transforms import FeaturesComputer
 from rnaglib.splitters import Splitter, RandomSplitter
@@ -32,12 +31,12 @@ class Task:
     """
 
     def __init__(
-        self,
-        root: Union[str, os.PathLike],
-        recompute: bool = False,
-        splitter: Splitter = None,
-        debug: bool = False,
-        save: bool = True,
+            self,
+            root: Union[str, os.PathLike],
+            recompute: bool = False,
+            splitter: Splitter = None,
+            debug: bool = False,
+            save: bool = True,
     ):
         self.root = root
         self.dataset_path = os.path.join(self.root, "dataset")
@@ -47,21 +46,17 @@ class Task:
 
         # Load or create dataset
         if not os.path.exists(self.dataset_path) or recompute:
-            print("Creating task dataset from scratch...")
+            print(">>> Creating task dataset from scratch...")
             self.dataset = self.process()
         else:
-            (
-                self.dataset,
-                self.metadata,
-                (self.train_ind, self.val_ind, self.test_ind),
-            ) = self.load()
+            self.dataset, self.metadata, (self.train_ind, self.val_ind, self.test_ind) = self.load()
 
         # Set splitter after dataset is available
         self.splitter = self.default_splitter if splitter is None else splitter
 
         # Split dataset if it wasn't loaded from file
         if not hasattr(self, "train_ind"):
-            self.train_ind, self.val_ind, self.test_ind = self.split(self.dataset)
+            self.split(self.dataset)
 
         self.dataset.features_computer = self.get_task_vars()
 
@@ -78,7 +73,6 @@ class Task:
         """Optionally adds some key/value pairs to self.metadata."""
         return {}
 
-    @property
     def get_task_vars(self) -> FeaturesComputer:
         """Define a FeaturesComputer object to set which input and output variables will be used in the task."""
         return FeaturesComputer()
@@ -89,21 +83,25 @@ class Task:
 
     def split(self, dataset):
         """Calls the splitter and returns train, val, test splits."""
-        return self.splitter(dataset)
+        splits = self.splitter(dataset)
+        self.train_ind, self.val_ind, self.test_ind = splits
+        return splits
 
-    def set_datasets(self):
+    def set_datasets(self, recompute=True):
         """Sets the train, val and test datasets
         Call this each time you modify ``self.dataset``."""
-        self.train_ind, self.val_ind, self.test_ind = self.split(self.dataset)
-        self.train_dataset = self.dataset.subset(self.train_ind)
-        self.val_dataset = self.dataset.subset(self.val_ind)
-        self.test_dataset = self.dataset.subset(self.test_ind)
 
-    def set_loaders(self, **dataloader_kwargs):
+        if not hasattr(self, "train_ind") or recompute:
+            self.train_ind, self.val_ind, self.test_ind = self.split(self.dataset)
+        self.train_dataset = self.dataset.subset(self.train_ind, deep_copy=False)
+        self.val_dataset = self.dataset.subset(self.val_ind, deep_copy=False)
+        self.test_dataset = self.dataset.subset(self.test_ind, deep_copy=False)
+
+    def set_loaders(self, recompute=True, **dataloader_kwargs):
         """Sets the dataloader properties.
         Call this each time you modify ``self.dataset``."""
 
-        self.set_datasets()
+        self.set_datasets(recompute=recompute)
 
         # If no collater is provided we need one
         if dataloader_kwargs is None:
@@ -122,14 +120,16 @@ class Task:
         # If datasets were not already computed or if we want to recompute them to account
         # for changes in the global dataset
         if recompute or "train_dataset" not in self.__dict__:
-            self.set_datasets()
+            print(">>> Splitting the dataset...")
+            self.set_datasets(recompute=recompute)
+            print(">>> Done")
         return self.train_dataset, self.val_dataset, self.test_dataset
 
     def get_split_loaders(self, recompute=True, **dataloader_kwargs):
         # If dataloaders were not already precomputed or if we want to recompute them to account
         # for changes in the global dataset
         if recompute or "train_dataloader" not in self.__dict__:
-            self.set_loaders(**dataloader_kwargs)
+            self.set_loaders(recompute=recompute, **dataloader_kwargs)
         return self.train_dataloader, self.val_dataloader, self.test_dataloader
 
     def evaluate(self, model, loader) -> dict:
@@ -171,11 +171,10 @@ class Task:
     def load(self):
         """Load dataset and splits from disk."""
         # load splits
-        print(">>> Loading splits...")
+        print(">>> Loading precomputed dataset...")
         train_ind = [int(ind) for ind in open(os.path.join(self.root, "train_idx.txt"), "r").readlines()]
         val_ind = [int(ind) for ind in open(os.path.join(self.root, "val_idx.txt"), "r").readlines()]
         test_ind = [int(ind) for ind in open(os.path.join(self.root, "test_idx.txt"), "r").readlines()]
-
         dataset = RNADataset(dataset_path=self.dataset_path)
 
         with open(Path(self.root) / "metadata.json", "r") as meta:
@@ -189,14 +188,19 @@ class Task:
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}()"
 
-    @property
-    def describe(self):
+    def describe(self, recompute=False):
         """
         Get description of task dataset, including dimensions needed for model initialization
         and other relevant statistics. Prints the description and returns it as a dict.
         Returns:
             dict: Contains dataset information and model dimensions
         """
+        if not recompute and 'description' in self.metadata:
+            return self.metadata["description"]
+
+        print(">>> Computing description of task...")
+        self.get_split_loaders(recompute=False)
+
         # Get dimensions from first graph
         first_graph = self.dataset[0]["graph"]
         num_node_features = first_graph.x.shape[1]
@@ -238,6 +242,9 @@ class Task:
         for cls in sorted(class_counts.keys()):
             print(f"Class {cls}: {class_counts[cls]} nodes")
 
+        with open(Path(self.root) / "metadata.json", "w") as meta:
+            self.metadata['description'] = info
+            json.dump(self.metadata, meta, indent=4)
         return info
 
 
