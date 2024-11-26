@@ -7,17 +7,7 @@ from rnaglib.tasks import RNAClassificationTask
 from rnaglib.splitters import RandomSplitter
 from rnaglib.data_loading import RNADataset
 from rnaglib.encoders import OneHotEncoder
-from rnaglib.transforms import FeaturesComputer, NTSubgraphTransform, LigandAnnotator, NameFilter
-
-class LigandNTFilter(NTSubgraphTransform):
-
-    data = pd.read_csv(os.path.join(os.path.dirname(__file__), "data/gmsm_dataset.csv"))
-    nodes_keep = set(data.nid.values)
-
-    def node_filter(self, node, ndata):
-        if node in self.nodes_keep:
-            return True
-        return False
+from rnaglib.transforms import FeaturesComputer, LigandAnnotator, NameFilter, LigandNTFilter
     
 
 class GMSM(RNAClassificationTask):
@@ -45,8 +35,8 @@ class GMSM(RNAClassificationTask):
             names = self.rnas_keep
         )
         rnas = RNADataset(debug=False, redundancy='all', rna_id_subset=[name for name in self.rnas_keep], features_computer=features_computer)
-        rnas = LigandAnnotator()(rnas)
-        rnas = LigandNTFilter()(rnas)
+        rnas = LigandAnnotator(data=self.data)(rnas)
+        rnas = LigandNTFilter(ata=self.data)(rnas)
         rnas = rna_filter(rnas)
         dataset = RNADataset(rnas=[r["rna"] for r in rnas])
         return dataset
