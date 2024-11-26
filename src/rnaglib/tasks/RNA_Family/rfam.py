@@ -33,9 +33,11 @@ class RNAFamily(RNAClassificationTask):
 
     def get_task_vars(self):
         return FeaturesComputer(
-            nt_features=["nt_code"],
-            rna_targets=["rfam"],
-            custom_encoders={"rfam": OneHotEncoder(self.metadata["label_mapping"])},
+            nt_features=self.input_var,
+            rna_targets=self.target_var,
+            custom_encoders={
+                self.target_var: OneHotEncoder(self.metadata["label_mapping"]),
+            },
         )
 
     def process(self):
@@ -49,6 +51,7 @@ class RNAFamily(RNAClassificationTask):
         labels = sorted(set([r["rna"].graph["rfam"] for r in rnas]))
         rfam_mapping = {rfam: i for i, rfam in enumerate(labels)}
         self.metadata["label_mapping"] = rfam_mapping
+
         # split by chain
         rnas = ChainSplitTransform()(rnas)
         rnas = ChainNameTransform()(rnas)

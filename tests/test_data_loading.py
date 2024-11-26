@@ -1,4 +1,6 @@
 import unittest
+import os
+from pathlib import Path
 
 import networkx as nx
 
@@ -22,6 +24,14 @@ class TestDataset(unittest.TestCase):
     def test_on_disk(self):
         d = RNADataset(debug=True, in_memory=False)
         d[0]
+
+    def test_get_pdbds(self):
+        d = RNADataset(debug=True, get_pdbs=True, overwrite=True)
+        pdbids = [rna["rna"].graph["pdbid"][0] for rna in d]
+        pdb_paths = (Path(d.structures_path) / f"{pdbid.lower()}.cif" for pdbid in pdbids)
+        for path in pdb_paths:
+            assert os.path.exists(path)
+        pass
 
     def test_rna_get(self):
         rna = self.default_dataset[0]
@@ -56,9 +66,7 @@ class TestDataset(unittest.TestCase):
         then look up the stored attribute at getitem time.
         """
         tr = RNAFMTransform()
-        feat = FeaturesComputer(
-            nt_features=["nt_code", tr.name], custom_encoders={tr.name: tr.encoder}
-        )
+        feat = FeaturesComputer(nt_features=["nt_code", tr.name], custom_encoders={tr.name: tr.encoder})
         dataset = RNADataset(
             debug=True,
             features_computer=feat,
@@ -71,9 +79,7 @@ class TestDataset(unittest.TestCase):
     def test_post_transform(self):
         """Apply transform during getitem call."""
         tr = RNAFMTransform()
-        feat = FeaturesComputer(
-            nt_features=["nt_code", tr.name], custom_encoders={tr.name: tr.encoder}
-        )
+        feat = FeaturesComputer(nt_features=["nt_code", tr.name], custom_encoders={tr.name: tr.encoder})
         dataset = RNADataset(
             debug=True,
             features_computer=feat,

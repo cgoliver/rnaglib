@@ -165,7 +165,7 @@ class FeaturesComputer(Transform):
         all_feature_encoding = list()
         for i, (feature, feature_encoder) in enumerate(parser.items()):
             try:
-                feature_encoding = feature_encoder.encode(feature)
+                feature_encoding = feature_encoder.encode(g.graph[feature])
             except KeyError:
                 feature_encoding = feature_encoder.encode_default()
             all_feature_encoding.append(feature_encoding)
@@ -265,7 +265,6 @@ class FeaturesComputer(Transform):
 
         # Finally, keep only the relevant keys to include in the encoding dict.
         subset_dict = {k: feature_map[k] for k in encoding_features}
-
         return subset_dict
 
     def build_edge_feature_parser(self, asked_features=None):

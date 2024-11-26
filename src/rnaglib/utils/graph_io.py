@@ -27,8 +27,16 @@ def dump_json(filename, graph):
     :param filename: The dump name
     :param graph: The graph to dump
     """
-    g_json = nx.node_link_data(graph, edges="links")
-    json.dump(g_json, open(filename, "w"), indent=2)
+    # This is important for nx versionning retrocompatibility
+    try:
+        from networkx.readwrite import json_graph
+
+        g_json = json_graph.node_link_data(graph)
+    except Exception as e:
+        g_json = nx.node_link_data(graph, edges="links")
+
+    with open(filename, "w") as f:
+        json.dump(g_json, f, indent=2)
 
 
 def load_json(filename):
@@ -41,7 +49,13 @@ def load_json(filename):
     """
     with open(filename, "r") as f:
         js_graph = json.load(f)
-    out_graph = nx.node_link_graph(js_graph, edges="links")
+    # This is important for nx versionning retrocompatibility
+    try:
+        from networkx.readwrite import json_graph
+
+        out_graph = json_graph.node_link_graph(js_graph)
+    except Exception as e:
+        out_graph = nx.node_link_graph(js_graph, edges="links")
     return out_graph
 
 
