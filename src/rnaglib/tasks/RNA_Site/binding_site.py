@@ -9,7 +9,7 @@ from rnaglib.data_loading.create_dataset import (
 
 from rnaglib.data_loading import RNADataset
 from rnaglib.transforms import FeaturesComputer
-from rnaglib.splitters import SPLITTING_VARS, default_splitter_tr60_tr18
+from rnaglib.splitters import SPLITTING_VARS, default_splitter_tr60_tr18, RandomSplitter
 from rnaglib.tasks import ResidueClassificationTask
 from rnaglib.encoders import BoolEncoder
 from rnaglib.transforms import ResidueAttributeFilter
@@ -27,16 +27,20 @@ class BenchmarkBindingSiteDetection(ResidueClassificationTask):
 
     @property
     def default_splitter(self):
-        return default_splitter_tr60_tr18()
+        if self.debug:
+            return RandomSplitter()
+        else:
+            return default_splitter_tr60_tr18()
 
     def process(self) -> RNADataset:
         rnas = RNADataset(
-            debug=False,
+            debug=self.debug,
             redundancy="all",
             rna_id_subset=SPLITTING_VARS["PDB_TO_CHAIN_TR60_TE18"].keys(),
         )
         dataset = RNADataset(rnas=[r["rna"] for r in rnas])
-        rnas = ChainFilter(SPLITTING_VARS["PDB_TO_CHAIN_TR60_TE18"])(dataset)
+        if not self.debug:
+            rnas = ChainFilter(SPLITTING_VARS["PDB_TO_CHAIN_TR60_TE18"])(dataset)
         dataset = RNADataset(rnas=[r["rna"] for r in rnas])
         rnas = BindingSiteAnnotator()(dataset)
         rnas = ChainNameTransform()(rnas)
@@ -62,9 +66,7 @@ class BindingSiteDetection(ResidueClassificationTask):
 
     def process(self) -> RNADataset:
         dataset = RNADataset(debug=self.debug)
-        rnas = ResidueAttributeFilter(
-            attribute=self.target_var, value_checker=lambda val: val is not None
-        )(dataset)
+        rnas = ResidueAttributeFilter(attribute=self.target_var, value_checker=lambda val: val is not None)(dataset)
 
         rnas = PDBIDNameTransform()(rnas)
 

@@ -1,3 +1,63 @@
+"""Demo for training a simple model using an rnaglib task"""
+
+import argparse
+from pathlib import Path
+import dill as pickle
+
+from rnaglib.tasks import RNAFamily
+
+from rnaglib.transforms import GraphRepresentation
+from rnaglib.learning.task_models import RGCN_graph
+
+
+parser = argparse.ArgumentParser()
+parser.add_argument(
+    "-p", "--frompickle", action="store_true", help="To load task from pickle"
+)
+args = parser.parse_args()
+
+# Creating task
+if args.frompickle is True:
+    print("loading task from pickle")
+    file_path = Path(__file__).parent / "data" / "rfam.pkl"
+
+    with open(file_path, "rb") as file:
+        ta = pickle.load(file)
+else:
+    print("generating task")
+    ta = RNAFamily("RNA-Family", recompute=True, debug=True)
+    ta.dataset.add_representation(GraphRepresentation(framework="pyg"))
+    # Splitting dataset
+    print("Splitting Dataset")
+    ta.get_split_loaders()
+
+
+# Printing statistics
+
+info = ta.describe
+num_node_features = info["num_node_features"]
+num_classes = 12  # info["num_classes"]
+num_unique_edge_attrs = 20  # info["num_edge_attributes"]
+# need to set to 20 (or actual edge type #) if not all edges are present, such as in debugging
+# describe needs to be moved to the task type class since it's different for graph level tasks
+
+# Train model
+model = RGCN_graph(num_node_features, num_classes, num_unique_edge_attrs)
+model.configure_training(learning_rate=0.001)
+model.train_model(ta, epochs=100)
+
+# Final evaluation
+test_metrics = ta.evaluate(model, ta.test_dataloader)
+print(
+    f"Test Loss: {test_metrics['loss']:.4f}, "
+    f"Test Accuracy: {test_metrics['accuracy']:.4f}, "
+    f"Test F1 Score: {test_metrics['f1']:.4f}, "
+    f"Test AUC: {test_metrics['auc']:.4f}, "
+    f"Test MCC: {test_metrics['mcc']:.4f}"
+)
+
+
+"""
 import argparse
 import dill as pickle
 import numpy as np
@@ -11,7 +71,7 @@ import torch.nn.functional as F
 from torch_geometric.loader import DataLoader as PygLoader
 
 
-from rnaglib.tasks import RNAFamilyTask
+from rnaglib.tasks import RNAFamily
 from rnaglib.transforms import GraphRepresentation
 from rnaglib.learning.task_models import RGCN_graph
 
@@ -30,7 +90,7 @@ if args.frompickle is True:
 
 else:
     print('generating task')
-    ta = RNAFamilyTask('RNA-Family', debug=True, recompute=True)
+    ta = RNAFamily('RNA-Family', debug=True, recompute=True)
     ta.dataset.add_representation(GraphRepresentation(framework='pyg'))
 
 # Splitting data
@@ -46,17 +106,20 @@ train_graphs = list((d['graph'] for d in train_set))
 val_graphs = list((d['graph'] for d in val_set))
 test_graphs = list((d['graph'] for d in test_set))
 
-'''
+""
+
+
 def node_to_graph_label(dataset):
     for data in dataset:
         positive_index = torch.where(data.y[0] == 1)[0][0]
         data.y = torch.tensor([positive_index], dtype=torch.long)
     return dataset
 
+
 train_graphs = node_to_graph_label(train_graphs)
 val_graphs = node_to_graph_label(val_graphs)
 test_graphs = node_to_graph_label(test_graphs)
-'''
+""
 
 # Creating loaders
 pyg_train_loader = PygLoader(train_graphs, batch_size=8, shuffle=True)
@@ -134,3 +197,4 @@ test_loss, test_accuracy, test_mcc, test_f1 = ta.evaluate(model, pyg_test_loader
 # - make RGCN more parametrisable
 # - make the same thing with pytorch lightning
 
+"""

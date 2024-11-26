@@ -2,38 +2,20 @@ from rnaglib.tasks import ChemicalModification
 from rnaglib.transforms import GraphRepresentation
 from rnaglib.learning.task_models import RGCN_node
 
-import argparse
-from pathlib import Path
-import dill as pickle
+print("Generating task")
+ta = ChemicalModification("RNA-CM")
 
-parser = argparse.ArgumentParser()
-parser.add_argument(
-    "-p", "--frompickle", action="store_true", help="To load task from pickle"
-)
-args = parser.parse_args()
+# Add representation
+ta.dataset.add_representation(GraphRepresentation(framework="pyg"))
 
-# Creating task
-if args.frompickle is True:
-    print("loading task from pickle")
-    file_path = Path(__file__).parent / "data" / "chemical_modification.pkl"
-
-    with open(file_path, "rb") as file:
-        ta = pickle.load(file)
-else:
-    print("generating task")
-    ta = ChemicalModification("RNA-CM")
-    ta.dataset.add_representation(GraphRepresentation(framework="pyg"))
-    # Splitting dataset
-    print("Splitting Dataset")
-    ta.get_split_loaders()
-
+# Splitting dataset
+ta.get_split_loaders()
 
 # Printing statistics
-info = ta.describe
+info = ta.describe()
 num_node_features = info["num_node_features"]
 num_classes = info["num_classes"]
 num_unique_edge_attrs = info["num_edge_attributes"]
-# need to set to 20 (or actual edge type cardinality) manually if not all edges are present, such as in debugging
 
 # Train model
 model = RGCN_node(num_node_features, num_classes, num_unique_edge_attrs)

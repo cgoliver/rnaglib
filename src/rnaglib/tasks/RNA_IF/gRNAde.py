@@ -43,7 +43,7 @@ class gRNAde(InverseFolding):
             "pdb_to_chain_all": defaultdict(set),
         }
         # Populate the structure
-        data_dir = Path(os.getcwd()) / "data"
+        data_dir = Path(os.path.dirname(os.path.abspath(__file__))) / "data"
         for split in ["train", "test", "val"]:
             file_path = data_dir / f"{split}_ids_das.txt"
             with open(file_path, "r") as f:

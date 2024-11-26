@@ -25,8 +25,7 @@ class GraphRepresentation(Representation):
 
         authorized_frameworks = {"nx", "dgl", "pyg"}
         assert framework in authorized_frameworks, (
-            f"Framework {framework} not supported for this representation. "
-            f"Choose one of {authorized_frameworks}."
+            f"Framework {framework} not supported for this representation. " f"Choose one of {authorized_frameworks}."
         )
         self.framework = framework
 
@@ -52,10 +51,7 @@ class GraphRepresentation(Representation):
 
     def to_nx(self, graph, features_dict):
         # Get Edge Labels
-        edge_type = {
-            (u, v): self.edge_map[data[self.etype_key]]
-            for u, v, data in graph.edges(data=True)
-        }
+        edge_type = {(u, v): self.edge_map[data[self.etype_key]] for u, v, data in graph.edges(data=True)}
         nx.set_edge_attributes(graph, name="edge_type", values=edge_type)
 
         # Add features and targets
@@ -70,9 +66,7 @@ class GraphRepresentation(Representation):
         nx_graph = self.to_nx(graph, features_dict)
 
         # Careful ! When doing this, the graph nodes get sorted.
-        g_dgl = dgl.from_networkx(
-            nx_graph=nx_graph, edge_attrs=["edge_type"], node_attrs=features_dict.keys()
-        )
+        g_dgl = dgl.from_networkx(nx_graph=nx_graph, edge_attrs=["edge_type"], node_attrs=features_dict.keys())
 
         return g_dgl
 
@@ -92,13 +86,12 @@ class GraphRepresentation(Representation):
         if "nt_targets" in features_dict:
             # We use torch cat since we are not developing multi-target models. For multi target cases, please use torch.stack.
             y = torch.cat([features_dict["nt_targets"][n] for n in node_map.keys()])
+        if "rna_targets" in features_dict:
+            y = torch.tensor(features_dict["rna_targets"])
 
         edge_index = [[node_map[u], node_map[v]] for u, v in sorted(graph.edges())]
         edge_index = torch.tensor(edge_index, dtype=torch.long).T
-        edge_attrs = [
-            self.edge_map[data[self.etype_key]]
-            for u, v, data in sorted(graph.edges(data=True))
-        ]
+        edge_attrs = [self.edge_map[data[self.etype_key]] for u, v, data in sorted(graph.edges(data=True))]
         edge_attrs = torch.tensor(edge_attrs)
         return Data(x=x, y=y, edge_attr=edge_attrs, edge_index=edge_index)
 
