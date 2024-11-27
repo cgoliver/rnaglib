@@ -1,11 +1,5 @@
-import networkx as nx
-from networkx import set_node_attributes
-from tqdm import tqdm
-import requests
-
 from rnaglib.data_loading import RNADataset
 from rnaglib.tasks import RNAClassificationTask
-from rnaglib.splitters import RandomSplitter, get_ribosomal_rnas
 from rnaglib.encoders import OneHotEncoder
 from rnaglib.transforms import (
     ChainSplitTransform,
@@ -57,5 +51,4 @@ class RNAFamily(RNAClassificationTask):
         rnas = ChainNameTransform()(rnas)
 
         new_dataset = RNADataset(rnas=list((r["rna"] for r in rnas)))
-
         return new_dataset
