@@ -265,7 +265,7 @@ class RNADataset:
                 if representation.name != name
             ]
 
-    def subset(self, list_of_ids=None, list_of_names=None, deep_copy=True):
+    def subset(self, list_of_ids=None, list_of_names=None):
         """
         Create another dataset with only the specified graphs.
 
@@ -278,8 +278,13 @@ class RNADataset:
         if list_of_names is not None:
             list_of_ids = [self.all_rnas[name] for name in list_of_names]
 
-        # Copy existing dataset, subset the bidict of names and the rna if in_memory
-        subset = copy.deepcopy(self) if deep_copy else copy.copy(self)
+        # Copy existing dataset, avoid expansive deep copy of rnas if in memory
+        temp = self.rnas
+        self.rnas = None
+        subset = copy.deepcopy(self)
+        self.rnas = temp
+
+        # Subset the bidict of names and the rna if in_memory
         if self.in_memory:
             subset.rnas = [self.rnas[i] for i in list_of_ids]
         subset_names = [self.all_rnas.inv[i] for i in list_of_ids]

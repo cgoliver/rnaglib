@@ -93,9 +93,9 @@ class Task:
 
         if not hasattr(self, "train_ind") or recompute:
             self.train_ind, self.val_ind, self.test_ind = self.split(self.dataset)
-        self.train_dataset = self.dataset.subset(self.train_ind, deep_copy=False)
-        self.val_dataset = self.dataset.subset(self.val_ind, deep_copy=False)
-        self.test_dataset = self.dataset.subset(self.test_ind, deep_copy=False)
+        self.train_dataset = self.dataset.subset(self.train_ind)
+        self.val_dataset = self.dataset.subset(self.val_ind)
+        self.test_dataset = self.dataset.subset(self.test_ind)
 
     def set_loaders(self, recompute=True, **dataloader_kwargs):
         """Sets the dataloader properties.
