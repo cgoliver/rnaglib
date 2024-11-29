@@ -32,10 +32,13 @@ def print_statistics(loader):
 
 
 class DummyResidueModel(torch.nn.Module):
-    def __init__(self):
+    def __init__(self, num_classes=2):
         super(DummyResidueModel, self).__init__()
         self.device = torch.device("cpu")  # Default device is CPU
-        self.criterion = None
+        self.criterion = torch.nn.CrossEntropyLoss() if num_classes > 2 else torch.nn.BCEWithLogitsLoss()
+        self.num_classes = num_classes
 
     def forward(self, g):
-        return torch.rand(g.x.shape[0], 1)
+        # PyTorch syntax changes a bit for n=2
+        predicted_classes = self.num_classes if self.num_classes > 2 else 1
+        return torch.rand(g.x.shape[0], predicted_classes)
