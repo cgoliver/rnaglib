@@ -98,8 +98,6 @@ class FilterTransform(Transform):
         """Returns true/ or false on the given RNA"""
         raise NotImplementedError
 
-    pass
-
 
 class PartitionTransform(Transform):
     """Break up a whole RNAs into substructures.

@@ -110,16 +110,12 @@ class RNADataset:
                 self.structures_path = os.path.join(dataset_path, "structures")
 
             # One can restrict the number of graphs to use
-            existing_all_rnas, extension = get_all_existing(
-                dataset_path=self.dataset_path, all_rnas=rna_id_subset
-            )
+            existing_all_rnas, extension = get_all_existing(dataset_path=self.dataset_path, all_rnas=rna_id_subset)
             self.extension = extension
 
             if in_memory:
-                self.rnas = [
-                    load_graph(os.path.join(self.dataset_path, f"{g_name}{extension}"))
-                    for g_name in existing_all_rnas
-                ]
+                self.rnas = [load_graph(os.path.join(self.dataset_path, f"{g_name}{extension}")) for g_name in
+                             existing_all_rnas]
                 for rna, name in zip(self.rnas, existing_all_rnas):
                     rna.name = name
 
@@ -298,9 +294,7 @@ class RNADataset:
         os.makedirs(dump_path, exist_ok=True)
         for rna_name, i in self.all_rnas.items():
             if not self.in_memory:
-                rna_graph = load_graph(
-                    os.path.join(self.dataset_path, f"{rna_name}.json")
-                )
+                rna_graph = load_graph(os.path.join(self.dataset_path, f"{rna_name}.json"))
             else:
                 rna_graph = self.rnas[i]
             dump_json(os.path.join(dump_path, f"{rna_name}.json"), rna_graph)
