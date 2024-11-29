@@ -9,8 +9,6 @@ class PDBIDNameTransform(Transform):
         g.name = g.graph["pdbid"][0].lower()
         return data
 
-    pass
-
 
 '''
 class ChainNameTransform(Transform):

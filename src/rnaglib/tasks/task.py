@@ -37,11 +37,13 @@ class Task:
             splitter: Splitter = None,
             debug: bool = False,
             save: bool = True,
+            in_memory: bool = True,
     ):
         self.root = root
         self.dataset_path = os.path.join(self.root, "dataset")
         self.recompute = recompute
         self.debug = debug
+        self.in_memory = in_memory
         self.metadata = self.init_metadata()
 
         # Load or create dataset
@@ -175,7 +177,7 @@ class Task:
         train_ind = [int(ind) for ind in open(os.path.join(self.root, "train_idx.txt"), "r").readlines()]
         val_ind = [int(ind) for ind in open(os.path.join(self.root, "val_idx.txt"), "r").readlines()]
         test_ind = [int(ind) for ind in open(os.path.join(self.root, "test_idx.txt"), "r").readlines()]
-        dataset = RNADataset(dataset_path=self.dataset_path)
+        dataset = RNADataset(dataset_path=self.dataset_path, in_memory=self.in_memory)
 
         with open(Path(self.root) / "metadata.json", "r") as meta:
             metadata = json.load(meta)
