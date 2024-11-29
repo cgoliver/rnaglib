@@ -14,7 +14,15 @@ ta.get_split_loaders(recompute=False)
 info = ta.describe()
 
 # Train model
-model = RGCN_node(info["num_node_features"], 1, info["num_edge_attributes"], final_activation="sigmoid")
+# Either by hand:
+# for epoch in range(100):
+#     for batch in task.train_dataloader:
+#         graph = batch["graph"].to(self.device)
+#         ...
+
+# Or using a wrapper class
+model = RGCN_node(info["num_node_features"], info["num_classes"],
+                  info["num_edge_attributes"], final_activation="sigmoid")
 model.configure_training(learning_rate=0.001)
 model.train_model(ta, epochs=100)
 

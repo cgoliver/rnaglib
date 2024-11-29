@@ -214,7 +214,7 @@ class Task:
         for i in range(len(self.dataset)):
             graph = self.dataset[i]["graph"]
             unique_edge_attrs.update(graph.edge_attr.tolist())
-            
+
             graph_classes = graph.y.unique().tolist()
             classes.update(graph_classes)
 
@@ -250,12 +250,13 @@ class Task:
 
 
 class ResidueClassificationTask(Task):
-    def __init__(self, root, splitter=None, **kwargs):
+    def __init__(self, root, splitter=None, num_classes=2, **kwargs):
         super().__init__(root=root, splitter=splitter, **kwargs)
+        self.num_classes = num_classes
 
     @property
     def dummy_model(self) -> torch.nn:
-        return DummyResidueModel()
+        return DummyResidueModel(num_classes=self.num_classes)
 
     def evaluate(self, model: torch.nn, loader) -> dict:
         """
@@ -281,18 +282,25 @@ class ResidueClassificationTask(Task):
             for batch in loader:
                 graph = batch["graph"]
                 graph = graph.to(model.device)
-                probs = model(graph)
+                out = model(graph)
+                target = graph.y
 
                 if model.criterion is not None:
-                    loss = model.criterion(probs, graph.y.long())
+                    # If just two classes, flatten outputs since BCE behavior expects equal dimensions and CE (N,k):(N)
+                    # Otherwise CE expects long as outputs
+                    if self.num_classes == 2:
+                        out = out.flatten()
+                    else:
+                        target = target.long()
+                    loss = model.criterion(out, target)
                     total_loss += loss.item()
 
                 # Take probabilities for positive class only
-                preds = (probs > 0.5).float()
+                preds = (out > 0.5).float()
 
-                all_probs.extend(probs.cpu().tolist())
+                all_probs.extend(out.cpu().tolist())
                 all_preds.extend(preds.cpu().tolist())
-                all_labels.extend(graph.y.long().cpu().tolist())
+                all_labels.extend(target.long().cpu().tolist())
 
         metrics = {
             "accuracy": accuracy_score(all_labels, all_preds),
