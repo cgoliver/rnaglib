@@ -76,6 +76,35 @@ def cif_remove_residues(
     pass
 
 
+def clean_mmcif(
+    cif_path: Union[str, os.PathLike],
+    output_path: Union[str, os.PathLike] = ".",
+):
+    """Remove non-RNA entities.
+
+    :param cif_path: path to input cif
+    :param output_path: path to cleaned structure.
+    """
+
+    # Load the MMCIF file
+    structure = gemmi.read_structure(str(cif_path))
+    rna_residues = ["A", "U", "C", "G"]
+
+    chain_structure = gemmi.Structure()
+    chain_structure.add_model(gemmi.Model("X"))
+    # Iterate over all models and chains
+    paths = []
+    for chain in structure[0]:
+        if not any(res.name in rna_residues for res in chain):
+            continue
+        # Add the chain to the new structure
+        chain_copy = chain.clone()
+        chain_structure[0].add_chain(chain_copy)
+
+    with open(output_path, "w") as f:
+        f.write(chain_structure.make_mmcif_document().as_string())
+
+
 def split_mmcif_by_chain(
     cif_path: Union[str, os.PathLike],
     output_dir: Union[str, os.PathLike] = ".",
