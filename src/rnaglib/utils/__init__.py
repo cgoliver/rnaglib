@@ -11,7 +11,7 @@ from .graph_io import get_rna_list
 
 from .misc import listdir_fullpath
 from .misc import load_index
-from .misc import cif_remove_residues
+from .misc import cif_remove_residues, split_mmcif_by_chain
 
 from .task_utils import print_statistics
 from .task_utils import DummyResidueModel
@@ -35,6 +35,7 @@ __all__ = [
     "rna_align_wrapper",
     "cdhit_wrapper",
     "cif_remove_residues",
+    "split_mmcif_by_chain",
     "locarna_wrapper",
     "DummyResidueModel",
 ]
