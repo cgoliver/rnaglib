@@ -14,7 +14,14 @@ from sklearn.neighbors import NearestNeighbors
 from tqdm import tqdm
 from rnaglib.splitters import Splitter
 from rnaglib.data_loading.rna_dataset import RNADataset
-from rnaglib.utils import rna_align_wrapper, cdhit_wrapper, cif_remove_residues, split_mmcif_by_chain
+from rnaglib.utils import (
+    rna_align_wrapper,
+    cdhit_wrapper,
+    cif_remove_residues,
+    split_mmcif_by_chain,
+    US_align_wrapper,
+    clean_mmcif,
+)
 from rnaglib.algorithms import get_sequences
 
 
@@ -172,6 +179,49 @@ class RNAalignSplitter(ClusterSplitter):
         super().__init__(**kwargs)
 
     def compute_similarity_matrix(self, dataset: RNADataset):
+        """Computes pairwise structural similarity between all pairs
+        of RNAs using rna-align. Stalls with larger RNA (> 200 nts).
+
+        :param dataset: RNA dataset to compute similarity over.
+        :returns np.array: Array of pairwise similarities in order of given dataset.
+        """
+        pdbids = [rna["rna"].graph["pdbid"][0] for rna in dataset]
+        pdb_paths = (Path(self.structures_dir) / f"{pdbid.lower()}.cif" for pdbid in pdbids)
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            if self.use_substructures:
+                reslists = [[(n.split(".")[1], n.split(".")[2]) for n in rna["rna"].nodes()] for rna in dataset]
+                new_paths = []
+                for idx, (cif_path, reslist) in enumerate(zip(pdb_paths, reslists)):
+                    new_cif = Path(tmpdir) / f"{idx}.cif"
+                    cif_remove_residues(cif_path, reslist, new_cif)
+                    new_paths.append(new_cif)
+                pdb_paths = new_paths
+
+            pdb_paths_clean = []
+            for pdb_path in pdb_paths:
+                clean_path = Path(tmpdir) / Path(pdb_path).name
+                clean_mmcif(pdb_path, clean_path)
+                pdb_paths_clean.append(clean_path)
+            todo = list(itertools.combinations(pdb_paths_clean, 2))
+            sims = Parallel(n_jobs=self.n_jobs)(
+                delayed(US_align_wrapper)(pdbid1, pdbid2)
+                for pdbid1, pdbid2 in tqdm(todo, total=len(todo), desc="RNAalign")
+            )
+        sim_mat = np.zeros((len(pdb_paths_clean), len(pdb_paths_clean)))
+        sim_mat[np.triu_indices(len(pdb_paths_clean), 1)] = sims
+        sim_mat += sim_mat.T
+        np.fill_diagonal(sim_mat, 1)
+
+        row_nan_count = np.isnan(sim_mat).sum(axis=1)
+        # find rnas that failed against all others
+        keep_idx = np.where(row_nan_count != sim_mat.shape[0] - 1)[0]
+        sim_mat = sim_mat[keep_idx][:, keep_idx]
+
+        keep_dataset = [rna for i, rna in enumerate(dataset) if i in keep_idx]
+        return sim_mat, keep_dataset
+
+    def compute_similarity_matrix_(self, dataset: RNADataset):
         """Computes pairwise structural similarity between all pairs
         of RNAs using rna-align. Stalls with larger RNA (> 200 nts).
 
