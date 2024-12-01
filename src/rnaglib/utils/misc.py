@@ -1,6 +1,7 @@
 import os
 import json
 from typing import Union, Optional
+from pathlib import Path
 import gemmi
 from torch.utils.data import Subset
 import torch
@@ -37,9 +38,7 @@ def get_dataset(loader):
         return loader.dataset
 
 
-def load_index(
-    redundancy="nr", version="1.0.0", glib_path=f"{os.path.expanduser('~')}/.rnaglib"
-):
+def load_index(redundancy="nr", version="1.0.0", glib_path=f"{os.path.expanduser('~')}/.rnaglib"):
     index_file = os.path.join(glib_path, f"indexes/rnaglib-{redundancy}-{version}.json")
 
     try:
@@ -75,3 +74,50 @@ def cif_remove_residues(
     # Save the modified structure to a new mmCIF file
     cif_model.make_mmcif_document().write_file(str(out_path))
     pass
+
+
+def split_mmcif_by_chain(
+    cif_path: Union[str, os.PathLike],
+    output_dir: Union[str, os.PathLike] = ".",
+    prefix=None,
+    min_length=0,
+    max_length=1000,
+):
+    """Write one mmCIF for each chain in the input mmCIF.
+
+    :param cif_path: path to input cif
+    :param prefix: string to use as the name for new mmCIFs followed by chain ID. If None, use input file name.
+    :param output_dir: Directory for dumping new mmCIFs.
+    :param out_path: path to write new cif file
+
+    :return: list of paths to new chain PDBs
+    """
+
+    if prefix is None:
+        prefix = Path(cif_path).stem
+    # Load the MMCIF file
+    structure = gemmi.read_structure(str(cif_path))
+    rna_residues = ["A", "U", "C", "G"]
+
+    # Iterate over all models and chains
+    paths = []
+    for chain in structure[0]:
+        if (len(chain) < min_length) or (len(chain) > max_length):
+            continue
+        if not any(res.name in rna_residues for res in chain):
+            continue
+        # Create a new structure for the chain
+        chain_structure = gemmi.Structure()
+        chain_structure.add_model(gemmi.Model(chain.name))
+
+        # Add the chain to the new structure
+        chain_copy = chain.clone()
+        chain_structure[0].add_chain(chain_copy)
+
+        # Output file name
+        output_file = Path(output_dir) / f"{prefix}_{chain.name}.cif"
+        # Write the chain to a new MMCIF file
+        paths.append(output_file)
+        with open(output_file, "w") as f:
+            f.write(chain_structure.make_mmcif_document().as_string())
+    return paths

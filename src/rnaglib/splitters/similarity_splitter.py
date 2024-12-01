@@ -5,14 +5,16 @@ from typing import Optional, Union, Tuple, List, Iterable
 from collections import defaultdict
 from pathlib import Path
 from joblib import Parallel, delayed
+import tempfile
 import itertools
 
 import numpy as np
+from scipy.optimize import linear_sum_assignment
 from sklearn.neighbors import NearestNeighbors
 from tqdm import tqdm
 from rnaglib.splitters import Splitter
 from rnaglib.data_loading.rna_dataset import RNADataset
-from rnaglib.utils import rna_align_wrapper, cdhit_wrapper, cif_remove_residues
+from rnaglib.utils import rna_align_wrapper, cdhit_wrapper, cif_remove_residues, split_mmcif_by_chain
 from rnaglib.algorithms import get_sequences
 
 
@@ -189,20 +191,56 @@ class RNAalignSplitter(ClusterSplitter):
                     new_paths.append(new_cif)
                 pdb_paths = new_paths
 
-            todo = list(itertools.combinations(pdb_paths, 2))
-            sims = Parallel(n_jobs=self.n_jobs)(
+        def rna_align_wrapper_(a, b):
+            return 1
+
+        # first sim mat is all chains vs all chains
+        with tempfile.TemporaryDirectory() as tmpdir:
+            chain_paths = []
+            pdbid_to_idxlist = {}
+            pdbids_keep = []
+            for i, pdb in enumerate(pdb_paths):
+                chain_pdbs = split_mmcif_by_chain(pdb, output_dir=tmpdir, min_length=5, max_length=1000)
+                pdbid_to_idxlist[Path(pdb).stem.lower()] = list(range(i, i + len(chain_pdbs)))
+                chain_paths.extend(chain_pdbs)
+                if len(chain_pdbs) > 1:
+                    pdbids_keep.append(Path(pdb).stem.lower())
+
+            todo = list(itertools.combinations(chain_paths, 2))
+            sims_chain = Parallel(n_jobs=self.n_jobs)(
                 delayed(rna_align_wrapper)(pdbid1, pdbid2)
                 for pdbid1, pdbid2 in tqdm(todo, total=len(todo), desc="RNAalign")
             )
-        sim_mat = np.zeros((len(pdbids), len(pdbids)))
-        sim_mat[np.triu_indices(len(pdbids), 1)] = sims
+
+            sim_mat_chain = np.zeros((len(chain_paths), len(chain_paths)))
+            sim_mat_chain[np.triu_indices(len(chain_paths), 1)] = sims_chain
+            sim_mat_chain += sim_mat_chain.T
+            np.fill_diagonal(sim_mat_chain, 1)
+
+        # coalesce chain-wise sim-mat by taking a hungarian between chains of two
+        # PDBs being compared
+        final_sims = []
+        for pdbid1, pdbid2 in itertools.combinations(pdbids_keep, 2):
+            rows = pdbid_to_idxlist[pdbid1.lower()]
+            cols = pdbid_to_idxlist[pdbid2.lower()]
+            cost_matrix = 1 - sim_mat_chain[np.ix_(rows, cols)]
+            row_indices, col_indices = linear_sum_assignment(cost_matrix)
+            total_cost = cost_matrix[row_indices, col_indices].sum()
+            # put back to similarity
+            final_sims.append(1 - total_cost)
+            pass
+
+        # final sim mat is coalesced chain-wise sim mat.
+        sim_mat = np.zeros((len(pdbids_keep), len(pdbids_keep)))
+        sim_mat[np.triu_indices(len(pdbids_keep), 1)] = final_sims
         sim_mat += sim_mat.T
         np.fill_diagonal(sim_mat, 1)
 
         row_nan_count = np.isnan(sim_mat).sum(axis=1)
         # find rnas that failed against all others
         keep_idx = np.where(row_nan_count != sim_mat.shape[0] - 1)[0]
+        final_pdbids = [pdbids_keep[i] for i in keep_idx]
         sim_mat = sim_mat[keep_idx][:, keep_idx]
 
-        keep_dataset = [rna for i, rna in enumerate(dataset) if i in keep_idx]
+        keep_dataset = [rna for i, rna in enumerate(dataset) if rna["rna"].graph["pdbid"][0].lower() in final_pdbids]
         return sim_mat, keep_dataset
