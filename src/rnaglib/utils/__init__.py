@@ -11,12 +11,12 @@ from .graph_io import get_rna_list
 
 from .misc import listdir_fullpath
 from .misc import load_index
-from .misc import cif_remove_residues
+from .misc import cif_remove_residues, split_mmcif_by_chain, clean_mmcif
 
 from .task_utils import print_statistics
 from .task_utils import DummyResidueModel
 
-from .wrappers import rna_align_wrapper, cdhit_wrapper, locarna_wrapper
+from .wrappers import rna_align_wrapper, cdhit_wrapper, locarna_wrapper, US_align_wrapper
 
 __all__ = [
     "download_graphs",
@@ -35,7 +35,10 @@ __all__ = [
     "rna_align_wrapper",
     "cdhit_wrapper",
     "cif_remove_residues",
+    "split_mmcif_by_chain",
+    "clean_mmcif",
     "locarna_wrapper",
+    "US_align_wrapper",
     "DummyResidueModel",
 ]
 
