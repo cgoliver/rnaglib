@@ -163,6 +163,15 @@ class ComposeFilters:
             data = (d for d in data if filter_fn.forward(d))
         return data
 
+    def forward(self, data: dict) -> bool:
+        all_true = True
+        for filter_fn in self.filters:
+            all_true = all_true and filter_fn.forward(data)
+            if not all_true:
+                return False
+        return True
+
+
     def __repr__(self) -> str:
         args = [f"  {filter_fn}" for filter_fn in self.filters]
         return "{}([\n{}\n])".format(self.__class__.__name__, ",\n".join(args))
