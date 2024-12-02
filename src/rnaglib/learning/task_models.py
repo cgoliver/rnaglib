@@ -161,6 +161,7 @@ class RGCN_node(torch.nn.Module):
         if self.optimizer is None:
             self.configure_training()
 
+        print("Starting to train")
         for epoch in range(epochs):
             # Training phase
             self.train()

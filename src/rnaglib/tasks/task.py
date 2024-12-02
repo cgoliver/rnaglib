@@ -217,8 +217,9 @@ class Task:
         classes = set()
 
         # Collect statistics from dataset
-        for i in range(len(self.dataset)):
-            graph = self.dataset[i]["graph"]
+        import tqdm
+        for item in tqdm.tqdm(self.dataset):
+            graph = item["graph"]
             unique_edge_attrs.update(graph.edge_attr.tolist())
 
             graph_classes = graph.y.unique().tolist()
