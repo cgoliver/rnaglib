@@ -43,4 +43,19 @@ echo "$EXPORT_CMD" >> "$BASHRC"
 
 rm -rf "$TEMPDIR"
 
+# US-Align
+
+TEMPDIR=$(mktemp -d)
+cd $TEMPDIR
+wget https://zhanggroup.org/US-align/bin/module/USalign.cpp
+g++ -static -O3 -ffast-math -o USalign USalign.cpp
+chmod u+x ./USalign
+mkdir ${INSTALL_DIR%/}/USalign
+cp USalign $INSTALL_DIR/USalign
+EXPORT_CMD="export PATH=\$PATH:${INSTALL_DIR%/}/USalign"
+echo "$EXPORT_CMD" >> "$BASHRC"
+
+rm -rf "$TEMPDIR"
+
+
 source $BASHRC
