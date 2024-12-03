@@ -81,9 +81,7 @@ def load_graph(filename):
             # rings is a dict of dict {ring_type : {node : ring}}
             rings = pickled["rings"]
             for ring_type, noderings in rings.items():
-                nx.set_node_attributes(
-                    G=graph, name=f"{ring_type}_annots", values=noderings
-                )
+                nx.set_node_attributes(G=graph, name=f"{ring_type}_annots", values=noderings)
         else:
             graph = pickled
         return graph
@@ -105,9 +103,7 @@ def get_name_extension(filename, permissive=False):
     return fname, extension
 
 
-def get_all_existing(
-        dataset_path: os.PathLike, all_rnas: Optional[List[str]] = None
-) -> Tuple[List[str], str]:
+def get_all_existing(dataset_path: os.PathLike, all_rnas: Optional[List[str]] = None) -> Tuple[List[str], str]:
     """
     Return list of graph IDs in a given dataset directory in sorted() order. If you pass ``all_rnas``
     as a list of, returns the graph IDs in ``all_rnas`` that have a matching file in the dataset folder.
@@ -163,10 +159,7 @@ def download(url, path=None, overwrite=True, retries=5, verify_ssl=True, log=Tru
     if path is None:
         fname = url.split("/")[-1]
         # Empty filenames are invalid
-        assert fname, (
-            "Can't construct file-name from this URL. "
-            "Please set the `path` option manually."
-        )
+        assert fname, "Can't construct file-name from this URL. " "Please set the `path` option manually."
     else:
         path = os.path.expanduser(path)
         if os.path.isdir(path):
@@ -221,17 +214,13 @@ def download(url, path=None, overwrite=True, retries=5, verify_ssl=True, log=Tru
                 else:
                     if log:
                         print(
-                            "download failed, retrying, {} attempt{} left".format(
-                                retries, "s" if retries > 1 else ""
-                            )
+                            "download failed, retrying, {} attempt{} left".format(retries, "s" if retries > 1 else "")
                         )
 
     return fname
 
 
-def download_name_generator(
-        version="1.0.0", redundancy="nr", annotated=False, record="7624873", debug=False
-):
+def download_name_generator(version="1.0.0", redundancy="nr", annotated=False, record="7624873", debug=False):
     """
     This returns the zenodo URL given dataset choices.
 
@@ -257,15 +246,15 @@ def download_name_generator(
 
 
 def download_graphs(
-        redundancy="nr",
-        version="1.0.0",
-        annotated=False,
-        chop=False,
-        overwrite=False,
-        data_root=None,
-        verbose=False,
-        get_pdbs=False,
-        debug=False,
+    redundancy="nr",
+    version="1.0.0",
+    annotated=False,
+    chop=False,
+    overwrite=False,
+    data_root=None,
+    verbose=False,
+    get_pdbs=False,
+    debug=False,
 ):
     """
     Based on the options, get the right data from the latest release and put it in download_dir.
@@ -288,16 +277,12 @@ def download_graphs(
         tag = f"rnaglib-debug-{version}"
     else:
         tag = f"rnaglib-{redundancy}-{version}{'-chop' if chop else ''}{'-' + 'annotated' if annotated else ''}"
-    url = download_name_generator(
-        redundancy=redundancy, version=version, annotated=annotated, debug=debug
-    )
+    url = download_name_generator(redundancy=redundancy, version=version, annotated=annotated, debug=debug)
     dl_path = Path(data_root) / "downloads" / Path(tag + ".tar.gz")
     data_path = Path(data_root) / "datasets"
 
     if not os.path.exists(data_path / tag) or overwrite:
-        print(
-            "Required database not found, launching a download. This should take about a minute"
-        )
+        print("Required database not found, launching a download. This should take about a minute")
         print(f"Fetching {url}")
         print(f"Downloading to : {dl_path}")
         print(f"Saving to : {data_path}")
@@ -319,12 +304,12 @@ def download_graphs(
 
 
 def available_pdbids(
-        graph_dir=None,
-        version="1.0.0",
-        chop=False,
-        annotated=False,
-        redundancy="nr",
-        debug=False,
+    graph_dir=None,
+    version="1.0.0",
+    chop=False,
+    annotated=False,
+    redundancy="nr",
+    debug=False,
 ):
     if debug:
         tag = f"rnaglib-debug-{version}"
@@ -334,9 +319,7 @@ def available_pdbids(
         dl_dir = get_default_download_dir()
         graph_path = os.path.join(dl_dir, "datasets", tag, "graphs")
         if not os.path.exists(graph_path):
-            print(
-                f"Data build {graph_path} download not found. Use rnaglib_download to fetch"
-            )
+            print(f"Data build {graph_path} download not found. Use rnaglib_download to fetch")
             return None
     else:
         graph_path = graph_dir
@@ -345,13 +328,13 @@ def available_pdbids(
 
 
 def graph_from_pdbid(
-        pdbid,
-        graph_dir=None,
-        version="1.0.0",
-        annotated=False,
-        chop=False,
-        redundancy="nr",
-        graph_format="json",
+    pdbid,
+    graph_dir=None,
+    version="1.0.0",
+    annotated=False,
+    chop=False,
+    redundancy="nr",
+    graph_format="json",
 ):
     """Fetch an annotated graph with a PDBID.
 
@@ -505,13 +488,14 @@ def get_NRchains(resolution):
     return parse_NRlist(NR_list)
 
 
-def update_RNApdb(pdir, nr_only=True, rna_list=None):
+def update_RNApdb(pdir, nr_only=True, rna_list=None, debug=False):
     """
     Download a list of RNA containing structures from the PDB
     overwrite exising files
 
     :param pdbdir: path containing downloaded PDBs
     :param rna_list: list of PDBIDs to download
+    :param debug: only download a few structures if True.
 
     :returns rna: list of PDBIDs that were fetched.
     """
@@ -522,7 +506,8 @@ def update_RNApdb(pdir, nr_only=True, rna_list=None):
     else:
         rna = set(get_rna_list(nr_only=nr_only))
 
-    print(rna)
+    if debug:
+        rna = set(list(rna)[:10])
     pl = PDBList()
 
     # If not fully downloaded before, download all structures
