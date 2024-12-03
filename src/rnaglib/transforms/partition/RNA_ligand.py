@@ -11,7 +11,7 @@ class NTSubgraphTransform(PartitionTransform):
 
     def forward(self, rna_dict: dict) -> Iterator[dict]:
         g = rna_dict["rna"]
-        
+
         nodes_to_keep = []
         for node, ndata in g.nodes(data=True):
             if self.node_filter(node, ndata): 
@@ -22,3 +22,20 @@ class NTSubgraphTransform(PartitionTransform):
     def node_filter(self, node, ndata) -> bool:
         raise NotImplementedError
     pass
+
+class LigandNTFilter(NTSubgraphTransform):
+
+    def __init__(
+            self, 
+            data,
+            **kwargs
+            ):
+        
+        self.data = data
+        self.nodes_keep = set(self.data.nid.values)
+        super().__init__(**kwargs)
+
+    def node_filter(self, node, ndata):
+        if node in self.nodes_keep:
+            return True
+        return False

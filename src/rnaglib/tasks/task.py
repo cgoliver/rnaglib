@@ -314,6 +314,8 @@ class RNAClassificationTask(Task):
 
     def evaluate(self, model: torch.nn, loader) -> dict:
         """Evaluate the model on the given dataloader for graph-level predictions."""
+        self.num_classes = self.describe()["num_classes"]
+
         model.eval()
         all_probs = []
         all_preds = []
@@ -328,15 +330,19 @@ class RNAClassificationTask(Task):
                 if model.criterion is not None:
                     loss = model.criterion(out, graph.y.long())
                     total_loss += loss.item()
-
-                # Take probabilities for positive class only (assuming binary classification)
-                probs = torch.softmax(out, dim=1)[:, 1]  # Get prob of class 1
-                preds = (probs > 0.5).float()
-
-                all_probs.extend(probs.cpu().tolist())
-                all_preds.extend(preds.cpu().tolist())
-                all_labels.extend(graph.y.long().cpu().tolist())
-
+                if self.num_classes==2:
+                    # Take probabilities for positive class only (assuming binary classification)
+                    probs = torch.softmax(out, dim=1)[:, 1]# Get prob of class 1
+                    preds = (probs > 0.5).float()  
+                else:
+                    probs = torch.softmax(out, dim=1)
+                    preds = (probs==probs.max(dim = 1,keepdim=True)[0]).float()
+                all_probs.extend(probs.flatten().cpu().tolist())
+                all_preds.extend(preds.flatten().cpu().tolist())                
+                if torch.softmax(out, dim=1).flatten().shape == graph.y.shape:
+                    all_labels.extend(graph.y.long().cpu().tolist())
+                else:
+                    all_labels.extend(F.one_hot(graph.y.long(), num_classes=self.num_classes).flatten().cpu().tolist())
         metrics = {
             "accuracy": accuracy_score(all_labels, all_preds),
             "f1": f1_score(all_labels, all_preds),
