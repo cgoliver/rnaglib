@@ -70,6 +70,7 @@ class BindingSiteDetection(ResidueClassificationTask):
         rna_filter = ResidueAttributeFilter(attribute=self.target_var, value_checker=lambda val: val is not None)
         add_name = PDBIDNameTransform()
 
+        # Run through database, applying our filters
         dataset = RNADataset(debug=self.debug, in_memory=self.in_memory)
         all_rnas = []
         os.makedirs(self.dataset_path, exist_ok=True)
