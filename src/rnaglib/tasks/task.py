@@ -141,6 +141,8 @@ class Task:
     def task_id(self):
         """Task hash is a hash of all RNA ids and node IDs in the dataset"""
         h = hashlib.new("sha256")
+        if not self.in_memory:
+            raise ValueError("task id is only available (and tractable) for small, in-memory datasets")
         for rna in self.dataset.rnas:
             h.update(rna.name.encode("utf-8"))
             for nt in sorted(rna.nodes()):
@@ -164,10 +166,12 @@ class Task:
             [idx.write(str(ind) + "\n") for ind in self.val_ind]
         with open(Path(self.root) / "test_idx.txt", "w") as idx:
             [idx.write(str(ind) + "\n") for ind in self.test_ind]
-        with open(Path(self.root) / "task_id.txt", "w") as tid:
-            tid.write(self.task_id)
         with open(Path(self.root) / "metadata.json", "w") as meta:
             json.dump(self.metadata, meta, indent=4)
+        # task id is only available (and tractable) for small, in-memory datasets
+        if self.in_memory:
+            with open(Path(self.root) / "task_id.txt", "w") as tid:
+                tid.write(self.task_id)
         print(">>> Done")
 
     def load(self):
@@ -213,8 +217,9 @@ class Task:
         classes = set()
 
         # Collect statistics from dataset
-        for i in range(len(self.dataset)):
-            graph = self.dataset[i]["graph"]
+        import tqdm
+        for item in tqdm.tqdm(self.dataset):
+            graph = item["graph"]
             unique_edge_attrs.update(graph.edge_attr.tolist())
 
             graph_classes = graph.y.unique().tolist()

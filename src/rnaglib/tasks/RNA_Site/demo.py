@@ -6,6 +6,7 @@ from rnaglib.learning.task_models import RGCN_node
 
 # Creating task
 ta = BindingSiteDetection("RNA-Site", in_memory=False)
+ta.dataset.to_memory()
 
 # Add representation
 ta.dataset.add_representation(GraphRepresentation(framework="pyg"))
