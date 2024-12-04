@@ -208,8 +208,6 @@ def fr3d_to_graph(rna_path):
 
     G.graph["pdbid"] = pdbid
 
-    add_graph_annotations(g=G, cif=str(rna_path))
-
     return G
 
 

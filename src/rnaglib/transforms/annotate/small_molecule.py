@@ -109,23 +109,26 @@ def hariboss_filter(lig, cif_dict, mass_lower_limit=160, mass_upper_limit=1000):
     :param mass_upper_limit:
 
     """
-    lig_name = lig.id[0][2:]
-    if lig_name == "HOH":
-        return None
+    try:
+        lig_name = lig.id[0][2:]
+        if lig_name == "HOH":
+            return None
 
-    if lig_name in IONS:
-        return "ion"
+        if lig_name in IONS:
+            return "ion"
 
-    lig_mass = float(cif_dict["_chem_comp.formula_weight"][cif_dict["_chem_comp.id"].index(lig_name)])
+        lig_mass = float(cif_dict["_chem_comp.formula_weight"][cif_dict["_chem_comp.id"].index(lig_name)])
 
-    if lig_mass < mass_lower_limit or lig_mass > mass_upper_limit:
+        if lig_mass < mass_lower_limit or lig_mass > mass_upper_limit:
+            return None
+        ligand_atoms = set([atom.element for atom in lig.get_atoms()])
+        if "C" not in ligand_atoms:
+            return None
+        if any([atom not in ALLOWED_ATOMS for atom in ligand_atoms]):
+            return None
+        return "ligand"
+    except ValueError:
         return None
-    ligand_atoms = set([atom.element for atom in lig.get_atoms()])
-    if "C" not in ligand_atoms:
-        return None
-    if any([atom not in ALLOWED_ATOMS for atom in ligand_atoms]):
-        return None
-    return "ligand"
 
 
 def get_mmcif_graph_level(mmcif_dict):
@@ -227,7 +230,7 @@ class SmallMoleculeBindingTransform(AnnotationTransform):
         :return: the annotated graph, actually the graph is mutated in place
         """
         g = rna_dict["rna"]
-        cif = str(Path(self.structures_dir) / f"{g.graph['pdbid'][0].lower()}.cif")
+        cif = str(Path(self.structures_dir) / f"{g.graph['pdbid'].lower()}.cif")
         mmcif_dict = MMCIF2Dict(cif)
         # Add graph level like resolution
         graph_level_annots = get_mmcif_graph_level(mmcif_dict=mmcif_dict)
