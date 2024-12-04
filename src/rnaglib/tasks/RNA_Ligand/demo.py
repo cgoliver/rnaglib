@@ -29,7 +29,7 @@ if args.frompickle is True:
 
 else:
     print('generating task')
-    ta = LigandIdentification('gmsm')
+    ta = LigandIdentification('RNA-Ligand', recompute=True)
 
     # Splitting dataset
     print("Splitting Dataset")
@@ -46,7 +46,7 @@ num_unique_edge_attrs = info["num_edge_attributes"]
 # Train model
 model = RGCN_graph(num_node_features, num_classes, num_unique_edge_attrs)
 model.configure_training(learning_rate=0.001)
-model.train_model(ta, epochs=1)
+model.train_model(ta, epochs=100)
 
 # Final evaluation
 test_metrics = ta.evaluate(model, ta.test_dataloader)
@@ -57,7 +57,3 @@ print(
     f"Test AUC: {test_metrics['auc']:.4f}, "
     f"Test MCC: {test_metrics['mcc']:.4f}"
 )
-
-# Further improvements:
-# - make RGCN more parametrisable
-# - make the same thing with pytorch lightning
