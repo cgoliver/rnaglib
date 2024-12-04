@@ -244,7 +244,7 @@ class Task:
                 else:
                     y = torch.stack(list_y)
             if "rna_targets" in features_dict:
-                y = torch.tensor(features_dict["rna_targets"])
+                y = features_dict["rna_targets"].clone().detach()
 
             graph_classes = y.unique().tolist()
             classes.update(graph_classes)
