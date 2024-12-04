@@ -98,8 +98,6 @@ class FilterTransform(Transform):
         """Returns true/ or false on the given RNA"""
         raise NotImplementedError
 
-    pass
-
 
 class PartitionTransform(Transform):
     """Break up a whole RNAs into substructures.
@@ -164,6 +162,15 @@ class ComposeFilters:
         for filter_fn in self.filters:
             data = (d for d in data if filter_fn.forward(d))
         return data
+
+    def forward(self, data: dict) -> bool:
+        all_true = True
+        for filter_fn in self.filters:
+            all_true = all_true and filter_fn.forward(data)
+            if not all_true:
+                return False
+        return True
+
 
     def __repr__(self) -> str:
         args = [f"  {filter_fn}" for filter_fn in self.filters]

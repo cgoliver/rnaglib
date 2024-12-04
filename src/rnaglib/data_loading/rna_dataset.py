@@ -110,29 +110,17 @@ class RNADataset:
                 self.structures_path = os.path.join(dataset_path, "structures")
 
             # One can restrict the number of graphs to use
-            existing_all_rnas, extension = get_all_existing(
-                dataset_path=self.dataset_path, all_rnas=rna_id_subset
-            )
+            existing_all_rnas, extension = get_all_existing(dataset_path=self.dataset_path, all_rnas=rna_id_subset)
             self.extension = extension
 
-            if in_memory:
-                self.rnas = [
-                    load_graph(os.path.join(self.dataset_path, f"{g_name}{extension}"))
-                    for g_name in existing_all_rnas
-                ]
-                for rna, name in zip(self.rnas, existing_all_rnas):
-                    rna.name = name
+            # Keep track of a list_id <=> system mapping. First remove extensions
+            existing_all_rna_names = [get_name_extension(rna, permissive=True)[0] for rna in existing_all_rnas]
+            self.all_rnas = bidict({rna: i for i, rna in enumerate(existing_all_rna_names)})
 
+            if in_memory:
+                self.to_memory()
             else:
                 self.rnas = None
-
-            # Keep track of a list_id <=> system mapping. First remove extensions
-            existing_all_rna_names = [
-                get_name_extension(rna, permissive=True)[0] for rna in existing_all_rnas
-            ]
-            self.all_rnas = bidict(
-                {rna: i for i, rna in enumerate(existing_all_rna_names)}
-            )
         else:
             assert in_memory, (
                 "Conflicting arguments: if an RNADataset is instantiated with a list of graphs, "
@@ -265,7 +253,7 @@ class RNADataset:
                 if representation.name != name
             ]
 
-    def subset(self, list_of_ids=None, list_of_names=None, deep_copy=True):
+    def subset(self, list_of_ids=None, list_of_names=None):
         """
         Create another dataset with only the specified graphs.
 
@@ -278,8 +266,13 @@ class RNADataset:
         if list_of_names is not None:
             list_of_ids = [self.all_rnas[name] for name in list_of_names]
 
-        # Copy existing dataset, subset the bidict of names and the rna if in_memory
-        subset = copy.deepcopy(self) if deep_copy else copy.copy(self)
+        # Copy existing dataset, avoid expansive deep copy of rnas if in memory
+        temp = self.rnas
+        self.rnas = None
+        subset = copy.deepcopy(self)
+        self.rnas = temp
+
+        # Subset the bidict of names and the rna if in_memory
         if self.in_memory:
             subset.rnas = [self.rnas[i] for i in list_of_ids]
         subset_names = [self.all_rnas.inv[i] for i in list_of_ids]
@@ -293,12 +286,23 @@ class RNADataset:
         os.makedirs(dump_path, exist_ok=True)
         for rna_name, i in self.all_rnas.items():
             if not self.in_memory:
-                rna_graph = load_graph(
-                    os.path.join(self.dataset_path, f"{rna_name}.json")
-                )
+                # It's already saved !
+                if self.dataset_path == dump_path:
+                    break
+                rna_graph = load_graph(os.path.join(self.dataset_path, f"{rna_name}.json"))
             else:
                 rna_graph = self.rnas[i]
             dump_json(os.path.join(dump_path, f"{rna_name}.json"), rna_graph)
+
+    def to_memory(self):
+        """
+        Make in_memory=True from a dataset not in memory
+        :return:
+        """
+        self.rnas = [load_graph(os.path.join(self.dataset_path, f"{g_name}{self.extension}")) for g_name in
+                     self.all_rnas]
+        for rna, name in zip(self.rnas, self.all_rnas):
+            rna.name = name
 
     def get_pdbid(self, pdbid):
         """Grab an RNA by its pdbid"""

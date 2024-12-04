@@ -2,23 +2,26 @@ from rnaglib.tasks import ChemicalModification
 from rnaglib.transforms import GraphRepresentation
 from rnaglib.learning.task_models import RGCN_node
 
-print("Generating task")
 ta = ChemicalModification("RNA-CM")
 
 # Add representation
 ta.dataset.add_representation(GraphRepresentation(framework="pyg"))
 
 # Splitting dataset
-ta.get_split_loaders()
+ta.get_split_loaders(recompute=False)
 
-# Printing statistics
+# Computing and printing statistics
 info = ta.describe()
-num_node_features = info["num_node_features"]
-num_classes = info["num_classes"]
-num_unique_edge_attrs = info["num_edge_attributes"]
 
 # Train model
-model = RGCN_node(num_node_features, num_classes, num_unique_edge_attrs)
+# Either by hand:
+# for epoch in range(100):
+#     for batch in task.train_dataloader:
+#         graph = batch["graph"].to(self.device)
+#         ...
+
+# Or using a wrapper class
+model = RGCN_node(info["num_node_features"], info["num_classes"], info["num_edge_attributes"])
 model.configure_training(learning_rate=0.001)
 model.train_model(ta, epochs=100)
 

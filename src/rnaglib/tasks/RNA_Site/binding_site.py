@@ -6,6 +6,7 @@ from rnaglib.data_loading.create_dataset import (
     annotator_add_embeddings,
     nt_filter_split_chains,
 )  # check whether needed after rna-fm integration
+import os
 
 from rnaglib.data_loading import RNADataset
 from rnaglib.transforms import FeaturesComputer
@@ -16,7 +17,7 @@ from rnaglib.transforms import ResidueAttributeFilter
 from rnaglib.transforms import PDBIDNameTransform, ChainNameTransform
 from rnaglib.transforms import BindingSiteAnnotator
 from rnaglib.transforms import ChainFilter
-
+from rnaglib.utils import dump_json
 
 class BenchmarkBindingSiteDetection(ResidueClassificationTask):
     target_var = "binding_site"
@@ -65,12 +66,26 @@ class BindingSiteDetection(ResidueClassificationTask):
         super().__init__(root=root, splitter=splitter, **kwargs)
 
     def process(self) -> RNADataset:
-        dataset = RNADataset(debug=self.debug)
-        rnas = ResidueAttributeFilter(attribute=self.target_var, value_checker=lambda val: val is not None)(dataset)
+        # Define your transforms
+        rna_filter = ResidueAttributeFilter(attribute=self.target_var, value_checker=lambda val: val is not None)
+        add_name = PDBIDNameTransform()
 
-        rnas = PDBIDNameTransform()(rnas)
-
-        dataset = RNADataset(rnas=[r["rna"] for r in rnas])
+        # Run through database, applying our filters
+        dataset = RNADataset(debug=self.debug, in_memory=self.in_memory)
+        all_rnas = []
+        os.makedirs(self.dataset_path, exist_ok=True)
+        for rna in dataset:
+            if rna_filter.forward(rna):
+                rna = add_name(rna)["rna"]
+                if self.in_memory:
+                    all_rnas.append(rna)
+                else:
+                    all_rnas.append(rna.name)
+                    dump_json(os.path.join(self.dataset_path, f"{rna.name}.json"), rna)
+        if self.in_memory:
+            dataset = RNADataset(rnas=all_rnas)
+        else:
+            dataset = RNADataset(dataset_path=self.dataset_path, rna_id_subset=all_rnas)
         return dataset
 
     def get_task_vars(self) -> FeaturesComputer:
