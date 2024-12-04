@@ -37,11 +37,13 @@ class Task:
             splitter: Splitter = None,
             debug: bool = False,
             save: bool = True,
+            in_memory: bool = True,
     ):
         self.root = root
         self.dataset_path = os.path.join(self.root, "dataset")
         self.recompute = recompute
         self.debug = debug
+        self.in_memory = in_memory
         self.metadata = self.init_metadata()
 
         # Load or create dataset
@@ -59,6 +61,9 @@ class Task:
             self.split(self.dataset)
 
         self.dataset.features_computer = self.get_task_vars()
+
+        # compute metadata
+        self.describe()
 
         if save:
             self.write()
@@ -93,9 +98,9 @@ class Task:
 
         if not hasattr(self, "train_ind") or recompute:
             self.train_ind, self.val_ind, self.test_ind = self.split(self.dataset)
-        self.train_dataset = self.dataset.subset(self.train_ind, deep_copy=False)
-        self.val_dataset = self.dataset.subset(self.val_ind, deep_copy=False)
-        self.test_dataset = self.dataset.subset(self.test_ind, deep_copy=False)
+        self.train_dataset = self.dataset.subset(self.train_ind)
+        self.val_dataset = self.dataset.subset(self.val_ind)
+        self.test_dataset = self.dataset.subset(self.test_ind)
 
     def set_loaders(self, recompute=True, **dataloader_kwargs):
         """Sets the dataloader properties.
@@ -139,6 +144,8 @@ class Task:
     def task_id(self):
         """Task hash is a hash of all RNA ids and node IDs in the dataset"""
         h = hashlib.new("sha256")
+        if not self.in_memory:
+            raise ValueError("task id is only available (and tractable) for small, in-memory datasets")
         for rna in self.dataset.rnas:
             h.update(rna.name.encode("utf-8"))
             for nt in sorted(rna.nodes()):
@@ -162,10 +169,12 @@ class Task:
             [idx.write(str(ind) + "\n") for ind in self.val_ind]
         with open(Path(self.root) / "test_idx.txt", "w") as idx:
             [idx.write(str(ind) + "\n") for ind in self.test_ind]
-        with open(Path(self.root) / "task_id.txt", "w") as tid:
-            tid.write(self.task_id)
         with open(Path(self.root) / "metadata.json", "w") as meta:
             json.dump(self.metadata, meta, indent=4)
+        # task id is only available (and tractable) for small, in-memory datasets
+        if self.in_memory:
+            with open(Path(self.root) / "task_id.txt", "w") as tid:
+                tid.write(self.task_id)
         print(">>> Done")
 
     def load(self):
@@ -175,7 +184,7 @@ class Task:
         train_ind = [int(ind) for ind in open(os.path.join(self.root, "train_idx.txt"), "r").readlines()]
         val_ind = [int(ind) for ind in open(os.path.join(self.root, "val_idx.txt"), "r").readlines()]
         test_ind = [int(ind) for ind in open(os.path.join(self.root, "test_idx.txt"), "r").readlines()]
-        dataset = RNADataset(dataset_path=self.dataset_path)
+        dataset = RNADataset(dataset_path=self.dataset_path, in_memory=self.in_memory)
 
         with open(Path(self.root) / "metadata.json", "r") as meta:
             metadata = json.load(meta)
@@ -202,20 +211,42 @@ class Task:
         self.get_split_loaders(recompute=False)
 
         # Get dimensions from first graph
-        first_graph = self.dataset[0]["graph"]
-        num_node_features = first_graph.x.shape[1]
+        first_item = self.dataset[0]
+        if 'graph' in first_item:
+            compute_num_edge_attributes = True
+        else:
+            compute_num_edge_attributes = False
+        first_node_map = {n: i for i, n in enumerate(sorted(first_item["rna"].nodes()))}
+        first_features_dict = self.dataset.features_computer(first_item)
+        first_features_array = first_features_dict["nt_features"][next(iter(first_node_map.keys()))]
+        num_node_features = first_features_array.shape[0]
 
         # Dynamic class counting
         class_counts = {}
-        unique_edge_attrs = set()
         classes = set()
+        if compute_num_edge_attributes:
+            unique_edge_attrs = set()
 
         # Collect statistics from dataset
-        for i in range(len(self.dataset)):
-            graph = self.dataset[i]["graph"]
-            unique_edge_attrs.update(graph.edge_attr.tolist())
-            
-            graph_classes = graph.y.unique().tolist()
+        import tqdm
+        for item in tqdm.tqdm(self.dataset):
+            if compute_num_edge_attributes:
+                graph = item["graph"]
+                unique_edge_attrs.update(graph.edge_attr.tolist())
+            node_map = {n: i for i, n in enumerate(sorted(item['rna'].nodes()))}
+            features_dict = self.dataset.features_computer(item)
+            if "nt_targets" in features_dict:
+                list_y = [features_dict["nt_targets"][n] for n in node_map.keys()]
+                    # In the case of single target, pytorch CE loss expects shape (n,) and not (n,1)
+                    # For multi-target cases, we stack to get (n,d)
+                if len(list_y[0]) == 1:
+                    y = torch.cat(list_y)
+                else:
+                    y = torch.stack(list_y)
+            if "rna_targets" in features_dict:
+                y = torch.tensor(features_dict["rna_targets"])
+
+            graph_classes = y.unique().tolist()
             classes.update(graph_classes)
 
             # Count classes in this graph
@@ -223,21 +254,23 @@ class Task:
                 cls_int = int(cls)
                 if cls_int not in class_counts:
                     class_counts[cls_int] = 0
-                class_counts[cls_int] += sum(graph.y == cls).item()
+                class_counts[cls_int] += sum(y == cls).item()
 
         info = {
             "num_node_features": num_node_features,
             "num_classes": len(classes),
-            "num_edge_attributes": len(unique_edge_attrs),
             "dataset_size": len(self.dataset),
             "class_distribution": class_counts,
         }
+        if compute_num_edge_attributes:
+            info["num_edge_attributes"] = len(unique_edge_attrs)
 
         # Print description
         print("Dataset Description:")
         print(f"Number of node features: {info['num_node_features']}")
         print(f"Number of classes: {info['num_classes']}")
-        print(f"Number of edge attributes: {info['num_edge_attributes']}")
+        if compute_num_edge_attributes:
+            print(f"Number of edge attributes: {info['num_edge_attributes']}")
         print(f"Dataset size: {info['dataset_size']} graphs")
         print("\nClass distribution:")
         for cls in sorted(class_counts.keys()):
@@ -250,12 +283,13 @@ class Task:
 
 
 class ResidueClassificationTask(Task):
-    def __init__(self, root, splitter=None, **kwargs):
+    def __init__(self, root, splitter=None, num_classes=2, **kwargs):
         super().__init__(root=root, splitter=splitter, **kwargs)
+        self.num_classes = num_classes
 
     @property
     def dummy_model(self) -> torch.nn:
-        return DummyResidueModel()
+        return DummyResidueModel(num_classes=self.num_classes)
 
     def evaluate(self, model: torch.nn, loader) -> dict:
         """
@@ -281,18 +315,25 @@ class ResidueClassificationTask(Task):
             for batch in loader:
                 graph = batch["graph"]
                 graph = graph.to(model.device)
-                probs = model(graph)
+                out = model(graph)
+                target = graph.y
 
                 if model.criterion is not None:
-                    loss = model.criterion(probs, graph.y.long())
+                    # If just two classes, flatten outputs since BCE behavior expects equal dimensions and CE (N,k):(N)
+                    # Otherwise CE expects long as outputs
+                    if self.num_classes == 2:
+                        out = out.flatten()
+                    else:
+                        target = target.long()
+                    loss = model.criterion(out, target)
                     total_loss += loss.item()
 
                 # Take probabilities for positive class only
-                preds = (probs > 0.5).float()
+                preds = (out > 0.5).float()
 
-                all_probs.extend(probs.cpu().tolist())
+                all_probs.extend(out.cpu().tolist())
                 all_preds.extend(preds.cpu().tolist())
-                all_labels.extend(graph.y.long().cpu().tolist())
+                all_labels.extend(target.long().cpu().tolist())
 
         metrics = {
             "accuracy": accuracy_score(all_labels, all_preds),
@@ -311,10 +352,10 @@ class RNAClassificationTask(Task):
 
     def __init__(self, root, splitter=None, **kwargs):
         super().__init__(root=root, splitter=splitter, **kwargs)
+        self.num_classes = self.metadata["description"]["num_classes"]
 
     def evaluate(self, model: torch.nn, loader) -> dict:
         """Evaluate the model on the given dataloader for graph-level predictions."""
-        self.num_classes = self.describe()["num_classes"]
 
         model.eval()
         all_probs = []

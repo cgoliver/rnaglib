@@ -15,12 +15,12 @@ class GraphRepresentation(Representation):
     """
 
     def __init__(
-        self,
-        clean_edges=True,
-        framework="nx",
-        edge_map=GRAPH_KEYS["edge_map"][TOOL],
-        etype_key="LW",
-        **kwargs,
+            self,
+            clean_edges=True,
+            framework="nx",
+            edge_map=GRAPH_KEYS["edge_map"][TOOL],
+            etype_key="LW",
+            **kwargs,
     ):
 
         authorized_frameworks = {"nx", "dgl", "pyg"}
@@ -84,8 +84,13 @@ class GraphRepresentation(Representation):
                 else None
             )
         if "nt_targets" in features_dict:
-            # We use torch cat since we are not developing multi-target models. For multi target cases, please use torch.stack.
-            y = torch.cat([features_dict["nt_targets"][n] for n in node_map.keys()])
+            list_y = [features_dict["nt_targets"][n] for n in node_map.keys()]
+                # In the case of single target, pytorch CE loss expects shape (n,) and not (n,1)
+                # For multi-target cases, we stack to get (n,d)
+            if len(list_y[0]) == 1:
+                y = torch.cat(list_y)
+            else:
+                y = torch.stack(list_y)
         if "rna_targets" in features_dict:
             y = torch.tensor(features_dict["rna_targets"])
 

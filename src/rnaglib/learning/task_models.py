@@ -5,15 +5,14 @@ from torch.nn import BatchNorm1d, Dropout
 
 
 class RGCN_graph(torch.nn.Module):
-    def __init__(
-        self,
-        num_node_features,
-        num_classes,
-        num_unique_edge_attrs,
-        num_layers=2,
-        hidden_channels=128,
-        dropout_rate=0.5,
-    ):
+    def __init__(self,
+                 num_node_features,
+                 num_classes,
+                 num_unique_edge_attrs,
+                 num_layers=2,
+                 hidden_channels=128,
+                 dropout_rate=0.5,
+                 ):
         super().__init__()
         self.num_layers = num_layers
         self.convs = torch.nn.ModuleList()
@@ -57,7 +56,7 @@ class RGCN_graph(torch.nn.Module):
         return x
 
     def configure_training(
-        self, learning_rate=0.001, device="cuda" if torch.cuda.is_available() else "cpu"
+            self, learning_rate=0.001, device="cuda" if torch.cuda.is_available() else "cpu"
     ):
         """Configure training settings."""
         self.device = device
@@ -93,16 +92,17 @@ class RGCN_graph(torch.nn.Module):
 
 class RGCN_node(torch.nn.Module):
     def __init__(
-        self,
-        num_node_features,
-        num_classes,
-        num_unique_edge_attrs,
-        num_layers=2,
-        hidden_channels=128,
-        dropout_rate=0.5,
-        final_activation=None,
+            self,
+            num_node_features,
+            num_classes,
+            num_unique_edge_attrs,
+            num_layers=2,
+            hidden_channels=128,
+            dropout_rate=0.5,
+            final_activation=None,
     ):
         super().__init__()
+        self.num_classes = num_classes
         self.num_layers = num_layers
         self.convs = torch.nn.ModuleList()
         self.bns = torch.nn.ModuleList()
@@ -116,11 +116,15 @@ class RGCN_node(torch.nn.Module):
             self.dropouts.append(Dropout(dropout_rate))
             in_channels = hidden_channels
 
-        # Final linear layer
-        self.final_linear = torch.nn.Linear(in_channels, num_classes)
+        # Final linear layer, for the two-class case, pytorch has a slightly different formulation, with BCE
+        if num_classes == 2:
+            self.final_linear = torch.nn.Linear(in_channels, 1)
+            self.criterion = torch.nn.BCEWithLogitsLoss()
+        else:
+            self.final_linear = torch.nn.Linear(in_channels, num_classes)
+            self.criterion = torch.nn.CrossEntropyLoss()
 
         # Initialize training components
-        self.criterion = torch.nn.CrossEntropyLoss()
         self.optimizer = None
         self.device = None
         if not self.final_activation is None:
@@ -155,6 +159,7 @@ class RGCN_node(torch.nn.Module):
         if self.optimizer is None:
             self.configure_training()
 
+        print("Starting to train")
         for epoch in range(epochs):
             # Training phase
             self.train()
@@ -162,17 +167,21 @@ class RGCN_node(torch.nn.Module):
                 graph = batch["graph"].to(self.device)
                 self.optimizer.zero_grad()
                 out = self(graph)
-                target = graph.y.long()
-                # If n_classes = 1, flatten
-                if len(target.shape)==2 and target.shape[1]==1:
-                    target = target.flatten()
+                target = graph.y
+
+                # If just two classes, flatten outputs since BCE behavior expects equal dimensions and CE (N,k):(N)
+                # Otherwise CE expects long as outputs
+                if self.num_classes == 2:
+                    out = out.flatten()
+                else:
+                    target = target.long()
                 loss = self.criterion(out, target)
                 loss.backward()
                 self.optimizer.step()
 
             # Evaluation phase
-            train_metrics = task.evaluate(self, task.train_dataloader)
-            val_metrics = task.evaluate(self, task.val_dataloader)
+            train_metrics = task.evaluate(model=self, loader=task.train_dataloader)
+            val_metrics = task.evaluate(model=self, loader=task.val_dataloader)
 
             print(
                 f"Epoch {epoch + 1}, "

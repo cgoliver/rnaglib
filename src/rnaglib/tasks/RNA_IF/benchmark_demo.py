@@ -1,45 +1,21 @@
 """Demo for training a simple model using an rnaglib task"""
 
-import argparse
-from pathlib import Path
-import dill as pickle
-
 from rnaglib.tasks import gRNAde
 from rnaglib.transforms import GraphRepresentation
 from rnaglib.learning.task_models import RGCN_node
 
+ta = gRNAde("gRNAde", recompute=False, in_memory=False)
 
-parser = argparse.ArgumentParser()
-parser.add_argument(
-    "-p", "--frompickle", action="store_true", help="To load task from pickle"
-)
-args = parser.parse_args()
+ta.dataset.add_representation(GraphRepresentation(framework="pyg"))
 
-# Creating task
-if args.frompickle is True:
-    print("Loading task from pickle")
-    file_path = Path(__file__).parent / "data" / "gRNAde_first_run_08112024.pkl"
-
-    with open(file_path, "rb") as file:
-        ta = pickle.load(file)
-else:
-    print("Generating task")
-    ta = gRNAde("gRNAde", recompute=True)
-    ta.dataset.add_representation(GraphRepresentation(framework="pyg"))
-    # Splitting dataset
-    print("Splitting dataset")
-    ta.get_split_loaders()
-
+# Splitting dataset
+ta.get_split_loaders()
 
 # Printing statistics
 info = ta.describe()
-num_node_features = info["num_node_features"]
-num_classes = info["num_classes"]
-num_unique_edge_attrs = info["num_edge_attributes"]
-# need to set to 20 (or actual edge type #)  if not all edges are present, such as in debugging
 
 # Train model
-model = RGCN_node(num_node_features, num_classes, num_unique_edge_attrs)
+model = RGCN_node(info["num_node_features"], info["num_classes"], info["num_edge_attributes"])
 model.configure_training(learning_rate=0.001)
 model.train_model(ta, epochs=100)
 

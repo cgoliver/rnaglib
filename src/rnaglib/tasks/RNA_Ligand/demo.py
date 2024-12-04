@@ -37,7 +37,7 @@ else:
     ta.set_loaders(batch_size=batch_size)
 
 # Printing statistics
-info = ta.describe()
+info = ta.describe(recompute=True)
 num_node_features = info["num_node_features"]
 num_classes = info["num_classes"]
 num_unique_edge_attrs = info["num_edge_attributes"]
