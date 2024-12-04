@@ -16,6 +16,7 @@ from tqdm import tqdm
 from rnaglib.utils import update_RNApdb
 from rnaglib.utils import dump_json
 from rnaglib.transforms import SmallMoleculeBindingTransform
+from rnaglib.transforms import RBPTransform
 from rnaglib.prepare_data import fr3d_to_graph
 from rnaglib.prepare_data import chop_all
 from rnaglib.prepare_data import annotate_all
@@ -156,6 +157,7 @@ def prepare_data_main(args):
 
     for graph, g_path in zip(job, todo):
         t = SmallMoleculeBindingTransform(structures_dir=args.structures_dir)
+        t = RBPTransform(structures_dir=args.structures_dir)
         rna_dict = {"rna": graph}
         t(rna_dict)
         dump_json(Path(graphs_dir) / Path(g_path).name, rna_dict["rna"])
