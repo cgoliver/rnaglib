@@ -43,6 +43,7 @@ class Task:
         self.dataset_path = os.path.join(self.root, "dataset")
         self.recompute = recompute
         self.debug = debug
+        self.save = save
         self.in_memory = in_memory
         self.metadata = self.init_metadata()
 
@@ -62,11 +63,11 @@ class Task:
 
         self.dataset.features_computer = self.get_task_vars()
 
+        if self.save:
+            self.write()
+        
         # compute metadata
         self.describe()
-
-        if save:
-            self.write()
 
     def process(self) -> RNADataset:
         """Tasks must implement this method. Executing the method should result in a list of ``.json`` files
@@ -276,9 +277,10 @@ class Task:
         for cls in sorted(class_counts.keys()):
             print(f"Class {cls}: {class_counts[cls]} nodes")
 
-        with open(Path(self.root) / "metadata.json", "w") as meta:
-            self.metadata['description'] = info
-            json.dump(self.metadata, meta, indent=4)
+        if self.save:
+            with open(Path(self.root) / "metadata.json", "w") as meta:
+                self.metadata['description'] = info
+                json.dump(self.metadata, meta, indent=4)
         return info
 
 
