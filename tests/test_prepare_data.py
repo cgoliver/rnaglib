@@ -12,7 +12,7 @@ class TestPrepareData(unittest.TestCase):
     @classmethod
     def setUpClass(self):
         args = {
-            "debug": False,
+            "debug": True,
             "continu": False,
             "n_debug": 10,
             "num_workers": 4,
@@ -31,8 +31,8 @@ class TestPrepareData(unittest.TestCase):
 
     def test_database_build(self):
         with tempfile.TemporaryDirectory() as tmpdir:
-            self.args.structures_dir = "./strucs"
-            self.args.output_dir = "./glib_build"
+            self.args.structures_dir = Path(tmpdir) / "structures"
+            self.args.output_dir = Path(tmpdir) / "build"
             prepare_data_main(self.args)
         pass
 
