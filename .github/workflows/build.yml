@@ -34,7 +34,7 @@ jobs:
           chmod u+x ./USalign
       - name: Export USalign path
         run: |
-          echo /home/runner/work/rnaglib/rnaglib/USalign >> $GITHUB_PATH
+          echo /home/runner/work/rnaglib/rnaglib/ >> $GITHUB_PATH
       - name: Install rna-align 
         run: |
           wget https://zhanggroup.org/RNA-align/bin/RNAalign.tar.bz2

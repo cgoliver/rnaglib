@@ -9,12 +9,15 @@ Run with -u to update the PDB atleast once a week
 import argparse
 import os
 from joblib import Parallel, delayed
+from pathlib import Path
 
 from tqdm import tqdm
 
 from rnaglib.utils import update_RNApdb
-
-from rnaglib.prepare_data import cif_to_graph
+from rnaglib.utils import dump_json
+from rnaglib.transforms import SmallMoleculeBindingTransform
+from rnaglib.transforms import RBPTransform
+from rnaglib.prepare_data import fr3d_to_graph
 from rnaglib.prepare_data import chop_all
 from rnaglib.prepare_data import annotate_all
 
@@ -44,15 +47,14 @@ def cline():
     parser.add_argument(
         "-s",
         "--structures_dir",
-        required=True,
+        default="./structures",
         help="directory containing RNA structures from the PDB",
     )
-    parser.add_argument(
-        "-o", "--output_dir", required=True, help="directory to output graphs"
-    )
+    parser.add_argument("-o", "--output_dir", default="./graphs", help="directory to output graphs")
     # For just one output
     parser.add_argument(
         "--one_mmcif",
+        default=None,
         help="If one wants to do only one structure, path to the mmcif file",
     )
     # Optional arguments
@@ -71,12 +73,8 @@ def cline():
         help="number of workers for multiprocessing",
         default=1,
     )
-    parser.add_argument(
-        "-u", "--update", action="store_true", help="update the structures dir"
-    )
-    parser.add_argument(
-        "-t", "--tag", default="default", help="Version tag to assign to the dataset."
-    )
+    parser.add_argument("-u", "--update", default=True, action="store_true", help="update the structures dir")
+    parser.add_argument("-t", "--tag", default="default", help="Version tag to assign to the dataset.")
     parser.add_argument(
         "-a",
         "--annotate",
@@ -95,6 +93,7 @@ def cline():
         "-c",
         "--continu",
         action="store_true",
+        default=False,
         help="Continue previously paused execution",
     )
     parser.add_argument(
@@ -109,22 +108,19 @@ def cline():
         "-d",
         "--debug",
         action="store_true",
+        default=False,
         help="runs only on --n-debug structures for debug.",
     )
-    parser.add_argument(
-        "--n-debug", type=int, default=10, help="set number of debug structures."
-    )
+    parser.add_argument("--n-debug", type=int, default=10, help="set number of debug structures.")
     return parser.parse_args()
 
 
-def prepare_data_main():
+def prepare_data_main(args):
     """Master function for building an annotated RNA dataset.
     Results in a folder with the following sub-directories: 'graphs', 'chops', annots'.
     The last two are only present if args.annotate are set. The 'graphs' folder
     contains JSON objects which can be loaded by networkx into graphs.
     """
-
-    args = cline()
 
     if args.one_mmcif is not None:
         cif_to_graph(cif=args.one_mmcif, output_dir=args.output_dir)
@@ -135,9 +131,10 @@ def prepare_data_main():
 
     # Update PDB and get Todo list
     # list of rnas to process
+    Path(args.structures_dir).mkdir(parents=True, exist_ok=True)
     if args.rna_source == "rcsb":
-        print(">>> Updating local PDB mirror")
-        rna_list = update_RNApdb(args.structures_dir, nr_only=args.nr)
+        print(f">>> Updating local PDB mirror in {args.structures_dir}")
+        rna_list = update_RNApdb(args.structures_dir, nr_only=args.nr, debug=args.debug)
     if args.rna_source == "local":
         print(f">>> Using structures in {args.structures_dir}")
         rna_list = [f.split(".")[0] for f in os.listdir(args.structures_dir)]
@@ -146,11 +143,7 @@ def prepare_data_main():
     if args.continu:
         done = set([os.path.splitext(g)[0] for g in os.listdir(graphs_dir)])
 
-    todo = [
-        (os.path.join(args.structures_dir, pdbid + ".cif"), build_dir)
-        for pdbid in rna_list
-        if pdbid not in done
-    ]
+    todo = [Path(args.structures_dir) / f"{pdbid}.cif" for pdbid in rna_list if pdbid not in done]
     if args.debug:
         print(">>> Using debug mode. Preparing only 10 structures.")
         todo = [item for i, item in enumerate(todo) if i < args.n_debug]
@@ -158,13 +151,16 @@ def prepare_data_main():
     # Build Graphs
     total = len(todo)
     print(f">>> Processing {total} RNAs.")
-    errors = Parallel(n_jobs=args.num_workers)(
-        delayed(cif_to_graph)(*t)
-        for t in tqdm(todo, total=total, desc="Building RNA graphs.")
+    job = Parallel(n_jobs=args.num_workers)(
+        delayed(fr3d_to_graph)(t) for t in tqdm(todo, total=total, desc="Building RNA graphs.")
     )
-    with open(os.path.join(build_dir, "errors.csv"), "w") as err:
-        for pdbid, error in errors:
-            err.write(f"{pdbid},{error}\n")
+
+    for graph, g_path in zip(job, todo):
+        t = SmallMoleculeBindingTransform(structures_dir=args.structures_dir)
+        t = RBPTransform(structures_dir=args.structures_dir)
+        rna_dict = {"rna": graph}
+        t(rna_dict)
+        dump_json(Path(graphs_dir) / Path(g_path).name, rna_dict["rna"])
 
     chop_dir = os.path.join(build_dir, "chops")
     annot_dir = os.path.join(build_dir, "annot")
@@ -182,4 +178,5 @@ def prepare_data_main():
 
 
 if __name__ == "__main__":
-    prepare_data_main()
+    args = cline()
+    prepare_data_main(args)
