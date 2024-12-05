@@ -206,6 +206,7 @@ def fr3d_to_graph(rna_path):
             G.add_edge(nt1, nt2, LW=elabel)
             G.add_edge(nt2, nt1, LW=elabel_flip)
 
+    G.graph["name"] = pdbid
     G.graph["pdbid"] = pdbid
 
     return G
