@@ -36,22 +36,24 @@ class RNAAttributeFilter(FilterTransform):
     :param attribute: which RNA-level attribute to look for.
     """
 
-    def __init__(self, attribute: str, **kwargs):
+    def __init__(
+            self, 
+            attribute: str, 
+            value_checker: Callable = None,
+            **kwargs
+    ):
         self.attribute = attribute
+        self.value_checker = value_checker
         super().__init__(**kwargs)
         pass
 
     def forward(self, data: dict):
         try:
-            annot = data["rna"].graph[self.attribute]
+            val = data["rna"].graph[self.attribute]
         except KeyError:
             return False
         else:
-            if annot is None:
-                return False
-        return True
-
-    pass
+            return self.value_checker(val)
 
 
 class   ResidueAttributeFilter(FilterTransform):
