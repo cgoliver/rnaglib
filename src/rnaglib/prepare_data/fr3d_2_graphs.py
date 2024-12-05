@@ -156,7 +156,7 @@ def fr3d_to_graph(rna_path):
     bbs, nt_types, nt_types_full = get_bb(structure, rna_chains, XNA_linking, pdbid=pdbid)
     # print(f"rna chain residues: {nt_types}")
     logger.trace(bbs)
-    G = nx.DiGraph()
+    G = nx.MultiDiGraph()
     G.add_edges_from(bbs)
 
     nx.set_node_attributes(G, nt_types, "nt")
