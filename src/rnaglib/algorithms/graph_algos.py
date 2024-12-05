@@ -15,6 +15,32 @@ CANONICALS = GRAPH_KEYS["canonical"][TOOL]
 VALID_EDGES = GRAPH_KEYS["edge_map"][TOOL].keys()
 
 
+def multigraph_to_simple(g: nx.MultiDiGraph) -> nx.DiGraph:
+    """Convert directed multi graph to simple directed graph.
+    When multiple edges are found between two nodes, we keep backbone.
+    """
+    simple_g = nx.DiGraph()
+    backbone_types = ["B53", "B35"]
+    # first pass adds the backbones
+    for u, v, data in g.edges(data=True):
+        etype = data["LW"]
+        if etype in backbone_types:
+            simple_g.add_edge(u, v, **d)
+        pass
+    # second pass adds non-canonicals when no backbone exists
+    basepairs = []
+    for u, v, data in g.edges(data=True):
+        etype = data["LW"]
+        if etype not in backbone_types and (u, v) not in simple_g.has_edge(u, v):
+            basepairs.append((u, v, data))
+
+    simple_g.add_edges_from(basepairs)
+
+    simple_g.graph = g.graph.copy()
+
+    return simple_g
+
+
 def reorder_nodes(g: nx.DiGraph) -> nx.DiGraph:
     """
     Reorder nodes in graph according to default ``sorted()`` order.
@@ -33,9 +59,7 @@ def reorder_nodes(g: nx.DiGraph) -> nx.DiGraph:
     return reordered_graph
 
 
-def induced_edge_filter(
-    graph: nx.DiGraph, roots: List[Hashable], depth: Optional[int] = 1
-) -> nx.DiGraph:
+def induced_edge_filter(graph: nx.DiGraph, roots: List[Hashable], depth: Optional[int] = 1) -> nx.DiGraph:
     """
     Remove edges in graph introduced by the induced sugraph routine.
     Only keep edges which fall within a single node's neighbourhood.
@@ -142,10 +166,7 @@ def nx_to_dgl(graph, edge_map, label="label"):
     import dgl
 
     graph, _, ring = pickle.load(open(graph, "rb"))
-    edge_type = {
-        edge: edge_map[lab]
-        for edge, lab in (nx.get_edge_attributes(graph, label)).items()
-    }
+    edge_type = {edge: edge_map[lab] for edge, lab in (nx.get_edge_attributes(graph, label)).items()}
     nx.set_edge_attributes(graph, name="edge_type", values=edge_type)
     g_dgl = dgl.DGLGraph()
     g_dgl.from_networkx(nx_graph=graph, edge_attrs=["edge_type"])
@@ -159,10 +180,7 @@ def dgl_to_nx(graph, edge_map, label="label"):
     edge_map_r = {v: k for k, v in edge_map.items()}
     nx.set_edge_attributes(
         g,
-        {
-            (n1, n2): edge_map_r[d["edge_type"].item()]
-            for n1, n2, d in g.edges(data=True)
-        },
+        {(n1, n2): edge_map_r[d["edge_type"].item()] for n1, n2, d in g.edges(data=True)},
         label,
     )
     return g
@@ -408,9 +426,7 @@ def stack_trim(graph):
     :return: trimmed graph
     """
     is_ww = lambda e, graph: "CWW" in [info["LW"] for node, info in graph[e].items()]
-    degree = lambda i, graph, nodelist: np.sum(
-        nx.to_numpy_matrix(graph, nodelist=nodelist)[i]
-    )
+    degree = lambda i, graph, nodelist: np.sum(nx.to_numpy_matrix(graph, nodelist=nodelist)[i])
     cur_graph = graph.copy()
     while True:
         stacks = []
@@ -459,15 +475,9 @@ def in_stem(graph, u, v):
 
     :return: Boolean
     """
-    non_bb = lambda graph, e: len(
-        [info["LW"] for node, info in graph[e].items() if info["LW"] not in CANONICALS]
-    )
+    non_bb = lambda graph, e: len([info["LW"] for node, info in graph[e].items() if info["LW"] not in CANONICALS])
     is_ww = lambda graph, u, v: graph[u][v]["LW"] not in {"CWW", "cWW"}
-    if (
-        is_ww(graph, u, v)
-        and (non_bb(graph, u) in (1, 2))
-        and (non_bb(graph, v) in (1, 2))
-    ):
+    if is_ww(graph, u, v) and (non_bb(graph, u) in (1, 2)) and (non_bb(graph, v) in (1, 2)):
         return True
     return False
 
@@ -523,9 +533,7 @@ def relabel_graphs(graph_dir, dump_path):
     pass
 
 
-def weisfeiler_lehman_graph_hash(
-    graph, edge_attr=None, node_attr=None, iterations=3, digest_size=16
-):
+def weisfeiler_lehman_graph_hash(graph, edge_attr=None, node_attr=None, iterations=3, digest_size=16):
     """Return Weisfeiler Lehman (WL) graph hash.
 
     The function iteratively aggregates and hashes neighbourhoods of each node.
@@ -626,9 +634,7 @@ def weisfeiler_lehman_graph_hash(
         """
         new_labels = dict()
         for node in graph.nodes():
-            new_labels[node] = neighborhood_aggregate(
-                graph, node, labels, edge_attr=edge_attr
-            )
+            new_labels[node] = neighborhood_aggregate(graph, node, labels, edge_attr=edge_attr)
         return new_labels
 
     items = []
@@ -660,9 +666,7 @@ def weisfeiler_lehman_graph_hash(
     return h
 
 
-def fix_buggy_edges(
-    graph, label="LW", strategy="remove", edge_map=GRAPH_KEYS["edge_map"][TOOL]
-):
+def fix_buggy_edges(graph, label="LW", strategy="remove", edge_map=GRAPH_KEYS["edge_map"][TOOL]):
     """
     Sometimes some edges have weird names such as t.W representing a fuzziness.
     We just remove those as they don't deliver a good information
@@ -681,9 +685,7 @@ def fix_buggy_edges(
         for start_node, end_node in to_remove:
             graph.remove_edge(start_node, end_node)
     else:
-        raise ValueError(
-            f"The edge fixing strategy : {strategy} was not implemented yet"
-        )
+        raise ValueError(f"The edge fixing strategy : {strategy} was not implemented yet")
     return graph
 
 
