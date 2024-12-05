@@ -511,21 +511,19 @@ def update_RNApdb(pdir, nr_only=True, rna_list=None, debug=False):
     pl = PDBList()
 
     # If not fully downloaded before, download all structures
-    if len(os.listdir(pdir)) < 2000:
-        pl.download_pdb_files(rna, pdir=pdir, overwrite=True)
-    else:
-        added, mod, obsolete = pl.get_recent_changes()
-        # Download new and modded entries
-        new_rna = rna.intersection(set(added).union(set(mod)))
-        pl.download_pdb_files(new_rna, pdir=pdir, overwrite=True)
+    pl.download_pdb_files(rna, pdir=pdir, overwrite=False)
+    added, mod, obsolete = pl.get_recent_changes()
+    # Download new and modded entries
+    new_rna = rna.intersection(set(added).union(set(mod)))
+    pl.download_pdb_files(new_rna, pdir=pdir, overwrite=True)
 
-        # Remove Obsolete entries
-        obsolete_dir = os.path.join(pdir, "obsolete")
-        if not os.path.exists(obsolete_dir):
-            os.mkdir(obsolete_dir)
-        for cif in os.listdir(pdir):
-            if cif[-8:-4].upper() in set(obsolete):
-                os.rename(os.path.join(pdir, cif), os.path.join(obsolete_dir, cif))
+    # Remove Obsolete entries
+    obsolete_dir = os.path.join(pdir, "obsolete")
+    if not os.path.exists(obsolete_dir):
+        os.mkdir(obsolete_dir)
+    for cif in os.listdir(pdir):
+        if cif[-8:-4].upper() in set(obsolete):
+            os.rename(os.path.join(pdir, cif), os.path.join(obsolete_dir, cif))
 
     return rna
 
