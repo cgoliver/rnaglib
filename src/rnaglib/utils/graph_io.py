@@ -249,7 +249,7 @@ def download(url, path=None, overwrite=True, retries=5, verify_ssl=True, log=Tru
     return fname
 
 
-def download_name_generator(version="1.0.0", redundancy="nr", annotated=False, record="7624873", debug=False):
+def download_name_generator(version="1.0.0", redundancy="nr", annotated=False, record="14285986", debug=False):
     """
     This returns the zenodo URL given dataset choices.
 
@@ -306,7 +306,9 @@ def download_graphs(
         tag = f"rnaglib-debug-{version}"
     else:
         tag = f"rnaglib-{redundancy}-{version}{'-chop' if chop else ''}{'-' + 'annotated' if annotated else ''}"
-    url = download_name_generator(redundancy=redundancy, version=version, annotated=annotated, debug=debug)
+    url = download_name_generator(
+        redundancy=redundancy, version=version, annotated=annotated, debug=debug, record="14286095"
+    )
     dl_path = Path(data_root) / "downloads" / Path(tag + ".tar.gz")
     data_path = Path(data_root) / "datasets"
 
@@ -531,7 +533,7 @@ def update_RNApdb(pdir, nr_only=True, rna_list=None, debug=False):
     print(f"Updating PDB mirror in {pdir}")
     # Get a list of PDBs containing RNA
     if not rna_list is None:
-        rna = rna_list
+        rna = set(rna_list)
     else:
         rna = set(get_rna_list(nr_only=nr_only))
 
