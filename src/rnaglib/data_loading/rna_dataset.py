@@ -73,6 +73,8 @@ class RNADataset:
         self,
         rnas: List[nx.Graph] = None,
         dataset_path: Union[str, os.PathLike] = None,
+        version="1.0.0",
+        redundancy="nr",
         rna_id_subset: List[str] = None,
         in_memory: bool = True,
         features_computer: FeaturesComputer = None,
@@ -95,20 +97,14 @@ class RNADataset:
                 self.dataset_path = dataset_path
             else:
                 # By default, use non redundant (nr), v1.0.0 dataset of rglib
-                if "redundancy" in kwargs:
-                    dataset_path = download_graphs(
-                        redundancy=kwargs["redundancy"],
-                        debug=debug,
-                        get_pdbs=get_pdbs,
-                        overwrite=overwrite,
-                    )
-                else:
-                    dataset_path = download_graphs(
-                        redundancy="nr",
-                        debug=debug,
-                        get_pdbs=get_pdbs,
-                        overwrite=overwrite,
-                    )
+                dataset_path = download_graphs(
+                    redundancy=redundancy,
+                    version=version,
+                    debug=debug,
+                    get_pdbs=get_pdbs,
+                    overwrite=overwrite,
+                )
+
                 self.dataset_path = os.path.join(dataset_path, "graphs")
                 self.structures_path = os.path.join(dataset_path, "structures")
 
