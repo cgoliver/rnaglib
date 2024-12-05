@@ -46,6 +46,34 @@ class OneHotEncoder:
         except KeyError:
             return None
 
+class IntEncoder:
+
+    def __init__(self, default_value=0):
+        """
+        Utility class to encode floats
+
+        :param default_value: The value to return in case of failure
+        """
+        self.default_value = default_value
+
+    def encode(self, value):
+        """
+        Assign encoding of `value` according to known possible values.
+
+        :param value: The value to encode. If missing a default value (by default zero) is produced.
+        """
+        try:
+            return torch.tensor([value], dtype=torch.int)
+        except:
+            return self.encode_default()
+
+    def encode_default(self):
+        return torch.tensor([self.default_value], dtype=torch.int)
+
+    def decode(self, value):
+        return value.item()
+
+
 
 class FloatEncoder:
 

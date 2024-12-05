@@ -1,12 +1,20 @@
+import os
+import pandas as pd
 from rnaglib.transforms import AnnotationTransform
-from networkx import set_node_attributes
-
 
 class LigandAnnotator(AnnotationTransform):
+    name = "ligand_code"
+
+    def __init__(
+            self,
+            data,
+            **kwargs
+    ):
+        self.data = data
+        super().__init__(**kwargs)
+        
     def forward(self, rna_dict: dict) -> dict:
-        ligand_codes = {
-            node: int(self.data.loc[self.data.nid == node, "label"].values[0])
-            for node, nodedata in rna_dict["rna"].nodes(data=True)
-        }
-        set_node_attributes(rna_dict["rna"], ligand_codes, "ligand_code")
+        node = next(iter(rna_dict["rna"].nodes()))
+        ligand_code = int(self.data.loc[self.data.nid == node, "label"].values[0])
+        rna_dict["rna"].graph[self.name] = ligand_code
         return rna_dict
