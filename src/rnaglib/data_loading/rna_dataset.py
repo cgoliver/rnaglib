@@ -28,6 +28,7 @@ class RNADataset:
     :param rnas: One can instantiate directly from a list of RNA files
     :param dataset_path: The path to the folder containing the graphs.
     :param rna_id_subset: In the given directory, ``'dataset_path'``, one can choose to provide a list of graphs filenames to keep instead of using all available.
+    :param multigraph: Whether to load RNAs as multi-graphs or simple graphs. Multigraphs can have backbone and base pairs between the same two residues.
     :param in_memory: Whether to load all RNA graphs in memory or to load them on the fly
     :param features_computer: A FeaturesComputer object, useful to transform raw RNA data into tensors.
     :param representations: List of :class:`~rnaglib.representations.Representation` objects to apply to each item.
@@ -69,23 +70,25 @@ class RNADataset:
     """
 
     def __init__(
-            self,
-            rnas: List[nx.Graph] = None,
-            dataset_path: Union[str, os.PathLike] = None,
-            rna_id_subset: List[str] = None,
-            in_memory: bool = True,
-            features_computer: FeaturesComputer = None,
-            representations: Union[List[Representation], Representation] = None,
-            debug: bool = False,
-            get_pdbs: bool = True,
-            overwrite: bool = False,
-            pre_transforms: Union[List[Transform], Transform] = None,
-            transforms: Union[List[Transform], Transform] = None,
-            **kwargs,
+        self,
+        rnas: List[nx.Graph] = None,
+        dataset_path: Union[str, os.PathLike] = None,
+        rna_id_subset: List[str] = None,
+        in_memory: bool = True,
+        features_computer: FeaturesComputer = None,
+        representations: Union[List[Representation], Representation] = None,
+        debug: bool = False,
+        get_pdbs: bool = True,
+        overwrite: bool = False,
+        multigraph: bool = False,
+        pre_transforms: Union[List[Transform], Transform] = None,
+        transforms: Union[List[Transform], Transform] = None,
+        **kwargs,
     ):
         self.in_memory = in_memory
         self.transforms = transforms
         self.pre_transforms = pre_transforms
+        self.multigraph = multigraph
 
         if rnas is None:
             if dataset_path is not None:
@@ -133,15 +136,12 @@ class RNADataset:
             rna_names = set([rna.name for rna in rnas])
             assert "" not in rna_names, "Empty RNA name found"
             assert len(rna_names) == len(rnas), (
-                "When creating a RNAdataset from rnas, please "
-                "use uniquely named networkx graphs"
+                "When creating a RNAdataset from rnas, please " "use uniquely named networkx graphs"
             )
             self.all_rnas = bidict({rna.name: i for i, rna in enumerate(rnas)})
 
         # Now that we have the raw data setup, let us set up the features we want to be using:
-        self.features_computer = (
-            FeaturesComputer() if features_computer is None else features_computer
-        )
+        self.features_computer = FeaturesComputer() if features_computer is None else features_computer
 
         # pass transforms to the features computer to make the features available to the feat_dict
         if not pre_transforms is None:
@@ -159,11 +159,11 @@ class RNADataset:
 
     @classmethod
     def from_database(
-            cls,
-            representations=None,
-            features_computer=None,
-            in_memory=True,
-            **dataset_build_params,
+        cls,
+        representations=None,
+        features_computer=None,
+        in_memory=True,
+        **dataset_build_params,
     ):
         """Run the steps to build a dataset from scratch.
 
@@ -214,7 +214,7 @@ class RNADataset:
         if self.in_memory:
             rna_graph = self.rnas[idx]
         else:
-            rna_graph = load_graph(str(nx_path))
+            rna_graph = load_graph(str(nx_path), multigraph=self.multigraph)
             rna_graph.name = rna_name
 
         # Compute features
@@ -230,9 +230,7 @@ class RNADataset:
             rna_dict[rep.name] = rep(rna_graph, features_dict)
         return rna_dict
 
-    def add_representation(
-            self, representations: Union[List[Representation], Representation]
-    ):
+    def add_representation(self, representations: Union[List[Representation], Representation]):
         """Add a representation object to dataset.
 
         Provided representations are added on the fly to the dataset.
@@ -248,9 +246,7 @@ class RNADataset:
         names = [names] if not isinstance(names, Iterable) else names
         for name in names:
             self.representations = [
-                representation
-                for representation in self.representations
-                if representation.name != name
+                representation for representation in self.representations if representation.name != name
             ]
 
     def subset(self, list_of_ids=None, list_of_names=None):
@@ -299,8 +295,9 @@ class RNADataset:
         Make in_memory=True from a dataset not in memory
         :return:
         """
-        self.rnas = [load_graph(os.path.join(self.dataset_path, f"{g_name}{self.extension}")) for g_name in
-                     self.all_rnas]
+        self.rnas = [
+            load_graph(os.path.join(self.dataset_path, f"{g_name}{self.extension}")) for g_name in self.all_rnas
+        ]
         for rna, name in zip(self.rnas, self.all_rnas):
             rna.name = name
 
@@ -317,9 +314,7 @@ class RNADataset:
 if __name__ == "__main__":
     from rnaglib.transforms import GraphRepresentation
 
-    features_computer = FeaturesComputer(
-        nt_features="nt_code", nt_targets="binding_protein"
-    )
+    features_computer = FeaturesComputer(nt_features="nt_code", nt_targets="binding_protein")
     graph_rep = GraphRepresentation(framework="dgl")
     all_rnas = [
         "1a9n.json",
@@ -373,9 +368,7 @@ if __name__ == "__main__":
     # subset2 = subset.subset(list_of_ids=[1, 3, 4])
 
     # Test saving
-    supervised_dataset = RNADataset(
-        dataset_path=dataset_path, representations=graph_rep, in_memory=True
-    )
+    supervised_dataset = RNADataset(dataset_path=dataset_path, representations=graph_rep, in_memory=True)
     # supervised_dataset.save(os.path.join(script_dir, "../data/test_dump"))
     supervised_dataset.check_consistency()
     a = 1
