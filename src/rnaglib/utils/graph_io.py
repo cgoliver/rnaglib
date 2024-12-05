@@ -43,8 +43,6 @@ def multigraph_to_simple(g: nx.MultiDiGraph) -> nx.DiGraph:
 
     simple_g.graph = g.graph.copy()
 
-    print(simple_g)
-
     return simple_g
 
 
@@ -115,7 +113,7 @@ def load_graph(filename, multigraph=False):
     else:
         raise NotImplementedError("We have not implemented this data format yet")
 
-    if not multigraph:
+    if not multigraph and isinstance(graph, nx.MultiDiGraph):
         graph = multigraph_to_simple(graph)
     return graph
 
