@@ -117,6 +117,21 @@ def cline():
     return parser.parse_args()
 
 
+def do_one_annot(cif_path, dump_dir):
+    structures_dir = Path(cif_path).parent
+    graph = fr3d_to_graph(cif_path)
+    t1 = CifMetadata(structures_dir=structures_dir)
+    t2 = SmallMoleculeBindingTransform(structures_dir=structures_dir)
+    t3 = RBPTransform(structures_dir=structures_dir)
+    T = Compose([t1, t2, t3])
+
+    rna_dict = {"rna": graph}
+    rna_dict = T(rna_dict)
+    dump_json(Path(dump_dir), rna_dict["rna"])
+
+    pass
+
+
 def prepare_data_main(args):
     """Master function for building an annotated RNA dataset.
     Results in a folder with the following sub-directories: 'graphs', 'chops', annots'.
@@ -154,18 +169,8 @@ def prepare_data_main(args):
     total = len(todo)
     print(f">>> Processing {total} RNAs.")
     job = Parallel(n_jobs=args.num_workers)(
-        delayed(fr3d_to_graph)(t) for t in tqdm(todo, total=total, desc="Building RNA graphs.")
+        delayed(do_one_annot)(t, graphs_dir) for t in tqdm(todo, total=total, desc="Building RNA graphs.")
     )
-
-    t1 = CifMetadata(structures_dir=args.structures_dir)
-    t2 = SmallMoleculeBindingTransform(structures_dir=args.structures_dir)
-    t3 = RBPTransform(structures_dir=args.structures_dir)
-    T = Compose([t1, t2, t3])
-
-    for graph, g_path in zip(job, todo):
-        rna_dict = {"rna": graph}
-        rna_dict = T(rna_dict)
-        dump_json(Path(graphs_dir) / Path(g_path).name, rna_dict["rna"])
 
     chop_dir = os.path.join(build_dir, "chops")
     annot_dir = os.path.join(build_dir, "annot")
