@@ -8,6 +8,31 @@ from Bio.PDB.MMCIFParser import FastMMCIFParser
 
 from rnaglib.transforms import AnnotationTransform
 
+protein_residues = {
+    "ALA",
+    "ARG",
+    "ASN",
+    "ASP",
+    "CYS",
+    "GLN",
+    "GLU",
+    "GLY",
+    "HIS",
+    "ILE",
+    "LEU",
+    "LYS",
+    "MET",
+    "PHE",
+    "PRO",
+    "SER",
+    "THR",
+    "TRP",
+    "TYR",
+    "VAL",
+}
+
+phosphate_atoms = {"P", "OP1", "OP2"}
+
 
 class RBPTransform(AnnotationTransform):
 
@@ -23,38 +48,45 @@ class RBPTransform(AnnotationTransform):
         parser = FastMMCIFParser(QUIET=True)
         structure = parser.get_structure("", cif)
 
-        # Load the structure
+        # set of tuples (chain, pos) for RNA nodes
+        rna_res_ids = set([tuple(n.split(".")[1:]) for n in g.nodes()])
 
         # Extract atoms for RNA and Protein
         rna_atoms = []
         protein_atoms = []
         rna_residues = []
 
-        for model in structure:
-            for chain in model:
-                for residue in chain:
-                    # Classify based on residue name
-                    res_name = residue.get_resname()
-                    if res_name in ["A", "U", "G", "C"]:  # RNA residue codes
-                        rna_atoms.extend(residue.get_atoms())
-                        rna_residues.append(residue)
-                    elif "CA" in residue or "N" in residue:  # Typical protein residues
-                        protein_atoms.extend(residue.get_atoms())
+        for chain in structure[0]:
+            for residue in chain:
+                res_name = residue.get_resname()
+                if (chain.id, str(residue.id[1])) in rna_res_ids:
+                    for atom in residue.get_atoms():
+                        if atom.get_name() in phosphate_atoms:
+                            rna_atoms.append(atom)
+                            break
+                    rna_residues.append(residue)
+                if residue.get_resname() in protein_residues:
+                    for atom in residue.get_atoms():
+                        if atom.get_name() == "CA":
+                            protein_atoms.append(atom)
+                            break
 
         # Build a KDTree
         all_rna_atoms = list(rna_atoms)
         all_protein_atoms = list(protein_atoms)
-        neighbor_search = NeighborSearch(all_rna_atoms)
 
-        # Find RNA residues near protein residues
-        distance_threshold = 5.0
         close_residues = set()
 
-        for atom in all_protein_atoms:
-            close_atoms = neighbor_search.search(atom.coord, distance_threshold)
-            for close_atom in close_atoms:
-                close_residue = close_atom.get_parent()
-                if close_residue in rna_residues:
+        if len(all_protein_atoms) > 1:
+            neighbor_search = NeighborSearch(all_protein_atoms)
+
+            # Find RNA residues near protein residues
+            distance_threshold = self.distance_threshold
+
+            for rna_atom in all_rna_atoms:
+                close_atoms = neighbor_search.search(rna_atom.coord, distance_threshold)
+                for close_atom in close_atoms:
+                    close_residue = close_atom.get_parent()
                     close_residues.add((close_residue.get_parent().id, close_residue.id[1]))
 
         # Output the results

@@ -15,6 +15,8 @@ from tqdm import tqdm
 
 from rnaglib.utils import update_RNApdb
 from rnaglib.utils import dump_json
+from rnaglib.transforms import Compose
+from rnaglib.transforms import CifMetadata
 from rnaglib.transforms import SmallMoleculeBindingTransform
 from rnaglib.transforms import RBPTransform
 from rnaglib.prepare_data import fr3d_to_graph
@@ -155,11 +157,14 @@ def prepare_data_main(args):
         delayed(fr3d_to_graph)(t) for t in tqdm(todo, total=total, desc="Building RNA graphs.")
     )
 
+    t1 = CifMetadata(structures_dir=args.structures_dir)
+    t2 = SmallMoleculeBindingTransform(structures_dir=args.structures_dir)
+    t3 = RBPTransform(structures_dir=args.structures_dir)
+    T = Compose([t1, t2, t3])
+
     for graph, g_path in zip(job, todo):
-        t = SmallMoleculeBindingTransform(structures_dir=args.structures_dir)
-        t = RBPTransform(structures_dir=args.structures_dir)
         rna_dict = {"rna": graph}
-        t(rna_dict)
+        rna_dict = T(rna_dict)
         dump_json(Path(graphs_dir) / Path(g_path).name, rna_dict["rna"])
 
     chop_dir = os.path.join(build_dir, "chops")

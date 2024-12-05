@@ -42,9 +42,7 @@ class Transform:
         RNADataset = __import__("rnaglib.data_loading").data_loading.RNADataset
         if isinstance(data, (list, Generator, RNADataset)):
             if self.parallel:
-                return Parallel(n_jobs=self.num_workers)(
-                    delayed(self.forward)(d) for d in data
-                )
+                return Parallel(n_jobs=self.num_workers)(delayed(self.forward)(d) for d in data)
             else:
                 return (self.forward(d) for d in data)
         else:
@@ -87,9 +85,7 @@ class FilterTransform(Transform):
             raise ValueError("Filter transforms only apply to collections of RNAs.")
 
         if self.parallel:
-            keeps = Parallel(n_jobs=self.num_workers)(
-                delayed(self.forward)(d) for d in data
-            )
+            keeps = Parallel(n_jobs=self.num_workers)(delayed(self.forward)(d) for d in data)
             return (d for d, keep in zip(data, keeps) if keep)
         else:
             return (d for d in data if self.forward(d))
@@ -170,7 +166,6 @@ class ComposeFilters:
             if not all_true:
                 return False
         return True
-
 
     def __repr__(self) -> str:
         args = [f"  {filter_fn}" for filter_fn in self.filters]

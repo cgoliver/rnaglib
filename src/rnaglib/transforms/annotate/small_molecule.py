@@ -131,33 +131,6 @@ def hariboss_filter(lig, cif_dict, mass_lower_limit=160, mass_upper_limit=1000):
         return None
 
 
-def get_mmcif_graph_level(mmcif_dict):
-    """
-    Parse an mmCIF dict and return some metadata.
-
-    :param cif: output of the Biopython MMCIF2Dict function
-    :return: dictionary of mmcif metadata (for now only resolution terms)
-    """
-    keys = {
-        "resolution_low": "_reflns.d_resolution_low",
-        "resolution_high": "_reflns.d_resolution_high",
-        "pdbid": "_pdbx_database_status.entry_id",
-    }
-
-    annots = {}
-    for name, key in keys.items():
-        try:
-            annots[name] = mmcif_dict[key]
-        except KeyError:
-            pass
-    return annots
-
-
-# def get_hetatm(cif_dict):
-#     all_hetatm = set(cif_dict.get('_pdbx_nonpoly_scheme.mon_id', []))
-#     return all_hetatm
-
-
 def get_small_partners(cif, mmcif_dict=None, radius=6, mass_lower_limit=160, mass_upper_limit=1000):
     """
     Returns all the relevant small partners in the form of a dict of list of dicts:
@@ -232,10 +205,6 @@ class SmallMoleculeBindingTransform(AnnotationTransform):
         g = rna_dict["rna"]
         cif = str(Path(self.structures_dir) / f"{g.graph['pdbid'].lower()}.cif")
         mmcif_dict = MMCIF2Dict(cif)
-        # Add graph level like resolution
-        graph_level_annots = get_mmcif_graph_level(mmcif_dict=mmcif_dict)
-
-        g.graph.update(graph_level_annots)
 
         # Fetch interactions with small molecules and ions
         all_interactions = get_small_partners(cif, mmcif_dict=mmcif_dict)
