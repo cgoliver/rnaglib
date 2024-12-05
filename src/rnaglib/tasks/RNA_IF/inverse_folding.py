@@ -1,5 +1,7 @@
 """Inverse Folding task definitions"""
 
+import os
+
 import torch
 import numpy as np
 from sklearn.metrics import (
@@ -11,9 +13,10 @@ from sklearn.metrics import (
 )
 
 from rnaglib.data_loading import RNADataset
-from rnaglib.transforms import FeaturesComputer, DummyAnnotator
+from rnaglib.transforms import FeaturesComputer, DummyAnnotator, ComposeFilters, RibosomalFilter, RNAAttributeFilter
 from rnaglib.tasks import ResidueClassificationTask
 from rnaglib.encoders import BoolEncoder, NucleotideEncoder
+from rnaglib.utils import dump_json
 
 
 class InverseFolding(ResidueClassificationTask):
@@ -24,9 +27,30 @@ class InverseFolding(ResidueClassificationTask):
         super().__init__(root=root, splitter=splitter, **kwargs)
 
     def process(self) -> RNADataset:
-        dataset = RNADataset(debug=self.debug)
-        rnas = DummyAnnotator()(dataset)
-        dataset = RNADataset(rnas=[r["rna"] for r in rnas])
+        # build the filters
+        ribo_filter = RibosomalFilter()
+        resolution_filter = RNAAttributeFilter(attribute="resolution_high", value_checker=lambda val: float(val[0])<4.0)
+        filters = ComposeFilters([ribo_filter, resolution_filter])
+
+        # Define your transforms
+        annotate_rna = DummyAnnotator()
+
+        # Run through database, applying our filters
+        dataset = RNADataset(debug=self.debug, in_memory=self.in_memory)
+        all_rnas = []
+        os.makedirs(self.dataset_path, exist_ok=True)
+        for rna in dataset:
+            if filters.forward(rna):
+                rna = annotate_rna(rna)["rna"]
+                if self.in_memory:
+                    all_rnas.append(rna)
+                else:
+                    all_rnas.append(rna.name)
+                    dump_json(os.path.join(self.dataset_path, f"{rna.name}.json"), rna)
+        if self.in_memory:
+            dataset = RNADataset(rnas=all_rnas)
+        else:
+            dataset = RNADataset(dataset_path=self.dataset_path, rna_id_subset=all_rnas)
         return dataset
 
     def get_task_vars(self) -> FeaturesComputer:
