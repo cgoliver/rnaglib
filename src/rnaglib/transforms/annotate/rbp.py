@@ -85,9 +85,9 @@ class RBPTransform(AnnotationTransform):
 
             for rna_atom in all_rna_atoms:
                 close_atoms = neighbor_search.search(rna_atom.coord, distance_threshold)
-                for close_atom in close_atoms:
-                    close_residue = close_atom.get_parent()
-                    close_residues.add((close_residue.get_parent().id, close_residue.id[1]))
+                if len(close_atoms) > 0:
+                    rna_residue = rna_atom.get_parent()
+                    close_residues.add((rna_residue.get_parent().id, rna_residue.id[1]))
 
         # Output the results
         rbp_status = {}
