@@ -12,7 +12,7 @@ from rnaglib.tasks import ProteinBindingSiteDetection
 from rnaglib.tasks import ChemicalModification
 from rnaglib.tasks import InverseFolding
 from rnaglib.tasks import gRNAde
-from rnaglib.tasks import GMSM
+from rnaglib.tasks import LigandIdentification
 from rnaglib.tasks import BindingSiteDetection, BenchmarkBindingSiteDetection
 
 
@@ -51,12 +51,10 @@ class TaskTest(unittest.TestCase):
             ta = gRNAde(root=tmp, debug=True)
             self.check_task(ta)
 
-    """
-    def test_GMSM(self):
+    def test_LigandIdentification(self):
         with tempfile.TemporaryDirectory() as tmp:
-            ta = GMSM(root=tmp, debug=True)
+            ta = LigandIdentification(root=tmp, debug=True)
             self.check_task(ta)
-    """
 
     def test_BindingSiteDetection(self):
         with tempfile.TemporaryDirectory() as tmp:

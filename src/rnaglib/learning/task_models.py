@@ -75,15 +75,13 @@ class RGCN_graph(torch.nn.Module):
                 graph = batch["graph"].to(self.device)
                 self.optimizer.zero_grad()
                 out = self(graph)
-                print(out.flatten())
-                print(graph.y.argmax())
-                loss = self.criterion(out.flatten(), graph.y.argmax())
+                loss = self.criterion(out, graph.y.long())
                 loss.backward()
                 self.optimizer.step()
 
             # Evaluation phase
-            train_metrics = self.evaluate(task.train_dataloader)
-            val_metrics = self.evaluate(task.val_dataloader)
+            train_metrics = task.evaluate(self, task.train_dataloader)
+            val_metrics = task.evaluate(self, task.val_dataloader)
 
             print(
                 f"Epoch {epoch + 1}, "
