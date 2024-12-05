@@ -40,7 +40,7 @@ class RNAFamily(RNAClassificationTask):
         # compute rfam annotation, only keep ones with an Rfam annot.
         tr_rfam = RfamTransform(parallel=True)
         rnas = tr_rfam(full_dataset)
-        rnas = list(RNAAttributeFilter(attribute=tr_rfam.name)(rnas))
+        rnas = list(RNAAttributeFilter(attribute=tr_rfam.name, value_checker = lambda val: val is not None)(rnas))
         # compute one-hot mapping of labels
         labels = sorted(set([r["rna"].graph["rfam"] for r in rnas]))
         rfam_mapping = {rfam: i for i, rfam in enumerate(labels)}
