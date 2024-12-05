@@ -20,7 +20,7 @@ class TestPrepareData(unittest.TestCase):
             "chop": False,
             "one_mmcif": None,
             "tag": "test",
-            "rna_source": "rcsb",
+            "rna_source": "local",
             "nr": True,
         }
         self.args = SimpleNamespace(**args)
@@ -31,8 +31,9 @@ class TestPrepareData(unittest.TestCase):
 
     def test_database_build(self):
         with tempfile.TemporaryDirectory() as tmpdir:
-            self.args.structures_dir = Path(tmpdir) / "structures"
-            self.args.output_dir = Path(tmpdir) / "build"
+            # self.args.structures_dir = Path(tmpdir) / "structures"
+            self.args.structures_dir = "strucs"
+            self.args.output_dir = "build"
             prepare_data_main(self.args)
         pass
 

@@ -6,3 +6,4 @@ from .RNA_ligand import LigandAnnotator
 from .dummy import *
 from .small_molecule import SmallMoleculeBindingTransform
 from .rbp import RBPTransform
+from .cif_metadata import CifMetadata
