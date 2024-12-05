@@ -127,7 +127,7 @@ def do_one_annot(cif_path, dump_dir):
 
     rna_dict = {"rna": graph}
     rna_dict = T(rna_dict)
-    dump_json(Path(dump_dir), rna_dict["rna"])
+    dump_json(Path(dump_dir) / f"{graph.graph['pdbid']}.json", rna_dict["rna"])
 
     pass
 
