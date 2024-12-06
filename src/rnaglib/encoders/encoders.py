@@ -46,6 +46,40 @@ class OneHotEncoder:
         except KeyError:
             return None
 
+class IntMappingEncoder:
+    def __init__(self, mapping, default_value=0):
+        """
+        To one-hot encode this feature.
+
+        :param mapping: This is a dictionnary that gives an index for each possible value.
+        :param num_values: If the mapping can be many to one, you should specifiy it here.
+        """
+        self.mapping = mapping
+        self.reverse_mapping = {value: key for key, value in mapping.items()}
+        self.default_value = default_value
+
+    def encode(self, value):
+        """
+        Assign encoding of `value` according to known possible values.
+
+        :param value: The value to encode. If missing a default vector of full zeroes is produced.
+        """
+        try:
+            return torch.tensor(self.mapping[value], dtype=torch.int)
+        except KeyError:
+            return self.encode_default()
+
+    def encode_default(self):
+        return torch.tensor([self.default_value], dtype=torch.int)
+
+    def decode(self, value):
+        try:
+            value = value.item() if isinstance(value, torch.Tensor) else int(value)
+            decoded = self.reverse_mapping[value]
+            return decoded
+        except KeyError:
+            return None
+
 class IntEncoder:
 
     def __init__(self, default_value=0):

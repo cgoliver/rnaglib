@@ -1,6 +1,6 @@
 from rnaglib.data_loading import RNADataset
 from rnaglib.tasks import RNAClassificationTask
-from rnaglib.encoders import OneHotEncoder
+from rnaglib.encoders import IntMappingEncoder
 from rnaglib.transforms import (
     ChainSplitTransform,
     RfamTransform,
@@ -13,26 +13,22 @@ from rnaglib.transforms import FeaturesComputer
 class RNAFamily(RNAClassificationTask):
     """Predict the Rfam family of a given RNA chain.
     This is a multi-class classification task. Of course, this task is solved
-    by definition since families are constructted algorithmically using covariance models. However it can still test the ability of a model to capture characteristic
+    by definition since families are constructed algorithmically using covariance models. However it can still test the ability of a model to capture characteristic
     structural features from 3D.
     """
 
     target_var = "rfam"  # graph level attribute
     input_var = "nt_code"  # node level attribute
 
-    def __init__(self, root, max_size: int = 200, splitter=None, **kwargs):
+    def __init__(self, max_size: int = 200, **kwargs):
         self.max_size = max_size
-        super().__init__(root=root, splitter=splitter, **kwargs)
-        pass
+        super().__init__(**kwargs)
 
     def get_task_vars(self):
         return FeaturesComputer(
             nt_features=self.input_var,
             rna_targets=self.target_var,
-            custom_encoders={
-                self.target_var: OneHotEncoder(self.metadata["label_mapping"]),
-            },
-        )
+            custom_encoders={self.target_var: IntMappingEncoder(self.metadata["label_mapping"])}, )
 
     def process(self):
         # Create dataset
