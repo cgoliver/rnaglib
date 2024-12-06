@@ -85,8 +85,8 @@ class GraphRepresentation(Representation):
             )
         if "nt_targets" in features_dict:
             list_y = [features_dict["nt_targets"][n] for n in node_map.keys()]
-                # In the case of single target, pytorch CE loss expects shape (n,) and not (n,1)
-                # For multi-target cases, we stack to get (n,d)
+            # In the case of single target, pytorch CE loss expects shape (n,) and not (n,1)
+            # For multi-target cases, we stack to get (n,d)
             if len(list_y[0]) == 1:
                 y = torch.cat(list_y)
             else:
@@ -120,5 +120,8 @@ class GraphRepresentation(Representation):
             return batched_graph
         if self.framework == "pyg":
             from torch_geometric.data import Batch
-
-            return Batch.from_data_list(samples)
+            batch = Batch.from_data_list(samples)
+            # sometimes batching changes dtype from int to float32?
+            batch.edge_index = batch.edge_index.to(torch.int64)
+            batch.edge_attr = batch.edge_attr.to(torch.int64)
+            return batch
