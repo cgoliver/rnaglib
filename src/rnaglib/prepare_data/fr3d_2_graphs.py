@@ -164,7 +164,8 @@ def fr3d_to_graph(rna_path):
     for node in G.nodes():
         G.nodes[node]["nt"] = nt_types[node]
         G.nodes[node]["nt_full"] = nt_types_full[node]
-        G.nodes[node]["is_modified"] = len(nt_types[node]) != 1
+        G.nodes[node]["chain_id"] = node.split(".")[1]
+        G.nodes[node]["is_modified"] = len(nt_types_full[node]) != 1
 
     try:
         coord_dict = {}

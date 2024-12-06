@@ -27,7 +27,7 @@ class TestDataset(unittest.TestCase):
 
     def test_get_pdbds(self):
         d = RNADataset(debug=True, get_pdbs=True, overwrite=True)
-        pdbids = [rna["rna"].graph["pdbid"][0] for rna in d]
+        pdbids = [rna["rna"].graph["pdbid"] for rna in d]
         pdb_paths = (Path(d.structures_path) / f"{pdbid.lower()}.cif" for pdbid in pdbids)
         for path in pdb_paths:
             assert os.path.exists(path)

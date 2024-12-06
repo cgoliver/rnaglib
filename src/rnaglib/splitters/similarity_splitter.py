@@ -185,7 +185,7 @@ class RNAalignSplitter(ClusterSplitter):
         :param dataset: RNA dataset to compute similarity over.
         :returns np.array: Array of pairwise similarities in order of given dataset.
         """
-        pdbids = [rna["rna"].graph["pdbid"][0] for rna in dataset]
+        pdbids = [rna["rna"].graph["pdbid"] for rna in dataset]
         pdb_paths = (Path(self.structures_dir) / f"{pdbid.lower()}.cif" for pdbid in pdbids)
 
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -228,7 +228,7 @@ class RNAalignSplitter(ClusterSplitter):
         :param dataset: RNA dataset to compute similarity over.
         :returns np.array: Array of pairwise similarities in order of given dataset.
         """
-        pdbids = [rna["rna"].graph["pdbid"][0] for rna in dataset]
+        pdbids = [rna["rna"].graph["pdbid"] for rna in dataset]
         pdb_paths = (Path(self.structures_dir) / f"{pdbid.lower()}.cif" for pdbid in pdbids)
 
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -292,5 +292,5 @@ class RNAalignSplitter(ClusterSplitter):
         final_pdbids = [pdbids_keep[i] for i in keep_idx]
         sim_mat = sim_mat[keep_idx][:, keep_idx]
 
-        keep_dataset = [rna for i, rna in enumerate(dataset) if rna["rna"].graph["pdbid"][0].lower() in final_pdbids]
+        keep_dataset = [rna for i, rna in enumerate(dataset) if rna["rna"].graph["pdbid"].lower() in final_pdbids]
         return sim_mat, keep_dataset

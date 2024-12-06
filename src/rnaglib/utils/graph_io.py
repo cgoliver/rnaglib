@@ -39,6 +39,9 @@ def multigraph_to_simple(g: nx.MultiDiGraph) -> nx.DiGraph:
         if etype not in backbone_types and not simple_g.has_edge(u, v):
             basepairs.append((u, v, data))
 
+    for n, data in g.nodes(data=True):
+        if n in simple_g.nodes():
+            simple_g.nodes[n].update(data)
     simple_g.add_edges_from(basepairs)
 
     simple_g.graph = g.graph.copy()
@@ -140,7 +143,6 @@ def get_all_existing(dataset_path: os.PathLike, all_rnas: Optional[List[str]] = 
     :param all_rnas: list of RNA names to search for (e.g. ``'1aju'`` will match ``'1aju.json'`` in ``dataset_path``.
     :return: List of filenames in ``dataset_path``
     """
-    print(dataset_path)
     _, extension = get_name_extension(os.listdir(dataset_path)[0])
 
     # By default, return a sorted listdir
