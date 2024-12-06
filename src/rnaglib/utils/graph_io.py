@@ -259,10 +259,6 @@ def download_name_generator(version="1.0.0", redundancy="nr", annotated=False, r
         to be used by kernel functions
 
     """
-    # Generic name
-    if debug:
-        return f"https://github.com/cgoliver/rnaglib/raw/master/examples/rnaglib-debug-{version}.tar.gz"
-
     # Find remote url and get download link
     # full = https://zenodo.org/records/7624873/files/rnaglib-all-1.0.0.tar.gz?download=1
     if annotated:
@@ -297,6 +293,8 @@ def download_graphs(
     :return: the path of the data along with its hashing.
 
     """
+    if debug:
+        redundancy = "debug"
     # Get the correct names for the download option and download the correct files
     hashing_path = None
     if data_root is None:
