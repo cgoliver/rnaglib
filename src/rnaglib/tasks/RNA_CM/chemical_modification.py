@@ -14,7 +14,7 @@ class ChemicalModification(ResidueClassificationTask):
     """
 
     target_var = "is_modified"
-    input_var = "nt_code"
+    input_var = "nt"
 
     def __init__(self, root, splitter=None, **kwargs):
         super().__init__(root=root, splitter=splitter, **kwargs)

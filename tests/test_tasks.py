@@ -38,7 +38,7 @@ class TaskTest(unittest.TestCase):
 
     def test_ChemicalModification(self):
         with tempfile.TemporaryDirectory() as tmp:
-            ta = ChemicalModification(root=tmp, debug=True)
+            ta = ChemicalModification(root=tmp, debug=False)
             self.check_task(ta)
 
     def test_InverseFolding(self):
@@ -71,7 +71,7 @@ class TaskTest(unittest.TestCase):
             ta = ChemicalModification(root=tmp, debug=True)
             # prepare the data
             ta.dataset.add_representation(GraphRepresentation(framework="pyg"))
-            ta.dataset.features_computer.add_feature(feature_names="nt_code")
+            ta.dataset.features_computer.add_feature(feature_names="nt")
             # refresh loaders
             train_load, val_load, test_load = ta.get_split_loaders()
             ta.evaluate(ta.dummy_model, test_load)
