@@ -20,6 +20,32 @@ import networkx as nx
 from Bio.PDB.PDBList import PDBList
 
 
+def multigraph_to_simple(g: nx.MultiDiGraph) -> nx.DiGraph:
+    """Convert directed multi graph to simple directed graph.
+    When multiple edges are found between two nodes, we keep backbone.
+    """
+    simple_g = nx.DiGraph()
+    backbone_types = ["B53", "B35"]
+    # first pass adds the backbones
+    for u, v, data in g.edges(data=True):
+        etype = data["LW"]
+        if etype in backbone_types:
+            simple_g.add_edge(u, v, **data)
+        pass
+    # second pass adds non-canonicals when no backbone exists
+    basepairs = []
+    for u, v, data in g.edges(data=True):
+        etype = data["LW"]
+        if etype not in backbone_types and not simple_g.has_edge(u, v):
+            basepairs.append((u, v, data))
+
+    simple_g.add_edges_from(basepairs)
+
+    simple_g.graph = g.graph.copy()
+
+    return simple_g
+
+
 def dump_json(filename, graph):
     """
     Just a shortcut to dump a json graph more compactly.
@@ -59,7 +85,7 @@ def load_json(filename):
     return out_graph
 
 
-def load_graph(filename):
+def load_graph(filename, multigraph=False):
     """
     This is a utility function that supports loading from json or pickle.
     Sometimes, the pickle also contains rings in the form of a node dict,
@@ -70,7 +96,7 @@ def load_graph(filename):
     :return: networkx DiGraph object
     """
     if filename.endswith("json"):
-        return load_json(filename)
+        graph = load_json(filename)
     elif filename.endswith("p"):
         pickled = pickle.load(open(filename, "rb"))
         # Depending on the data versionning, the object contained in the pickles is
@@ -84,10 +110,12 @@ def load_graph(filename):
                 nx.set_node_attributes(G=graph, name=f"{ring_type}_annots", values=noderings)
         else:
             graph = pickled
-        return graph
-
     else:
         raise NotImplementedError("We have not implemented this data format yet")
+
+    if not multigraph and isinstance(graph, nx.MultiDiGraph):
+        graph = multigraph_to_simple(graph)
+    return graph
 
 
 def get_name_extension(filename, permissive=False):
@@ -99,7 +127,7 @@ def get_name_extension(filename, permissive=False):
         if permissive:
             fname, extension = filename, None
         else:
-            raise NotImplementedError("We have not implemented this data format yet")
+            raise NotImplementedError(f"We have not implemented this data format yet: {filename}")
     return fname, extension
 
 
@@ -112,6 +140,7 @@ def get_all_existing(dataset_path: os.PathLike, all_rnas: Optional[List[str]] = 
     :param all_rnas: list of RNA names to search for (e.g. ``'1aju'`` will match ``'1aju.json'`` in ``dataset_path``.
     :return: List of filenames in ``dataset_path``
     """
+    print(dataset_path)
     _, extension = get_name_extension(os.listdir(dataset_path)[0])
 
     # By default, return a sorted listdir
@@ -220,7 +249,7 @@ def download(url, path=None, overwrite=True, retries=5, verify_ssl=True, log=Tru
     return fname
 
 
-def download_name_generator(version="1.0.0", redundancy="nr", annotated=False, record="7624873", debug=False):
+def download_name_generator(version="1.0.0", redundancy="nr", annotated=False, record="14285986", debug=False):
     """
     This returns the zenodo URL given dataset choices.
 
@@ -230,10 +259,6 @@ def download_name_generator(version="1.0.0", redundancy="nr", annotated=False, r
         to be used by kernel functions
 
     """
-    # Generic name
-    if debug:
-        return f"https://github.com/cgoliver/rnaglib/raw/master/examples/rnaglib-debug-{version}.tar.gz"
-
     # Find remote url and get download link
     # full = https://zenodo.org/records/7624873/files/rnaglib-all-1.0.0.tar.gz?download=1
     if annotated:
@@ -268,6 +293,8 @@ def download_graphs(
     :return: the path of the data along with its hashing.
 
     """
+    if debug:
+        redundancy = "debug"
     # Get the correct names for the download option and download the correct files
     hashing_path = None
     if data_root is None:
@@ -277,7 +304,9 @@ def download_graphs(
         tag = f"rnaglib-debug-{version}"
     else:
         tag = f"rnaglib-{redundancy}-{version}{'-chop' if chop else ''}{'-' + 'annotated' if annotated else ''}"
-    url = download_name_generator(redundancy=redundancy, version=version, annotated=annotated, debug=debug)
+    url = download_name_generator(
+        redundancy=redundancy, version=version, annotated=annotated, debug=debug, record="14286199"
+    )
     dl_path = Path(data_root) / "downloads" / Path(tag + ".tar.gz")
     data_path = Path(data_root) / "datasets"
 
@@ -502,7 +531,7 @@ def update_RNApdb(pdir, nr_only=True, rna_list=None, debug=False):
     print(f"Updating PDB mirror in {pdir}")
     # Get a list of PDBs containing RNA
     if not rna_list is None:
-        rna = rna_list
+        rna = set(rna_list)
     else:
         rna = set(get_rna_list(nr_only=nr_only))
 
@@ -511,21 +540,19 @@ def update_RNApdb(pdir, nr_only=True, rna_list=None, debug=False):
     pl = PDBList()
 
     # If not fully downloaded before, download all structures
-    if len(os.listdir(pdir)) < 2000:
-        pl.download_pdb_files(rna, pdir=pdir, overwrite=True)
-    else:
-        added, mod, obsolete = pl.get_recent_changes()
-        # Download new and modded entries
-        new_rna = rna.intersection(set(added).union(set(mod)))
-        pl.download_pdb_files(new_rna, pdir=pdir, overwrite=True)
+    pl.download_pdb_files(rna, pdir=pdir, overwrite=False)
+    added, mod, obsolete = pl.get_recent_changes()
+    # Download new and modded entries
+    new_rna = rna.intersection(set(added).union(set(mod)))
+    pl.download_pdb_files(new_rna, pdir=pdir, overwrite=True)
 
-        # Remove Obsolete entries
-        obsolete_dir = os.path.join(pdir, "obsolete")
-        if not os.path.exists(obsolete_dir):
-            os.mkdir(obsolete_dir)
-        for cif in os.listdir(pdir):
-            if cif[-8:-4].upper() in set(obsolete):
-                os.rename(os.path.join(pdir, cif), os.path.join(obsolete_dir, cif))
+    # Remove Obsolete entries
+    obsolete_dir = os.path.join(pdir, "obsolete")
+    if not os.path.exists(obsolete_dir):
+        os.mkdir(obsolete_dir)
+    for cif in os.listdir(pdir):
+        if cif[-8:-4].upper() in set(obsolete):
+            os.rename(os.path.join(pdir, cif), os.path.join(obsolete_dir, cif))
 
     return rna
 

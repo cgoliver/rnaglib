@@ -84,7 +84,6 @@ def get_bb(structure, rna_chains, XNA_linking, pdbid=""):
     bb = []
     nt_types = {}
     nt_types_full = {}
-    print(f"Using {rna_chains}")
     for chain in structure.get_chains():
         if chain.id not in rna_chains:
             continue
