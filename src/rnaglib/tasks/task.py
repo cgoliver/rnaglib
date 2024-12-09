@@ -211,10 +211,8 @@ class Task:
 
         # Get dimensions from first graph
         first_item = self.dataset[0]
-        if 'graph' in first_item:
-            compute_num_edge_attributes = True
-        else:
-            compute_num_edge_attributes = False
+        compute_num_edge_attributes = 'graph' in first_item
+
         first_node_map = {n: i for i, n in enumerate(sorted(first_item["rna"].nodes()))}
         first_features_dict = self.dataset.features_computer(first_item)
         first_features_array = first_features_dict["nt_features"][next(iter(first_node_map.keys()))]
@@ -223,8 +221,7 @@ class Task:
         # Dynamic class counting
         class_counts = {}
         classes = set()
-        if compute_num_edge_attributes:
-            unique_edge_attrs = set()
+        unique_edge_attrs = set() # only used with graphs
 
         # Collect statistics from dataset
         import tqdm

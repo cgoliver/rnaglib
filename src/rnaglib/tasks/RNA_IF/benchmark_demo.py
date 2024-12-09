@@ -1,32 +1,27 @@
-"""Demo for training a simple model using an rnaglib task"""
-
 from rnaglib.tasks import gRNAde
 from rnaglib.transforms import GraphRepresentation
-from rnaglib.learning.task_models import RGCN_node
+from rnaglib.learning.task_models import PygModel
 
-ta = gRNAde("gRNAde", recompute=False, in_memory=False)
+ta = gRNAde(root="gRNAde", recompute=False, in_memory=False, debug=True)
 
 ta.dataset.add_representation(GraphRepresentation(framework="pyg"))
 
 # Splitting dataset
-ta.get_split_loaders()
+ta.get_split_loaders(recompute=False)
 
 # Printing statistics
 info = ta.describe()
 
 # Train model
-model = RGCN_node(info["num_node_features"], info["num_classes"], info["num_edge_attributes"])
+model = PygModel(
+    num_node_features=info["num_node_features"],
+    num_classes=info["num_classes"],
+    graph_level=False
+)
 model.configure_training(learning_rate=0.001)
-model.train_model(ta, epochs=100)
+model.train_model(ta, epochs=1)
 
 # Final evaluation
-test_metrics = ta.evaluate(model, ta.test_dataloader)
-print(
-    f"Test Loss: {test_metrics['loss']:.4f}, "
-    f"Sequence Recovery: {test_metrics['accuracy']:.4f}, "
-    f"MCC: {test_metrics['mcc']:.4f}, "
-    f"Macro F1: {test_metrics['macro_f1']:.4f}, "
-    f"Mean AUC: {test_metrics['mean_auc']:.4f}, "
-    f"Coverage: {test_metrics['coverage']:.4f}, "
-    f"Non-standard ratio: {test_metrics['non_standard_ratio']:.4f}"
-)
+test_metrics = model.evaluate(ta)
+for k, v in test_metrics.items():
+    print(f"Test {k}: {f'{v:.4f}' if k != 'confusion_matrix' else v}")

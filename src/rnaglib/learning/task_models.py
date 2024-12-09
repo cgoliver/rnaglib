@@ -10,7 +10,7 @@ class PygModel(torch.nn.Module):
     def __init__(self,
                  num_node_features,
                  num_classes,
-                 num_unique_edge_attrs,
+                 num_unique_edge_attrs=20,
                  graph_level=False,
                  num_layers=2,
                  hidden_channels=128,

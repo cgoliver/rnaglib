@@ -40,11 +40,9 @@ else:
 info = ta.describe(recompute=True)
 num_node_features = info["num_node_features"]
 num_classes = info["num_classes"]
-num_unique_edge_attrs = info["num_edge_attributes"]
-# need to set to 20 (or actual edge type #) if not all edges are present, such as in debugging
 
 # Train model
-model = RGCN_graph(num_node_features, num_classes, num_unique_edge_attrs)
+model = RGCN_graph(num_node_features, num_classes)
 model.configure_training(learning_rate=0.001)
 model.train_model(ta, epochs=100)
 
