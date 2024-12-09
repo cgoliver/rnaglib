@@ -140,7 +140,6 @@ def get_all_existing(dataset_path: os.PathLike, all_rnas: Optional[List[str]] = 
     :param all_rnas: list of RNA names to search for (e.g. ``'1aju'`` will match ``'1aju.json'`` in ``dataset_path``.
     :return: List of filenames in ``dataset_path``
     """
-    print(dataset_path)
     _, extension = get_name_extension(os.listdir(dataset_path)[0])
 
     # By default, return a sorted listdir

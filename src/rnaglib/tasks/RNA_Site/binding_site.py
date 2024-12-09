@@ -19,6 +19,7 @@ from rnaglib.transforms import BindingSiteAnnotator
 from rnaglib.transforms import ChainFilter
 from rnaglib.utils import dump_json
 
+
 class BenchmarkBindingSiteDetection(ResidueClassificationTask):
     target_var = "binding_site"
     input_var = "nt_code"
@@ -34,21 +35,35 @@ class BenchmarkBindingSiteDetection(ResidueClassificationTask):
             return default_splitter_tr60_tr18()
 
     def process(self) -> RNADataset:
-        rnas = RNADataset(
+        # Define your transforms
+        rna_filter = ChainFilter(SPLITTING_VARS["PDB_TO_CHAIN_TR60_TE18"])
+        bs_annotator = BindingSiteAnnotator()
+        namer = ChainNameTransform()
+
+        dataset = RNADataset(
             debug=self.debug,
+            in_memory=self.in_memory,
             redundancy="all",
             rna_id_subset=SPLITTING_VARS["PDB_TO_CHAIN_TR60_TE18"].keys(),
         )
-        dataset = RNADataset(rnas=[r["rna"] for r in rnas])
-        if not self.debug:
-            rnas = ChainFilter(SPLITTING_VARS["PDB_TO_CHAIN_TR60_TE18"])(dataset)
-        dataset = RNADataset(rnas=[r["rna"] for r in rnas])
-        rnas = BindingSiteAnnotator()(dataset)
-        rnas = ChainNameTransform()(rnas)
-        dataset = RNADataset(rnas=[r["rna"] for r in rnas])
-        return dataset
 
-    # TODO Implement addition of RNA-FM embeddings, if requested
+        # Run through database, applying our filters
+        all_rnas = []
+        os.makedirs(self.dataset_path, exist_ok=True)
+        for rna in dataset:
+            if rna_filter.forward(rna):
+                rna = bs_annotator(rna)
+                rna = namer(rna)
+                if self.in_memory:
+                    all_rnas.append(rna)
+                else:
+                    all_rnas.append(rna.name)
+                    dump_json(os.path.join(self.dataset_path, f"{rna.name}.json"), rna)
+        if self.in_memory:
+            dataset = RNADataset(rnas=all_rnas)
+        else:
+            dataset = RNADataset(dataset_path=self.dataset_path, rna_id_subset=all_rnas)
+        return dataset
 
     def get_task_vars(self) -> FeaturesComputer:
         return FeaturesComputer(
@@ -62,8 +77,8 @@ class BindingSiteDetection(ResidueClassificationTask):
     target_var = "binding_small-molecule"
     input_var = "nt_code"
 
-    def __init__(self, root, splitter=None, **kwargs):
-        super().__init__(root=root, splitter=splitter, **kwargs)
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
 
     def process(self) -> RNADataset:
         # Define your transforms

@@ -5,7 +5,6 @@ from typing import Dict, Union, List, TYPE_CHECKING
 import torch
 import networkx as nx
 
-
 from rnaglib.config import NODE_FEATURE_MAP, EDGE_FEATURE_MAP
 from rnaglib.transforms import Transform
 
@@ -29,15 +28,15 @@ class FeaturesComputer(Transform):
     """
 
     def __init__(
-        self,
-        nt_features: Union[List, str] = None,
-        nt_targets: Union[List, str] = None,
-        rna_features: Union[List, str] = None,
-        rna_targets: Union[List, str] = None,
-        bp_features: Union[List, str] = None,
-        bp_targets: Union[List, str] = None,
-        extra_useful_keys: Union[List, str] = None,
-        custom_encoders: dict = None,
+            self,
+            nt_features: Union[List, str] = None,
+            nt_targets: Union[List, str] = None,
+            rna_features: Union[List, str] = None,
+            rna_targets: Union[List, str] = None,
+            bp_features: Union[List, str] = None,
+            bp_targets: Union[List, str] = None,
+            extra_useful_keys: Union[List, str] = None,
+            custom_encoders: dict = None,
     ):
 
         self.rna_features_parser = self.build_feature_parser(
@@ -169,7 +168,7 @@ class FeaturesComputer(Transform):
             except KeyError:
                 feature_encoding = feature_encoder.encode_default()
             all_feature_encoding.append(feature_encoding)
-        encodings = torch.cat(all_feature_encoding)
+        encodings = torch.cat(all_feature_encoding) if len(all_feature_encoding) > 1 else all_feature_encoding[0]
         return encodings
 
     @staticmethod
@@ -201,10 +200,10 @@ class FeaturesComputer(Transform):
         return node_encodings
 
     def build_feature_parser(
-        self,
-        asked_features: Union[List, str] = None,
-        custom_encoders: dict = None,
-        feature_map: dict = None,
+            self,
+            asked_features: Union[List, str] = None,
+            custom_encoders: dict = None,
+            feature_map: dict = None,
     ) -> dict:
         """
         This function will load the predefined feature maps available globally.
