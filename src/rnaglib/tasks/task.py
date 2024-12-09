@@ -3,18 +3,16 @@ import hashlib
 from pathlib import Path
 import json
 from functools import cached_property
-from typing import Union, Optional
-
-import torch
-from torch.utils.data import DataLoader
-import torch.nn.functional as F
 import numpy as np
 from sklearn.metrics import matthews_corrcoef, f1_score, accuracy_score, roc_auc_score
+import torch
+from torch.utils.data import DataLoader
+from typing import Union, Optional
 
 from rnaglib.data_loading import RNADataset, Collater
 from rnaglib.transforms import FeaturesComputer
 from rnaglib.splitters import Splitter, RandomSplitter
-from rnaglib.utils import DummyResidueModel, DummyRNAModel
+from rnaglib.utils import DummyResidueModel, DummyGraphModel
 
 
 class Task:
@@ -256,7 +254,7 @@ class Task:
                 cls_int = int(cls)
                 if cls_int not in class_counts:
                     class_counts[cls_int] = 0
-                class_counts[cls_int] += sum(y == cls).item()
+                class_counts[cls_int] += torch.sum(y == cls).item()
 
         info = {
             "num_node_features": num_node_features,
@@ -278,127 +276,84 @@ class Task:
         for cls in sorted(class_counts.keys()):
             print(f"Class {cls}: {class_counts[cls]} nodes")
 
+        self.metadata["description"] = info
         if self.save:
             with open(Path(self.root) / "metadata.json", "w") as meta:
-                self.metadata["description"] = info
                 json.dump(self.metadata, meta, indent=4)
         return info
 
 
-class ResidueClassificationTask(Task):
-    def __init__(self, root, splitter=None, num_classes=2, **kwargs):
-        super().__init__(root=root, splitter=splitter, **kwargs)
-        self.num_classes = num_classes
+class ClassificationTask(Task):
+    def __init__(self, graph_level=False, num_classes=None, **kwargs):
+        super().__init__(**kwargs)
+        self.num_classes = self.metadata["description"]["num_classes"] if num_classes is None else num_classes
+        self.graph_level = graph_level
 
     @property
     def dummy_model(self) -> torch.nn:
+        if self.graph_level:
+            return DummyGraphModel(num_classes=self.num_classes)
         return DummyResidueModel(num_classes=self.num_classes)
 
-    def evaluate(self, model: torch.nn, loader) -> dict:
-        """
-        Evaluate model performance on a dataset
-        NOTE: This only works for binary classification at the moment.
+    def compute_metrics(self, all_preds, all_probs, all_labels):
+        if self.graph_level:
+            metrics = {
+                "accuracy": accuracy_score(all_labels, all_preds),
+                "f1": f1_score(all_labels, all_preds, average="binary" if self.num_classes == 2 else "macro"),
+                "auc": roc_auc_score(
+                    all_labels, all_probs, average="binary" if self.num_classes == 2 else "macro", multi_class="ovo"
+                ),
+                "mcc": matthews_corrcoef(all_labels, all_preds),
+            }
+        else:
+            # Here we have a list of preds [(n1,), (n2,)...] for each residue in each RNA
+            # Either compute the overall flattened results, or aggregate by system
+            metrics = []
+            for pred, prob, label in zip(all_preds, all_probs, all_labels):
+                # Can't compute metrics over just one class
+                if len(np.unique(label)) == 1:
+                    continue
+                metrics.append(
+                    [
+                        accuracy_score(label, pred),
+                        f1_score(label, pred),
+                        roc_auc_score(label, prob),
+                        matthews_corrcoef(label, pred),
+                    ]
+                )
+            metrics = np.array(metrics)
+            mean_metrics = np.mean(metrics, axis=0)
+            metrics = {
+                "accuracy": mean_metrics[0],
+                "f1": mean_metrics[1],
+                "auc": mean_metrics[2],
+                "mcc": mean_metrics[3],
+            }
 
-        Args:
-            model: The model to evaluate
-            loader: Data loader to use
-            device: Device to run evaluation on
-            criterion: Loss function
-
-        Returns:
-            dict: Dictionary containing metrics including loss if criterion provided
-        """
-        model.eval()
-        all_probs = []
-        all_preds = []
-        all_labels = []
-        total_loss = 0
-
-        with torch.no_grad():
-            for batch in loader:
-                graph = batch["graph"]
-                graph = graph.to(model.device)
-                out = model(graph)
-                target = graph.y
-
-                if model.criterion is not None:
-                    # If just two classes, flatten outputs since BCE behavior expects equal dimensions and CE (N,k):(N)
-                    # Otherwise CE expects long as outputs
-                    if self.num_classes == 2:
-                        out = out.flatten()
-                    else:
-                        target = target.long()
-                    loss = model.criterion(out, target)
-                    total_loss += loss.item()
-
-                # Take probabilities for positive class only
-                preds = (out > 0.5).float()
-
-                all_probs.extend(out.cpu().tolist())
-                all_preds.extend(preds.cpu().tolist())
-                all_labels.extend(target.long().cpu().tolist())
-
-        metrics = {
-            "accuracy": accuracy_score(all_labels, all_preds),
-            "f1": f1_score(all_labels, all_preds),
-            "auc": roc_auc_score(all_labels, all_probs),
-            "mcc": matthews_corrcoef(all_labels, all_preds),
-        }
-
-        if model.criterion is not None:
-            metrics["loss"] = total_loss / len(loader)
-
+            # Get the flattened result
+            all_preds = np.concatenate(all_preds)
+            all_probs = np.concatenate(all_probs)
+            all_labels = np.concatenate(all_labels)
+            metrics_global = {
+                "global_accuracy": accuracy_score(all_labels, all_preds),
+                "global_f1": f1_score(all_labels, all_preds),
+                "global_auc": roc_auc_score(all_labels, all_probs),
+                "global_mcc": matthews_corrcoef(all_labels, all_preds),
+            }
+            metrics.update(metrics_global)
         return metrics
 
 
-class RNAClassificationTask(Task):
+class ResidueClassificationTask(ClassificationTask):
+    def __init__(self, **kwargs):
+        super().__init__(graph_level=False, **kwargs)
 
-    def __init__(self, root, splitter=None, **kwargs):
-        super().__init__(root=root, splitter=splitter, **kwargs)
-        self.num_classes = self.metadata["description"]["num_classes"]
 
-    def evaluate(self, model: torch.nn, loader) -> dict:
-        """Evaluate the model on the given dataloader for graph-level predictions."""
+class RNAClassificationTask(ClassificationTask):
+    def __init__(self, **kwargs):
+        super().__init__(graph_level=True, **kwargs)
 
-        model.eval()
-        all_probs = []
-        all_preds = []
-        all_labels = []
-        total_loss = 0
 
-        with torch.no_grad():
-            for batch in loader:
-                graph = batch["graph"].to(model.device)
-                out = model(graph)
-
-                if model.criterion is not None:
-                    loss = model.criterion(out, graph.y.long())
-                    total_loss += loss.item()
-                if self.num_classes == 2:
-                    # Take probabilities for positive class only (assuming binary classification)
-                    probs = torch.softmax(out, dim=1)[:, 1]  # Get prob of class 1
-                    preds = (probs > 0.5).float()
-                else:
-                    probs = torch.softmax(out, dim=1)
-                    preds = (probs == probs.max(dim=1, keepdim=True)[0]).float()
-                all_probs.extend(probs.flatten().cpu().tolist())
-                all_preds.extend(preds.flatten().cpu().tolist())
-                if torch.softmax(out, dim=1).flatten().shape == graph.y.shape:
-                    all_labels.extend(graph.y.long().cpu().tolist())
-                else:
-                    all_labels.extend(F.one_hot(graph.y.long(), num_classes=self.num_classes).flatten().cpu().tolist())
-        metrics = {
-            "accuracy": accuracy_score(all_labels, all_preds),
-            "f1": f1_score(all_labels, all_preds),
-            "auc": roc_auc_score(all_labels, all_probs),
-            "mcc": matthews_corrcoef(all_labels, all_preds),
-        }
-
-        if model.criterion is not None:
-            metrics["loss"] = total_loss / len(loader)
-
-        return metrics
-
-    @property
-    def dummy_model(self) -> torch.nn:
-        return DummyRNAModel(num_classes=self.num_classes)
+class ResidueClassificationTask(ClassificationTask):
+    def __init__(self, **kwargs):
+        super().__init__(graph_level=False, **kwargs)

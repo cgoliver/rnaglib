@@ -35,7 +35,6 @@ class DummyResidueModel(torch.nn.Module):
     def __init__(self, num_classes=2):
         super(DummyResidueModel, self).__init__()
         self.device = torch.device("cpu")  # Default device is CPU
-        self.criterion = torch.nn.CrossEntropyLoss() if num_classes > 2 else torch.nn.BCEWithLogitsLoss()
         self.num_classes = num_classes
 
     def forward(self, g):
@@ -44,11 +43,10 @@ class DummyResidueModel(torch.nn.Module):
         return torch.rand(g.x.shape[0], predicted_classes)
 
 
-class DummyRNAModel(torch.nn.Module):
+class DummyGraphModel(torch.nn.Module):
     def __init__(self, num_classes=2):
-        super(DummyRNAModel, self).__init__()
+        super(DummyGraphModel, self).__init__()
         self.device = torch.device("cpu")  # Default device is CPU
-        self.criterion = torch.nn.CrossEntropyLoss() if num_classes > 2 else torch.nn.BCEWithLogitsLoss()
         self.num_classes = num_classes
 
     def forward(self, g):
