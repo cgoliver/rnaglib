@@ -5,6 +5,7 @@ from rnaglib.tasks import ResidueClassificationTask
 from rnaglib.transforms import FeaturesComputer
 from rnaglib.transforms import ComposeFilters
 from rnaglib.transforms import RibosomalFilter
+from rnaglib.transforms import DummyFilter
 from rnaglib.transforms import PDBIDNameTransform
 from rnaglib.transforms import ResidueAttributeFilter
 from rnaglib.utils import dump_json
@@ -30,6 +31,8 @@ class ProteinBindingSiteDetection(ResidueClassificationTask):
         ribo_filter = RibosomalFilter()
         non_bind_filter = ResidueAttributeFilter(attribute=self.target_var, value_checker=lambda val: val is not None)
         filters = ComposeFilters([ribo_filter, non_bind_filter])
+        if self.debug:
+            filters = DummyFilter()
 
         # Define your transforms
         add_name = PDBIDNameTransform()

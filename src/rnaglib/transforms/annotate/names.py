@@ -6,7 +6,7 @@ class PDBIDNameTransform(Transform):
 
     def forward(self, data: dict) -> dict:
         g = data["rna"]
-        g.name = g.graph["pdbid"][0].lower()
+        g.name = g.graph["pdbid"].lower()
         return data
 
 

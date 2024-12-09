@@ -15,6 +15,7 @@ from .misc import cif_remove_residues, split_mmcif_by_chain, clean_mmcif
 
 from .task_utils import print_statistics
 from .task_utils import DummyResidueModel
+from .task_utils import DummyRNAModel
 
 from .wrappers import rna_align_wrapper, cdhit_wrapper, locarna_wrapper, US_align_wrapper
 
@@ -40,6 +41,7 @@ __all__ = [
     "locarna_wrapper",
     "US_align_wrapper",
     "DummyResidueModel",
+    "DummyRNAModel",
 ]
 
 classes = __all__

@@ -7,7 +7,7 @@ from rnaglib.splitters import RandomSplitter
 from rnaglib.data_loading import RNADataset
 from rnaglib.encoders import OneHotEncoder, IntEncoder
 from rnaglib.transforms import FeaturesComputer, LigandAnnotator, NameFilter, LigandNTFilter
-    
+
 
 class LigandIdentification(RNAClassificationTask):
     input_var = "nt_code"
@@ -23,24 +23,18 @@ class LigandIdentification(RNAClassificationTask):
         pass
 
     def process(self):
-        rna_filter = NameFilter(
-            names = self.rnas_keep
-        )
-        rnas = RNADataset(debug=False, redundancy='all', rna_id_subset=[name for name in self.rnas_keep])
-        rnas = LigandNTFilter(data=self.data)(rnas)
-        rnas = LigandAnnotator(data=self.data)(rnas)
-        rnas = rna_filter(rnas)
+        rna_filter = NameFilter(names=self.rnas_keep)
+        rnas = RNADataset(debug=self.debug, redundancy="all", rna_id_subset=[name for name in self.rnas_keep])
+        if not self.debug:
+            rnas = LigandNTFilter(data=self.data)(rnas)
+            rnas = LigandAnnotator(data=self.data)(rnas)
+            rnas = rna_filter(rnas)
 
         dataset = RNADataset(rnas=[r["rna"] for r in rnas])
 
         return dataset
-    
+
     def get_task_vars(self) -> FeaturesComputer:
         return FeaturesComputer(
-            nt_features=self.input_var, 
-            rna_targets=self.target_var,
-            custom_encoders={
-                self.target_var: IntEncoder()
-            }
+            nt_features=self.input_var, rna_targets=self.target_var, custom_encoders={self.target_var: IntEncoder()}
         )
-

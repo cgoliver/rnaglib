@@ -29,7 +29,9 @@ class InverseFolding(ResidueClassificationTask):
     def process(self) -> RNADataset:
         # build the filters
         ribo_filter = RibosomalFilter()
-        resolution_filter = RNAAttributeFilter(attribute="resolution_high", value_checker=lambda val: float(val[0])<4.0)
+        resolution_filter = RNAAttributeFilter(
+            attribute="resolution_high", value_checker=lambda val: float(val[0]) < 4.0
+        )
         filters = ComposeFilters([ribo_filter, resolution_filter])
 
         # Define your transforms
@@ -113,15 +115,9 @@ class InverseFolding(ResidueClassificationTask):
             # Note that accuracy is equivalent to sequence recovery rate
             "accuracy": accuracy_score(all_labels[valid_mask], all_preds[valid_mask]),
             "mcc": matthews_corrcoef(all_labels[valid_mask], all_preds[valid_mask]),
-            "macro_f1": f1_score(
-                all_labels[valid_mask], all_preds[valid_mask], average="macro"
-            ),
-            "weighted_f1": f1_score(
-                all_labels[valid_mask], all_preds[valid_mask], average="weighted"
-            ),
-            "per_class_f1": f1_score(
-                all_labels[valid_mask], all_preds[valid_mask], average=None
-            ).tolist(),
+            "macro_f1": f1_score(all_labels[valid_mask], all_preds[valid_mask], average="macro"),
+            "weighted_f1": f1_score(all_labels[valid_mask], all_preds[valid_mask], average="weighted"),
+            "per_class_f1": f1_score(all_labels[valid_mask], all_preds[valid_mask], average=None).tolist(),
         }
 
         # Add confusion matrix (including non-standard nucleotides)
@@ -142,16 +138,12 @@ class InverseFolding(ResidueClassificationTask):
             # Only calculate AUC for standard nucleotides where they should appear
             valid_positions = all_labels != 0
             try:
-                metrics[f"auc_{nuc}"] = roc_auc_score(
-                    binary_labels[valid_positions], binary_probs[valid_positions]
-                )
+                metrics[f"auc_{nuc}"] = roc_auc_score(binary_labels[valid_positions], binary_probs[valid_positions])
             except ValueError:
                 metrics[f"auc_{nuc}"] = float("nan")
 
         # Add average AUC
-        valid_aucs = [
-            v for k, v in metrics.items() if k.startswith("auc_") and not np.isnan(v)
-        ]
+        valid_aucs = [v for k, v in metrics.items() if k.startswith("auc_") and not np.isnan(v)]
         if valid_aucs:
             metrics["mean_auc"] = np.mean(valid_aucs)
 

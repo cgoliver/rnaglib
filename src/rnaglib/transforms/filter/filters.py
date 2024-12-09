@@ -10,6 +10,13 @@ desired conditione.
 """
 
 
+class DummyFilter(FilterTransform):
+    """Always return True"""
+
+    def forward(self, rna_dict: dict) -> bool:
+        return True
+
+
 class SizeFilter(FilterTransform):
     """Reject RNAs that are not in the given size bounds.
 
