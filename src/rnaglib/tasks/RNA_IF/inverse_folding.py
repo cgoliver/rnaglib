@@ -21,8 +21,8 @@ class InverseFolding(ResidueClassificationTask):
     input_var = "dummy"  # should be dummy variable
     nucs = ["A", "C", "G", "U"]
 
-    def __init__(self, root, splitter=None, **kwargs):
-        super().__init__(root=root, splitter=splitter, **kwargs)
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
 
     def process(self) -> RNADataset:
         # build the filters

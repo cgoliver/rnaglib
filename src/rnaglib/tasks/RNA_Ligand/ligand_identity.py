@@ -27,7 +27,6 @@ class LigandIdentification(RNAClassificationTask):
         rnas = RNADataset(debug=False, redundancy='all', rna_id_subset=[name for name in self.rnas_keep])
         rnas = LigandNTFilter(data=self.data)(rnas)
         rnas = LigandAnnotator(data=self.data)(rnas)
-        rnas = rna_filter(rnas)
 
         dataset = RNADataset(rnas=[r["rna"] for r in rnas])
 

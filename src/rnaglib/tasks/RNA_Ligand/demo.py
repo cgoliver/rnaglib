@@ -12,7 +12,7 @@ from torch_geometric.loader import DataLoader as PygLoader
 
 from rnaglib.tasks import LigandIdentification
 from rnaglib.transforms import GraphRepresentation
-from rnaglib.learning.task_models import RGCN_graph
+from rnaglib.learning.task_models import RGCN_graph, PygModel
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-p', '--frompickle', action='store_true', help="To load task from pickle")
@@ -36,13 +36,8 @@ else:
     ta.dataset.add_representation(GraphRepresentation(framework="pyg"))
     ta.set_loaders(batch_size=batch_size)
 
-# Printing statistics
-info = ta.describe(recompute=True)
-num_node_features = info["num_node_features"]
-num_classes = info["num_classes"]
-
 # Train model
-model = RGCN_graph(num_node_features, num_classes)
+model = PygModel(ta.info["num_node_features"], ta.info["num_classes"])
 model.configure_training(learning_rate=0.001)
 model.train_model(ta, epochs=100)
 
