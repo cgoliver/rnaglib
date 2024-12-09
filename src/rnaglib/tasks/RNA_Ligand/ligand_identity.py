@@ -6,14 +6,9 @@ from rnaglib.tasks import RNAClassificationTask
 from rnaglib.splitters import RandomSplitter
 from rnaglib.data_loading import RNADataset
 from rnaglib.encoders import OneHotEncoder, IntEncoder
-<<<<<<< HEAD
 from rnaglib.transforms import FeaturesComputer, LigandAnnotator, LigandNTFilter, ResidueNameFilter
 from rnaglib.utils import dump_json
     
-=======
-from rnaglib.transforms import FeaturesComputer, LigandAnnotator, NameFilter, LigandNTFilter
-
->>>>>>> 1c034035da18377b0b6cda56317386e5b23b0346
 
 class LigandIdentification(RNAClassificationTask):
     input_var = "nt_code"
@@ -29,20 +24,12 @@ class LigandIdentification(RNAClassificationTask):
         pass
 
     def process(self):
-<<<<<<< HEAD
         rna_filter = ResidueNameFilter(
             value_checker = lambda name: name in self.nodes_keep,
             min_valid = 1
         )
         nt_filter = LigandNTFilter(data=self.data)
         annotator = LigandAnnotator(data=self.data)
-=======
-        rna_filter = NameFilter(names=self.rnas_keep)
-        rnas = RNADataset(debug=False, redundancy='all', rna_id_subset=[name for name in self.rnas_keep])
-        rnas = LigandNTFilter(data=self.data)(rnas)
-        rnas = LigandAnnotator(data=self.data)(rnas)
-        rnas = rna_filter(rnas)
->>>>>>> 1c034035da18377b0b6cda56317386e5b23b0346
 
         # Run through database, applying our filters
         dataset = RNADataset(debug=self.debug, in_memory=self.in_memory)
