@@ -81,6 +81,8 @@ ALLOWED_ATOMS = ["C", "H", "N", "O", "Br", "Cl", "F", "P", "Si", "B", "Se"]
 ALLOWED_ATOMS += [atom_name.upper() for atom_name in ALLOWED_ATOMS]
 ALLOWED_ATOMS = set(ALLOWED_ATOMS)
 
+SMILES_CACHE = {}
+
 
 def is_dna(res):
     """
@@ -142,20 +144,24 @@ def get_smiles_from_rcsb(ligand_code):
     Returns:
     - str: The SMILES string of the ligand, or None if not found.
     """
-    base_url = f"https://data.rcsb.org/rest/v1/core/chemcomp/{ligand_code.upper()}"
     try:
-        response = requests.get(base_url)
-        response.raise_for_status()  # Raise an error for HTTP issues
-        data = response.json()
-        # Extract SMILES string
-        smiles = data.get("rcsb_chem_comp_descriptor", {}).get("smiles")
-        return smiles
-    except requests.exceptions.RequestException as e:
-        print(f"Request failed: {e}")
-        return None
+        return SMILES_CACHE[ligand_code]
     except KeyError:
-        print(f"SMILES not found for ligand: {ligand_code}")
-        return None
+        base_url = f"https://data.rcsb.org/rest/v1/core/chemcomp/{ligand_code.upper()}"
+        try:
+            response = requests.get(base_url)
+            response.raise_for_status()  # Raise an error for HTTP issues
+            data = response.json()
+            # Extract SMILES string
+            smiles = data.get("rcsb_chem_comp_descriptor", {}).get("smiles")
+            SMILES_CACHE[ligand_code] = smiles
+            return smiles
+        except requests.exceptions.RequestException as e:
+            print(f"Request failed: {e}")
+            return None
+        except KeyError:
+            print(f"SMILES not found for ligand: {ligand_code}")
+            return None
 
 
 def get_small_partners(cif, mmcif_dict=None, radius=6, mass_lower_limit=160, mass_upper_limit=1000):
