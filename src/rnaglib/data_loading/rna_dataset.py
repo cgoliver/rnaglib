@@ -112,6 +112,10 @@ class RNADataset:
             existing_all_rnas, extension = get_all_existing(dataset_path=self.dataset_path, all_rnas=rna_id_subset)
             self.extension = extension
 
+            # If debugging, only keep the first few
+            if debug:
+                existing_all_rnas = existing_all_rnas[:30]
+
             # Keep track of a list_id <=> system mapping. First remove extensions
             existing_all_rna_names = [get_name_extension(rna, permissive=True)[0] for rna in existing_all_rnas]
             self.all_rnas = bidict({rna: i for i, rna in enumerate(existing_all_rna_names)})
@@ -256,7 +260,11 @@ class RNADataset:
         # You can't subset on both simultaneously
         assert list_of_ids is None or list_of_names is None
         if list_of_names is not None:
-            list_of_ids = [self.all_rnas[name] for name in list_of_names]
+            existing_names = set(self.all_rnas.keys())
+            list_of_ids = [self.all_rnas[name] for name in list_of_names if name in existing_names]
+        else:
+            existing_ids = set(self.all_rnas.values())
+            list_of_ids = [id_rna for id_rna in list_of_ids if id_rna in existing_ids]
 
         # Copy existing dataset, avoid expansive deep copy of rnas if in memory
         temp = self.rnas
