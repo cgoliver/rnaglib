@@ -162,7 +162,7 @@ def fr3d_to_graph(rna_path):
     nx.set_node_attributes(G, nt_types_full, "nt_full")
 
     for node in G.nodes():
-        G.nodes[node]["nt"] = nt_types[node]
+        G.nodes[node]["nt_code"] = nt_types[node]
         G.nodes[node]["nt_full"] = nt_types_full[node]
         G.nodes[node]["chain_id"] = node.split(".")[1]
         G.nodes[node]["is_modified"] = len(nt_types_full[node]) != 1
