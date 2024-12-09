@@ -19,6 +19,8 @@ import zipfile
 import networkx as nx
 from Bio.PDB.PDBList import PDBList
 
+ZENODO_RECORD = "14325403"
+
 
 def multigraph_to_simple(g: nx.MultiDiGraph) -> nx.DiGraph:
     """Convert directed multi graph to simple directed graph.
@@ -251,7 +253,7 @@ def download(url, path=None, overwrite=True, retries=5, verify_ssl=True, log=Tru
     return fname
 
 
-def download_name_generator(version="1.0.0", redundancy="nr", annotated=False, record="14285986", debug=False):
+def download_name_generator(version="1.0.0", redundancy="nr", annotated=False, record="14325118", debug=False):
     """
     This returns the zenodo URL given dataset choices.
 
@@ -307,7 +309,7 @@ def download_graphs(
     else:
         tag = f"rnaglib-{redundancy}-{version}{'-chop' if chop else ''}{'-' + 'annotated' if annotated else ''}"
     url = download_name_generator(
-        redundancy=redundancy, version=version, annotated=annotated, debug=debug, record="14286199"
+        redundancy=redundancy, version=version, annotated=annotated, debug=debug, record=ZENODO_RECORD
     )
     dl_path = Path(data_root) / "downloads" / Path(tag + ".tar.gz")
     data_path = Path(data_root) / "datasets"
