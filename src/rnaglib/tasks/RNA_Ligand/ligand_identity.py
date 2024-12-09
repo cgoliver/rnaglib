@@ -6,7 +6,8 @@ from rnaglib.tasks import RNAClassificationTask
 from rnaglib.splitters import RandomSplitter
 from rnaglib.data_loading import RNADataset
 from rnaglib.encoders import OneHotEncoder, IntEncoder
-from rnaglib.transforms import FeaturesComputer, LigandAnnotator, NameFilter, LigandNTFilter
+from rnaglib.transforms import FeaturesComputer, LigandAnnotator, LigandNTFilter, ResidueNameFilter
+from rnaglib.utils import dump_json
     
 
 class LigandIdentification(RNAClassificationTask):
@@ -23,15 +24,30 @@ class LigandIdentification(RNAClassificationTask):
         pass
 
     def process(self):
-        rna_filter = NameFilter(
-            names = self.rnas_keep
+        rna_filter = ResidueNameFilter(
+            value_checker = lambda name: name in self.nodes_keep,
+            min_valid = 1
         )
-        rnas = RNADataset(debug=False, redundancy='all', rna_id_subset=[name for name in self.rnas_keep])
-        rnas = LigandNTFilter(data=self.data)(rnas)
-        rnas = LigandAnnotator(data=self.data)(rnas)
-        rnas = rna_filter(rnas)
+        nt_filter = LigandNTFilter(data=self.data)
+        annotator = LigandAnnotator(data=self.data)
 
-        dataset = RNADataset(rnas=[r["rna"] for r in rnas])
+        # Run through database, applying our filters
+        dataset = RNADataset(debug=self.debug, in_memory=self.in_memory)
+        all_rnas = []
+        os.makedirs(self.dataset_path, exist_ok=True)
+        for rna in dataset:
+            if rna_filter.forward(rna):
+                rna_dict = next(iter(nt_filter(rna)))
+                rna = annotator(rna_dict)["rna"]
+                if self.in_memory:
+                    all_rnas.append(rna)
+                else:
+                    all_rnas.append(rna.name)
+                    dump_json(os.path.join(self.dataset_path, f"{rna.name}.json"), rna)
+        if self.in_memory:
+            dataset = RNADataset(rnas=all_rnas)
+        else:
+            dataset = RNADataset(dataset_path=self.dataset_path, rna_id_subset=all_rnas)
 
         return dataset
     
