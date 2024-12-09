@@ -53,7 +53,7 @@ class BenchmarkBindingSiteDetection(ResidueClassificationTask):
         for rna in dataset:
             if rna_filter.forward(rna):
                 rna = bs_annotator(rna)
-                rna = namer(rna)
+                rna = namer(rna)['rna']
                 if self.in_memory:
                     all_rnas.append(rna)
                 else:

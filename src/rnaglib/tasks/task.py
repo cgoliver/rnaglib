@@ -12,7 +12,7 @@ from typing import Union, Optional
 from rnaglib.data_loading import RNADataset, Collater
 from rnaglib.transforms import FeaturesComputer
 from rnaglib.splitters import Splitter, RandomSplitter
-from rnaglib.utils import DummyResidueModel, DummyGraphModel
+from rnaglib.utils import DummyResidueModel, DummyGraphModel, tonumpy
 
 
 class Task:
@@ -204,78 +204,77 @@ class Task:
             dict: Contains dataset information and model dimensions
         """
         if not recompute and 'description' in self.metadata:
-            return self.metadata["description"]
+            info = self.metadata["description"]
+        else:
+            print(">>> Computing description of task...")
+            self.get_split_loaders(recompute=False)
 
-        print(">>> Computing description of task...")
-        self.get_split_loaders(recompute=False)
+            # Get dimensions from first graph
+            first_item = self.dataset[0]
+            compute_num_edge_attributes = 'graph' in first_item
 
-        # Get dimensions from first graph
-        first_item = self.dataset[0]
-        compute_num_edge_attributes = 'graph' in first_item
+            first_node_map = {n: i for i, n in enumerate(sorted(first_item["rna"].nodes()))}
+            first_features_dict = self.dataset.features_computer(first_item)
+            first_features_array = first_features_dict["nt_features"][next(iter(first_node_map.keys()))]
+            num_node_features = first_features_array.shape[0]
 
-        first_node_map = {n: i for i, n in enumerate(sorted(first_item["rna"].nodes()))}
-        first_features_dict = self.dataset.features_computer(first_item)
-        first_features_array = first_features_dict["nt_features"][next(iter(first_node_map.keys()))]
-        num_node_features = first_features_array.shape[0]
+            # Dynamic class counting
+            class_counts = {}
+            classes = set()
+            unique_edge_attrs = set()  # only used with graphs
 
-        # Dynamic class counting
-        class_counts = {}
-        classes = set()
-        unique_edge_attrs = set() # only used with graphs
+            # Collect statistics from dataset
+            import tqdm
+            for item in tqdm.tqdm(self.dataset):
+                if compute_num_edge_attributes:
+                    graph = item["graph"]
+                    unique_edge_attrs.update(graph.edge_attr.tolist())
+                node_map = {n: i for i, n in enumerate(sorted(item['rna'].nodes()))}
+                features_dict = self.dataset.features_computer(item)
+                if "nt_targets" in features_dict:
+                    list_y = [features_dict["nt_targets"][n] for n in node_map.keys()]
+                    # In the case of single target, pytorch CE loss expects shape (n,) and not (n,1)
+                    # For multi-target cases, we stack to get (n,d)
+                    if len(list_y[0]) == 1:
+                        y = torch.cat(list_y)
+                    else:
+                        y = torch.stack(list_y)
+                if "rna_targets" in features_dict:
+                    y = features_dict["rna_targets"].clone().detach()
 
-        # Collect statistics from dataset
-        import tqdm
-        for item in tqdm.tqdm(self.dataset):
+                graph_classes = y.unique().tolist()
+                classes.update(graph_classes)
+
+                # Count classes in this graph
+                for cls in graph_classes:
+                    cls_int = int(cls)
+                    if cls_int not in class_counts:
+                        class_counts[cls_int] = 0
+                    class_counts[cls_int] += torch.sum(y == cls).item()
+
+            info = {
+                "num_node_features": num_node_features,
+                "num_classes": len(classes),
+                "dataset_size": len(self.dataset),
+                "class_distribution": class_counts,
+            }
             if compute_num_edge_attributes:
-                graph = item["graph"]
-                unique_edge_attrs.update(graph.edge_attr.tolist())
-            node_map = {n: i for i, n in enumerate(sorted(item['rna'].nodes()))}
-            features_dict = self.dataset.features_computer(item)
-            if "nt_targets" in features_dict:
-                list_y = [features_dict["nt_targets"][n] for n in node_map.keys()]
-                # In the case of single target, pytorch CE loss expects shape (n,) and not (n,1)
-                # For multi-target cases, we stack to get (n,d)
-                if len(list_y[0]) == 1:
-                    y = torch.cat(list_y)
-                else:
-                    y = torch.stack(list_y)
-            if "rna_targets" in features_dict:
-                y = features_dict["rna_targets"].clone().detach()
-
-            graph_classes = y.unique().tolist()
-            classes.update(graph_classes)
-
-            # Count classes in this graph
-            for cls in graph_classes:
-                cls_int = int(cls)
-                if cls_int not in class_counts:
-                    class_counts[cls_int] = 0
-                class_counts[cls_int] += torch.sum(y == cls).item()
-
-        info = {
-            "num_node_features": num_node_features,
-            "num_classes": len(classes),
-            "dataset_size": len(self.dataset),
-            "class_distribution": class_counts,
-        }
-        if compute_num_edge_attributes:
-            info["num_edge_attributes"] = len(unique_edge_attrs)
+                info["num_edge_attributes"] = len(unique_edge_attrs)
+            if self.save:
+                with open(Path(self.root) / "metadata.json", "w") as meta:
+                    json.dump(self.metadata, meta, indent=4)
+            self.metadata['description'] = info
 
         # Print description
         print("Dataset Description:")
-        print(f"Number of node features: {info['num_node_features']}")
-        print(f"Number of classes: {info['num_classes']}")
-        if compute_num_edge_attributes:
-            print(f"Number of edge attributes: {info['num_edge_attributes']}")
-        print(f"Dataset size: {info['dataset_size']} graphs")
-        print("\nClass distribution:")
-        for cls in sorted(class_counts.keys()):
-            print(f"Class {cls}: {class_counts[cls]} nodes")
-
-        self.metadata['description'] = info
-        if self.save:
-            with open(Path(self.root) / "metadata.json", "w") as meta:
-                json.dump(self.metadata, meta, indent=4)
+        for k, v in info.items():
+            if k != 'class_distribution':
+                print(k, ' : ', v)
+            else:
+                print("Class distribution:")
+                for cls in sorted(v.keys()):
+                    print(f"\tClass {cls}: {v[cls]} nodes")
+        print()
         return info
 
 
@@ -290,6 +289,44 @@ class ClassificationTask(Task):
         if self.graph_level:
             return DummyGraphModel(num_classes=self.num_classes)
         return DummyResidueModel(num_classes=self.num_classes)
+
+    def dummy_inference(self):
+        all_probs = []
+        all_preds = []
+        all_labels = []
+        dummy_model = self.dummy_model
+        with torch.no_grad():
+            for batch in self.test_dataloader:
+                graph = batch["graph"]
+                out = dummy_model(graph)
+                labels = graph.y
+
+                # get preds and probas + cast to numpy
+                if self.num_classes == 2:
+                    probs = torch.sigmoid(out.flatten())
+                    preds = (probs > 0.5).float()
+                else:
+                    probs = torch.softmax(out, dim=1)
+                    preds = probs.argmax(dim=1)
+                probs = tonumpy(probs)
+                preds = tonumpy(preds)
+                labels = tonumpy(labels)
+
+                # split predictions per RNA if residue level
+                if not self.graph_level:
+                    cumulative_sizes = tuple(tonumpy(graph.ptr))
+                    probs = [probs[start:end] for start, end in zip(cumulative_sizes[:-1], cumulative_sizes[1:])]
+                    preds = [preds[start:end] for start, end in zip(cumulative_sizes[:-1], cumulative_sizes[1:])]
+                    labels = [labels[start:end] for start, end in zip(cumulative_sizes[:-1], cumulative_sizes[1:])]
+                all_probs.extend(probs)
+                all_preds.extend(preds)
+                all_labels.extend(labels)
+
+        if self.graph_level:
+            all_probs = np.stack(all_probs)
+            all_preds = np.stack(all_preds)
+            all_labels = np.stack(all_labels)
+        return 0, all_preds, all_probs, all_labels
 
     def compute_one_metric(self, preds, probs, labels):
         one_metric = {
