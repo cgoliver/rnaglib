@@ -46,6 +46,7 @@ class OneHotEncoder:
         except KeyError:
             return None
 
+
 class IntEncoder:
 
     def __init__(self, default_value=0):
@@ -72,7 +73,6 @@ class IntEncoder:
 
     def decode(self, value):
         return value.item()
-
 
 
 class FloatEncoder:

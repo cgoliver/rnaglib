@@ -706,7 +706,7 @@ def get_sequences(graph: nx.Graph) -> Tuple[Dict[str, Tuple[str, List[str]]]]:
     seqs = {c: [] for c in chains}
     for nt, d in graph.nodes(data=True):
         pdbid, ch, pos = nt.split(".")
-        nuc = d["nt"].upper()
+        nuc = d["nt_code"].upper()
         if nuc not in ["A", "U", "C", "G"]:
             nuc = "N"
         seqs[ch].append((nuc, int(pos)))

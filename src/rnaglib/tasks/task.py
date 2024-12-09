@@ -14,7 +14,7 @@ from sklearn.metrics import matthews_corrcoef, f1_score, accuracy_score, roc_auc
 from rnaglib.data_loading import RNADataset, Collater
 from rnaglib.transforms import FeaturesComputer
 from rnaglib.splitters import Splitter, RandomSplitter
-from rnaglib.utils import DummyResidueModel
+from rnaglib.utils import DummyResidueModel, DummyRNAModel
 
 
 class Task:
@@ -31,13 +31,13 @@ class Task:
     """
 
     def __init__(
-            self,
-            root: Union[str, os.PathLike],
-            recompute: bool = False,
-            splitter: Splitter = None,
-            debug: bool = False,
-            save: bool = True,
-            in_memory: bool = True,
+        self,
+        root: Union[str, os.PathLike],
+        recompute: bool = False,
+        splitter: Splitter = None,
+        debug: bool = False,
+        save: bool = True,
+        in_memory: bool = True,
     ):
         self.root = root
         self.dataset_path = os.path.join(self.root, "dataset")
@@ -65,7 +65,7 @@ class Task:
 
         if self.save:
             self.write()
-        
+
         # compute metadata
         self.describe()
 
@@ -205,7 +205,7 @@ class Task:
         Returns:
             dict: Contains dataset information and model dimensions
         """
-        if not recompute and 'description' in self.metadata:
+        if not recompute and "description" in self.metadata:
             return self.metadata["description"]
 
         print(">>> Computing description of task...")
@@ -213,7 +213,7 @@ class Task:
 
         # Get dimensions from first graph
         first_item = self.dataset[0]
-        if 'graph' in first_item:
+        if "graph" in first_item:
             compute_num_edge_attributes = True
         else:
             compute_num_edge_attributes = False
@@ -230,16 +230,17 @@ class Task:
 
         # Collect statistics from dataset
         import tqdm
+
         for item in tqdm.tqdm(self.dataset):
             if compute_num_edge_attributes:
                 graph = item["graph"]
                 unique_edge_attrs.update(graph.edge_attr.tolist())
-            node_map = {n: i for i, n in enumerate(sorted(item['rna'].nodes()))}
+            node_map = {n: i for i, n in enumerate(sorted(item["rna"].nodes()))}
             features_dict = self.dataset.features_computer(item)
             if "nt_targets" in features_dict:
                 list_y = [features_dict["nt_targets"][n] for n in node_map.keys()]
-                    # In the case of single target, pytorch CE loss expects shape (n,) and not (n,1)
-                    # For multi-target cases, we stack to get (n,d)
+                # In the case of single target, pytorch CE loss expects shape (n,) and not (n,1)
+                # For multi-target cases, we stack to get (n,d)
                 if len(list_y[0]) == 1:
                     y = torch.cat(list_y)
                 else:
@@ -279,7 +280,7 @@ class Task:
 
         if self.save:
             with open(Path(self.root) / "metadata.json", "w") as meta:
-                self.metadata['description'] = info
+                self.metadata["description"] = info
                 json.dump(self.metadata, meta, indent=4)
         return info
 
@@ -373,15 +374,15 @@ class RNAClassificationTask(Task):
                 if model.criterion is not None:
                     loss = model.criterion(out, graph.y.long())
                     total_loss += loss.item()
-                if self.num_classes==2:
+                if self.num_classes == 2:
                     # Take probabilities for positive class only (assuming binary classification)
-                    probs = torch.softmax(out, dim=1)[:, 1]# Get prob of class 1
-                    preds = (probs > 0.5).float()  
+                    probs = torch.softmax(out, dim=1)[:, 1]  # Get prob of class 1
+                    preds = (probs > 0.5).float()
                 else:
                     probs = torch.softmax(out, dim=1)
-                    preds = (probs==probs.max(dim = 1,keepdim=True)[0]).float()
+                    preds = (probs == probs.max(dim=1, keepdim=True)[0]).float()
                 all_probs.extend(probs.flatten().cpu().tolist())
-                all_preds.extend(preds.flatten().cpu().tolist())                
+                all_preds.extend(preds.flatten().cpu().tolist())
                 if torch.softmax(out, dim=1).flatten().shape == graph.y.shape:
                     all_labels.extend(graph.y.long().cpu().tolist())
                 else:
@@ -397,3 +398,7 @@ class RNAClassificationTask(Task):
             metrics["loss"] = total_loss / len(loader)
 
         return metrics
+
+    @property
+    def dummy_model(self) -> torch.nn:
+        return DummyRNAModel(num_classes=self.num_classes)

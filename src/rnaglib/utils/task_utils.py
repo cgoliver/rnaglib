@@ -42,3 +42,16 @@ class DummyResidueModel(torch.nn.Module):
         # PyTorch syntax changes a bit for n=2
         predicted_classes = self.num_classes if self.num_classes > 2 else 1
         return torch.rand(g.x.shape[0], predicted_classes)
+
+
+class DummyRNAModel(torch.nn.Module):
+    def __init__(self, num_classes=2):
+        super(DummyRNAModel, self).__init__()
+        self.device = torch.device("cpu")  # Default device is CPU
+        self.criterion = torch.nn.CrossEntropyLoss() if num_classes > 2 else torch.nn.BCEWithLogitsLoss()
+        self.num_classes = num_classes
+
+    def forward(self, g):
+        # PyTorch syntax changes a bit for n=2
+        predicted_classes = self.num_classes if self.num_classes > 2 else 1
+        return torch.rand(1, predicted_classes)

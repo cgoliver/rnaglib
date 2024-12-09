@@ -4,6 +4,7 @@ from rnaglib.data_loading import RNADataset
 from rnaglib.tasks import ResidueClassificationTask
 from rnaglib.transforms import FeaturesComputer
 from rnaglib.transforms import ResidueAttributeFilter
+from rnaglib.transforms import DummyFilter
 from rnaglib.transforms import PDBIDNameTransform
 from rnaglib.utils import dump_json
 
@@ -14,7 +15,7 @@ class ChemicalModification(ResidueClassificationTask):
     """
 
     target_var = "is_modified"
-    input_var = "nt"
+    input_var = "nt_code"
 
     def __init__(self, root, splitter=None, **kwargs):
         super().__init__(root=root, splitter=splitter, **kwargs)
@@ -25,6 +26,8 @@ class ChemicalModification(ResidueClassificationTask):
     def process(self):
         # Define your transforms
         rna_filter = ResidueAttributeFilter(attribute=self.target_var, value_checker=lambda val: val == True)
+        if self.debug:
+            rna_filter = DummyFilter()
         add_name = PDBIDNameTransform()
 
         # Run through database, applying our filters
