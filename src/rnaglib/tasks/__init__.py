@@ -1,5 +1,5 @@
 from .task import Task
-from .task import ResidueClassificationTask, RNAClassificationTask
+from .task import ClassificationTask, RNAClassificationTask, ResidueClassificationTask
 
 from .RNA_Family.rfam import RNAFamily
 from .RBP_Node.protein_binding_site import ProteinBindingSiteDetection
@@ -18,7 +18,7 @@ __all__ = [
     "ChemicalModification",
     "InverseFolding",
     "gRNAde",
-    "GMSM",
+    "LigandIdentification",
     "RNAFamily",
 ]
 
