@@ -70,22 +70,22 @@ class RNADataset:
     """
 
     def __init__(
-        self,
-        rnas: List[nx.Graph] = None,
-        dataset_path: Union[str, os.PathLike] = None,
-        version="1.0.0",
-        redundancy="nr",
-        rna_id_subset: List[str] = None,
-        in_memory: bool = True,
-        features_computer: FeaturesComputer = None,
-        representations: Union[List[Representation], Representation] = None,
-        debug: bool = False,
-        get_pdbs: bool = True,
-        overwrite: bool = False,
-        multigraph: bool = False,
-        pre_transforms: Union[List[Transform], Transform] = None,
-        transforms: Union[List[Transform], Transform] = None,
-        **kwargs,
+            self,
+            rnas: List[nx.Graph] = None,
+            dataset_path: Union[str, os.PathLike] = None,
+            version="1.0.0",
+            redundancy="nr",
+            rna_id_subset: List[str] = None,
+            in_memory: bool = True,
+            features_computer: FeaturesComputer = None,
+            representations: Union[List[Representation], Representation] = None,
+            debug: bool = False,
+            get_pdbs: bool = True,
+            overwrite: bool = False,
+            multigraph: bool = False,
+            pre_transforms: Union[List[Transform], Transform] = None,
+            transforms: Union[List[Transform], Transform] = None,
+            **kwargs,
     ):
         self.in_memory = in_memory
         self.transforms = transforms
@@ -155,11 +155,11 @@ class RNADataset:
 
     @classmethod
     def from_database(
-        cls,
-        representations=None,
-        features_computer=None,
-        in_memory=True,
-        **dataset_build_params,
+            cls,
+            representations=None,
+            features_computer=None,
+            in_memory=True,
+            **dataset_build_params,
     ):
         """Run the steps to build a dataset from scratch.
 
@@ -235,15 +235,15 @@ class RNADataset:
 
         """
         representations = [representations] if not isinstance(representations, list) else representations
-        print(f">>> Adding {str([repr.name for repr in representations])} representations.")
+        to_print = [repr.name for repr in representations] if len(representations) > 1 else representations[0].name
+        print(f">>> Adding {to_print} to dataset representations.")
         self.representations.extend(representations)
 
     def remove_representation(self, names):
         names = [names] if not isinstance(names, Iterable) else names
         for name in names:
-            self.representations = [
-                representation for representation in self.representations if representation.name != name
-            ]
+            self.representations = [representation for representation in self.representations if
+                                    representation.name != name]
 
     def subset(self, list_of_ids=None, list_of_names=None):
         """

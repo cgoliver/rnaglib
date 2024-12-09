@@ -19,6 +19,7 @@ from rnaglib.transforms import BindingSiteAnnotator
 from rnaglib.transforms import ChainFilter
 from rnaglib.utils import dump_json
 
+
 class BenchmarkBindingSiteDetection(ResidueClassificationTask):
     target_var = "binding_site"
     input_var = "nt_code"
@@ -62,8 +63,8 @@ class BindingSiteDetection(ResidueClassificationTask):
     target_var = "binding_small-molecule"
     input_var = "nt_code"
 
-    def __init__(self, root, splitter=None, **kwargs):
-        super().__init__(root=root, splitter=splitter, **kwargs)
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
 
     def process(self) -> RNADataset:
         # Define your transforms

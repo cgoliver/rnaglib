@@ -1,12 +1,9 @@
-"""Demo for training a simple model using an rnaglib task"""
-
 from rnaglib.tasks import BindingSiteDetection
 from rnaglib.transforms import GraphRepresentation
-from rnaglib.learning.task_models import RGCN_node
+from rnaglib.learning.task_models import PygModel
 
 # Creating task
-ta = BindingSiteDetection("RNA-Site", in_memory=False)
-ta.dataset.to_memory()
+ta = BindingSiteDetection(root="RNA-Site")
 
 # Add representation
 ta.dataset.add_representation(GraphRepresentation(framework="pyg"))
@@ -25,12 +22,12 @@ info = ta.describe()
 #         ...
 
 # Or using a wrapper class
-model = RGCN_node(info["num_node_features"], info["num_classes"], info["num_edge_attributes"])
+model = PygModel(info["num_node_features"], info["num_classes"], info["num_edge_attributes"], graph_level=False)
 model.configure_training(learning_rate=0.001)
-model.train_model(ta, epochs=100)
+model.train_model(ta, epochs=1)
 
 # Final evaluation
-test_metrics = ta.evaluate(model, ta.test_dataloader)
+test_metrics = model.evaluate(ta)
 print(
     f"Test Loss: {test_metrics['loss']:.4f}, "
     f"Test Accuracy: {test_metrics['accuracy']:.4f}, "
