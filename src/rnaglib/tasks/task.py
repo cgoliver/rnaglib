@@ -183,7 +183,7 @@ class Task:
         train_ind = [int(ind) for ind in open(os.path.join(self.root, "train_idx.txt"), "r").readlines()]
         val_ind = [int(ind) for ind in open(os.path.join(self.root, "val_idx.txt"), "r").readlines()]
         test_ind = [int(ind) for ind in open(os.path.join(self.root, "test_idx.txt"), "r").readlines()]
-        dataset = RNADataset(dataset_path=self.dataset_path, in_memory=self.in_memory)
+        dataset = RNADataset(dataset_path=self.dataset_path, in_memory=self.in_memory, debug=self.debug)
 
         with open(Path(self.root) / "metadata.json", "r") as meta:
             metadata = json.load(meta)
@@ -294,52 +294,45 @@ class ClassificationTask(Task):
             return DummyGraphModel(num_classes=self.num_classes)
         return DummyResidueModel(num_classes=self.num_classes)
 
+    def compute_one_metric(self, preds, probs, labels):
+        one_metric = {
+            "accuracy": accuracy_score(labels, preds),
+            "f1": f1_score(labels, preds, average='binary' if self.num_classes == 2 else "macro"),
+            "auc": roc_auc_score(labels,
+                probs,
+                average=None if self.num_classes == 2 else "macro",
+                multi_class='ovo'),
+            "mcc": matthews_corrcoef(labels, preds),
+        }
+        return one_metric
+
     def compute_metrics(self, all_preds, all_probs, all_labels):
         if self.graph_level:
-            metrics = {
-                "accuracy": accuracy_score(all_labels, all_preds),
-                "f1": f1_score(all_labels, all_preds, average='binary' if self.num_classes == 2 else "macro"),
-                "auc": roc_auc_score(all_labels,
-                    all_probs,
-                    average='binary' if self.num_classes == 2 else "macro",
-                    multi_class='ovo'),
-                "mcc": matthews_corrcoef(all_labels, all_preds),
-            }
+            return self.compute_one_metric(all_preds, all_probs, all_labels)
         else:
             # Here we have a list of preds [(n1,), (n2,)...] for each residue in each RNA
             # Either compute the overall flattened results, or aggregate by system
+            sorted_keys = []
             metrics = []
             for pred, prob, label in zip(all_preds, all_probs, all_labels):
                 # Can't compute metrics over just one class
                 if len(np.unique(label)) == 1:
                     continue
-                metrics.append([
-                    accuracy_score(label, pred),
-                    f1_score(label, pred),
-                    roc_auc_score(label, prob),
-                    matthews_corrcoef(label, pred)
-                ])
+                one_metric = self.compute_one_metric(pred, prob, label)
+                metrics.append([v for k, v in sorted(one_metric.items())])
+                sorted_keys = sorted(one_metric.keys())
             metrics = np.array(metrics)
             mean_metrics = np.mean(metrics, axis=0)
-            metrics = {
-                "accuracy": mean_metrics[0],
-                "f1": mean_metrics[1],
-                "auc": mean_metrics[2],
-                "mcc": mean_metrics[3],
-            }
+            metrics = {k: v for k, v in zip(sorted_keys, mean_metrics)}
 
-            # Get the flattened result
+            # Get the flattened result, renamed to include "global"
             all_preds = np.concatenate(all_preds)
             all_probs = np.concatenate(all_probs)
             all_labels = np.concatenate(all_labels)
-            metrics_global = {
-                "global_accuracy": accuracy_score(all_labels, all_preds),
-                "global_f1": f1_score(all_labels, all_preds),
-                "global_auc": roc_auc_score(all_labels, all_probs),
-                "global_mcc": matthews_corrcoef(all_labels, all_preds),
-            }
+            global_metrics = self.compute_one_metric(all_preds, all_probs, all_labels)
+            metrics_global = {f"global_{k}": v for k, v in global_metrics.items()}
             metrics.update(metrics_global)
-        return metrics
+            return metrics
 
 
 class ResidueClassificationTask(ClassificationTask):
