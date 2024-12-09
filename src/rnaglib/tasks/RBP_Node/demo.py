@@ -21,7 +21,7 @@ info = ta.describe(recompute=False)
 #         ...
 
 # Or using a wrapper class
-model = PygModel(info["num_node_features"], info["num_classes"], info["num_edge_attributes"], graph_level=False)
+model = PygModel(info["num_node_features"], info["num_classes"], graph_level=False)
 model.configure_training(learning_rate=0.001)
 model.train_model(ta, epochs=1)
 
