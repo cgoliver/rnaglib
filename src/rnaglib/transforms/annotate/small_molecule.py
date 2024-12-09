@@ -2,6 +2,7 @@ import os
 import sys
 from typing import Union
 from pathlib import Path
+import requests
 
 from Bio.PDB.MMCIF2Dict import MMCIF2Dict
 from Bio.PDB.MMCIFParser import FastMMCIFParser
@@ -131,6 +132,32 @@ def hariboss_filter(lig, cif_dict, mass_lower_limit=160, mass_upper_limit=1000):
         return None
 
 
+def get_smiles_from_rcsb(ligand_code):
+    """
+    Query the RCSB PDB API for a ligand code and return its SMILES string.
+
+    Parameters:
+    - ligand_code (str): The 3-letter code of the ligand.
+
+    Returns:
+    - str: The SMILES string of the ligand, or None if not found.
+    """
+    base_url = f"https://data.rcsb.org/rest/v1/core/chemcomp/{ligand_code.upper()}"
+    try:
+        response = requests.get(base_url)
+        response.raise_for_status()  # Raise an error for HTTP issues
+        data = response.json()
+        # Extract SMILES string
+        smiles = data.get("rcsb_chem_comp_descriptor", {}).get("smiles")
+        return smiles
+    except requests.exceptions.RequestException as e:
+        print(f"Request failed: {e}")
+        return None
+    except KeyError:
+        print(f"SMILES not found for ligand: {ligand_code}")
+        return None
+
+
 def get_small_partners(cif, mmcif_dict=None, radius=6, mass_lower_limit=160, mass_upper_limit=1000):
     """
     Returns all the relevant small partners in the form of a dict of list of dicts:
@@ -171,7 +198,9 @@ def get_small_partners(cif, mmcif_dict=None, radius=6, mass_lower_limit=160, mas
                 res_1, mmcif_dict, mass_lower_limit=mass_lower_limit, mass_upper_limit=mass_upper_limit
             )
             if selected is not None:  # ion or ligand
-                interaction_dict = {"id": tuple(res_1.id), "name": res_1.id[0][2:]}
+                name = res_1.id[0][2:]
+                smiles = get_smiles_from_rcsb(name)
+                interaction_dict = {"id": tuple(res_1.id), "name": name, "smiles": smiles}
                 found_rna_neighbors = set()
                 for atom in res_1:
                     # print(atom)
@@ -212,12 +241,13 @@ class SmallMoleculeBindingTransform(AnnotationTransform):
 
         # First fill relevant nodes
         for interaction_dict in all_interactions["ligands"]:
-            ligand_id = interaction_dict["id"]
             for rna_neigh in interaction_dict["rna_neighs"]:
-                # In some rare cases, dssr removes a residue from the cif, in which case it can be fou
-                # in the interaction dict but not in graph...
                 if rna_neigh in g.nodes:
-                    g.nodes[rna_neigh]["binding_small-molecule"] = ligand_id
+                    g.nodes[rna_neigh]["binding_small-molecule"] = {
+                        "name": interaction_dict["name"],
+                        "id": interaction_dict["id"],
+                        "smiles": interaction_dict["smiles"],
+                    }
         for interaction_dict in all_interactions["ions"]:
             ion_id = interaction_dict["id"]
             for rna_neigh in interaction_dict["rna_neighs"]:
