@@ -82,13 +82,14 @@ class IntMappingEncoder:
 
 class IntEncoder:
 
-    def __init__(self, default_value=0):
+    def __init__(self, mapping, default_value=0):
         """
         Utility class to encode floats
 
         :param default_value: The value to return in case of failure
         """
         self.default_value = default_value
+        self.mapping = mapping
 
     def encode(self, value):
         """
@@ -105,7 +106,7 @@ class IntEncoder:
         return torch.tensor([self.default_value], dtype=torch.int)
 
     def decode(self, value):
-        return value.item()
+        return self.mapping[value].item()
 
 
 

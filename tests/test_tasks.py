@@ -1,5 +1,7 @@
+import os
 import unittest
 import tempfile
+import pandas as pd
 
 from rnaglib.transforms import GraphRepresentation
 from rnaglib.tasks import Task
@@ -56,7 +58,9 @@ class TaskTest(unittest.TestCase):
 
     def test_LigandIdentification(self):
         with tempfile.TemporaryDirectory() as tmp:
-            ta = LigandIdentification(root=tmp, **self.default_dataset_params)
+            # data = pd.DataFrame({'idx':[0,0,229],'label':[0,0,1],'nid':['165d.B.15','165d.B.16','2h0z.A.6']})
+            data = pd.read_csv(os.path.join(os.path.dirname(__file__),"../src/rnaglib/tasks/RNA_Ligand/data/gmsm_dataset.csv"))
+            ta = LigandIdentification(root=tmp, data=data, recompute=True, **self.default_dataset_params)
             self.check_task(ta)
 
     def test_BindingSiteDetection(self):
