@@ -120,6 +120,10 @@ def load_graph(filename, multigraph=False):
 
     if not multigraph and isinstance(graph, nx.MultiDiGraph):
         graph = multigraph_to_simple(graph)
+
+    # 1.0.0 compatibility patch
+    if isinstance(graph.graph["pdbid"], list):
+        graph.graph["pdbid"] = graph.graph["pdbid"][0]
     return graph
 
 
