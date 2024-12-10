@@ -38,7 +38,8 @@ class LigandIdentification(RNAClassificationTask):
         annotator = AnnotatorFromDict(annotation_dict=self.ligands_dict, name="ligand_code")
 
         # Run through database, applying our filters
-        dataset = RNADataset(debug=self.debug, in_memory=self.in_memory, redundancy="all", rna_id_subset=list(self.data["RNA"].unique()))
+        # Initialize dataset with in_memory=False to avoid loading everything at once
+        dataset = RNADataset(debug=self.debug, in_memory=False, redundancy="all", rna_id_subset=list(self.data["RNA"].unique()))
         all_binding_pockets = []
         os.makedirs(self.dataset_path, exist_ok=True)
         for rna in dataset:
