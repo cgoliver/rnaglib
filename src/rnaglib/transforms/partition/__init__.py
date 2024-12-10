@@ -1,2 +1,2 @@
 from .chain import *
-from .RNA_ligand import *
+from .from_dict import *
