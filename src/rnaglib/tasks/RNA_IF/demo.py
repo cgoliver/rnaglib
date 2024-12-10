@@ -11,8 +11,8 @@ ta.get_split_loaders(recompute=False)
 
 # Train model
 model = PygModel(
-    num_node_features=ta.info["num_node_features"],
-    num_classes=ta.info["num_classes"],
+    num_node_features=ta.metadata["description"]["num_node_features"],
+    num_classes=ta.metadata["description"]["num_classes"],
     graph_level=False
 )
 model.configure_training(learning_rate=0.001)
