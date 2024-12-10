@@ -10,9 +10,6 @@ ta.dataset.add_representation(GraphRepresentation(framework="pyg"))
 # Splitting dataset
 ta.get_split_loaders(recompute=False)
 
-# Computing and printing statistics
-info = ta.describe()
-
 # Train model
 # Either by hand:
 # for epoch in range(100):
@@ -21,16 +18,11 @@ info = ta.describe()
 #         ...
 
 # Or using a wrapper class
-model = PygModel(info["num_node_features"], info["num_classes"], info["num_edge_attributes"], graph_level=False)
+model = PygModel(ta.metadata["description"]["num_node_features"], ta.metadata["description"]["num_classes"], graph_level=False)
 model.configure_training(learning_rate=0.001)
 model.train_model(ta, epochs=10)
 
 # Final evaluation
 test_metrics = model.evaluate(ta, split="test")
-print(
-    f"Test Loss: {test_metrics['loss']:.4f}, "
-    f"Test Accuracy: {test_metrics['accuracy']:.4f}, "
-    f"Test F1 Score: {test_metrics['f1']:.4f}, "
-    f"Test AUC: {test_metrics['auc']:.4f}, "
-    f"Test MCC: {test_metrics['mcc']:.4f}"
-)
+for k, v in test_metrics.items():
+    print(f"Test {k}: {v:.4f}")

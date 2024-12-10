@@ -12,7 +12,7 @@ from typing import Union, Optional
 from rnaglib.data_loading import RNADataset, Collater
 from rnaglib.transforms import FeaturesComputer
 from rnaglib.splitters import Splitter, RandomSplitter
-from rnaglib.utils import DummyResidueModel, DummyGraphModel
+from rnaglib.utils import DummyResidueModel, DummyGraphModel, tonumpy
 
 
 class Task:
@@ -183,7 +183,7 @@ class Task:
         train_ind = [int(ind) for ind in open(os.path.join(self.root, "train_idx.txt"), "r").readlines()]
         val_ind = [int(ind) for ind in open(os.path.join(self.root, "val_idx.txt"), "r").readlines()]
         test_ind = [int(ind) for ind in open(os.path.join(self.root, "test_idx.txt"), "r").readlines()]
-        dataset = RNADataset(dataset_path=self.dataset_path, in_memory=self.in_memory)
+        dataset = RNADataset(dataset_path=self.dataset_path, in_memory=self.in_memory, debug=self.debug)
 
         with open(Path(self.root) / "metadata.json", "r") as meta:
             metadata = json.load(meta)
@@ -204,81 +204,77 @@ class Task:
             dict: Contains dataset information and model dimensions
         """
         if not recompute and 'description' in self.metadata:
-            return self.metadata["description"]
-
-        print(">>> Computing description of task...")
-        self.get_split_loaders(recompute=False)
-
-        # Get dimensions from first graph
-        first_item = self.dataset[0]
-        if 'graph' in first_item:
-            compute_num_edge_attributes = True
+            info = self.metadata["description"]
         else:
-            compute_num_edge_attributes = False
-        first_node_map = {n: i for i, n in enumerate(sorted(first_item["rna"].nodes()))}
-        first_features_dict = self.dataset.features_computer(first_item)
-        first_features_array = first_features_dict["nt_features"][next(iter(first_node_map.keys()))]
-        num_node_features = first_features_array.shape[0]
+            print(">>> Computing description of task...")
+            self.get_split_loaders(recompute=False)
 
-        # Dynamic class counting
-        class_counts = {}
-        classes = set()
-        if compute_num_edge_attributes:
-            unique_edge_attrs = set()
+            # Get dimensions from first graph
+            first_item = self.dataset[0]
+            compute_num_edge_attributes = 'graph' in first_item
 
-        # Collect statistics from dataset
-        import tqdm
-        for item in tqdm.tqdm(self.dataset):
+            first_node_map = {n: i for i, n in enumerate(sorted(first_item["rna"].nodes()))}
+            first_features_dict = self.dataset.features_computer(first_item)
+            first_features_array = first_features_dict["nt_features"][next(iter(first_node_map.keys()))]
+            num_node_features = first_features_array.shape[0]
+
+            # Dynamic class counting
+            class_counts = {}
+            classes = set()
+            unique_edge_attrs = set()  # only used with graphs
+
+            # Collect statistics from dataset
+            import tqdm
+            for item in tqdm.tqdm(self.dataset):
+                if compute_num_edge_attributes:
+                    graph = item["graph"]
+                    unique_edge_attrs.update(graph.edge_attr.tolist())
+                node_map = {n: i for i, n in enumerate(sorted(item['rna'].nodes()))}
+                features_dict = self.dataset.features_computer(item)
+                if "nt_targets" in features_dict:
+                    list_y = [features_dict["nt_targets"][n] for n in node_map.keys()]
+                    # In the case of single target, pytorch CE loss expects shape (n,) and not (n,1)
+                    # For multi-target cases, we stack to get (n,d)
+                    if len(list_y[0]) == 1:
+                        y = torch.cat(list_y)
+                    else:
+                        y = torch.stack(list_y)
+                if "rna_targets" in features_dict:
+                    y = features_dict["rna_targets"].clone().detach()
+
+                graph_classes = y.unique().tolist()
+                classes.update(graph_classes)
+
+                # Count classes in this graph
+                for cls in graph_classes:
+                    cls_int = int(cls)
+                    if cls_int not in class_counts:
+                        class_counts[cls_int] = 0
+                    class_counts[cls_int] += torch.sum(y == cls).item()
+
+            info = {
+                "num_node_features": num_node_features,
+                "num_classes": len(classes),
+                "dataset_size": len(self.dataset),
+                "class_distribution": class_counts,
+            }
             if compute_num_edge_attributes:
-                graph = item["graph"]
-                unique_edge_attrs.update(graph.edge_attr.tolist())
-            node_map = {n: i for i, n in enumerate(sorted(item['rna'].nodes()))}
-            features_dict = self.dataset.features_computer(item)
-            if "nt_targets" in features_dict:
-                list_y = [features_dict["nt_targets"][n] for n in node_map.keys()]
-                # In the case of single target, pytorch CE loss expects shape (n,) and not (n,1)
-                # For multi-target cases, we stack to get (n,d)
-                if len(list_y[0]) == 1:
-                    y = torch.cat(list_y)
-                else:
-                    y = torch.stack(list_y)
-            if "rna_targets" in features_dict:
-                y = features_dict["rna_targets"].clone().detach()
-
-            graph_classes = y.unique().tolist()
-            classes.update(graph_classes)
-
-            # Count classes in this graph
-            for cls in graph_classes:
-                cls_int = int(cls)
-                if cls_int not in class_counts:
-                    class_counts[cls_int] = 0
-                class_counts[cls_int] += torch.sum(y == cls).item()
-
-        info = {
-            "num_node_features": num_node_features,
-            "num_classes": len(classes),
-            "dataset_size": len(self.dataset),
-            "class_distribution": class_counts,
-        }
-        if compute_num_edge_attributes:
-            info["num_edge_attributes"] = len(unique_edge_attrs)
+                info["num_edge_attributes"] = len(unique_edge_attrs)
+            if self.save:
+                with open(Path(self.root) / "metadata.json", "w") as meta:
+                    json.dump(self.metadata, meta, indent=4)
+            self.metadata['description'] = info
 
         # Print description
         print("Dataset Description:")
-        print(f"Number of node features: {info['num_node_features']}")
-        print(f"Number of classes: {info['num_classes']}")
-        if compute_num_edge_attributes:
-            print(f"Number of edge attributes: {info['num_edge_attributes']}")
-        print(f"Dataset size: {info['dataset_size']} graphs")
-        print("\nClass distribution:")
-        for cls in sorted(class_counts.keys()):
-            print(f"Class {cls}: {class_counts[cls]} nodes")
-
-        self.metadata['description'] = info
-        if self.save:
-            with open(Path(self.root) / "metadata.json", "w") as meta:
-                json.dump(self.metadata, meta, indent=4)
+        for k, v in info.items():
+            if k != 'class_distribution':
+                print(k, ' : ', v)
+            else:
+                print("Class distribution:")
+                for cls in sorted(v.keys()):
+                    print(f"\tClass {cls}: {v[cls]} nodes")
+        print()
         return info
 
 
@@ -294,52 +290,86 @@ class ClassificationTask(Task):
             return DummyGraphModel(num_classes=self.num_classes)
         return DummyResidueModel(num_classes=self.num_classes)
 
+    def dummy_inference(self):
+        all_probs = []
+        all_preds = []
+        all_labels = []
+        dummy_model = self.dummy_model
+        with torch.no_grad():
+            for batch in self.test_dataloader:
+                graph = batch["graph"]
+                out = dummy_model(graph)
+                labels = graph.y
+
+                # get preds and probas + cast to numpy
+                if self.num_classes == 2:
+                    probs = torch.sigmoid(out.flatten())
+                    preds = (probs > 0.5).float()
+                else:
+                    probs = torch.softmax(out, dim=1)
+                    preds = probs.argmax(dim=1)
+                probs = tonumpy(probs)
+                preds = tonumpy(preds)
+                labels = tonumpy(labels)
+
+                # split predictions per RNA if residue level
+                if not self.graph_level:
+                    cumulative_sizes = tuple(tonumpy(graph.ptr))
+                    probs = [probs[start:end] for start, end in zip(cumulative_sizes[:-1], cumulative_sizes[1:])]
+                    preds = [preds[start:end] for start, end in zip(cumulative_sizes[:-1], cumulative_sizes[1:])]
+                    labels = [labels[start:end] for start, end in zip(cumulative_sizes[:-1], cumulative_sizes[1:])]
+                all_probs.extend(probs)
+                all_preds.extend(preds)
+                all_labels.extend(labels)
+
+        if self.graph_level:
+            all_probs = np.stack(all_probs)
+            all_preds = np.stack(all_preds)
+            all_labels = np.stack(all_labels)
+        return 0, all_preds, all_probs, all_labels
+
+    def compute_one_metric(self, preds, probs, labels):
+        one_metric = {
+            "accuracy": accuracy_score(labels, preds),
+            "f1": f1_score(labels, preds, average='binary' if self.num_classes == 2 else "macro"),
+            "mcc": matthews_corrcoef(labels, preds),
+        }
+        try:
+            one_metric["auc"] = roc_auc_score(labels,
+                probs,
+                average=None if self.num_classes == 2 else "macro",
+                multi_class='ovo')
+        except:
+            return one_metric
+        return one_metric
+
     def compute_metrics(self, all_preds, all_probs, all_labels):
         if self.graph_level:
-            metrics = {
-                "accuracy": accuracy_score(all_labels, all_preds),
-                "f1": f1_score(all_labels, all_preds, average='binary' if self.num_classes == 2 else "macro"),
-                "auc": roc_auc_score(all_labels,
-                    all_probs,
-                    average='binary' if self.num_classes == 2 else "macro",
-                    multi_class='ovo'),
-                "mcc": matthews_corrcoef(all_labels, all_preds),
-            }
+            return self.compute_one_metric(all_preds, all_probs, all_labels)
         else:
             # Here we have a list of preds [(n1,), (n2,)...] for each residue in each RNA
             # Either compute the overall flattened results, or aggregate by system
+            sorted_keys = []
             metrics = []
             for pred, prob, label in zip(all_preds, all_probs, all_labels):
                 # Can't compute metrics over just one class
                 if len(np.unique(label)) == 1:
                     continue
-                metrics.append([
-                    accuracy_score(label, pred),
-                    f1_score(label, pred),
-                    roc_auc_score(label, prob),
-                    matthews_corrcoef(label, pred)
-                ])
+                one_metric = self.compute_one_metric(pred, prob, label)
+                metrics.append([v for k, v in sorted(one_metric.items())])
+                sorted_keys = sorted(one_metric.keys())
             metrics = np.array(metrics)
             mean_metrics = np.mean(metrics, axis=0)
-            metrics = {
-                "accuracy": mean_metrics[0],
-                "f1": mean_metrics[1],
-                "auc": mean_metrics[2],
-                "mcc": mean_metrics[3],
-            }
+            metrics = {k: v for k, v in zip(sorted_keys, mean_metrics)}
 
-            # Get the flattened result
+            # Get the flattened result, renamed to include "global"
             all_preds = np.concatenate(all_preds)
             all_probs = np.concatenate(all_probs)
             all_labels = np.concatenate(all_labels)
-            metrics_global = {
-                "global_accuracy": accuracy_score(all_labels, all_preds),
-                "global_f1": f1_score(all_labels, all_preds),
-                "global_auc": roc_auc_score(all_labels, all_probs),
-                "global_mcc": matthews_corrcoef(all_labels, all_preds),
-            }
+            global_metrics = self.compute_one_metric(all_preds, all_probs, all_labels)
+            metrics_global = {f"global_{k}": v for k, v in global_metrics.items()}
             metrics.update(metrics_global)
-        return metrics
+            return metrics
 
 
 class ResidueClassificationTask(ClassificationTask):
