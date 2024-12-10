@@ -2,19 +2,20 @@ import os
 import pandas as pd
 from rnaglib.transforms import AnnotationTransform
 
-class LigandAnnotator(AnnotationTransform):
-    name = "ligand_code"
+class AnnotatorFromDict(AnnotationTransform):
 
     def __init__(
             self,
-            data,
+            annotation_dict,
+            name,
             **kwargs
     ):
-        self.data = data
+        self.annotation_dict = annotation_dict
+        self.name = name
         super().__init__(**kwargs)
         
     def forward(self, rna_dict: dict) -> dict:
         node = next(iter(rna_dict["rna"].nodes()))
-        ligand_code = int(self.data.loc[self.data.nid == node, "label"].values[0])
-        rna_dict["rna"].graph[self.name] = ligand_code
+        annotation = self.annotation_dict[node]
+        rna_dict["rna"].graph[self.name] = annotation
         return rna_dict

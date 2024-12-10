@@ -295,12 +295,15 @@ class ClassificationTask(Task):
         one_metric = {
             "accuracy": accuracy_score(labels, preds),
             "f1": f1_score(labels, preds, average='binary' if self.num_classes == 2 else "macro"),
-            "auc": roc_auc_score(labels,
-                probs,
-                average=None if self.num_classes == 2 else "macro",
-                multi_class='ovo'),
             "mcc": matthews_corrcoef(labels, preds),
         }
+        try:
+            one_metric["auc"] = roc_auc_score(labels,
+                probs,
+                average=None if self.num_classes == 2 else "macro",
+                multi_class='ovo')
+        except:
+            return one_metric
         return one_metric
 
     def compute_metrics(self, all_preds, all_probs, all_labels):
