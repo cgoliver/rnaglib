@@ -10,7 +10,7 @@ class PygModel(torch.nn.Module):
     def __init__(self,
                  num_node_features,
                  num_classes,
-                 num_unique_edge_attrs,
+                 num_unique_edge_attrs=20,
                  graph_level=False,
                  num_layers=2,
                  hidden_channels=128,
@@ -148,14 +148,19 @@ class PygModel(torch.nn.Module):
         mean_loss = total_loss / len(loader)
         return mean_loss, all_preds, all_probs, all_labels
 
-    def evaluate(self, task, split='test'):
+    def get_dataloader(self, task, split='test'):
         if split == 'test':
             dataloader = task.test_dataloader
         elif split == 'val':
             dataloader = task.val_dataloader
         else:
             dataloader = task.train_dataloader
+        return dataloader
+
+    def evaluate(self, task, split='test'):
+        dataloader = self.get_dataloader(task=task, split=split)
         mean_loss, all_preds, all_probs, all_labels = self.inference(loader=dataloader)
         metrics = task.compute_metrics(all_preds, all_probs, all_labels)
         metrics['loss'] = mean_loss
         return metrics
+
