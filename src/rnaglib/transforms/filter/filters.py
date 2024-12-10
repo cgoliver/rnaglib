@@ -113,6 +113,27 @@ class ResidueAttributeFilter(FilterTransform):
                 return True
         return False
 
+class ResidueNameFilter(FilterTransform):
+    def __init__(
+        self,
+        value_checker: Callable = None,
+        min_valid: int = 1,
+        **kwargs,
+    ):
+        self.min_valid = min_valid
+        self.value_checker = value_checker
+        super().__init__(**kwargs)
+        pass
+
+    def forward(self, data: dict):
+        n_valid = 0
+        g = data["rna"]
+        for node, ndata in g.nodes(data=True):
+            if self.value_checker(node):
+                    n_valid += 1
+            if n_valid >= self.min_valid:
+                return True
+        return False
 
 class RibosomalFilter(FilterTransform):
     """Remove RNA if ribosomal"""

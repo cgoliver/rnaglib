@@ -70,22 +70,22 @@ class RNADataset:
     """
 
     def __init__(
-        self,
-        rnas: List[nx.Graph] = None,
-        dataset_path: Union[str, os.PathLike] = None,
-        version="2.0.0",
-        redundancy="nr",
-        rna_id_subset: List[str] = None,
-        in_memory: bool = True,
-        features_computer: FeaturesComputer = None,
-        representations: Union[List[Representation], Representation] = None,
-        debug: bool = False,
-        get_pdbs: bool = True,
-        overwrite: bool = False,
-        multigraph: bool = False,
-        pre_transforms: Union[List[Transform], Transform] = None,
-        transforms: Union[List[Transform], Transform] = None,
-        **kwargs,
+            self,
+            rnas: List[nx.Graph] = None,
+            dataset_path: Union[str, os.PathLike] = None,
+            version="1.0.0",
+            redundancy="nr",
+            rna_id_subset: List[str] = None,
+            in_memory: bool = True,
+            features_computer: FeaturesComputer = None,
+            representations: Union[List[Representation], Representation] = None,
+            debug: bool = False,
+            get_pdbs: bool = True,
+            overwrite: bool = False,
+            multigraph: bool = False,
+            pre_transforms: Union[List[Transform], Transform] = None,
+            transforms: Union[List[Transform], Transform] = None,
+            **kwargs,
     ):
         self.in_memory = in_memory
         self.transforms = transforms
@@ -111,6 +111,10 @@ class RNADataset:
             # One can restrict the number of graphs to use
             existing_all_rnas, extension = get_all_existing(dataset_path=self.dataset_path, all_rnas=rna_id_subset)
             self.extension = extension
+
+            # If debugging, only keep the first few
+            if debug:
+                existing_all_rnas = existing_all_rnas[:30]
 
             # Keep track of a list_id <=> system mapping. First remove extensions
             existing_all_rna_names = [get_name_extension(rna, permissive=True)[0] for rna in existing_all_rnas]
@@ -155,11 +159,11 @@ class RNADataset:
 
     @classmethod
     def from_database(
-        cls,
-        representations=None,
-        features_computer=None,
-        in_memory=True,
-        **dataset_build_params,
+            cls,
+            representations=None,
+            features_computer=None,
+            in_memory=True,
+            **dataset_build_params,
     ):
         """Run the steps to build a dataset from scratch.
 
@@ -235,15 +239,15 @@ class RNADataset:
 
         """
         representations = [representations] if not isinstance(representations, list) else representations
-        print(f">>> Adding {str([repr.name for repr in representations])} representations.")
+        to_print = [repr.name for repr in representations] if len(representations) > 1 else representations[0].name
+        print(f">>> Adding {to_print} to dataset representations.")
         self.representations.extend(representations)
 
     def remove_representation(self, names):
         names = [names] if not isinstance(names, Iterable) else names
         for name in names:
-            self.representations = [
-                representation for representation in self.representations if representation.name != name
-            ]
+            self.representations = [representation for representation in self.representations if
+                                    representation.name != name]
 
     def subset(self, list_of_ids=None, list_of_names=None):
         """
@@ -256,7 +260,11 @@ class RNADataset:
         # You can't subset on both simultaneously
         assert list_of_ids is None or list_of_names is None
         if list_of_names is not None:
-            list_of_ids = [self.all_rnas[name] for name in list_of_names]
+            existing_names = set(self.all_rnas.keys())
+            list_of_ids = [self.all_rnas[name] for name in list_of_names if name in existing_names]
+        else:
+            existing_ids = set(self.all_rnas.values())
+            list_of_ids = [id_rna for id_rna in list_of_ids if id_rna in existing_ids]
 
         # Copy existing dataset, avoid expansive deep copy of rnas if in memory
         temp = self.rnas
