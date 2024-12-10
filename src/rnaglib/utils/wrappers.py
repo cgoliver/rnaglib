@@ -15,12 +15,13 @@ from rnaglib.utils import cif_remove_residues
 def US_align_wrapper(
     cif_path_1: Union[str, os.PathLike],
     cif_path_2: Union[str, os.PathLike],
-    flags: tuple = ("-mm", "1"),
+    flags: tuple = ("-mm", "1", "-ter", "1"),
     reslist_1: Optional[list] = None,
     reslist_2: Optional[list] = None,
 ):
     """Calls USalign on two mmCIF files and returns the output.
-    Must have USalign (https://zhanggroup.org/US-align/bin/module/USalign.cpp) in your executable path."""
+    Must have USalign (https://zhanggroup.org/US-align/bin/module/USalign.cpp) in your executable path.
+    """
 
     assert Path(cif_path_1).exists(), f"{cif_path_1} missing"
     assert Path(cif_path_2).exists(), f"{cif_path_2} missing"
@@ -31,7 +32,7 @@ def US_align_wrapper(
             cif_remove_residues(cif_path_1, reslist_1, new_cif_1)
             cif_path_1 = new_cif_1
         if not reslist_2 is None:
-            new_cif_2 = Path(tmpdir) / "rna_1.cif"
+            new_cif_2 = Path(tmpdir) / "rna_2.cif"
             cif_remove_residues(cif_path_2, reslist_2, new_cif_2)
             cif_path_2 = new_cif_2
 
@@ -64,7 +65,8 @@ def rna_align_wrapper(
     reslist_2: Optional[list] = None,
 ):
     """Calls RNAalign on two mmCIF files and returns the output.
-    Must have RNAalign (https://zhanggroup.org/RNA-align/download.html) in your executable path."""
+    Must have RNAalign (https://zhanggroup.org/RNA-align/download.html) in your executable path.
+    """
 
     # assert shutil.which('RNAalign') is not None,\
     # "RNAalign installation not found. Go here https://zhanggroup.org/RNA-align/"

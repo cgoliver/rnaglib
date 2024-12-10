@@ -1,4 +1,4 @@
-# RNA-IF
+# RNA-VS
 
 In this directory you can find the implementation of the `RNA-VS` task.
 Given the structure of an RNA binding-site and of a small molecule, we train a model to predict a compatibility score.
@@ -57,21 +57,22 @@ At test time, we use all actives and inactives associated to a binding site and 
 
 Just a simple script to compute the auroc metric over a dataloader of pairs of (RNA binding site, list of compounds)
 
-## ligands.py
+### ligands.py
 
-Simple script containing the logic to encode a ligand as a graph. 
+Simple script containing the logic to encode a ligand as a graph.
 Right now, this only supports a DGL representation.
 Support for other frameworks is on the todo, but feel free to PR.
 
-## model.py
+### model.py
 
-Script defining the model architecture for this task. 
+Script defining the model architecture for this task.
 Note that the final model should implement a `predict_ligands(pocket, ligands)` method (to rank compounds).
 
-## task.py
+### task.py
 
-The script combining all these methods together. 
-It handles building the data and follows the general Task API: 
+The script combining all these methods together.
+It handles building the data and follows the general Task API:
+
 - task.get_split_loaders(dataset_kwargs=None, dataloader_kwargs=None)
 - task.evaluate(model)
 
