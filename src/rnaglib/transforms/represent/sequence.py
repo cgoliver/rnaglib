@@ -85,7 +85,7 @@ class SequenceRepresentation(Representation):
 
     @property
     def name(self):
-        return "graph"
+        return "sequence"
 
     def batch(self, samples):
         """
