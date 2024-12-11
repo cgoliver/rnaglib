@@ -76,6 +76,7 @@ These transforms convert a raw RNA into a geometric representation such as graph
     :toctree: generated/
 
     Representation 
+    SequenceRepresentation
     GraphRepresentation
     PointCloudRepresentation
     VoxelRepresentation 
