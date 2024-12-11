@@ -18,7 +18,6 @@ Functions and writing and loading to/from disk.
     download_graphs
     dump_json
     load_json
-    graph_from_pdbid
     
 
 Wrappers
