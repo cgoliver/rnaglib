@@ -8,6 +8,7 @@ from rnaglib.transforms import FeaturesComputer
 from rnaglib.transforms import GraphRepresentation
 from rnaglib.transforms import RNAFMTransform
 from rnaglib.transforms import RfamTransform
+from rnaglib.transforms import SecondaryStructureTransform
 from rnaglib.transforms import Compose
 from rnaglib.transforms import SizeFilter
 from rnaglib.transforms import ChainSplitTransform
@@ -24,7 +25,7 @@ class TransformsTest(unittest.TestCase):
 
     @classmethod
     def setUpClass(self):
-        self.dataset = RNADataset(debug=True)
+        self.dataset = RNADataset(debug=True, in_memory=True)
 
     def test_RfamTransform(self):
         tr = RfamTransform()
@@ -41,6 +42,10 @@ class TransformsTest(unittest.TestCase):
         tr(self.dataset[0])
         list(tr(self.dataset))
         pass
+
+    def test_SecondaryStructureTransform(self):
+        tr = SecondaryStructureTransform(self.dataset.structures_path)
+        tr(self.dataset[0])
 
     """
     def test_RNAFMTransform_chunk(self):

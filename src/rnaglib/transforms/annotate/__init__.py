@@ -1,3 +1,4 @@
+from .ss import SecondaryStructureTransform
 from .names import *
 from .rnafm import RNAFMTransform
 from .rfam import *

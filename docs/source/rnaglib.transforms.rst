@@ -35,6 +35,7 @@ These transforms update the information stored in an RNA dictionary.
     RNAFMTransform
     PDBIDNameTransform
     ChainNameTransform
+    SecondaryStructureTransform
 
 
 Filters
