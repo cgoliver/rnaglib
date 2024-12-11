@@ -5,6 +5,7 @@ from pathlib import Path
 import networkx as nx
 
 from rnaglib.data_loading import RNADataset
+from rnaglib.data_loading import rna_from_pdbid
 from rnaglib.transforms import FeaturesComputer
 from rnaglib.transforms import RNAFMTransform
 from rnaglib.transforms import GraphRepresentation
@@ -15,6 +16,10 @@ class TestDataset(unittest.TestCase):
     def setUpClass(self):
         self.default_dataset = RNADataset(debug=True)
         pass
+
+    def test_rna_from_pdbid(self):
+        rna_from_pdbid("1fmn", redundancy="debug")  # fetch from RCSB
+        rna_from_pdbid("1d0t", redundancy="debug")  # local
 
     def test_in_memory(self):
         d = RNADataset(debug=True, in_memory=True)

@@ -117,7 +117,14 @@ def cline():
     return parser.parse_args()
 
 
-def do_one_annot(cif_path, dump_dir):
+def build_graph_from_cif(cif_path, dump_dir):
+    """Takes a cif file and builds the full RNAglib graph.
+
+    :param cif_path: path to source mmCif file
+    :param dump_dir: where to save the resulting networkx graph. If None just returns graph.
+
+    :return: graph if `dump_dir` is None, else return path to saved graph.
+    """
     structures_dir = Path(cif_path).parent
     graph = fr3d_to_graph(cif_path)
     t1 = CifMetadata(structures_dir=structures_dir)
@@ -127,10 +134,12 @@ def do_one_annot(cif_path, dump_dir):
 
     rna_dict = {"rna": graph}
     rna_dict = T(rna_dict)
-    save_path = Path(dump_dir) / f"{graph.graph['pdbid']}.json"
-    dump_json(save_path, rna_dict["rna"])
-
-    pass
+    if dump_dir is None:
+        return rna_dict
+    else:
+        save_path = Path(dump_dir) / f"{graph.graph['pdbid']}.json"
+        dump_json(save_path, rna_dict["rna"])
+        return save_path
 
 
 def prepare_data_main(args):
@@ -170,7 +179,7 @@ def prepare_data_main(args):
     total = len(todo)
     print(f">>> Processing {total} RNAs.")
     job = Parallel(n_jobs=args.num_workers)(
-        delayed(do_one_annot)(t, graphs_dir) for t in tqdm(todo, total=total, desc="Building RNA graphs.")
+        delayed(build_graph_from_cif)(t, graphs_dir) for t in tqdm(todo, total=total, desc="Building RNA graphs.")
     )
 
     chop_dir = os.path.join(build_dir, "chops")
