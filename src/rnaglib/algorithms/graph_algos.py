@@ -714,6 +714,14 @@ def get_sequences(graph: nx.Graph) -> Tuple[Dict[str, Tuple[str, List[str]]]]:
     for ch, seq in seqs.items():
         sorted_seq = sorted(seq, key=lambda x: x[1])
         sorted_ids = [f"{pdbid}.{ch}.{pos}" for _, pos in sorted_seq]
+        # check sequence discontinous
+        for i in range(len(sorted_ids) - 1):
+            fivep = int(sorted_ids[i].split(".")[2])
+            threep = int(sorted_ids[i + 1].split(".")[2])
+            if threep != fivep + 1:
+                print(f"WARNING: chain discontinuous.")
+                break
+
         node_ids[f"{pdbid}.{ch}"] = sorted_ids
 
         sorted_seq = "".join([s for s, _ in sorted_seq])
