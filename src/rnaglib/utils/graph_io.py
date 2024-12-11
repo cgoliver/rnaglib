@@ -19,6 +19,7 @@ import zipfile
 import networkx as nx
 from Bio.PDB.PDBList import PDBList
 
+
 ZENODO_RECORD = "14325403"
 
 
@@ -362,50 +363,6 @@ def available_pdbids(
         graph_path = graph_dir
 
     return [os.path.splitext(g)[0] for g in os.listdir(graph_path)]
-
-
-def graph_from_pdbid(
-    pdbid,
-    graph_dir=None,
-    version="1.0.0",
-    annotated=False,
-    chop=False,
-    redundancy="nr",
-    graph_format="json",
-):
-    """Fetch an annotated graph with a PDBID.
-
-    :param pdbid: PDB id to fetch
-    :param graph_dir: path containing annotated graphs
-    :param graph_format: which format to load (JSON, or networkx)
-    """
-
-    tag = f"rnaglib-{redundancy}-{version}{'-chop' if chop else ''}{'-' + 'annotated' if annotated else ''}"
-
-    if graph_format == "nx":
-        graph_name = os.path.join(pdbid.lower() + ".nx")
-    elif graph_format == "json":
-        graph_name = os.path.join(pdbid.lower() + ".json")
-    else:
-        raise ValueError(f"Invalid graph format {graph_format}. Use NetworkX or JSON.")
-
-    graph_path = None
-
-    # Try in look into the existing data, we need to check for both annotated and graphs, as well as in each dl
-    if graph_dir is None:
-        dl_dir = get_default_download_dir()
-        graph_path = os.path.join(dl_dir, "datasets", tag, "graphs", graph_name)
-        if not os.path.exists(graph_path):
-            print(
-                "The required pdb was not found in existing default downloads, "
-                "please provide a path to look for the graph"
-            )
-            return None
-    else:
-        graph_path = os.path.join(graph_dir, graph_name)
-
-    graph = load_graph(graph_path)
-    return graph
 
 
 def get_rna_list(nr_only=False):
