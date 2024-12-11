@@ -185,22 +185,11 @@ available.
 
 ```python
 
-from rnaglib.utils import available_pdbids
-from rnaglib.utils import graph_from_pdbid
-
-# load a graph containing annotations from a PDBID
-rna = graph_from_pdbid('4v9i')
-
-# you can get list of pdbids currently available in RNAglib
-pdbids = available_pdbids()
-
-# print(rna.graph)
-{'dbn': {'all_chains': {'num_nts': 143, 'num_chars': 144,
-                        'bseq': 'GCCCGGAUAGCUCAGUCGGUAGAGCAGGGGAUUGAAAAUCCCCGUGUCCUUGGUUCGAUUCCGAGUCUGGGCAC&CGGAUAGCUCAGUCGGUAGAGCAGGGGAUUGAAAAUCCCCGUGUCCUUGGUUCGAUUCCGAGUCCGGGC',
-                        'sstr': '(((((((..((((.....[..)))).(((((.......))))).....(((((..]....))))))))))))..&((((..((((.....[..)))).(((((.......))))).....(.(((..]....))).)))))...',
-                        'form': 'AAAAAA...AA...A.......AAA.AAAA.......A.AAA......AAAAA..A....AAAAAAAAAAAA.-&.AA...AA...A.......AAA.AAAA.......A.AAA......AAAAA..A....A...AAAA.A.-'}...,
+>>> from rnaglib.data_loading import rna_from_pdbid
+>>> rna_dict = graph_from_pdbid('1fmn') # fetch from local database or RCSB if not found
+>>> rna_dict['rna'].graph
+{'name': '1fmn', 'pdbid': '1fmn', 'ligands': [{'id': ('H_FMN', 36, ' '), 'name': 'FMN', 'smiles': 'Cc1cc2c(cc1C)N(C3=NC(=O)NC(=O)C3=N2)CC(C(C(COP(=O)(O)O)O)O)O', 'rna_neighs': ['1fmn.A.10', '1fmn.A.11', '1fmn.A.12', '1fmn.A.13', '1fmn.A.24', '1fmn.A.25', '1fmn.A.26', '1fmn.A.27', '1fmn.A.28', '1fmn.A.7', '1fmn.A.8', '1fmn.A.9']}], 'ions': []}
 ```
-
 ### Annotate your own structures
 
 You can extract Leontis-Westhof interactions and convert 3D structures to 2.5D graphs.
