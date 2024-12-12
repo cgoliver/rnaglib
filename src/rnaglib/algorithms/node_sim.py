@@ -27,9 +27,7 @@ class SimFunctionNode:
         decay=0.5,
         idf=False,
         normalization=None,
-        hash_init_path=os.path.join(
-            script_dir, "..", "data", "hashing", "NR_chops_hash.p"
-        ),
+        hash_init_path=os.path.join(script_dir, "..", "data", "hashing", "NR_chops_hash.p"),
     ):
         """
         Factory object to compute all node similarities.
@@ -99,9 +97,7 @@ class SimFunctionNode:
         if self.method in ["R_1", "R_iso", "R_graphlets"]:
             # depth+1 and -1 term at the end account for skipping the 0th hop in the rings.
             # we increase the size of the geometric sum by 1 and subtract 1 to remove the 0th term.
-            self.norm_factor = (
-                (1 - self.decay ** (self.depth + 1)) / (1 - self.decay)
-            ) - 1
+            self.norm_factor = ((1 - self.decay ** (self.depth + 1)) / (1 - self.decay)) - 1
         else:
             self.norm_factor = 1.0
 
@@ -231,9 +227,7 @@ class SimFunctionNode:
 
         # If we are not bb, also use isostericity.
         if not bb:
-            res_isostericity = iso_matrix[
-                self.edge_map[node_i_type], self.edge_map[node_j_type]
-            ]
+            res_isostericity = iso_matrix[self.edge_map[node_i_type], self.edge_map[node_j_type]]
             score += res_isostericity
 
         if self.idf is not None:
@@ -319,12 +313,7 @@ class SimFunctionNode:
 
             # This makes loading go from 0.17 to 2.6
             # cost = np.array(self.get_cost_matrix(ring1, ring2))
-            cost = np.array(
-                [
-                    [self.get_cost_nodes(node_i, node_j) for node_j in ring2]
-                    for node_i in ring1
-                ]
-            )
+            cost = np.array([[self.get_cost_nodes(node_i, node_j) for node_j in ring2] for node_i in ring1])
             cost = -cost
             row_ind, col_ind = linear_sum_assignment(cost)
             unnormalized = -np.array(cost[row_ind, col_ind]).sum()
@@ -351,13 +340,7 @@ class SimFunctionNode:
                 ring1, ring2 = ring2, ring1
             perms = set(itertools.permutations(ring1))
             all_costs = [
-                sum(
-                    [
-                        self.get_cost_nodes(perm[i], node_j)
-                        for i, node_j in enumerate(ring2)
-                    ]
-                )
-                for perm in perms
+                sum([self.get_cost_nodes(perm[i], node_j) for i, node_j in enumerate(ring2)]) for perm in perms
             ]
             unnormalized = max(all_costs)
 
@@ -406,22 +389,14 @@ class SimFunctionNode:
                 return 1
             if len(ring1) == 0 or len(ring2) == 0:
                 return 0
-            cm = [
-                [
-                    self.get_cost_nodes(node_i, node_j, bb=bb, pos=pos)
-                    for node_j in ring2
-                ]
-                for node_i in ring1
-            ]
+            cm = [[self.get_cost_nodes(node_i, node_j, bb=bb, pos=pos) for node_j in ring2] for node_i in ring1]
             # Dont forget the minus for minimization
             cost = -np.array(cm)
             row_ind, col_ind = linear_sum_assignment(cost)
             unnormalized = -np.array(cost[row_ind, col_ind]).sum()
             # If the cost also includes distance information, we need to divide by two
             factor_two = 2 if bb is False and len(ring1[0]) == 2 else 1
-            length = self.get_length(
-                [node[0] for node in ring1], [node[0] for node in ring2]
-            )
+            length = self.get_length([node[0] for node in ring1], [node[0] for node in ring2])
             return self.normalize(unnormalized / factor_two, length)
 
         can1, noncan1 = rings_to_lists(rings1, depth=self.depth)
@@ -494,13 +469,7 @@ class SimFunctionNode:
             # Try the similarity version the bonus we get is that we use the normalization also used for riso
             # And therefore we avoid a double exponential
             cost = -np.array(
-                [
-                    [
-                        self.graphlet_cost_nodes(node_i, node_j, similarity=True)
-                        for node_j in ring2
-                    ]
-                    for node_i in ring1
-                ]
+                [[self.graphlet_cost_nodes(node_i, node_j, similarity=True) for node_j in ring2] for node_i in ring1]
             )
             row_ind, col_ind = linear_sum_assignment(cost)
             unnormalized = -np.array(cost[row_ind, col_ind]).sum()
@@ -529,12 +498,7 @@ class SimFunctionNode:
                 ring1, ring2 = ring2, ring1
             perms = set(itertools.permutations(ring1))
             all_costs = [
-                sum(
-                    [
-                        self.graphlet_cost_nodes(perm[i], node_j, similarity=True)
-                        for i, node_j in enumerate(ring2)
-                    ]
-                )
+                sum([self.graphlet_cost_nodes(perm[i], node_j, similarity=True) for i, node_j in enumerate(ring2)])
                 for perm in perms
             ]
             unnormalized = max(all_costs)
@@ -580,10 +544,7 @@ class SimFunctionNode:
 
         cost = -np.array(
             [
-                [
-                    self.graphlet_cost_nodes(node_i, node_j, pos=True, similarity=True)
-                    for node_j in ringlist2
-                ]
+                [self.graphlet_cost_nodes(node_i, node_j, pos=True, similarity=True) for node_j in ringlist2]
                 for node_i in ringlist1
             ]
         )
@@ -630,14 +591,9 @@ def pdist_list(rings, node_sim):
     """
     rings_values = [list(ring.values()) for ring in rings]
     nodes = list(itertools.chain.from_iterable(rings_values))
-    assert (
-        node_sim.compare(nodes[0][1], nodes[0][1]) == 1
-    ), "Identical rings giving non 1 similarity."
+    assert node_sim.compare(nodes[0][1], nodes[0][1]) == 1, "Identical rings giving non 1 similarity."
 
-    sims = [
-        node_sim.compare(n1[1], n2[1])
-        for i, (n1, n2) in enumerate(itertools.combinations(nodes, 2))
-    ]
+    sims = [node_sim.compare(n1[1], n2[1]) for i, (n1, n2) in enumerate(itertools.combinations(nodes, 2))]
 
     return sims
 
@@ -657,13 +613,8 @@ def k_block_list(rings, node_sim):
     # rings_values = [list(ring.values()) for ring in rings]
     # node_rings = list(itertools.chain.from_iterable(rings_values))
     block = np.zeros((len(node_rings), len(node_rings)))
-    assert (
-        node_sim.compare(node_rings[0], node_rings[0]) > 0.99
-    ), "Identical rings giving non 1 similarity."
-    sims = [
-        node_sim.compare(n1, n2)
-        for i, (n1, n2) in enumerate(itertools.combinations(node_rings, 2))
-    ]
+    assert node_sim.compare(node_rings[0], node_rings[0]) > 0.99, "Identical rings giving non 1 similarity."
+    sims = [node_sim.compare(n1, n2) for i, (n1, n2) in enumerate(itertools.combinations(node_rings, 2))]
     block[np.triu_indices(len(node_rings), 1)] = sims
     block += block.T
     block += np.eye(len(node_rings))
@@ -764,9 +715,7 @@ if __name__ == "__main__":
     simfunc_r1 = SimFunctionNode("R_1", 2)
     simfunc_hung = SimFunctionNode("hungarian", 2)
     simfunc_iso = SimFunctionNode("R_iso", 2, idf=True)
-    simfunc_r_graphlet = SimFunctionNode(
-        "R_graphlets", 2, hash_init=hash_graphlets_to_use
-    )
+    simfunc_r_graphlet = SimFunctionNode("R_graphlets", 2, hash_init=hash_graphlets_to_use)
     simfunc_graphlet = SimFunctionNode("graphlet", 2, hash_init=hash_graphlets_to_use)
     simfunc = simfunc_r_graphlet
     for node1, ring1 in rings1.items():
