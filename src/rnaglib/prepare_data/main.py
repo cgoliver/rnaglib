@@ -18,6 +18,7 @@ from rnaglib.utils import dump_json
 from rnaglib.transforms import Compose
 from rnaglib.transforms import CifMetadata
 from rnaglib.transforms import SmallMoleculeBindingTransform
+from rnaglib.transforms import SecondaryStructureTransform
 from rnaglib.transforms import RBPTransform
 from rnaglib.prepare_data import fr3d_to_graph
 from rnaglib.prepare_data import chop_all
@@ -127,10 +128,14 @@ def build_graph_from_cif(cif_path, dump_dir):
     """
     structures_dir = Path(cif_path).parent
     graph = fr3d_to_graph(cif_path)
-    t1 = CifMetadata(structures_dir=structures_dir)
-    t2 = SmallMoleculeBindingTransform(structures_dir=structures_dir)
-    t3 = RBPTransform(structures_dir=structures_dir)
-    T = Compose([t1, t2, t3])
+    transforms = [
+        CifMetadata(structures_dir=structures_dir),
+        SmallMoleculeBindingTransform(structures_dir=structures_dir),
+        RBPTransform(structures_dir=structures_dir),
+        SecondaryStructureTransform(structures_dir=structures_dir),
+    ]
+
+    T = Compose(transforms)
 
     rna_dict = {"rna": graph}
     rna_dict = T(rna_dict)

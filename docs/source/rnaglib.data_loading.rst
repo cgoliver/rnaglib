@@ -6,6 +6,15 @@ Tools for loading and creating collections of RNAs.
 .. automodule:: rnaglib.data_loading
 
 
+RNA Objects
+-------------
+
+A single RNA is stored as a dictionary.
+
+.. autosummary::
+   :toctree: generated/
+
+    rna_from_pdbid
 
 RNA Dataset
 --------------
