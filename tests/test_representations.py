@@ -20,7 +20,7 @@ class TestDataset(unittest.TestCase):
         pass
 
     def test_sequence_representation(self):
-        rep = SequenceRepresentation(framework="pyg")
+        rep = SequenceRepresentation(framework="torch")
         splitter = ChainSplitTransform()
         feat = FeaturesComputer(nt_features="nt_code")
         g_chain = list(splitter(self.default_dataset[0]))[0]

@@ -22,7 +22,7 @@ class SequenceRepresentation(Representation):
         **kwargs,
     ):
 
-        authorized_frameworks = {"pyg"}
+        authorized_frameworks = {"pyg", "torch"}
         assert framework in authorized_frameworks, (
             f"Framework {framework} not supported for this representation. " f"Choose one of {authorized_frameworks}."
         )
@@ -49,10 +49,33 @@ class SequenceRepresentation(Representation):
         if self.backbone in ["both", "3p5p"]:
             seq_graph.add_edges_from([(node_ids[i - 1], node_ids[i], {"LW": "B35"}) for i in range(1, len(node_ids))])
 
+        if self.framework == "torch":
+            return self.to_torch(seq_graph, features_dict)
         if self.framework == "dgl":
             return self.to_dgl(seq_graph, features_dict)
         if self.framework == "pyg":
             return self.to_pyg(seq_graph, features_dict)
+
+    def to_torch(self, graph, features_dict):
+        x, y = None, None
+        if "nt_features" in features_dict:
+            x = (
+                torch.stack([features_dict["nt_features"][n] for n in self.node_ids])
+                if "nt_features" in features_dict
+                else None
+            )
+        if "nt_targets" in features_dict:
+            list_y = [features_dict["nt_targets"][n] for n in self.node_ids]
+            # In the case of single target, pytorch CE loss expects shape (n,) and not (n,1)
+            # For multi-target cases, we stack to get (n,d)
+            if len(list_y[0]) == 1:
+                y = torch.cat(list_y)
+            else:
+                y = torch.stack(list_y)
+        if "rna_targets" in features_dict:
+            y = torch.tensor(features_dict["rna_targets"])
+
+        return x
 
     def to_pyg(self, graph, features_dict):
         from torch_geometric.data import Data
