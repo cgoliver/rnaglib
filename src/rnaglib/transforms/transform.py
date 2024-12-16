@@ -36,6 +36,7 @@ class Transform:
     ):
         self.parallel = parallel
         self.num_workers = num_workers
+        print("INIT")
         pass
 
     def __call__(self, data: Any) -> Any:

@@ -3,6 +3,7 @@ This script is used to find all possible annotations present in dssr and dump th
 
 This is useful to handcraft encoding functions and to design data splits
 """
+
 import os
 import sys
 import importlib
@@ -13,11 +14,6 @@ from tqdm import tqdm
 from collections import defaultdict, Counter
 
 from rnaglib.utils import load_json
-from rnaglib.utils import load_index
-
-# pkg = importlib.resources.files("rnaglib")
-# index_file = pkg / "data_loading" / "graph_index_NR.json"
-index_file = load_index()
 
 
 def process_graph_dict(dict_to_flatten, prepend=None, counter=False, possible_supervisions=None):
@@ -44,7 +40,7 @@ def process_graph_dict(dict_to_flatten, prepend=None, counter=False, possible_su
     for outer_key, outer_value in dict_to_flatten.items():
         for inner_key, inner_value in outer_value.items():
             if prepend is not None:
-                inner_key = f'{prepend}_{inner_key}'
+                inner_key = f"{prepend}_{inner_key}"
             if possible_supervisions is not None and inner_key not in possible_supervisions:
                 continue
             if counter:
@@ -56,13 +52,13 @@ def process_graph_dict(dict_to_flatten, prepend=None, counter=False, possible_su
                         else:
                             hashable_value = inner_value
                         # PATCH until next release we replace small mol list with tuple
-                        if inner_key == 'node_binding_small-molecule' or inner_key == 'node_binding_ion':
+                        if inner_key == "node_binding_small-molecule" or inner_key == "node_binding_ion":
                             hashable_value = hashable_value[0]
 
                         return_dict[inner_key][hashable_value] += 1
 
                 else:
-                    if type(inner_value) == str and inner_key not in ['node_nt_id', 'edge_nt1', 'edge_nt2']:
+                    if type(inner_value) == str and inner_key not in ["node_nt_id", "edge_nt1", "edge_nt2"]:
                         return_dict[inner_key][inner_value] += 1
             else:
                 if type(inner_value) == list:
@@ -70,12 +66,12 @@ def process_graph_dict(dict_to_flatten, prepend=None, counter=False, possible_su
                     return_dict[inner_key].add(inner_value)
                 if type(inner_value) == dict:
                     # Just one does that : it is 'node frame'
-                    if inner_value != 'node_frame':
+                    if inner_value != "node_frame":
                         pass
                     for inner_key, inner_value in inner_value.items():
                         if type(inner_value) == list:
                             inner_value = tuple(inner_value)
-                        return_dict[f'{inner_key}_{inner_key}'].add(inner_value)
+                        return_dict[f"{inner_key}_{inner_key}"].add(inner_value)
                 elif type(inner_value) in [str, int, float, list, bool] or inner_value is None:
                     pass
                 else:
@@ -102,15 +98,17 @@ def graph_to_dict(graph, counter=False, possible_supervisions=None):
     list_edges = graph.edges(data=True)
     dict_edges = {(u, v): data for u, v, data in list_edges}
 
-    node_key_dict = process_graph_dict(dict_nodes, prepend='node', counter=counter,
-                                       possible_supervisions=possible_supervisions)
-    edge_key_dict = process_graph_dict(dict_edges, prepend='edge', counter=counter,
-                                       possible_supervisions=possible_supervisions)
+    node_key_dict = process_graph_dict(
+        dict_nodes, prepend="node", counter=counter, possible_supervisions=possible_supervisions
+    )
+    edge_key_dict = process_graph_dict(
+        dict_edges, prepend="edge", counter=counter, possible_supervisions=possible_supervisions
+    )
     node_key_dict.update(edge_key_dict)
     return node_key_dict
 
 
-def get_all_annots(graph_dir, counter=False, dump_name='all_annots.json'):
+def get_all_annots(graph_dir, counter=False, dump_name="all_annots.json"):
     """
     This function is used to investigate all possible labels in the data, all edge and node attributes...
 
@@ -144,14 +142,14 @@ def get_all_annots(graph_dir, counter=False, dump_name='all_annots.json'):
         for key, dict_value in dict_all.items():
             dict_all[key] = dict(dict_value)
         dict_all = dict(dict_all)
-        pickle.dump(dict_all, open(dump_name, 'wb'))
+        pickle.dump(dict_all, open(dump_name, "wb"))
     else:
         dict_all = {key: list(value) for key, value in dict_all.items()}
-        json.dump(dict_all, open(dump_name, 'w'))
+        json.dump(dict_all, open(dump_name, "w"))
     return dict_all
 
 
-def get_graph_indexes(graph_dir, possible_supervisions=None, dump_name='graph_index_NR.json'):
+def get_graph_indexes(graph_dir, possible_supervisions=None, dump_name="graph_index_NR.json"):
     """
     This function is used to create data splits. For each graph, we want to report which fields it contains
     in one object, to avoid having to load all graphs every time
@@ -180,13 +178,18 @@ def get_graph_indexes(graph_dir, possible_supervisions=None, dump_name='graph_in
     return dict_all
 
 
-if __name__ == '__main__':
-    graph_path = '../data/graphs/NR/'
+if __name__ == "__main__":
+    graph_path = "../data/graphs/NR/"
     # get_all_annots(graph_path, counter=True)
-    index = get_graph_indexes(graph_path,
-                              dump_name='graph_index_NR.json',
-                              possible_supervisions=
-                              {'node_binding_small-molecule', 'node_binding_protein',
-                               'node_binding_ion', "node_is_modified"})
+    index = get_graph_indexes(
+        graph_path,
+        dump_name="graph_index_NR.json",
+        possible_supervisions={
+            "node_binding_small-molecule",
+            "node_binding_protein",
+            "node_binding_ion",
+            "node_is_modified",
+        },
+    )
     # test_split = get_splits(query_attrs={'node_binding_protein_id', "node_binding_ion",
     #                                      "is_modified", 'node_binding_small-molecule'})

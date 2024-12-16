@@ -6,7 +6,9 @@ class PDBIDNameTransform(Transform):
 
     def forward(self, data: dict) -> dict:
         g = data["rna"]
-        g.name = g.graph["pdbid"][0].lower()
+
+        g.name = g.graph["pdbid"].lower()
+
         return data
 
 
@@ -32,11 +34,11 @@ class ChainNameTransform(Transform):
     def forward(self, rna_dict: dict) -> dict:
         g = rna_dict["rna"]
         # Access graph attributes directly
-        pdbid = g.graph["pdbid"][0].lower()
+        pdbid = g.graph["pdbid"].lower()
 
         # Get the first node's chain name directly from the node data
         first_node_id = list(g.nodes)[0]  # Get first node ID
-        chain_name = g.nodes[first_node_id]["chain_name"]  # .upper()
+        chain_name = first_node_id.split(".")[1]  # .upper()
 
         # Construct name directly
         g.name = f"{pdbid}_{chain_name}"

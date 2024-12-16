@@ -3,11 +3,6 @@ Using an existing task for model evaluation
 
 `rnaglib`'s task module provides you with readymade dataset splits for your model evaluation in just a few lines of code.
 
-0.) Generate necessary index files::
-
-$ rnaglib_index
-
-
 1.) Choose the task appropriate to your model. Here, we chose *RNA-Site*, a task instance called `LigandBindindSite` for illustration.
 
 When instantiating the task, custom splitters or other arguments can be passed if needed.::

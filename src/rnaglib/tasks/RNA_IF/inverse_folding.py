@@ -27,8 +27,9 @@ class InverseFolding(ResidueClassificationTask):
     def process(self) -> RNADataset:
         # build the filters
         ribo_filter = RibosomalFilter()
-        resolution_filter = RNAAttributeFilter(attribute="resolution_high",
-            value_checker=lambda val: float(val[0]) < 4.0)
+        resolution_filter = RNAAttributeFilter(
+            attribute="resolution_high", value_checker=lambda val: float(val[0]) < 4.0
+        )
         filters = ComposeFilters([ribo_filter, resolution_filter])
 
         # Define your transforms
@@ -73,7 +74,7 @@ class InverseFolding(ResidueClassificationTask):
             # Calculate coverage (percentage of predictions that are standard nucleotides)
             "coverage": (unfiltered_preds != 0).mean(),
             # Add non-standard nucleotide statistics
-            "non_standard_ratio": (unfiltered_labels == 0).mean()
+            "non_standard_ratio": (unfiltered_labels == 0).mean(),
         }
 
         # Only calculate AUC for standard nucleotides, don't forget to offset i
@@ -119,8 +120,9 @@ class InverseFolding(ResidueClassificationTask):
         # Either compute the overall flattened results, or aggregate by system
         sorted_keys = []
         metrics = []
-        for pred, filt_pred, prob, label, filt_label in zip(all_preds, filtered_all_preds, all_probs, all_labels,
-                filtered_all_labels):
+        for pred, filt_pred, prob, label, filt_label in zip(
+            all_preds, filtered_all_preds, all_probs, all_labels, filtered_all_labels
+        ):
             # Can't compute metrics over just one class
             if len(np.unique(label)) == 1:
                 continue
@@ -139,11 +141,7 @@ class InverseFolding(ResidueClassificationTask):
         all_labels = np.concatenate(all_labels)
         filtered_all_labels = np.concatenate(filtered_all_labels)
         global_metrics = self.compute_one_metric(
-            filtered_all_preds,
-            all_preds,
-            filtered_all_probs,
-            filtered_all_labels,
-            all_labels
+            filtered_all_preds, all_preds, filtered_all_probs, filtered_all_labels, all_labels
         )
         metrics_global = {f"global_{k}": v for k, v in global_metrics.items()}
         metrics.update(metrics_global)
@@ -189,19 +187,18 @@ class gRNAde(InverseFolding):
                         self.splits["all"].append(pdb_id)
 
                     # Using update for sets automatically handles duplicates
-                    self.splits[f"pdb_to_chain_{split}"][pdb_id].update(
-                        chain_components
-                    )
+                    self.splits[f"pdb_to_chain_{split}"][pdb_id].update(chain_components)
                     self.splits["pdb_to_chain_all"][pdb_id].update(chain_components)
 
         super().__init__(**kwargs)
 
     @property
     def default_splitter(self):
-        train_names = [f"{pdb.lower()}_{chain}"  # .upper()
-                       for pdb in self.splits["pdb_to_chain_train"]
-                       for chain in self.splits["pdb_to_chain_train"][pdb]
-                       ]
+        train_names = [
+            f"{pdb.lower()}_{chain}"  # .upper()
+            for pdb in self.splits["pdb_to_chain_train"]
+            for chain in self.splits["pdb_to_chain_train"][pdb]
+        ]
 
         val_names = [
             f"{pdb.lower()}_{chain}"  # .upper()
@@ -236,6 +233,7 @@ class gRNAde(InverseFolding):
         all_rnas = []
         os.makedirs(self.dataset_path, exist_ok=True)
         import tqdm
+
         for rna in tqdm.tqdm(source_dataset):
             if filters.forward(rna):
                 rna = annote_dummy(rna)
