@@ -5,6 +5,7 @@ from pathlib import Path
 import networkx as nx
 
 from rnaglib.data_loading import RNADataset
+from rnaglib.data_loading import rna_from_pdbid
 from rnaglib.transforms import FeaturesComputer
 from rnaglib.transforms import RNAFMTransform
 from rnaglib.transforms import GraphRepresentation
@@ -15,6 +16,10 @@ class TestDataset(unittest.TestCase):
     def setUpClass(self):
         self.default_dataset = RNADataset(debug=True)
         pass
+
+    def test_rna_from_pdbid(self):
+        rna_from_pdbid("1fmn", redundancy="debug")  # fetch from RCSB
+        rna_from_pdbid("1d0t", redundancy="debug")  # local
 
     def test_in_memory(self):
         d = RNADataset(debug=True, in_memory=True)
@@ -27,7 +32,7 @@ class TestDataset(unittest.TestCase):
 
     def test_get_pdbds(self):
         d = RNADataset(debug=True, get_pdbs=True, overwrite=True)
-        pdbids = [rna["rna"].graph["pdbid"][0] for rna in d]
+        pdbids = [rna["rna"].graph["pdbid"] for rna in d]
         pdb_paths = (Path(d.structures_path) / f"{pdbid.lower()}.cif" for pdbid in pdbids)
         for path in pdb_paths:
             assert os.path.exists(path)

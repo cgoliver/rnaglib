@@ -20,6 +20,9 @@ import networkx as nx
 from Bio.PDB.PDBList import PDBList
 
 
+ZENODO_RECORD = "14325403"
+
+
 def multigraph_to_simple(g: nx.MultiDiGraph) -> nx.DiGraph:
     """Convert directed multi graph to simple directed graph.
     When multiple edges are found between two nodes, we keep backbone.
@@ -39,6 +42,9 @@ def multigraph_to_simple(g: nx.MultiDiGraph) -> nx.DiGraph:
         if etype not in backbone_types and not simple_g.has_edge(u, v):
             basepairs.append((u, v, data))
 
+    for n, data in g.nodes(data=True):
+        if n in simple_g.nodes():
+            simple_g.nodes[n].update(data)
     simple_g.add_edges_from(basepairs)
 
     simple_g.graph = g.graph.copy()
@@ -115,6 +121,10 @@ def load_graph(filename, multigraph=False):
 
     if not multigraph and isinstance(graph, nx.MultiDiGraph):
         graph = multigraph_to_simple(graph)
+
+    # 1.0.0 compatibility patch
+    if isinstance(graph.graph["pdbid"], list):
+        graph.graph["pdbid"] = graph.graph["pdbid"][0]
     return graph
 
 
@@ -248,7 +258,7 @@ def download(url, path=None, overwrite=True, retries=5, verify_ssl=True, log=Tru
     return fname
 
 
-def download_name_generator(version="1.0.0", redundancy="nr", annotated=False, record="14285986", debug=False):
+def download_name_generator(version="1.0.0", redundancy="nr", annotated=False, record="14325118", debug=False):
     """
     This returns the zenodo URL given dataset choices.
 
@@ -304,7 +314,7 @@ def download_graphs(
     else:
         tag = f"rnaglib-{redundancy}-{version}{'-chop' if chop else ''}{'-' + 'annotated' if annotated else ''}"
     url = download_name_generator(
-        redundancy=redundancy, version=version, annotated=annotated, debug=debug, record="14286199"
+        redundancy=redundancy, version=version, annotated=annotated, debug=debug, record=ZENODO_RECORD
     )
     dl_path = Path(data_root) / "downloads" / Path(tag + ".tar.gz")
     data_path = Path(data_root) / "datasets"
@@ -353,50 +363,6 @@ def available_pdbids(
         graph_path = graph_dir
 
     return [os.path.splitext(g)[0] for g in os.listdir(graph_path)]
-
-
-def graph_from_pdbid(
-    pdbid,
-    graph_dir=None,
-    version="1.0.0",
-    annotated=False,
-    chop=False,
-    redundancy="nr",
-    graph_format="json",
-):
-    """Fetch an annotated graph with a PDBID.
-
-    :param pdbid: PDB id to fetch
-    :param graph_dir: path containing annotated graphs
-    :param graph_format: which format to load (JSON, or networkx)
-    """
-
-    tag = f"rnaglib-{redundancy}-{version}{'-chop' if chop else ''}{'-' + 'annotated' if annotated else ''}"
-
-    if graph_format == "nx":
-        graph_name = os.path.join(pdbid.lower() + ".nx")
-    elif graph_format == "json":
-        graph_name = os.path.join(pdbid.lower() + ".json")
-    else:
-        raise ValueError(f"Invalid graph format {graph_format}. Use NetworkX or JSON.")
-
-    graph_path = None
-
-    # Try in look into the existing data, we need to check for both annotated and graphs, as well as in each dl
-    if graph_dir is None:
-        dl_dir = get_default_download_dir()
-        graph_path = os.path.join(dl_dir, "datasets", tag, "graphs", graph_name)
-        if not os.path.exists(graph_path):
-            print(
-                "The required pdb was not found in existing default downloads, "
-                "please provide a path to look for the graph"
-            )
-            return None
-    else:
-        graph_path = os.path.join(graph_dir, graph_name)
-
-    graph = load_graph(graph_path)
-    return graph
 
 
 def get_rna_list(nr_only=False):

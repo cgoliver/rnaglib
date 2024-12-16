@@ -18,15 +18,15 @@ Load single RNA
 __________________
 
 Annotations for each RNA are accessed through networkx graph objects.
-You can load one RNA using ``graph_from_pdbid()``
+You can load one RNA using ``rna_from_pdbid()``
 
 .. code-block:: python
 
     >>> from rnaglib.utils import available_pdbids
-    >>> from rnaglib.utils import graph_from_pdbid
+    >>> from rnaglib.data_loading import rna_from_pdbid
 
     >>> pdbids = available_pdbids()
-    >>> rna = graph_from_pdbid(pdbids[0])
+    >>> rna = rna_from_pdbid(pdbids[0])
     >>> rna
     DiGraph with 69 nodes and 194 edges
     >>> rna.graph

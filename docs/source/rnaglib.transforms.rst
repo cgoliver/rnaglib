@@ -35,6 +35,7 @@ These transforms update the information stored in an RNA dictionary.
     RNAFMTransform
     PDBIDNameTransform
     ChainNameTransform
+    SecondaryStructureTransform
 
 
 Filters
@@ -76,6 +77,7 @@ These transforms convert a raw RNA into a geometric representation such as graph
     :toctree: generated/
 
     Representation 
+    SequenceRepresentation
     GraphRepresentation
     PointCloudRepresentation
     VoxelRepresentation 

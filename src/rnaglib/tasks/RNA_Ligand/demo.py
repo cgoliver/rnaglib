@@ -20,9 +20,6 @@ ta.dataset.add_representation(GraphRepresentation(framework="pyg"))
 # Splitting dataset
 ta.set_loaders(batch_size=batch_size)
 
-# Printing statistics
-info = ta.describe()
-
 # Train model
 # Either by hand:
 # for epoch in range(100):
@@ -31,7 +28,7 @@ info = ta.describe()
 #         ...
 
 # Or using a wrapper class
-model = PygModel(info["num_node_features"], info["num_classes"], graph_level=True)
+model = PygModel(ta.metadata["description"]["num_node_features"], ta.metadata["description"]["num_classes"], graph_level=True)
 model.configure_training(learning_rate=0.001)
 model.train_model(ta, epochs=10)
 

@@ -29,13 +29,13 @@ class Task:
     """
 
     def __init__(
-            self,
-            root: Union[str, os.PathLike],
-            recompute: bool = False,
-            splitter: Splitter = None,
-            debug: bool = False,
-            save: bool = True,
-            in_memory: bool = True,
+        self,
+        root: Union[str, os.PathLike],
+        recompute: bool = False,
+        splitter: Splitter = None,
+        debug: bool = False,
+        save: bool = True,
+        in_memory: bool = True,
     ):
         self.root = root
         self.dataset_path = os.path.join(self.root, "dataset")
@@ -203,7 +203,7 @@ class Task:
         Returns:
             dict: Contains dataset information and model dimensions
         """
-        if not recompute and 'description' in self.metadata:
+        if not recompute and "description" in self.metadata:
             info = self.metadata["description"]
         else:
             print(">>> Computing description of task...")
@@ -211,7 +211,7 @@ class Task:
 
             # Get dimensions from first graph
             first_item = self.dataset[0]
-            compute_num_edge_attributes = 'graph' in first_item
+            compute_num_edge_attributes = "graph" in first_item
 
             first_node_map = {n: i for i, n in enumerate(sorted(first_item["rna"].nodes()))}
             first_features_dict = self.dataset.features_computer(first_item)
@@ -225,11 +225,12 @@ class Task:
 
             # Collect statistics from dataset
             import tqdm
+
             for item in tqdm.tqdm(self.dataset):
                 if compute_num_edge_attributes:
                     graph = item["graph"]
                     unique_edge_attrs.update(graph.edge_attr.tolist())
-                node_map = {n: i for i, n in enumerate(sorted(item['rna'].nodes()))}
+                node_map = {n: i for i, n in enumerate(sorted(item["rna"].nodes()))}
                 features_dict = self.dataset.features_computer(item)
                 if "nt_targets" in features_dict:
                     list_y = [features_dict["nt_targets"][n] for n in node_map.keys()]
@@ -263,13 +264,13 @@ class Task:
             if self.save:
                 with open(Path(self.root) / "metadata.json", "w") as meta:
                     json.dump(self.metadata, meta, indent=4)
-            self.metadata['description'] = info
+            self.metadata["description"] = info
 
         # Print description
         print("Dataset Description:")
         for k, v in info.items():
-            if k != 'class_distribution':
-                print(k, ' : ', v)
+            if k != "class_distribution":
+                print(k, " : ", v)
             else:
                 print("Class distribution:")
                 for cls in sorted(v.keys()):
@@ -331,14 +332,13 @@ class ClassificationTask(Task):
     def compute_one_metric(self, preds, probs, labels):
         one_metric = {
             "accuracy": accuracy_score(labels, preds),
-            "f1": f1_score(labels, preds, average='binary' if self.num_classes == 2 else "macro"),
+            "f1": f1_score(labels, preds, average="binary" if self.num_classes == 2 else "macro"),
             "mcc": matthews_corrcoef(labels, preds),
         }
         try:
-            one_metric["auc"] = roc_auc_score(labels,
-                probs,
-                average=None if self.num_classes == 2 else "macro",
-                multi_class='ovo')
+            one_metric["auc"] = roc_auc_score(
+                labels, probs, average=None if self.num_classes == 2 else "macro", multi_class="ovo"
+            )
         except:
             return one_metric
         return one_metric
@@ -380,3 +380,8 @@ class ResidueClassificationTask(ClassificationTask):
 class RNAClassificationTask(ClassificationTask):
     def __init__(self, **kwargs):
         super().__init__(graph_level=True, **kwargs)
+
+
+class ResidueClassificationTask(ClassificationTask):
+    def __init__(self, **kwargs):
+        super().__init__(graph_level=False, **kwargs)

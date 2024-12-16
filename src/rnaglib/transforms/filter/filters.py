@@ -10,6 +10,13 @@ desired conditione.
 """
 
 
+class DummyFilter(FilterTransform):
+    """Always return True"""
+
+    def forward(self, rna_dict: dict) -> bool:
+        return True
+
+
 class SizeFilter(FilterTransform):
     """Reject RNAs that are not in the given size bounds.
 
@@ -36,12 +43,7 @@ class RNAAttributeFilter(FilterTransform):
     :param attribute: which RNA-level attribute to look for.
     """
 
-    def __init__(
-            self, 
-            attribute: str, 
-            value_checker: Callable = None,
-            **kwargs
-    ):
+    def __init__(self, attribute: str, value_checker: Callable = None, **kwargs):
         self.attribute = attribute
         self.value_checker = value_checker
         super().__init__(**kwargs)
@@ -56,7 +58,7 @@ class RNAAttributeFilter(FilterTransform):
             return self.value_checker(val)
 
 
-class   ResidueAttributeFilter(FilterTransform):
+class ResidueAttributeFilter(FilterTransform):
     """Reject RNAs that lack a certain annotation at the whole residue-level.
 
     :param attribute: which node-level attribute to look for.
@@ -160,11 +162,7 @@ class RibosomalFilter(FilterTransform):
 
         # Check polymer descriptions (for RNA and ribosomal proteins)
         for polymer in data.get("polymer_entities", []):
-            description = (
-                polymer.get("rcsb_polymer_entity", {})
-                .get("pdbx_description", "")
-                .lower()
-            )
+            description = polymer.get("rcsb_polymer_entity", {}).get("pdbx_description", "").lower()
             if any(keyword in description for keyword in self.ribosomal_keywords):
                 return False
 
@@ -206,8 +204,7 @@ class ChainFilter(FilterTransform):
 
     def __init__(self, valid_chains_dict: dict, **kwargs):
         self.valid_chains_dict = {
-            pdb.lower(): [chain for chain in chains]  # .upper()
-            for pdb, chains in valid_chains_dict.items()
+            pdb.lower(): [chain for chain in chains] for pdb, chains in valid_chains_dict.items()  # .upper()
         }
         super().__init__(**kwargs)
 
@@ -219,7 +216,7 @@ class ChainFilter(FilterTransform):
         has_valid_node = False
 
         for node, ndata in g.nodes(data=True):
-            chain_name = ndata["chain_name"]  # .upper()
+            chain_name = node.split(".")[1]  # .upper()
             if chain_name in valid_chains:
                 has_valid_node = True
             else:

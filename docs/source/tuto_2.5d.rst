@@ -18,10 +18,11 @@ To see the list of available PDBs you downloaded, use:
 .. code-block:: python
 
    from rnaglib.utils import available_pdbids
+   from rnaglib.data_loading import rna_from_pdbid
    # returns a list of PDBIDs
    pdbids = available_pdbids()
    # get the first RNA by PDBID
-   rna = graph_from_pdbid(pdbids[0])
+   rna = rna_from_pdbid(pdbids[0])
 
 
 .. warning::
@@ -43,9 +44,9 @@ Using node IDs we can access node and edge attributes as dictionary keys.
 
 .. code-block:: python
 
-   >>> from rnaglib.utils import graph_from_pdbid
-   >>> G = graph_from_pdbid("4nlf")
-   >>> G.nodes['4nlf.A.2647']
+   >>> from rnaglib.data_loading import rna_from_pdbid
+   >>> rna = rna_from_pdbid("4nlf")
+   >>> rna['rna'].nodes['4nlf.A.2647']
     {'index': 1, 'index_chain': 1, 'chain_name': 'A', 'nt_resnum': 2647, 'nt_name': 'U', 'nt_code': 'U',
      'binding_protein': None, 'binding_ion': None, 'binding_small-molecule': None}
 
@@ -85,7 +86,7 @@ We will iterate over all available non-redundant RNAs and extract residues near 
 .. code-block:: python
 
         from rnaglib.utils import available_pdbids
-        from rnaglib.utils import graph_from_pdbid
+        from rnaglib.data_loading import rna_from_pdbid
 
         pockets = []
         for i,G in enumerate(graphs):
@@ -188,8 +189,8 @@ should be around ten nodes, making it more suited for comparing graphlets or sub
 .. code-block:: python
 
     >>> from rnaglib.algorithms import ged
-    >>> from rnaglib.utils import graph_from_pdbid
-    >>> G = graph_from_pdbid("4nlf")
+    >>> from rnaglib.data_loading import rna_from_pdbid
+    >>> G = rna_from_pdbid("4nlf")
     >>> ged(G, G)
     ... 0.0
 

@@ -39,18 +39,10 @@ class FeaturesComputer(Transform):
             custom_encoders: dict = None,
     ):
 
-        self.rna_features_parser = self.build_feature_parser(
-            rna_features, custom_encoders=custom_encoders
-        )
-        self.rna_targets_parser = self.build_feature_parser(
-            rna_targets, custom_encoders=custom_encoders
-        )
-        self.node_features_parser = self.build_feature_parser(
-            nt_features, custom_encoders=custom_encoders
-        )
-        self.node_targets_parser = self.build_feature_parser(
-            nt_targets, custom_encoders=custom_encoders
-        )
+        self.rna_features_parser = self.build_feature_parser(rna_features, custom_encoders=custom_encoders)
+        self.rna_targets_parser = self.build_feature_parser(rna_targets, custom_encoders=custom_encoders)
+        self.node_features_parser = self.build_feature_parser(nt_features, custom_encoders=custom_encoders)
+        self.node_targets_parser = self.build_feature_parser(nt_targets, custom_encoders=custom_encoders)
 
         # This is only useful when using a FeatureComputer to create a dataset, and avoid removing important features
         # of the graph that are not used during loading
@@ -72,12 +64,8 @@ class FeaturesComputer(Transform):
         """
         # Select the right node_parser and update it
 
-        node_parser = (
-            self.node_features_parser if input_feature else self.node_target_parser
-        )
-        new_node_parser = self.build_feature_parser(
-            asked_features=feature_names, custom_encoders=custom_encoders
-        )
+        node_parser = self.node_features_parser if input_feature else self.node_target_parser
+        new_node_parser = self.build_feature_parser(asked_features=feature_names, custom_encoders=custom_encoders)
         node_parser.update(new_node_parser)
 
     def remove_feature(self, feature_name=None, input_feature=True):
@@ -91,12 +79,8 @@ class FeaturesComputer(Transform):
             feature_name = [feature_name]
 
         # Select the right node_parser and update it
-        node_parser = (
-            self.node_features_parser if input_feature else self.node_target_parser
-        )
-        filtered_node_parser = {
-            k: node_parser[k] for k in node_parser if not k in feature_name
-        }
+        node_parser = self.node_features_parser if input_feature else self.node_target_parser
+        filtered_node_parser = {k: node_parser[k] for k in node_parser if not k in feature_name}
         if input_feature:
             self.node_features_parser = filtered_node_parser
         else:
@@ -133,9 +117,7 @@ class FeaturesComputer(Transform):
         :param rna_graph:
         :return:
         """
-        useful_keys = set(self.node_features_parser.keys()).union(
-            set(self.node_target_parser.keys())
-        )
+        useful_keys = set(self.node_features_parser.keys()).union(set(self.node_target_parser.keys()))
         if self.extra_useful_keys is not None:
             useful_keys = useful_keys.union(set(self.extra_useful_keys))
         cleaned_graph = nx.DiGraph(name=rna_graph.name)
@@ -243,24 +225,14 @@ class FeaturesComputer(Transform):
 
         # Update the map {key:encoder} and ensure every asked feature is in this encoding map.
         if any([feature not in feature_map for feature in asked_features]):
-            problematic_keys = tuple(
-                [feature for feature in asked_features if feature not in feature_map]
-            )
-            raise ValueError(
-                f"{problematic_keys} were asked as a feature or target but do not exist"
-            )
+            problematic_keys = tuple([feature for feature in asked_features if feature not in feature_map])
+            raise ValueError(f"{problematic_keys} were asked as a feature or target but do not exist")
 
         # Filter out None encoder functions, we don't know how to encode those...
-        encoding_features = [
-            feature for feature in asked_features if feature_map[feature] is not None
-        ]
+        encoding_features = [feature for feature in asked_features if feature_map[feature] is not None]
         if len(encoding_features) < len(asked_features):
-            unencodable_keys = [
-                feature for feature in asked_features if feature_map[feature] is None
-            ]
-            print(
-                f"{unencodable_keys} were asked as a feature or target but do not exist"
-            )
+            unencodable_keys = [feature for feature in asked_features if feature_map[feature] is None]
+            print(f"{unencodable_keys} were asked as a feature or target but do not exist")
 
         # Finally, keep only the relevant keys to include in the encoding dict.
         subset_dict = {k: feature_map[k] for k in encoding_features}
@@ -278,15 +250,11 @@ class FeaturesComputer(Transform):
 
         features_dict = {}
         if len(self.rna_features_parser) > 0:
-            rna_feature_encoding = self.encode_rna(
-                rna_dict["rna"], parser=self.rna_features_parser
-            )
+            rna_feature_encoding = self.encode_rna(rna_dict["rna"], parser=self.rna_features_parser)
             features_dict["rna_features"] = rna_feature_encoding
 
         if len(self.rna_targets_parser) > 0:
-            rna_targets_encoding = self.encode_rna(
-                rna_dict["rna"], parser=self.rna_targets_parser
-            )
+            rna_targets_encoding = self.encode_rna(rna_dict["rna"], parser=self.rna_targets_parser)
             features_dict["rna_targets"] = rna_targets_encoding
 
         # Get Node labels

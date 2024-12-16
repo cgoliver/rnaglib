@@ -28,7 +28,7 @@ These tasks take as input an RNA and predict a property of the whole molecule.
 .. autosummary::
     :toctree: generated/
 
-    RNAFamilyTask
+    RNAFamily
     BindingSiteDetection
 
 
@@ -42,7 +42,9 @@ These tasks take as input an RNA and predict a property of each residue of the m
     :toctree: generated/
 
     ChemicalModification
+    ProteinBindingSiteDetection
     InverseFolding
+    gRNAde
 
 
 Substructure-level Classification
@@ -53,6 +55,7 @@ Predict properties of substructures of a whole molecule (e.g. binding sites)
 .. autosummary::
    :toctree: generated/
 
-    GMSM
+    LigandIdentification
+
 
 
