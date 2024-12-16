@@ -32,7 +32,7 @@ class ClusterSplitter(Splitter):
 
     def __init__(
         self,
-        similarity_threshold: float = 0.3,
+        similarity_threshold: float = 0.4, #changed from 0.3 since 0.4 is the min required for cdhit
         n_jobs: int = -1,
         seed: int = 0,
         *args,
