@@ -131,7 +131,7 @@ def build_graph_from_cif(cif_path, dump_dir):
     transforms = [
         CifMetadata(structures_dir=structures_dir),
         SmallMoleculeBindingTransform(structures_dir=structures_dir),
-        RBPTransform(structures_dir=structures_dir),
+        RBPTransform(structures_dir=structures_dir, protein_number_annotations=True, distances=[4.,6.,8.]),
         SecondaryStructureTransform(structures_dir=structures_dir),
     ]
 

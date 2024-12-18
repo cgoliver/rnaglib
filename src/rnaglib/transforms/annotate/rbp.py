@@ -36,9 +36,11 @@ phosphate_atoms = {"P", "OP1", "OP2"}
 
 class RBPTransform(AnnotationTransform):
 
-    def __init__(self, structures_dir: Union[os.PathLike, str], distance_threshold: float = 5.0):
+    def __init__(self, structures_dir: Union[os.PathLike, str], distance_threshold: float = 5.0, protein_number_annotations: bool = False, distances: list = [0.5]):
         self.structures_dir = structures_dir
         self.distance_threshold = distance_threshold
+        self.protein_number_annotations = protein_number_annotations
+        self.distances = distances
         pass
 
     def forward(self, rna_dict: dict) -> dict:
@@ -77,6 +79,9 @@ class RBPTransform(AnnotationTransform):
 
         close_residues = set()
 
+        if self.protein_number_annotations:
+            protein_numbers_list = [{} for element in self.distances]
+
         if len(all_protein_atoms) > 1:
             neighbor_search = NeighborSearch(all_protein_atoms)
 
@@ -88,12 +93,22 @@ class RBPTransform(AnnotationTransform):
                 if len(close_atoms) > 0:
                     rna_residue = rna_atom.get_parent()
                     close_residues.add((rna_residue.get_parent().id, rna_residue.id[1]))
+                if self.protein_number_annotations:
+                    for i, current_distance_threshold in enumerate(self.distances):
+                        close_atoms = neighbor_search.search(rna_atom.coord, current_distance_threshold)
+                        rna_residue = rna_atom.get_parent()
+                        protein_numbers_list[i][(rna_residue.get_parent().id, rna_residue.id[1])] = close_atoms
 
         # Output the results
         rbp_status = {}
+        protein_numbers = {}
         for node in g.nodes():
             chain, pos = node.split(".")[1:]
             rbp_status[node] = (chain, str(pos)) in close_residues
+            if self.protein_number_annotations:
+                 protein_numbers[node] = [protein_numbers_dict[(chain,str(pos))] if (chain, str(pos)) in close_residues else 0 for protein_numbers_dict in protein_numbers_list]
 
         nx.set_node_attributes(g, rbp_status, "protein_binding")
+        if self.protein_number_annotations:
+            nx.set_node_attributes(g, protein_numbers, "protein_content")
         return rna_dict
