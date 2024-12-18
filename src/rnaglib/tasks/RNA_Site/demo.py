@@ -3,7 +3,7 @@ from rnaglib.transforms import GraphRepresentation
 from rnaglib.learning.task_models import PygModel
 
 # Creating task
-ta = BindingSiteDetection(root="RNA-Site", debug=True, recompute=True)
+ta = BindingSiteDetection(root="RNA-Site", debug=False, recompute=True, filter_by_size=True, filter_by_resolution=True)
 
 # Add representation
 ta.dataset.add_representation(GraphRepresentation(framework="pyg"))
@@ -21,7 +21,7 @@ info = ta.describe()
 #         ...
 
 # Or using a wrapper class
-model = PygModel(ta.metadata["description"]["num_node_features"], ta.metadata["decription"]["num_classes"], graph_level=False)
+model = PygModel(ta.metadata["description"]["num_node_features"], ta.metadata["description"]["num_classes"], graph_level=False)
 model.configure_training(learning_rate=0.001)
 model.train_model(ta, epochs=1)
 

@@ -10,7 +10,7 @@ from torch.utils.data import DataLoader
 from typing import Union, Optional
 
 from rnaglib.data_loading import RNADataset, Collater
-from rnaglib.transforms import FeaturesComputer
+from rnaglib.transforms import FeaturesComputer, ResolutionFilter, SizeFilter
 from rnaglib.splitters import Splitter, RandomSplitter
 from rnaglib.utils import DummyResidueModel, DummyGraphModel, tonumpy
 
@@ -36,6 +36,8 @@ class Task:
         debug: bool = False,
         save: bool = True,
         in_memory: bool = True,
+        filter_by_size=False, 
+        filter_by_resolution=False,
     ):
         self.root = root
         self.dataset_path = os.path.join(self.root, "dataset")
@@ -43,7 +45,18 @@ class Task:
         self.debug = debug
         self.save = save
         self.in_memory = in_memory
+        self.filter_by_size = filter_by_size
+        self.filter_by_resolution = filter_by_resolution
         self.metadata = self.init_metadata()
+
+        # init the Filters list
+        self.filters_list = []
+        if self.filter_by_resolution:
+            resolution_filter = ResolutionFilter(resolution_threshold=4.0)
+            self.filters_list.append(resolution_filter)
+        if self.filter_by_size:
+            size_filter = SizeFilter(5, 500)
+            self.filters_list.append(size_filter)
 
         # Load or create dataset
         if not os.path.exists(self.dataset_path) or recompute:
@@ -360,6 +373,9 @@ class ClassificationTask(Task):
                 sorted_keys = sorted(one_metric.keys())
             metrics = np.array(metrics)
             mean_metrics = np.mean(metrics, axis=0)
+            #TO REMOVE
+            print(f'len(sorted_keys)={len(sorted_keys)}')
+            print(f'metrics={metrics}')
             metrics = {k: v for k, v in zip(sorted_keys, mean_metrics)}
 
             # Get the flattened result, renamed to include "global"

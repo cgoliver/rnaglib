@@ -231,3 +231,13 @@ class ChainFilter(FilterTransform):
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(valid_chains_dict={self.valid_chains_dict})"
+
+class ResolutionFilter(RNAAttributeFilter):
+    def __init__(self, resolution_threshold: float, **kwargs):
+        def value_checker(val):
+            try:
+                return float(val[0]) < resolution_threshold
+            except:
+                return False
+        super().__init__(attribute="resolution_high", value_checker=value_checker, **kwargs)
+        pass

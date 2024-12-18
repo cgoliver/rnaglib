@@ -16,7 +16,7 @@ from rnaglib.encoders import BoolEncoder
 from rnaglib.transforms import ResidueAttributeFilter
 from rnaglib.transforms import PDBIDNameTransform, ChainNameTransform
 from rnaglib.transforms import BindingSiteAnnotator
-from rnaglib.transforms import ChainFilter
+from rnaglib.transforms import ChainFilter, ComposeFilters, RNAAttributeFilter, SizeFilter
 from rnaglib.utils import dump_json
 
 
@@ -36,7 +36,10 @@ class BenchmarkBindingSiteDetection(ResidueClassificationTask):
 
     def process(self) -> RNADataset:
         # Define your transforms
-        rna_filter = ChainFilter(SPLITTING_VARS["PDB_TO_CHAIN_TR60_TE18"])
+        chain_filter = ChainFilter(SPLITTING_VARS["PDB_TO_CHAIN_TR60_TE18"])
+        self.filters_list.append(chain_filter)
+        
+        rna_filter = ComposeFilters(self.filters_list)
         bs_annotator = BindingSiteAnnotator()
         namer = ChainNameTransform()
 
@@ -82,7 +85,10 @@ class BindingSiteDetection(ResidueClassificationTask):
 
     def process(self) -> RNADataset:
         # Define your transforms
-        rna_filter = ResidueAttributeFilter(attribute=self.target_var, value_checker=lambda val: val is not None)
+        attribute_filter = ResidueAttributeFilter(attribute=self.target_var, value_checker=lambda val: val is not None)
+        self.filters_list.append(attribute_filter)
+
+        rna_filter = ComposeFilters(self.filters_list)
         add_name = PDBIDNameTransform()
 
         # Run through database, applying our filters
