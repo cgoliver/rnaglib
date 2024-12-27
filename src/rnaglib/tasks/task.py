@@ -1,3 +1,5 @@
+"Abstract task classes"
+from typing import Union
 import os
 import hashlib
 from pathlib import Path
@@ -7,7 +9,7 @@ import numpy as np
 from sklearn.metrics import matthews_corrcoef, f1_score, accuracy_score, roc_auc_score
 import torch
 from torch.utils.data import DataLoader
-from typing import Union, Optional
+import tqdm
 
 from rnaglib.data_loading import RNADataset, Collater
 from rnaglib.transforms import FeaturesComputer, ResolutionFilter, SizeFilter
@@ -36,7 +38,7 @@ class Task:
         debug: bool = False,
         save: bool = True,
         in_memory: bool = True,
-        filter_by_size=False, 
+        filter_by_size=False,
         filter_by_resolution=False,
     ):
         self.root = root
@@ -63,7 +65,11 @@ class Task:
             print(">>> Creating task dataset from scratch...")
             self.dataset = self.process()
         else:
-            self.dataset, self.metadata, (self.train_ind, self.val_ind, self.test_ind) = self.load()
+            (
+                self.dataset,
+                self.metadata,
+                (self.train_ind, self.val_ind, self.test_ind),
+            ) = self.load()
 
         # Set splitter after dataset is available
         self.splitter = self.default_splitter if splitter is None else splitter
@@ -128,10 +134,14 @@ class Task:
             dataloader_kwargs["collate_fn"] = collater
 
         # Now build the loaders
-        self.train_dataloader = DataLoader(dataset=self.train_dataset, **dataloader_kwargs)
+        self.train_dataloader = DataLoader(
+            dataset=self.train_dataset, **dataloader_kwargs
+        )
         dataloader_kwargs["shuffle"] = False
         self.val_dataloader = DataLoader(dataset=self.val_dataset, **dataloader_kwargs)
-        self.test_dataloader = DataLoader(dataset=self.test_dataset, **dataloader_kwargs)
+        self.test_dataloader = DataLoader(
+            dataset=self.test_dataset, **dataloader_kwargs
+        )
 
     def get_split_datasets(self, recompute=True):
         # If datasets were not already computed or if we want to recompute them to account
@@ -157,7 +167,9 @@ class Task:
         """Task hash is a hash of all RNA ids and node IDs in the dataset"""
         h = hashlib.new("sha256")
         if not self.in_memory:
-            raise ValueError("task id is only available (and tractable) for small, in-memory datasets")
+            raise ValueError(
+                "task id is only available (and tractable) for small, in-memory datasets"
+            )
         for rna in self.dataset.rnas:
             h.update(rna.name.encode("utf-8"))
             for nt in sorted(rna.nodes()):
@@ -172,7 +184,11 @@ class Task:
         ``'graphs'`` which stores the RNAs that form the dataset, and three `.txt` files (`'{train, val, test}_idx.txt'`,
         one for each split with a list of indices.
         """
-        if not os.path.exists(self.dataset_path) or self.recompute:
+        if (
+            not os.path.exists(self.dataset_path)
+            or not os.listdir(self.dataset_path)
+            or self.recompute
+        ):
             print(">>> Saving dataset.")
             self.dataset.save(self.dataset_path, recompute=self.recompute)
         with open(Path(self.root) / "train_idx.txt", "w") as idx:
@@ -193,10 +209,21 @@ class Task:
         """Load dataset and splits from disk."""
         # load splits
         print(">>> Loading precomputed dataset...")
-        train_ind = [int(ind) for ind in open(os.path.join(self.root, "train_idx.txt"), "r").readlines()]
-        val_ind = [int(ind) for ind in open(os.path.join(self.root, "val_idx.txt"), "r").readlines()]
-        test_ind = [int(ind) for ind in open(os.path.join(self.root, "test_idx.txt"), "r").readlines()]
-        dataset = RNADataset(dataset_path=self.dataset_path, in_memory=self.in_memory, debug=self.debug)
+        train_ind = [
+            int(ind)
+            for ind in open(os.path.join(self.root, "train_idx.txt"), "r").readlines()
+        ]
+        val_ind = [
+            int(ind)
+            for ind in open(os.path.join(self.root, "val_idx.txt"), "r").readlines()
+        ]
+        test_ind = [
+            int(ind)
+            for ind in open(os.path.join(self.root, "test_idx.txt"), "r").readlines()
+        ]
+        dataset = RNADataset(
+            dataset_path=self.dataset_path, in_memory=self.in_memory, debug=self.debug
+        )
 
         with open(Path(self.root) / "metadata.json", "r") as meta:
             metadata = json.load(meta)
@@ -226,9 +253,13 @@ class Task:
             first_item = self.dataset[0]
             compute_num_edge_attributes = "graph" in first_item
 
-            first_node_map = {n: i for i, n in enumerate(sorted(first_item["rna"].nodes()))}
+            first_node_map = {
+                n: i for i, n in enumerate(sorted(first_item["rna"].nodes()))
+            }
             first_features_dict = self.dataset.features_computer(first_item)
-            first_features_array = first_features_dict["nt_features"][next(iter(first_node_map.keys()))]
+            first_features_array = first_features_dict["nt_features"][
+                next(iter(first_node_map.keys()))
+            ]
             num_node_features = first_features_array.shape[0]
 
             # Dynamic class counting
@@ -237,8 +268,6 @@ class Task:
             unique_edge_attrs = set()  # only used with graphs
 
             # Collect statistics from dataset
-            import tqdm
-
             for item in tqdm.tqdm(self.dataset):
                 if compute_num_edge_attributes:
                     graph = item["graph"]
@@ -295,7 +324,11 @@ class Task:
 class ClassificationTask(Task):
     def __init__(self, graph_level=False, num_classes=None, **kwargs):
         super().__init__(**kwargs)
-        self.num_classes = self.metadata["description"]["num_classes"] if num_classes is None else num_classes
+        self.num_classes = (
+            self.metadata["description"]["num_classes"]
+            if num_classes is None
+            else num_classes
+        )
         self.graph_level = graph_level
 
     @property
@@ -329,9 +362,24 @@ class ClassificationTask(Task):
                 # split predictions per RNA if residue level
                 if not self.graph_level:
                     cumulative_sizes = tuple(tonumpy(graph.ptr))
-                    probs = [probs[start:end] for start, end in zip(cumulative_sizes[:-1], cumulative_sizes[1:])]
-                    preds = [preds[start:end] for start, end in zip(cumulative_sizes[:-1], cumulative_sizes[1:])]
-                    labels = [labels[start:end] for start, end in zip(cumulative_sizes[:-1], cumulative_sizes[1:])]
+                    probs = [
+                        probs[start:end]
+                        for start, end in zip(
+                            cumulative_sizes[:-1], cumulative_sizes[1:]
+                        )
+                    ]
+                    preds = [
+                        preds[start:end]
+                        for start, end in zip(
+                            cumulative_sizes[:-1], cumulative_sizes[1:]
+                        )
+                    ]
+                    labels = [
+                        labels[start:end]
+                        for start, end in zip(
+                            cumulative_sizes[:-1], cumulative_sizes[1:]
+                        )
+                    ]
                 all_probs.extend(probs)
                 all_preds.extend(preds)
                 all_labels.extend(labels)
@@ -345,12 +393,17 @@ class ClassificationTask(Task):
     def compute_one_metric(self, preds, probs, labels):
         one_metric = {
             "accuracy": accuracy_score(labels, preds),
-            "f1": f1_score(labels, preds, average="binary" if self.num_classes == 2 else "macro"),
+            "f1": f1_score(
+                labels, preds, average="binary" if self.num_classes == 2 else "macro"
+            ),
             "mcc": matthews_corrcoef(labels, preds),
         }
         try:
             one_metric["auc"] = roc_auc_score(
-                labels, probs, average=None if self.num_classes == 2 else "macro", multi_class="ovo"
+                labels,
+                probs,
+                average=None if self.num_classes == 2 else "macro",
+                multi_class="ovo",
             )
         except:
             return one_metric
@@ -373,9 +426,9 @@ class ClassificationTask(Task):
                 sorted_keys = sorted(one_metric.keys())
             metrics = np.array(metrics)
             mean_metrics = np.mean(metrics, axis=0)
-            #TO REMOVE
-            print(f'len(sorted_keys)={len(sorted_keys)}')
-            print(f'metrics={metrics}')
+            # TO REMOVE
+            print(f"len(sorted_keys)={len(sorted_keys)}")
+            print(f"metrics={metrics}")
             metrics = {k: v for k, v in zip(sorted_keys, mean_metrics)}
 
             # Get the flattened result, renamed to include "global"
