@@ -32,28 +32,76 @@ class ClusterSplitter(Splitter):
 
     def __init__(
         self,
-        similarity_threshold: float = 0.4, #changed from 0.3 since 0.4 is the min required for cdhit
+        similarity_threshold: float = 0.4,  # changed from 0.3 since 0.4 is the min required for cdhit
         n_jobs: int = -1,
         seed: int = 0,
+        balanced: bool = False,
         *args,
         **kwargs,
     ):
         self.similarity_threshold = similarity_threshold
         self.n_jobs = n_jobs
         self.seed = seed
+        self.balanced = balanced
         super().__init__(**kwargs)
         pass
 
     def forward(self, dataset):
-        train, test = self.cluster_split(dataset, self.split_test, n=0.2)
-        val, test = self.cluster_split(test, self.split_test, n=0.2)
+
+        overall_test_proportion = self.split_test + self.split_valid
+        relative_test_proportion = self.split_test / overall_test_proportion
+        if not self.balanced:
+            train, test = self.cluster_split(dataset, overall_test_proportion, n=0.2)
+            val, test = self.cluster_split(test, relative_test_proportion, n=0.2)
+        else:
+
+            clusters = self.cluster_split(dataset, 0, split=False)
+            print("woho we clustered")
+            print(f"clusters: {clusters}")
+            train, val, test = self.balancer(
+                clusters,
+                (self.split_train, self.split_valid, self.split_test, len(dataset)),
+            )
+
         return train, val, test
+
+    def balancer(self, clusters, fracs, n=0.2):
+        """
+        splits clusters into train, val, test keeping into account label balance
+        fracs is a tuple of fractions and total dataset siz to get the right proportions
+        """
+
+        # Here we need to choose from clusters keeping labels in account.
+        # Like Plinder, we should (potentially) make sure that singleton
+        # clusters don't go into test in a second step.
+        # For now just pick random from clusters for test set
+
+        print(f"test size:{test_size}")
+        while len(test) < test_size:
+            cluster = random.choice(clusters)
+            clusters.remove(cluster)
+            if len(cluster) > n:
+                cluster = random.sample(cluster, n)
+            if len(cluster) > (test_size - len(test)):
+                cluster = random.sample(cluster, (test_size - len(test)))
+            test.update(cluster)
+        # not readable but flattens list of sets to list (for pool)
+        pool = sorted([elem for cluster in clusters for elem in cluster])
+        test = sorted(list(test))
+        print(f"pool:{pool}")
+        print(f"test:{test}")
+        return NotImplementedError
+
+    def compute_similarity_matrix(self, dataset: RNADataset) -> Tuple[np.array, List]:
+        "Must be implemented by splitter inherting from ClusterSplitter"
+        raise NotImplementedError
 
     def cluster_split(
         self,
         dataset: Iterable,
         frac: float,
         n: float = 0.05,
+        split: bool = True,
     ):
         """Fast cluster-based splitting adapted from ProteinShake (https://github.com/BorgwardtLab/proteinshake_release/blob/main/structure_split.py). Splits the dataset into two splits, with the guarantee
         that no two points above ``similarity_threshold`` of each other belong to the same split.
@@ -70,35 +118,59 @@ class ClusterSplitter(Splitter):
 
         :param dataset: dataset to split
         :param frac: fraction of dataset to use as the test set
-        :param n: portion of the test set size to use as largest test set clusterb size
+        :param n: portion of the test set size to use as largest test set cluster size
+        :param split: if split is False, we return all clusters instead of splitting them
         """
+
         print("Computing similarity matrix...")
         similarity_matrix, keep_dataset = self.compute_similarity_matrix(dataset)
         print("Clustering...")
-        nei = NearestNeighbors(radius=1 - self.similarity_threshold, metric="precomputed").fit(1 - similarity_matrix)
+        nei = NearestNeighbors(
+            radius=1 - self.similarity_threshold, metric="precomputed"
+        ).fit(1 - similarity_matrix)
         neighbors = nei.radius_neighbors(return_distance=False)
 
         test_size = max(1, int(len(keep_dataset) * frac))
         random.seed(self.seed)
         test = set()
         n = max(1, int(test_size * n))
-        pool = list(range(len(keep_dataset)))
-        print(f"Building test set of size {test_size}")
-        with tqdm(total=test_size, desc="Sampling split") as pbar:
-            while len(test) < test_size:
+        pool = list(range(len(keep_dataset)))  # DEBUG: len 30 in debug
+
+        if split:
+            print(f"Building test set of size {test_size}")
+            with tqdm(total=test_size, desc="Sampling split") as pbar:
+                while len(test) < test_size:
+                    query = random.choice(pool)
+                    cluster = set(neighbors[query])
+                    cluster.add(query)
+                    pool = list(set(pool) - cluster)
+                    # If cluster is too big, subsample it.
+                    # Discussion point: We potentially discard data here.
+                    # The data will miss in test and val, not in the trainset.
+                    # Option: return cluster and take a new one (some check that this
+                    # does not continue to infinity
+                    if len(cluster) > n:
+                        cluster = random.sample(cluster, n)
+                    if len(cluster) > (test_size - len(test)):
+                        cluster = random.sample(cluster, (test_size - len(test)))
+                    test.update(cluster)
+                    pbar.update(len(cluster))
+            pool = sorted(list(pool))
+            test = sorted(list(test))
+
+        else:
+            clusters = []
+            # Split data into all clusters possible
+            while len(pool) != 0:
                 query = random.choice(pool)
-                cluster = list(set(neighbors[query]))
-                pool = list(set(pool) - set(cluster))
-                # if cluster is too big, subsample it
-                if len(cluster) > n:
-                    cluster = random.sample(cluster, n)
-                if len(cluster) > (test_size - len(test)):
-                    cluster = random.sample(cluster, (test_size - len(test)))
-                test.update(cluster)
-                pbar.update(len(cluster))
-        pool = sorted(list(pool))
-        test = sorted(list(test))
-        return [dataset[i] for i in pool], [dataset[i] for i in test]
+                cluster = set(neighbors[query])
+                cluster.add(query)
+                pool = list(set(pool) - cluster)
+                clusters.append(set(cluster))  # we now have a list of sets
+            print(f"We have {len(clusters)} clusters.")
+            return clusters
+
+        return [keep_dataset[i] for i in pool], [keep_dataset[i] for i in test]
 
 
 class CDHitSplitter(ClusterSplitter):
@@ -119,10 +191,17 @@ class CDHitSplitter(ClusterSplitter):
         ids, sequences = [], []
         for idx, rna in enumerate(dataset):
             seqs = get_sequences(rna["rna"])
-            ids.extend([f"{idx}-{seq_id.replace('.', '-')}" for seq_id, (seq, _) in seqs.items()])
+            ids.extend(
+                [
+                    f"{idx}-{seq_id.replace('.', '-')}"
+                    for seq_id, (seq, _) in seqs.items()
+                ]
+            )
             sequences.extend([seq for _, (seq, _) in seqs.items()])
 
-        ids_to_cluster, cluster_to_ids = cdhit_wrapper(ids, sequences, sim_thresh=self.similarity_threshold)
+        ids_to_cluster, cluster_to_ids = cdhit_wrapper(
+            ids, sequences, sim_thresh=self.similarity_threshold
+        )
 
         idx_to_clusters = defaultdict(set)
         idxs = set()
@@ -186,11 +265,17 @@ class RNAalignSplitter(ClusterSplitter):
         :returns np.array: Array of pairwise similarities in order of given dataset.
         """
         pdbids = [rna["rna"].graph["pdbid"] for rna in dataset]
-        pdb_paths = (Path(self.structures_dir) / f"{pdbid.lower()}.cif" for pdbid in pdbids)
+        print(f"pdbids: {pdbids}")
+        pdb_paths = (
+            Path(self.structures_dir) / f"{pdbid.lower()}.cif" for pdbid in pdbids
+        )
 
         with tempfile.TemporaryDirectory() as tmpdir:
             if self.use_substructures:
-                reslists = [[(n.split(".")[1], n.split(".")[2]) for n in rna["rna"].nodes()] for rna in dataset]
+                reslists = [
+                    [(n.split(".")[1], n.split(".")[2]) for n in rna["rna"].nodes()]
+                    for rna in dataset
+                ]
                 new_paths = []
                 for idx, (cif_path, reslist) in enumerate(zip(pdb_paths, reslists)):
                     new_cif = Path(tmpdir) / f"{idx}.cif"
@@ -229,11 +314,16 @@ class RNAalignSplitter(ClusterSplitter):
         :returns np.array: Array of pairwise similarities in order of given dataset.
         """
         pdbids = [rna["rna"].graph["pdbid"] for rna in dataset]
-        pdb_paths = (Path(self.structures_dir) / f"{pdbid.lower()}.cif" for pdbid in pdbids)
+        pdb_paths = (
+            Path(self.structures_dir) / f"{pdbid.lower()}.cif" for pdbid in pdbids
+        )
 
         with tempfile.TemporaryDirectory() as tmpdir:
             if self.use_substructures:
-                reslists = [[(n.split(".")[1], n.split(".")[2]) for n in rna["rna"].nodes()] for rna in dataset]
+                reslists = [
+                    [(n.split(".")[1], n.split(".")[2]) for n in rna["rna"].nodes()]
+                    for rna in dataset
+                ]
                 new_paths = []
                 for idx, (cif_path, reslist) in enumerate(zip(pdb_paths, reslists)):
                     new_cif = Path(tmpdir) / f"{idx}.cif"
@@ -250,8 +340,12 @@ class RNAalignSplitter(ClusterSplitter):
             pdbid_to_idxlist = {}
             pdbids_keep = []
             for i, pdb in enumerate(pdb_paths):
-                chain_pdbs = split_mmcif_by_chain(pdb, output_dir=tmpdir, min_length=5, max_length=1000)
-                pdbid_to_idxlist[Path(pdb).stem.lower()] = list(range(i, i + len(chain_pdbs)))
+                chain_pdbs = split_mmcif_by_chain(
+                    pdb, output_dir=tmpdir, min_length=5, max_length=1000
+                )
+                pdbid_to_idxlist[Path(pdb).stem.lower()] = list(
+                    range(i, i + len(chain_pdbs))
+                )
                 chain_paths.extend(chain_pdbs)
                 if len(chain_pdbs) > 1:
                     pdbids_keep.append(Path(pdb).stem.lower())
@@ -292,5 +386,9 @@ class RNAalignSplitter(ClusterSplitter):
         final_pdbids = [pdbids_keep[i] for i in keep_idx]
         sim_mat = sim_mat[keep_idx][:, keep_idx]
 
-        keep_dataset = [rna for i, rna in enumerate(dataset) if rna["rna"].graph["pdbid"].lower() in final_pdbids]
+        keep_dataset = [
+            rna
+            for i, rna in enumerate(dataset)
+            if rna["rna"].graph["pdbid"].lower() in final_pdbids
+        ]
         return sim_mat, keep_dataset
