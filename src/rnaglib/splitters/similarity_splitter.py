@@ -10,6 +10,7 @@ import itertools
 
 import numpy as np
 from scipy.optimize import linear_sum_assignment
+from scipy.sparse.csgraph import connected_components
 from sklearn.neighbors import NearestNeighbors
 from tqdm import tqdm
 from rnaglib.splitters import Splitter
@@ -55,42 +56,71 @@ class ClusterSplitter(Splitter):
             val, test = self.cluster_split(test, relative_test_proportion, n=0.2)
         else:
 
-            clusters = self.cluster_split(dataset, 0, split=False)
+            clusters, keep_dataset = self.cluster_split(dataset, frac=0, split=False)
             print("woho we clustered")
             print(f"clusters: {clusters}")
             train, val, test = self.balancer(
                 clusters,
-                (self.split_train, self.split_valid, self.split_test, len(dataset)),
+                keep_dataset,
+                (self.split_train, self.split_valid, self.split_test),
             )
-
         return train, val, test
 
-    def balancer(self, clusters, fracs, n=0.2):
+    def balancer(self, clusters, dataset, fracs, n=0.2):
         """
         splits clusters into train, val, test keeping into account label balance
-        fracs is a tuple of fractions and total dataset siz to get the right proportions
+        fracs is a tuple of fractions to get the right proportions
+        dataset needs to be passed since the cluster indices apply to keep_dataset,
+        not necessariliy the original one
         """
 
         # Here we need to choose from clusters keeping labels in account.
         # Like Plinder, we should (potentially) make sure that singleton
         # clusters don't go into test in a second step.
         # For now just pick random from clusters for test set
+        # TODO: this needs to be changed so as to return three sets.
+        test_size = max(1, int(len(dataset) * fracs[2]))
+        val_size = max(1, int(len(dataset) * fracs[1]))
+
+        random.seed(self.seed)
+        test = set()
+        val = set()
+        n_test = max(1, int(test_size * n))
+        n_val = max(1, int(val_size * n))
+
+        pool = list(range(len(dataset)))
 
         print(f"test size:{test_size}")
         while len(test) < test_size:
             cluster = random.choice(clusters)
+            print(f"clusters:{clusters}")
             clusters.remove(cluster)
-            if len(cluster) > n:
-                cluster = random.sample(cluster, n)
+            if len(cluster) > n_test:
+                cluster = random.sample(cluster, n_test)
             if len(cluster) > (test_size - len(test)):
                 cluster = random.sample(cluster, (test_size - len(test)))
             test.update(cluster)
+        while len(val) < val_size:
+            cluster = random.choice(clusters)
+            print(f"clusters 2:{clusters}")
+            clusters.remove(cluster)
+            if len(cluster) > n_val:
+                cluster = random.sample(cluster, n_val)
+            if len(cluster) > (val_size - len(val)):
+                cluster = random.sample(cluster, (val_size - len(val)))
+            val.update(cluster)
         # not readable but flattens list of sets to list (for pool)
         pool = sorted([elem for cluster in clusters for elem in cluster])
         test = sorted(list(test))
-        print(f"pool:{pool}")
-        print(f"test:{test}")
-        return NotImplementedError
+        val = sorted(list(val))
+        print(f"pool:{pool}")  # DEBUG
+        print(f"test:{test}")  # DEBUG
+        print(f"val:{val}")  # DEBUG
+        return (
+            [dataset[i] for i in pool],
+            [dataset[i] for i in test],
+            [dataset[i] for i in val],
+        )
 
     def compute_similarity_matrix(self, dataset: RNADataset) -> Tuple[np.array, List]:
         "Must be implemented by splitter inherting from ClusterSplitter"
@@ -124,11 +154,19 @@ class ClusterSplitter(Splitter):
 
         print("Computing similarity matrix...")
         similarity_matrix, keep_dataset = self.compute_similarity_matrix(dataset)
-        print("Clustering...")
-        nei = NearestNeighbors(
-            radius=1 - self.similarity_threshold, metric="precomputed"
-        ).fit(1 - similarity_matrix)
-        neighbors = nei.radius_neighbors(return_distance=False)
+        print("Clustering...")  # DEBUG: can confirm sim matrix is symmetric
+        adjacency_matrix = (similarity_matrix >= self.similarity_threshold).astype(int)
+        n_components, labels = connected_components(adjacency_matrix)
+
+        neighbors = []
+        for i in range(n_components):
+            neighborhood = np.where(labels == i)[0].tolist()
+            neighbors.append(neighborhood)
+
+        # nei = NearestNeighbors(
+        #     radius=1 - self.similarity_threshold, metric="precomputed"
+        # ).fit(1 - similarity_matrix)
+        # neighbors = nei.radius_neighbors(return_distance=False)
 
         test_size = max(1, int(len(keep_dataset) * frac))
         random.seed(self.seed)
@@ -140,10 +178,10 @@ class ClusterSplitter(Splitter):
             print(f"Building test set of size {test_size}")
             with tqdm(total=test_size, desc="Sampling split") as pbar:
                 while len(test) < test_size:
-                    query = random.choice(pool)
+                    query = random.choice(range(len(neighbors)))
                     cluster = set(neighbors[query])
-                    cluster.add(query)
                     pool = list(set(pool) - cluster)
+                    neighbors.pop(query)
                     # If cluster is too big, subsample it.
                     # Discussion point: We potentially discard data here.
                     # The data will miss in test and val, not in the trainset.
@@ -157,18 +195,22 @@ class ClusterSplitter(Splitter):
                     pbar.update(len(cluster))
             pool = sorted(list(pool))
             test = sorted(list(test))
+            print(f"split pool: {pool}")
+            print(f"split test: {test}")
 
         else:
             clusters = []
             # Split data into all clusters possible
-            while len(pool) != 0:
-                query = random.choice(pool)
-                cluster = set(neighbors[query])
-                cluster.add(query)
-                pool = list(set(pool) - cluster)
-                clusters.append(set(cluster))  # we now have a list of sets
+            # This can be simplified by simply iterating over clusters
+            print(f"pool:{pool}")
+            while len(neighbors) != 0:
+                query = random.choice(range(len(neighbors)))
+                print(f"neighbours: {neighbors}")
+                cluster = neighbors[query]
+                neighbors.pop(query)
+                clusters.append(cluster)  # we now have a list of sets
             print(f"We have {len(clusters)} clusters.")
-            return clusters
+            return clusters, keep_dataset
 
         return [keep_dataset[i] for i in pool], [keep_dataset[i] for i in test]
 
