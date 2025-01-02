@@ -1,19 +1,22 @@
+"Various splitters taking similarity into account for RNA tasks."
+
 import os
 import random
 import tempfile
-from typing import Optional, Union, Tuple, List, Iterable
-from collections import defaultdict
+import itertools
+from functools import reduce
+from typing import Union, Tuple, List, Iterable
+from collections import defaultdict, Counter
 from pathlib import Path
 from joblib import Parallel, delayed
-import tempfile
-import itertools
 
 import numpy as np
 from scipy.optimize import linear_sum_assignment
 from scipy.sparse.csgraph import connected_components
-from sklearn.neighbors import NearestNeighbors
 from tqdm import tqdm
+
 from rnaglib.splitters import Splitter
+from rnaglib.splitters.splitting_utils import label_counter
 from rnaglib.data_loading.rna_dataset import RNADataset
 from rnaglib.utils import (
     rna_align_wrapper,
@@ -24,6 +27,7 @@ from rnaglib.utils import (
     clean_mmcif,
 )
 from rnaglib.algorithms import get_sequences
+from rnaglib.splitters.linear_optimisation import assign_clusters
 
 
 class ClusterSplitter(Splitter):
@@ -45,10 +49,8 @@ class ClusterSplitter(Splitter):
         self.seed = seed
         self.balanced = balanced
         super().__init__(**kwargs)
-        pass
 
     def forward(self, dataset):
-
         overall_test_proportion = self.split_test + self.split_valid
         relative_test_proportion = self.split_test / overall_test_proportion
         if not self.balanced:
@@ -58,15 +60,27 @@ class ClusterSplitter(Splitter):
 
             clusters, keep_dataset = self.cluster_split(dataset, frac=0, split=False)
             print("woho we clustered")
+            _, label_counts = label_counter(dataset)
+            print(f"dataset:{dataset}")
+
+            # TODO: simpler to get the proportions in the entire RNADataset, then just pass the relevant ones to the balancer
+            # here we get the names of the rnas in the clusters.
+            named_clusters = []
+            for cluster in clusters:
+                named_clusters.append(
+                    [keep_dataset[i]["rna"].graph["pdbid"] for i in cluster]
+                )
+            print(f"names:{named_clusters}")
             print(f"clusters: {clusters}")
             train, val, test = self.balancer(
-                clusters,
-                keep_dataset,
+                named_clusters,
+                label_counts,
+                dataset,
                 (self.split_train, self.split_valid, self.split_test),
             )
         return train, val, test
 
-    def balancer(self, clusters, dataset, fracs, n=0.2):
+    def balancer(self, clusters, label_counts, dataset, fracs, n=0.2):
         """
         splits clusters into train, val, test keeping into account label balance
         fracs is a tuple of fractions to get the right proportions
@@ -77,12 +91,29 @@ class ClusterSplitter(Splitter):
         # Here we need to choose from clusters keeping labels in account.
         # Like Plinder, we should (potentially) make sure that singleton
         # clusters don't go into test in a second step.
-        # For now just pick random from clusters for test set
-        # TODO: this needs to be changed so as to return three sets.
+
+        # First, we need to know what the label balance is
+        labelcounts = []
+        for cluster in clusters:
+            # Summing all the label counts from each element of the cluster
+            print(f"cluster:{cluster}")
+
+            labelcount = sum([label_counts[i] for i in cluster], Counter())
+            print(f"labelcount:{labelcount}")
+            labelcounts.append(labelcount)
+
+        overall_counts = reduce(lambda x, y: x + y, labelcounts)
+        print(f"overall_counts:{overall_counts}")
+
+        train, val, test = assign_clusters(clusters, labelcounts)
+
+        #######
+        # This is a working splitter that considers desired splits size, but not yet label balance
         test_size = max(1, int(len(dataset) * fracs[2]))
         val_size = max(1, int(len(dataset) * fracs[1]))
 
         random.seed(self.seed)
+
         test = set()
         val = set()
         n_test = max(1, int(test_size * n))
@@ -113,7 +144,7 @@ class ClusterSplitter(Splitter):
         pool = sorted([elem for cluster in clusters for elem in cluster])
         test = sorted(list(test))
         val = sorted(list(val))
-        print(f"pool:{pool}")  # DEBUG
+        print(f"train:{pool}")  # DEBUG
         print(f"test:{test}")  # DEBUG
         print(f"val:{val}")  # DEBUG
         return (
@@ -199,18 +230,8 @@ class ClusterSplitter(Splitter):
             print(f"split test: {test}")
 
         else:
-            clusters = []
-            # Split data into all clusters possible
-            # This can be simplified by simply iterating over clusters
-            print(f"pool:{pool}")
-            while len(neighbors) != 0:
-                query = random.choice(range(len(neighbors)))
-                print(f"neighbours: {neighbors}")
-                cluster = neighbors[query]
-                neighbors.pop(query)
-                clusters.append(cluster)  # we now have a list of sets
-            print(f"We have {len(clusters)} clusters.")
-            return clusters, keep_dataset
+            print(f"We have {len(neighbors)} clusters.")
+            return neighbors, keep_dataset
 
         return [keep_dataset[i] for i in pool], [keep_dataset[i] for i in test]
 
