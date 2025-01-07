@@ -2,13 +2,13 @@ from rnaglib.transforms import GraphRepresentation
 from rnaglib.tasks import ProteinBindingSiteDetection
 from rnaglib.learning.task_models import PygModel
 
-ta = ProteinBindingSiteDetection("RBP-Node", recompute=False, debug=False)
+ta = ProteinBindingSiteDetection("RBP-Node", recompute=True, debug=False, filter_by_size=True, filter_by_resolution=True)
 
 # Add representation
 ta.dataset.add_representation(GraphRepresentation(framework="pyg"))
 
 # Splitting dataset
-ta.get_split_loaders(recompute=False)
+ta.get_split_loaders(recompute=True)
 
 # Train model
 # Either by hand:

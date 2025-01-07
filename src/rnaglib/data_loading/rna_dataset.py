@@ -97,7 +97,7 @@ class RNADataset:
                 self.dataset_path = dataset_path
             else:
                 # By default, use non redundant (nr), v1.0.0 dataset of rglib
-                dataset_path = download_graphs(
+                dataset_path, structures_path = download_graphs(
                     redundancy=redundancy,
                     version=version,
                     debug=debug,
@@ -105,8 +105,8 @@ class RNADataset:
                     overwrite=overwrite,
                 )
 
-                self.dataset_path = os.path.join(dataset_path, "graphs")
-                self.structures_path = os.path.join(dataset_path, "structures")
+                self.dataset_path = dataset_path
+                self.structures_path = structures_path
 
             # One can restrict the number of graphs to use
             existing_all_rnas, extension = get_all_existing(

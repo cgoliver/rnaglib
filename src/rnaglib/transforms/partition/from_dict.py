@@ -20,7 +20,8 @@ class PartitionFromDict(PartitionTransform):
         subgraph_idx = 0
         for current_subgraph_nodes in self.partition_dict[g.graph["name"]]:
             subgraph = g.subgraph(current_subgraph_nodes).copy()
-            subgraph.name += "_" + str(subgraph_idx)
-            yield {"rna": subgraph}
-            subgraph_idx += 1
+            if len(subgraph.nodes())>0:
+                subgraph.name += "_" + str(subgraph_idx)
+                yield {"rna": subgraph}
+                subgraph_idx += 1
 
