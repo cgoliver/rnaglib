@@ -100,7 +100,7 @@ def assign_clusters(
     clusters: List[List[str]],
     cluster_counters: List[Counter],
     split_ratios: Tuple[float, float, float] = (0.7, 0.15, 0.15),
-    ratio_tolerance: float = 0.4,
+    ratio_tolerance: float = 0.5,
     size_weight: float = 1.0,
     label_weight: float = 1.0,
 ) -> Tuple[
