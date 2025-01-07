@@ -3,11 +3,8 @@ import os
 from rnaglib.data_loading import RNADataset
 from rnaglib.tasks import ResidueClassificationTask
 from rnaglib.transforms import FeaturesComputer
-from rnaglib.transforms import ComposeFilters
-from rnaglib.transforms import RibosomalFilter
-from rnaglib.transforms import DummyFilter
+from rnaglib.transforms import ComposeFilters, RibosomalFilter, DummyFilter, ResidueAttributeFilter
 from rnaglib.transforms import PDBIDNameTransform
-from rnaglib.transforms import ResidueAttributeFilter
 from rnaglib.utils import dump_json
 
 
@@ -17,7 +14,7 @@ class ProteinBindingSiteDetection(ResidueClassificationTask):
     a protein-binding interface
     """
 
-    target_var = "binding_protein"
+    target_var = "protein_binding"
     input_var = "nt_code"
 
     def __init__(self, root, splitter=None, **kwargs):
@@ -29,8 +26,9 @@ class ProteinBindingSiteDetection(ResidueClassificationTask):
     def process(self):
         # build the filters
         ribo_filter = RibosomalFilter()
-        non_bind_filter = ResidueAttributeFilter(attribute=self.target_var, value_checker=lambda val: val is not None)
-        filters = ComposeFilters([ribo_filter, non_bind_filter])
+        non_bind_filter = ResidueAttributeFilter(attribute=self.target_var, value_checker=lambda val: val)
+        self.filters_list += [ribo_filter, non_bind_filter]
+        filters = ComposeFilters(self.filters_list)
         if self.debug:
             filters = DummyFilter()
 
@@ -38,12 +36,13 @@ class ProteinBindingSiteDetection(ResidueClassificationTask):
         add_name = PDBIDNameTransform()
 
         # Run through database, applying our filters
-        dataset = RNADataset(debug=self.debug, in_memory=self.in_memory)
+        dataset = RNADataset(debug=self.debug, in_memory=False)
         all_rnas = []
         os.makedirs(self.dataset_path, exist_ok=True)
         for rna in dataset:
             if filters.forward(rna):
-                rna = add_name(rna)["rna"]
+                rna = add_name(rna)
+                rna = rna["rna"]
                 if self.in_memory:
                     all_rnas.append(rna)
                 else:

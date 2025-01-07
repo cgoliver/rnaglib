@@ -3,7 +3,7 @@ import os
 from rnaglib.data_loading import RNADataset
 from rnaglib.tasks import ResidueClassificationTask
 from rnaglib.transforms import FeaturesComputer
-from rnaglib.transforms import ResidueAttributeFilter
+from rnaglib.transforms import ResidueAttributeFilter, ComposeFilters
 from rnaglib.transforms import DummyFilter
 from rnaglib.transforms import PDBIDNameTransform
 from rnaglib.utils import dump_json
@@ -25,7 +25,9 @@ class ChemicalModification(ResidueClassificationTask):
 
     def process(self):
         # Define your transforms
-        rna_filter = ResidueAttributeFilter(attribute=self.target_var, value_checker=lambda val: val == True)
+        residue_attribute_filter = ResidueAttributeFilter(attribute=self.target_var, value_checker=lambda val: val == True)
+        self.filters_list.append(residue_attribute_filter)
+        rna_filter = ComposeFilters(self.filters_list)
         if self.debug:
             rna_filter = DummyFilter()
         add_name = PDBIDNameTransform()
