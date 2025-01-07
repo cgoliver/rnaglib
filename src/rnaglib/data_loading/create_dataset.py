@@ -128,8 +128,7 @@ def database_to_dataset(
             annotated=annotated,
             data_root=download_dir,
             debug=debug,
-        )
-        db_path = os.path.join(db_path, "graphs")
+        )[0]
 
     if all_rnas_db is None:
         all_rnas_db = [f.split(".")[0] for f in os.listdir(db_path)]
