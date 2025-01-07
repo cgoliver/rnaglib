@@ -31,15 +31,15 @@ class Task:
     """
 
     def __init__(
-        self,
-        root: Union[str, os.PathLike],
-        recompute: bool = False,
-        splitter: Splitter = None,
-        debug: bool = False,
-        save: bool = True,
-        in_memory: bool = True,
-        filter_by_size=False,
-        filter_by_resolution=False,
+            self,
+            root: Union[str, os.PathLike],
+            recompute: bool = False,
+            splitter: Splitter = None,
+            debug: bool = False,
+            save: bool = True,
+            in_memory: bool = True,
+            filter_by_size=False,
+            filter_by_resolution=False,
     ):
         self.root = root
         self.dataset_path = os.path.join(self.root, "dataset")
@@ -88,7 +88,8 @@ class Task:
 
     def process(self) -> RNADataset:
         """Tasks must implement this method. Executing the method should result in a list of ``.json`` files
-        saved in ``{root}/dataset``. All the RNA graphs should contain all the annotations needed to run the task (e.g. node/edge attributes)
+        saved in ``{root}/dataset``. All the RNA graphs should contain all the annotations needed to run the task
+        (e.g. node/edge attributes)
         """
         raise NotImplementedError
 
@@ -134,14 +135,10 @@ class Task:
             dataloader_kwargs["collate_fn"] = collater
 
         # Now build the loaders
-        self.train_dataloader = DataLoader(
-            dataset=self.train_dataset, **dataloader_kwargs
-        )
+        self.train_dataloader = DataLoader(dataset=self.train_dataset, **dataloader_kwargs)
         dataloader_kwargs["shuffle"] = False
         self.val_dataloader = DataLoader(dataset=self.val_dataset, **dataloader_kwargs)
-        self.test_dataloader = DataLoader(
-            dataset=self.test_dataset, **dataloader_kwargs
-        )
+        self.test_dataloader = DataLoader(dataset=self.test_dataset, **dataloader_kwargs)
 
     def get_split_datasets(self, recompute=True):
         # If datasets were not already computed or if we want to recompute them to account
@@ -167,9 +164,7 @@ class Task:
         """Task hash is a hash of all RNA ids and node IDs in the dataset"""
         h = hashlib.new("sha256")
         if not self.in_memory:
-            raise ValueError(
-                "task id is only available (and tractable) for small, in-memory datasets"
-            )
+            raise ValueError("task id is only available (and tractable) for small, in-memory datasets")
         for rna in self.dataset.rnas:
             h.update(rna.name.encode("utf-8"))
             for nt in sorted(rna.nodes()):
@@ -180,15 +175,11 @@ class Task:
         return h.hexdigest()
 
     def write(self):
-        """Save task data and splits to root. Creates a folder in ``root`` called
-        ``'graphs'`` which stores the RNAs that form the dataset, and three `.txt` files (`'{train, val, test}_idx.txt'`,
+        """Save task data and splits to root. Creates a folder in ``root`` called ``'graphs'``
+        which stores the RNAs that form the dataset, and three `.txt` files (`'{train, val, test}_idx.txt'`,
         one for each split with a list of indices.
         """
-        if (
-            not os.path.exists(self.dataset_path)
-            or not os.listdir(self.dataset_path)
-            or self.recompute
-        ):
+        if not os.path.exists(self.dataset_path) or not os.listdir(self.dataset_path) or self.recompute:
             print(">>> Saving dataset.")
             self.dataset.save(self.dataset_path, recompute=self.recompute)
         with open(Path(self.root) / "train_idx.txt", "w") as idx:
@@ -209,21 +200,10 @@ class Task:
         """Load dataset and splits from disk."""
         # load splits
         print(">>> Loading precomputed dataset...")
-        train_ind = [
-            int(ind)
-            for ind in open(os.path.join(self.root, "train_idx.txt"), "r").readlines()
-        ]
-        val_ind = [
-            int(ind)
-            for ind in open(os.path.join(self.root, "val_idx.txt"), "r").readlines()
-        ]
-        test_ind = [
-            int(ind)
-            for ind in open(os.path.join(self.root, "test_idx.txt"), "r").readlines()
-        ]
-        dataset = RNADataset(
-            dataset_path=self.dataset_path, in_memory=self.in_memory, debug=self.debug
-        )
+        train_ind = [int(ind) for ind in open(os.path.join(self.root, "train_idx.txt"), "r").readlines()]
+        val_ind = [int(ind) for ind in open(os.path.join(self.root, "val_idx.txt"), "r").readlines()]
+        test_ind = [int(ind) for ind in open(os.path.join(self.root, "test_idx.txt"), "r").readlines()]
+        dataset = RNADataset(dataset_path=self.dataset_path, in_memory=self.in_memory, debug=self.debug)
 
         with open(Path(self.root) / "metadata.json", "r") as meta:
             metadata = json.load(meta)
@@ -303,10 +283,10 @@ class Task:
             }
             if compute_num_edge_attributes:
                 info["num_edge_attributes"] = len(unique_edge_attrs)
+            self.metadata["description"] = info
             if self.save:
                 with open(Path(self.root) / "metadata.json", "w") as meta:
                     json.dump(self.metadata, meta, indent=4)
-            self.metadata["description"] = info
 
         # Print description
         print("Dataset Description:")
