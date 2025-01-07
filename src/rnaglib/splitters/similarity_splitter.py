@@ -63,8 +63,6 @@ class ClusterSplitter(Splitter):
             _, label_counts = label_counter(dataset)
             print(f"dataset:{dataset}")
 
-            # TODO: simpler to get the proportions in the entire RNADataset, then just pass the relevant ones to the balancer
-            # here we get the names of the rnas in the clusters.
             named_clusters = []
             for cluster in clusters:
                 named_clusters.append(
@@ -75,7 +73,7 @@ class ClusterSplitter(Splitter):
             train, val, test = self.balancer(
                 named_clusters,
                 label_counts,
-                dataset,
+                keep_dataset,
                 (self.split_train, self.split_valid, self.split_test),
             )
         return train, val, test
@@ -105,52 +103,25 @@ class ClusterSplitter(Splitter):
         overall_counts = reduce(lambda x, y: x + y, labelcounts)
         print(f"overall_counts:{overall_counts}")
 
-        train, val, test = assign_clusters(clusters, labelcounts)
+        train, val, test, metrics = assign_clusters(clusters, labelcounts)
 
-        #######
-        # This is a working splitter that considers desired splits size, but not yet label balance
-        test_size = max(1, int(len(dataset) * fracs[2]))
-        val_size = max(1, int(len(dataset) * fracs[1]))
-
-        random.seed(self.seed)
-
-        test = set()
-        val = set()
-        n_test = max(1, int(test_size * n))
-        n_val = max(1, int(val_size * n))
-
-        pool = list(range(len(dataset)))
-
-        print(f"test size:{test_size}")
-        while len(test) < test_size:
-            cluster = random.choice(clusters)
-            print(f"clusters:{clusters}")
-            clusters.remove(cluster)
-            if len(cluster) > n_test:
-                cluster = random.sample(cluster, n_test)
-            if len(cluster) > (test_size - len(test)):
-                cluster = random.sample(cluster, (test_size - len(test)))
-            test.update(cluster)
-        while len(val) < val_size:
-            cluster = random.choice(clusters)
-            print(f"clusters 2:{clusters}")
-            clusters.remove(cluster)
-            if len(cluster) > n_val:
-                cluster = random.sample(cluster, n_val)
-            if len(cluster) > (val_size - len(val)):
-                cluster = random.sample(cluster, (val_size - len(val)))
-            val.update(cluster)
-        # not readable but flattens list of sets to list (for pool)
-        pool = sorted([elem for cluster in clusters for elem in cluster])
-        test = sorted(list(test))
-        val = sorted(list(val))
-        print(f"train:{pool}")  # DEBUG
-        print(f"test:{test}")  # DEBUG
-        print(f"val:{val}")  # DEBUG
+        print(f"metrics:{metrics}")
         return (
-            [dataset[i] for i in pool],
-            [dataset[i] for i in test],
-            [dataset[i] for i in val],
+            [
+                dataset[x]
+                for x in range(len(dataset))
+                if dataset[x]["rna"].name in sum(train, [])
+            ],
+            [
+                dataset[x]
+                for x in range(len(dataset))
+                if dataset[x]["rna"].name in sum(val, [])
+            ],
+            [
+                dataset[x]
+                for x in range(len(dataset))
+                if dataset[x]["rna"].name in sum(test, [])
+            ],
         )
 
     def compute_similarity_matrix(self, dataset: RNADataset) -> Tuple[np.array, List]:
