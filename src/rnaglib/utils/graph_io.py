@@ -318,8 +318,9 @@ def download_graphs(
     )
     dl_path = Path(data_root) / "downloads" / Path(tag + ".tar.gz")
     data_path = Path(data_root) / "datasets"
+    pdb_path = Path(data_root) / "structures"
 
-    if not os.path.exists(data_path / tag) or overwrite:
+    if not os.path.exists(data_path / tag) or not os.path.exists(pdb_path) or overwrite:
         print("Required database not found, launching a download. This should take about a minute")
         print(f"Fetching {url}")
         print(f"Downloading to : {dl_path}")
@@ -331,14 +332,17 @@ def download_graphs(
 
         if get_pdbs:
             print("Fetching PDB structures")
-            pdb_path = data_path / tag / "structures"
             pdb_path.mkdir(parents=True, exist_ok=True)
             rna_list = [Path(p).stem for p in os.listdir(data_path / tag / "graphs")]
             update_RNApdb(pdb_path, rna_list=rna_list, nr_only=redundancy == "nr")
 
     else:
         print(f"Database was found and not overwritten")
-    return os.path.join(data_root, "datasets", tag)
+    
+    if get_pdbs:
+        return os.path.join(data_root, "datasets", tag, "graphs"), os.path.join(data_root, "structures")
+    else:
+        return os.path.join(data_root, "datasets", tag, "graphs"), None
 
 
 def available_pdbids(
