@@ -2,7 +2,7 @@ from rnaglib.tasks import RNAFamily
 from rnaglib.transforms import GraphRepresentation
 from rnaglib.learning.task_models import PygModel
 
-ta = RNAFamily(root="RNA-Family", recompute=True, debug=True)
+ta = RNAFamily(root="RNA-Family", recompute=True, debug=True, filter_by_size=True, filter_by_resolution=True)
 
 ta.dataset.add_representation(GraphRepresentation(framework="pyg"))
 
