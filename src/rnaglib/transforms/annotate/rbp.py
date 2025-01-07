@@ -3,7 +3,7 @@ from typing import Union
 from pathlib import Path
 
 import networkx as nx
-from Bio.PDB import PDBParser, NeighborSearch, Selection
+from Bio.PDB import NeighborSearch
 from Bio.PDB.MMCIFParser import FastMMCIFParser
 
 from rnaglib.transforms import AnnotationTransform
@@ -97,16 +97,16 @@ class RBPTransform(AnnotationTransform):
                     for i, current_distance_threshold in enumerate(self.distances):
                         close_atoms = neighbor_search.search(rna_atom.coord, current_distance_threshold)
                         rna_residue = rna_atom.get_parent()
-                        protein_numbers_list[i][(rna_residue.get_parent().id, rna_residue.id[1])] = close_atoms
+                        protein_numbers_list[i][(rna_residue.get_parent().id, rna_residue.id[1])] = len(close_atoms)
 
         # Output the results
         rbp_status = {}
         protein_numbers = {}
         for node in g.nodes():
             chain, pos = node.split(".")[1:]
-            rbp_status[node] = (chain, str(pos)) in close_residues
+            rbp_status[node] = (chain, int(pos)) in close_residues
             if self.protein_number_annotations:
-                 protein_numbers[node] = [protein_numbers_dict[(chain,str(pos))] if (chain, str(pos)) in close_residues else 0 for protein_numbers_dict in protein_numbers_list]
+                protein_numbers[node] = [protein_numbers_dict[(chain,int(pos))] for protein_numbers_dict in protein_numbers_list]
 
         nx.set_node_attributes(g, rbp_status, "protein_binding")
         if self.protein_number_annotations:
