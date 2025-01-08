@@ -8,7 +8,7 @@ from rnaglib.utils.rfam_utils import get_frequent_go_pdbsel
 from rnaglib.utils import dump_json
 
 
-class RNAFamily(RNAClassificationTask):
+class RNAGo(RNAClassificationTask):
     """
     Predict the Rfam family of a given RNA chain. This is a multi-class classification task.
      Of course, this task is solved by definition since families are constructed using covariance models.

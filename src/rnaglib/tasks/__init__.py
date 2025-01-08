@@ -1,7 +1,7 @@
 from .task import Task
 from .task import ClassificationTask, RNAClassificationTask, ResidueClassificationTask
 
-from .RNA_Family.rfam import RNAFamily
+from .RNA_GO.rna_go import RNAGo
 from .RBP_Node.protein_binding_site import ProteinBindingSiteDetection
 from .RNA_CM.chemical_modification import ChemicalModification
 from .RNA_IF.inverse_folding import InverseFolding, gRNAde
@@ -18,7 +18,7 @@ __all__ = [
     "InverseFolding",
     "gRNAde",
     "LigandIdentification",
-    "RNAFamily",
+    "RNAGo",
 ]
 
 classes = __all__
