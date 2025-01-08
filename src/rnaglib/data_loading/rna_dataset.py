@@ -306,9 +306,7 @@ class RNADataset:
                 # It's already saved !
                 if self.dataset_path == dump_path:
                     break
-                rna_graph = load_graph(
-                    os.path.join(self.dataset_path, f"{rna_name}.json")
-                )
+                rna_graph = load_graph(os.path.join(self.dataset_path, f"{rna_name}.json"))
             else:
                 rna_graph = self.rnas[i]
             dump_json(os.path.join(dump_path, f"{rna_name}.json"), rna_graph)
