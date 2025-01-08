@@ -306,6 +306,14 @@ class Task:
                     print(f"\tClass {cls}: {v[cls]} {'nodes'}")
         print()
         return info
+    
+    def create_dataset_from_list(self, rna_list):
+        """Computes an RNADataset object from the"""
+        if self.in_memory:
+            dataset = RNADataset(rnas=rna_list)
+        else:
+            dataset = RNADataset(dataset_path=self.dataset_path, rna_id_subset=rna_list)
+        return dataset
 
 
 class ClassificationTask(Task):
