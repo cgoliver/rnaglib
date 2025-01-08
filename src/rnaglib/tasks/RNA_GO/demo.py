@@ -2,12 +2,12 @@ from rnaglib.tasks import RNAGo
 from rnaglib.transforms import GraphRepresentation
 from rnaglib.learning.task_models import PygModel
 
-ta = RNAGo(root="RNA-GO", recompute=False, debug=True, filter_by_size=True, filter_by_resolution=True)
+ta = RNAGo(root="RNA-GO", debug=False)
 
 ta.dataset.add_representation(GraphRepresentation(framework="pyg"))
 
 # Splitting dataset
-ta.get_split_loaders(recompute=True, batch_size=1)
+ta.get_split_loaders(batch_size=1)
 
 # Train model
 model = PygModel(ta.metadata["description"]["num_node_features"],
