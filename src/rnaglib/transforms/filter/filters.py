@@ -62,8 +62,13 @@ class ResidueAttributeFilter(FilterTransform):
     """Reject RNAs that lack a certain annotation at the whole residue-level.
 
     :param attribute: which node-level attribute to look for.
+    :param aggregation_mode: str (either "aggfunc" or "min_valid"); if set to "aggfunc", keeps an RNA if the output of
+    the aggregation function of the residue attribute at the RNA level passes the value_checker; if set to "min_valid", 
+    keeps an RNA if more than min_valid nodes pass the value_checker
     :param value_checker: function with accepts the value of the desired attribute and returns True/False
-    :param min_valid: minium number of valid nodes that pass the filter for keeping the RNA.
+    :param aggfunc: function to aggregate the residue labels at the RNA level (only if aggregarion_mode is "aggfunc")
+    :param min_valid: minium number of valid nodes that pass the filter for keeping the RNA. (only if aggregation_mode
+    is "min_valid")
 
 
     Example
@@ -88,12 +93,16 @@ class ResidueAttributeFilter(FilterTransform):
     def __init__(
         self,
         attribute: str,
+        aggregation_mode: str = "min_valid",
         value_checker: Callable = None,
         min_valid: int = 1,
+        aggfunc: Callable = None,
         **kwargs,
     ):
         self.attribute = attribute
+        self.aggregation_mode = aggregation_mode
         self.min_valid = min_valid
+        self.aggfunc = aggfunc
         self.value_checker = value_checker
         super().__init__(**kwargs)
         pass
@@ -101,17 +110,24 @@ class ResidueAttributeFilter(FilterTransform):
     def forward(self, data: dict):
         n_valid = 0
         g = data["rna"]
+        if self.aggregation_mode=="aggfunc":
+            vals_list = []
         for node, ndata in g.nodes(data=True):
             try:
                 val = ndata[self.attribute]
             except KeyError:
                 continue
             else:
-                if self.value_checker(val):
+                if self.aggregation_mode=="min_valid" and self.value_checker(val):
                     n_valid += 1
-            if n_valid >= self.min_valid:
+                elif self.aggregation_mode=="aggfunc":
+                    vals_list.append(val)
+            if self.aggregation_mode=="min_valid" and n_valid >= self.min_valid:
                 return True
-        return False
+        if self.aggregation_mode=="min_valid":
+            return False
+        else:
+            return self.aggfunc(vals_list)
 
 class ResidueNameFilter(FilterTransform):
     def __init__(
