@@ -40,6 +40,7 @@ class Task:
             in_memory: bool = True,
             filter_by_size=False,
             filter_by_resolution=False,
+            multi_label=False
     ):
         self.root = root
         self.dataset_path = os.path.join(self.root, "dataset")
@@ -47,6 +48,7 @@ class Task:
         self.debug = debug
         self.save = save
         self.in_memory = in_memory
+        self.multi_label = multi_label
         self.filter_by_size = filter_by_size
         self.filter_by_resolution = filter_by_resolution
         self.metadata = self.init_metadata()
@@ -237,9 +239,7 @@ class Task:
                 n: i for i, n in enumerate(sorted(first_item["rna"].nodes()))
             }
             first_features_dict = self.dataset.features_computer(first_item)
-            first_features_array = first_features_dict["nt_features"][
-                next(iter(first_node_map.keys()))
-            ]
+            first_features_array = first_features_dict["nt_features"][next(iter(first_node_map.keys()))]
             num_node_features = first_features_array.shape[0]
 
             # Dynamic class counting
@@ -265,7 +265,11 @@ class Task:
                 if "rna_targets" in features_dict:
                     y = features_dict["rna_targets"].clone().detach()
 
-                graph_classes = y.unique().tolist()
+                # In the multi_label case, a full binary matrix is better supported by both pytorch and sklearn
+                if not self.multi_label:
+                    graph_classes = y.unique().tolist()
+                else:
+                    graph_classes = torch.where(y > 0)[-1].unique().tolist()
                 classes.update(graph_classes)
 
                 # Count classes in this graph
@@ -273,7 +277,10 @@ class Task:
                     cls_int = int(cls)
                     if cls_int not in class_counts:
                         class_counts[cls_int] = 0
-                    class_counts[cls_int] += torch.sum(y == cls).item()
+                    if not self.multi_label:
+                        class_counts[cls_int] += torch.sum(y == cls).item()
+                    else:
+                        class_counts[cls_int] += torch.sum(torch.where(y > 0)[-1] == cls).item()
 
             info = {
                 "num_node_features": num_node_features,
@@ -296,7 +303,7 @@ class Task:
             else:
                 print("Class distribution:")
                 for cls in sorted(v.keys()):
-                    print(f"\tClass {cls}: {v[cls]} nodes")
+                    print(f"\tClass {cls}: {v[cls]} {'nodes'}")
         print()
         return info
 
@@ -376,8 +383,9 @@ class ClassificationTask(Task):
             "f1": f1_score(
                 labels, preds, average="binary" if self.num_classes == 2 else "macro"
             ),
-            "mcc": matthews_corrcoef(labels, preds),
         }
+        if not self.multi_label:
+            one_metric["mcc"] = matthews_corrcoef(labels, preds)
         try:
             one_metric["auc"] = roc_auc_score(
                 labels,
