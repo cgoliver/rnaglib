@@ -60,11 +60,14 @@ def dump_json(filename, graph):
     :param graph: The graph to dump
     """
     # This is important for nx versionning retrocompatibility
-    try:
+    if nx.__version__<='2.8':
         from networkx.readwrite import json_graph
-
         g_json = json_graph.node_link_data(graph)
-    except Exception as e:
+
+    elif nx.__version__<='3.3':
+        g_json = nx.node_link_data(graph, link="links")
+    
+    else:
         g_json = nx.node_link_data(graph, edges="links")
 
     with open(filename, "w") as f:
@@ -82,11 +85,15 @@ def load_json(filename):
     with open(filename, "r") as f:
         js_graph = json.load(f)
     # This is important for nx versionning retrocompatibility
-    try:
+    if nx.__version__<='2.8':
         from networkx.readwrite import json_graph
 
         out_graph = json_graph.node_link_graph(js_graph)
-    except Exception as e:
+
+    elif nx.__version__<='3.3':
+        out_graph = nx.node_link_graph(js_graph, link="links")
+        
+    else:
         out_graph = nx.node_link_graph(js_graph, edges="links")
     return out_graph
 
