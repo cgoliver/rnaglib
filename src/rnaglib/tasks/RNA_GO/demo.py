@@ -1,8 +1,8 @@
-from rnaglib.tasks import RNAFamily
+from rnaglib.tasks import RNAGo
 from rnaglib.transforms import GraphRepresentation
 from rnaglib.learning.task_models import PygModel
 
-ta = RNAFamily(root="RNA-Family", recompute=False, debug=True, filter_by_size=True, filter_by_resolution=True)
+ta = RNAGo(root="RNA-GO", recompute=False, debug=True, filter_by_size=True, filter_by_resolution=True)
 
 ta.dataset.add_representation(GraphRepresentation(framework="pyg"))
 
