@@ -139,7 +139,6 @@ class FeaturesComputer(Transform):
 
         """
 
-        encodings = {}
         if len(parser) == 0:
             return None
 
