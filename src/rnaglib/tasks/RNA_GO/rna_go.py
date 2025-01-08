@@ -75,10 +75,7 @@ class RNAGo(RNAClassificationTask):
                     else:
                         all_rnas.append(subgraph.name)
                         dump_json(os.path.join(self.dataset_path, f"{subgraph.name}.json"), subgraph)
-        if self.in_memory:
-            dataset = RNADataset(rnas=all_rnas)
-        else:
-            dataset = RNADataset(dataset_path=self.dataset_path, rna_id_subset=all_rnas)
+        dataset = self.create_dataset_from_list(all_rnas)
         # compute one-hot mapping of labels
         unique_gos = sorted({go for system_gos in rfam_go_mapping.values() for go in system_gos})
         rfam_mapping = {rfam: i for i, rfam in enumerate(unique_gos)}
