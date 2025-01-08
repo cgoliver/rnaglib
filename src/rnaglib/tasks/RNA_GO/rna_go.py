@@ -44,8 +44,10 @@ class RNAGo(RNAClassificationTask):
         for rna in dataset:
             rna_graph = rna['rna']
             lines = df.loc[df['pdb_id'] == rna_graph.name]
-            for pdbsel, pdb, rfam_id in list(lines.values):
-                # subset the graph. RFAM has a weird numbering convention: they give chain ids that seem like a range
+            for pdbsel in lines['pdbsel'].unique():
+                pdb = pdbsel.split('_')[0]
+                # Subset the graph on the RFAM labeled part.
+                # RFAM has a weird numbering convention: they give chain ids that seem like a range
                 # and not the actual numbering. Hence, if you have residues [110, 111... 160], the RFAM
                 # numbering can look like 2-16. I assume this is residues 111-125.
                 _, chain, start, end = pdbsel.split('_')
@@ -54,7 +56,14 @@ class RNAGo(RNAClassificationTask):
                 chunk_nodes = pdb_chain_numbers[int(start) - 1: int(end)]
                 subgraph = rna_graph.subgraph(chunk_nodes).copy()
                 subgraph.name = pdbsel
-                subgraph.graph['go_terms'] = rfam_go_mapping[rfam_id]
+
+                # Get the corresponding GO-terms for this RFAM selection
+                # Needs a bit of caution because one pdbsel could have more than one rfam_id
+                rfams_pdbsel = lines.loc[lines['pdbsel'] == pdbsel]['rfam_acc'].values
+                go_terms = [go for rfam_id in rfams_pdbsel for go in rfam_go_mapping[rfam_id]]
+                subgraph.graph['go_terms'] = list(set(go_terms))
+                
+                # Finally, apply quality filters
                 if len(subgraph) < 5 or len(subgraph.edges()) < 5:
                     continue
                 # A feature dict (including structure path) is needed for the filtering
