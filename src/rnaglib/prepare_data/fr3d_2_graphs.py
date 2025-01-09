@@ -44,7 +44,7 @@ def get_rna_chains(mmcif_dict):
     cleaned = []
     for r in rna_chains:
         sub = r.split(",")
-        cleaned.extend([s.upper() for s in sub])
+        cleaned.extend([s for s in sub])
     return cleaned
 
 
