@@ -2,13 +2,13 @@ from rnaglib.tasks import ChemicalModification
 from rnaglib.transforms import GraphRepresentation
 from rnaglib.learning.task_models import PygModel
 
-ta = ChemicalModification("RNA-CM")
+ta = ChemicalModification(root="RNA-CM", recompute=True, filter_by_size=True, filter_by_resolution=True)
 
 # Add representation
 ta.dataset.add_representation(GraphRepresentation(framework="pyg"))
 
 # Splitting dataset
-ta.get_split_loaders(recompute=False)
+ta.get_split_loaders(recompute=True)
 
 # Train model
 # Either by hand:

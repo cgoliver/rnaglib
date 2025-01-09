@@ -1,12 +1,32 @@
+"Small helper functions for the different splitting strategies"
 from typing import List, Any, Tuple
-from collections import defaultdict
+from collections import Counter
 import random
 
-"""
-from rnaglib.utils import load_index
 
-graph_index = load_index()
-"""
+def label_counter(dataset) -> Counter:
+    """
+    Count the number of labels in a dataset and return the total counts,
+    as well as the counts per RNA.
+    :param dataset:
+    :return:
+    """
+    all_labels = []  # Will contain all labels in the dataset
+    per_rna_counts = {}
+    for rna in dataset:
+        node_map = {n: i for i, n in enumerate(sorted(rna["rna"].nodes()))}
+        labels = [
+            dataset.features_computer(rna)["nt_targets"][n] for n in node_map.keys()
+        ]
+        per_rna_counts[rna["rna"].name] = Counter(
+            [tuple(t.flatten().tolist()) for t in labels]
+        )
+        all_labels.extend(labels)
+
+    # Count unique tensors
+    tuple_list = [tuple(t.flatten().tolist()) for t in all_labels]
+    total_counts = Counter(tuple_list)
+    return total_counts, per_rna_counts
 
 
 def split_list_in_fractions(
@@ -15,8 +35,8 @@ def split_list_in_fractions(
     split_valid: float = 0.15,
     seed: int = 0,
 ) -> Tuple[List[Any], List[Any], List[Any]]:
-    """Split a list and return sub-lists by given fractions split and validation. The remainder of the
-    dataset is used for the test set.
+    """Split a list and return sub-lists by given fractions split and validation.
+    The remainder of the dataset is used for the test set.
 
     :param list_to_split: list you want to split.
     :param split_train: fraction of dataet to use for train set

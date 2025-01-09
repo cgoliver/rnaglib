@@ -5,11 +5,8 @@ import pandas as pd
 
 from rnaglib.transforms import GraphRepresentation
 from rnaglib.tasks import Task
-from rnaglib.tasks import RNAFamily
-from rnaglib.tasks import ProteinBindingSiteDetection
-from rnaglib.tasks import ChemicalModification
 
-from rnaglib.tasks import RNAFamily
+from rnaglib.tasks import RNAGo
 from rnaglib.tasks import ProteinBindingSiteDetection
 from rnaglib.tasks import ChemicalModification
 from rnaglib.tasks import InverseFolding
@@ -30,7 +27,7 @@ class TaskTest(unittest.TestCase):
 
     def test_RNAFamily(self):
         with tempfile.TemporaryDirectory() as tmp:
-            ta = RNAFamily(root=tmp, **self.default_dataset_params)
+            ta = RNAGo(root=tmp, **self.default_dataset_params)
             self.check_task(ta)
 
     def test_ProteinBindingSiteDetectionTask(self):

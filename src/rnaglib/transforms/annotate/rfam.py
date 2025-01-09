@@ -1,6 +1,3 @@
-import os
-import json
-from typing import Dict
 import requests
 
 from rnaglib.transforms import Transform

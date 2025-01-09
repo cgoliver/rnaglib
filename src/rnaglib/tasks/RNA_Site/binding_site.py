@@ -16,7 +16,7 @@ from rnaglib.encoders import BoolEncoder
 from rnaglib.transforms import ResidueAttributeFilter
 from rnaglib.transforms import PDBIDNameTransform, ChainNameTransform
 from rnaglib.transforms import BindingSiteAnnotator
-from rnaglib.transforms import ChainFilter
+from rnaglib.transforms import ChainFilter, ComposeFilters, RNAAttributeFilter, SizeFilter
 from rnaglib.utils import dump_json
 
 
@@ -36,7 +36,10 @@ class BenchmarkBindingSiteDetection(ResidueClassificationTask):
 
     def process(self) -> RNADataset:
         # Define your transforms
-        rna_filter = ChainFilter(SPLITTING_VARS["PDB_TO_CHAIN_TR60_TE18"])
+        chain_filter = ChainFilter(SPLITTING_VARS["PDB_TO_CHAIN_TR60_TE18"])
+        self.filters_list.append(chain_filter)
+        
+        rna_filter = ComposeFilters(self.filters_list)
         bs_annotator = BindingSiteAnnotator()
         namer = ChainNameTransform()
 
@@ -59,10 +62,7 @@ class BenchmarkBindingSiteDetection(ResidueClassificationTask):
                 else:
                     all_rnas.append(rna.name)
                     dump_json(os.path.join(self.dataset_path, f"{rna.name}.json"), rna)
-        if self.in_memory:
-            dataset = RNADataset(rnas=all_rnas)
-        else:
-            dataset = RNADataset(dataset_path=self.dataset_path, rna_id_subset=all_rnas)
+        dataset = self.create_dataset_from_list(all_rnas)
         return dataset
 
     def get_task_vars(self) -> FeaturesComputer:
@@ -82,7 +82,10 @@ class BindingSiteDetection(ResidueClassificationTask):
 
     def process(self) -> RNADataset:
         # Define your transforms
-        rna_filter = ResidueAttributeFilter(attribute=self.target_var, value_checker=lambda val: val is not None)
+        attribute_filter = ResidueAttributeFilter(attribute=self.target_var, value_checker=lambda val: val is not None)
+        self.filters_list.append(attribute_filter)
+
+        rna_filter = ComposeFilters(self.filters_list)
         add_name = PDBIDNameTransform()
 
         # Run through database, applying our filters
@@ -97,10 +100,7 @@ class BindingSiteDetection(ResidueClassificationTask):
                 else:
                     all_rnas.append(rna.name)
                     dump_json(os.path.join(self.dataset_path, f"{rna.name}.json"), rna)
-        if self.in_memory:
-            dataset = RNADataset(rnas=all_rnas)
-        else:
-            dataset = RNADataset(dataset_path=self.dataset_path, rna_id_subset=all_rnas)
+        dataset = self.create_dataset_from_list(all_rnas)
         return dataset
 
     def get_task_vars(self) -> FeaturesComputer:

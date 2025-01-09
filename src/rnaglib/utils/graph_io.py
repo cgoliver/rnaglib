@@ -60,11 +60,14 @@ def dump_json(filename, graph):
     :param graph: The graph to dump
     """
     # This is important for nx versionning retrocompatibility
-    try:
+    if nx.__version__<='2.8':
         from networkx.readwrite import json_graph
-
         g_json = json_graph.node_link_data(graph)
-    except Exception as e:
+
+    elif nx.__version__<='3.3':
+        g_json = nx.node_link_data(graph, link="links")
+    
+    else:
         g_json = nx.node_link_data(graph, edges="links")
 
     with open(filename, "w") as f:
@@ -82,11 +85,15 @@ def load_json(filename):
     with open(filename, "r") as f:
         js_graph = json.load(f)
     # This is important for nx versionning retrocompatibility
-    try:
+    if nx.__version__<='2.8':
         from networkx.readwrite import json_graph
 
         out_graph = json_graph.node_link_graph(js_graph)
-    except Exception as e:
+
+    elif nx.__version__<='3.3':
+        out_graph = nx.node_link_graph(js_graph, link="links")
+        
+    else:
         out_graph = nx.node_link_graph(js_graph, edges="links")
     return out_graph
 
@@ -318,8 +325,9 @@ def download_graphs(
     )
     dl_path = Path(data_root) / "downloads" / Path(tag + ".tar.gz")
     data_path = Path(data_root) / "datasets"
+    pdb_path = Path(data_root) / "structures"
 
-    if not os.path.exists(data_path / tag) or overwrite:
+    if not os.path.exists(data_path / tag) or not os.path.exists(pdb_path) or overwrite:
         print("Required database not found, launching a download. This should take about a minute")
         print(f"Fetching {url}")
         print(f"Downloading to : {dl_path}")
@@ -331,14 +339,17 @@ def download_graphs(
 
         if get_pdbs:
             print("Fetching PDB structures")
-            pdb_path = data_path / tag / "structures"
             pdb_path.mkdir(parents=True, exist_ok=True)
             rna_list = [Path(p).stem for p in os.listdir(data_path / tag / "graphs")]
             update_RNApdb(pdb_path, rna_list=rna_list, nr_only=redundancy == "nr")
 
     else:
         print(f"Database was found and not overwritten")
-    return os.path.join(data_root, "datasets", tag)
+    
+    if get_pdbs:
+        return os.path.join(data_root, "datasets", tag, "graphs"), os.path.join(data_root, "structures")
+    else:
+        return os.path.join(data_root, "datasets", tag, "graphs"), None
 
 
 def available_pdbids(

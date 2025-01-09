@@ -3,7 +3,7 @@ from typing import Union
 from pathlib import Path
 
 import networkx as nx
-from Bio.PDB import PDBParser, NeighborSearch, Selection
+from Bio.PDB import NeighborSearch
 from Bio.PDB.MMCIFParser import FastMMCIFParser
 
 from rnaglib.transforms import AnnotationTransform
@@ -36,9 +36,11 @@ phosphate_atoms = {"P", "OP1", "OP2"}
 
 class RBPTransform(AnnotationTransform):
 
-    def __init__(self, structures_dir: Union[os.PathLike, str], distance_threshold: float = 5.0):
+    def __init__(self, structures_dir: Union[os.PathLike, str], distance_threshold: float = 5.0, protein_number_annotations: bool = False, distances: list = [0.5]):
         self.structures_dir = structures_dir
         self.distance_threshold = distance_threshold
+        self.protein_number_annotations = protein_number_annotations
+        self.distances = distances
         pass
 
     def forward(self, rna_dict: dict) -> dict:
@@ -77,7 +79,12 @@ class RBPTransform(AnnotationTransform):
 
         close_residues = set()
 
-        if len(all_protein_atoms) > 1:
+        if self.protein_number_annotations:
+            protein_numbers_list = [{} for _ in self.distances]
+
+        protein_proximity = len(all_protein_atoms) > 1
+
+        if protein_proximity:
             neighbor_search = NeighborSearch(all_protein_atoms)
 
             # Find RNA residues near protein residues
@@ -88,12 +95,35 @@ class RBPTransform(AnnotationTransform):
                 if len(close_atoms) > 0:
                     rna_residue = rna_atom.get_parent()
                     close_residues.add((rna_residue.get_parent().id, rna_residue.id[1]))
+                if self.protein_number_annotations:
+                    for i, current_distance_threshold in enumerate(self.distances):
+                        close_atoms = neighbor_search.search(rna_atom.coord, current_distance_threshold)
+                        rna_residue = rna_atom.get_parent()
+                        protein_numbers_list[i][(rna_residue.get_parent().id, rna_residue.id[1])] = len(close_atoms)
+
 
         # Output the results
         rbp_status = {}
+        protein_numbers = {}
         for node in g.nodes():
             chain, pos = node.split(".")[1:]
-            rbp_status[node] = (chain, str(pos)) in close_residues
+            rbp_status[node] = (chain, int(pos)) in close_residues
+            if self.protein_number_annotations:
+                node_protein_numbers_list = []
+                for i in range(len(self.distances)):
+                    if protein_proximity:
+                        try:
+                            node_protein_numbers_list.append(protein_numbers_list[i][(chain,int(pos))])
+                        except:
+                            node_protein_numbers_list.append(0)
+                    else:
+                        node_protein_numbers_list.append(0)
+                protein_numbers[node] = node_protein_numbers_list
 
         nx.set_node_attributes(g, rbp_status, "protein_binding")
+        if self.protein_number_annotations:
+            nx.set_node_attributes(g, protein_numbers, "protein_content")
+            for i, distance in enumerate(self.distances):
+                protein_numbers_distance = {node: protein_numbers[node][i] for node in protein_numbers}
+                nx.set_node_attributes(g, protein_numbers_distance, "protein_content_"+str(distance))
         return rna_dict
