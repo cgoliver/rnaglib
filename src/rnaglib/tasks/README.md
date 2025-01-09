@@ -21,12 +21,13 @@ $ rnaglib_index
 
 1.) Choose the task appropriate to your model. Here, we chose _RNA-Site_, a task instance called `LigandBindindSite` for illustration.
 When instantiating the task, custom splitters or other arguments can be passed if needed.
+
  ```python
-from rnaglib.tasks import BindingSiteDetection
+from rnaglib.tasks import BindingSite
 from rnaglib.transforms import GraphRepresentation, FeaturesComputer
 from rnaglib.data_loading import RNADataset
 
-task = BindingSiteDetection(root='tutorial') # You can pass arguments to use a custom splitter or dataset etc. if desired.
+task = BindingSite(root='tutorial')  # You can pass arguments to use a custom splitter or dataset etc. if desired.
 ```
 
 2.) Add the representation used by your model to the task object. Voxel grid or point cloud are also possible representations; here we use a graph representation in the `pytorch-geometric` framework.
@@ -155,14 +156,15 @@ class TutorialTask(ResidueClassificationTask):
 # Full demo
 
 ```python
-from rnaglib.tasks import BindingSiteDetection
+from rnaglib.tasks import BindingSite
 from rnaglib.transforms import FeaturesComputer, GraphRepresentation
 
 # Create a task
-task = BindingSiteDetection(root="my_root")
+task = BindingSite(root="my_root")
 
 # Choose your features, here the nucleotide code, and your targets, here the binding site
-task.dataset.features_computer = FeaturesComputer(nt_features=['nt_code'], nt_targets='binding_site', custom_encoders= {'binding_site' : BoolEncoder()})
+task.dataset.features_computer = FeaturesComputer(nt_features=['nt_code'], nt_targets='binding_site',
+    custom_encoders={'binding_site': BoolEncoder()})
 
 # Choose your representation, here Pytorch Geometric graphs
 task.dataset.add_representation(GraphRepresentation(framework='pyg'))
@@ -171,7 +173,7 @@ task.dataset.add_representation(GraphRepresentation(framework='pyg'))
 task.set_loaders()
 
 # Define your model and training
-model=MyModel()
+model = MyModel()
 ...
 
 final_result = task.evaluate(model)

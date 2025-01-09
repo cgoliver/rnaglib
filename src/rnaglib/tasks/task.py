@@ -15,7 +15,7 @@ from rnaglib.data_loading import RNADataset, Collater
 from rnaglib.transforms import FeaturesComputer, ResolutionFilter, SizeFilter
 from rnaglib.splitters import Splitter, RandomSplitter
 from rnaglib.utils import DummyResidueModel, DummyGraphModel, tonumpy
-
+from rnaglib.utils import dump_json
 
 class Task:
     """Abstract class for a benchmarking task using the rnaglib datasets.
@@ -307,13 +307,20 @@ class Task:
         print()
         return info
     
-    def create_dataset_from_list(self, rna_list):
+    def create_dataset_from_list(self, rnas):
         """Computes an RNADataset object from the"""
         if self.in_memory:
-            dataset = RNADataset(rnas=rna_list)
+            dataset = RNADataset(rnas=rnas)
         else:
-            dataset = RNADataset(dataset_path=self.dataset_path, rna_id_subset=rna_list)
+            dataset = RNADataset(dataset_path=self.dataset_path, rna_id_subset=rnas)
         return dataset
+
+    def add_rna_to_building_list(self, all_rnas, rna):
+        if self.in_memory:
+            all_rnas.append(rna)
+        else:
+            all_rnas.append(rna.name)
+            dump_json(os.path.join(self.dataset_path, f"{rna.name}.json"), rna)
 
 
 class ClassificationTask(Task):

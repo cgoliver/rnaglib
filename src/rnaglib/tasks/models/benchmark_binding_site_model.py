@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # coding: utf-8
-from rnaglib.tasks import BenchmarkLigandBindingSiteDetection, BindingSiteDetection
+from rnaglib.tasks import BenchmarkLigandBindingSiteDetection, BindingSite
 from rnaglib.representations import GraphRepresentation
 from rnaglib.data_loading import Collater
 import torch
