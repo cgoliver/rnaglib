@@ -8,7 +8,7 @@ from rnaglib.transforms import PDBIDNameTransform
 from rnaglib.utils import dump_json
 
 
-class ProteinBindingSiteDetection(ResidueClassificationTask):
+class ProteinBindingSite(ResidueClassificationTask):
     """Residue-level task where the job is to predict a binary variable
     at each residue representing the probability that a residue belongs to
     a protein-binding interface

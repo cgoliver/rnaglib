@@ -2,7 +2,7 @@ from rnaglib.tasks import ChemicalModification
 from rnaglib.transforms import GraphRepresentation
 from rnaglib.learning.task_models import PygModel
 
-ta = ChemicalModification(root="RNA-CM", recompute=True, filter_by_size=True, filter_by_resolution=True)
+ta = ChemicalModification(root="RNA_CM", recompute=True, filter_by_size=True, filter_by_resolution=True)
 
 # Add representation
 ta.dataset.add_representation(GraphRepresentation(framework="pyg"))
