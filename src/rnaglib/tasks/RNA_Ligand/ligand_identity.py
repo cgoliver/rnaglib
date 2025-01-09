@@ -1,14 +1,11 @@
 import os
-
-import pandas as pd
 import numpy as np
 
 from rnaglib.tasks import RNAClassificationTask
 from rnaglib.data_loading import RNADataset
 from rnaglib.encoders import IntEncoder
-from rnaglib.transforms import FeaturesComputer, AnnotatorFromDict, PartitionFromDict, ResidueNameFilter, RBPTransform, \
-    ComposeFilters, ResidueAttributeFilter, RNAAttributeFilter
-from rnaglib.utils import dump_json
+from rnaglib.transforms import (FeaturesComputer, AnnotatorFromDict, PartitionFromDict, ResidueNameFilter,
+                                RBPTransform, ComposeFilters, ResidueAttributeFilter)
 
 
 class LigandIdentification(RNAClassificationTask):
@@ -16,18 +13,18 @@ class LigandIdentification(RNAClassificationTask):
     target_var = "ligand_code"
     num_classes = 44
 
-    def __init__(self, root, data, filter_by_size=False, filter_by_resolution=False, splitter=None, **kwargs):
+    def __init__(self, root, data, splitter=None, **kwargs):
         self.data = data
         self.nodes_keep = set(data.nid.values)
         self.bp_dict, self.ligands_dict = self.parse_data()
-        self.filter_by_size = filter_by_size
-        self.filter_by_resolution = filter_by_resolution
+        self.mapping = {i: i for i in range(self.num_classes)}
         super().__init__(root=root, splitter=splitter, **kwargs)
 
     def parse_data(self):
         self.data["RNA"] = self.data.nid.apply(lambda id: id.split(".")[0])
         binding_pockets = self.data[["RNA", "idx", "nid"]].groupby(["RNA", "idx"])["nid"].apply(lambda x: x.to_list())
-        # create a dict where key is RNA name and values are lists of lists [[residue 1 of binding pocket 1,...,residue N of BP 1],...,[residue 1 of BP k,...]]
+        # create a dict where key is RNA name and values are lists of lists
+        # [[residue 1 of binding pocket 1,...,residue N of BP 1],...,[residue 1 of BP k,...]]
         bp_dict = {
             rna: [binding_pockets[rna, bp_idx] for bp_idx in binding_pockets[rna].index]
             for rna in binding_pockets.index.droplevel(1)
@@ -37,9 +34,8 @@ class LigandIdentification(RNAClassificationTask):
 
     def process(self):
         # Initialize dataset with in_memory=False to avoid loading everything at once
-        dataset = RNADataset(
-            debug=self.debug, in_memory=False, redundancy="all", rna_id_subset=list(self.data["RNA"].unique())
-        )
+        dataset = RNADataset(debug=self.debug, in_memory=False, redundancy="all",
+            rna_id_subset=list(self.data["RNA"].unique()))
 
         # Instantiate filters to apply
         rna_set_filter = ResidueNameFilter(value_checker=lambda name: name in self.nodes_keep, min_valid=1)
@@ -64,19 +60,11 @@ class LigandIdentification(RNAClassificationTask):
                     protein_content_filter = ResidueAttributeFilter(attribute="protein_content_8.0",
                         aggregation_mode="aggfunc", value_checker=lambda x: x < 10, aggfunc=np.mean)
                     if protein_content_filter.forward(annotated_binding_pocket):
-                        if self.in_memory:
-                            all_binding_pockets.append(annotated_binding_pocket["rna"])
-                        else:
-                            all_binding_pockets.append(annotated_binding_pocket["rna"].name)
-                            dump_json(
-                                os.path.join(self.dataset_path, f"""{annotated_binding_pocket["rna"].name}.json"""),
-                                annotated_binding_pocket["rna"],
-                            )
+                        self.add_rna_to_building_list(all_rnas=all_binding_pockets, rna=annotated_binding_pocket["rna"])
         dataset = self.create_dataset_from_list(all_binding_pockets)
         return dataset
 
     def get_task_vars(self) -> FeaturesComputer:
-        self.mapping = {i: i for i in range(self.num_classes)}
         return FeaturesComputer(
             nt_features=self.input_var,
             rna_targets=self.target_var,

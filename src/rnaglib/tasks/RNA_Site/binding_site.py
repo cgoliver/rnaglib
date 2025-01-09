@@ -16,8 +16,7 @@ from rnaglib.encoders import BoolEncoder
 from rnaglib.transforms import ResidueAttributeFilter
 from rnaglib.transforms import PDBIDNameTransform, ChainNameTransform
 from rnaglib.transforms import BindingSiteAnnotator
-from rnaglib.transforms import ChainFilter, ComposeFilters, RNAAttributeFilter, SizeFilter
-from rnaglib.utils import dump_json
+from rnaglib.transforms import ChainFilter, ComposeFilters
 
 
 class BenchmarkBindingSite(ResidueClassificationTask):
@@ -57,11 +56,7 @@ class BenchmarkBindingSite(ResidueClassificationTask):
             if rna_filter.forward(rna):
                 rna = bs_annotator(rna)
                 rna = namer(rna)['rna']
-                if self.in_memory:
-                    all_rnas.append(rna)
-                else:
-                    all_rnas.append(rna.name)
-                    dump_json(os.path.join(self.dataset_path, f"{rna.name}.json"), rna)
+                self.add_rna_to_building_list(all_rnas=all_rnas, rna=rna)
         dataset = self.create_dataset_from_list(all_rnas)
         return dataset
 
@@ -95,11 +90,7 @@ class BindingSite(ResidueClassificationTask):
         for rna in dataset:
             if rna_filter.forward(rna):
                 rna = add_name(rna)["rna"]
-                if self.in_memory:
-                    all_rnas.append(rna)
-                else:
-                    all_rnas.append(rna.name)
-                    dump_json(os.path.join(self.dataset_path, f"{rna.name}.json"), rna)
+                self.add_rna_to_building_list(all_rnas=all_rnas, rna=rna)
         dataset = self.create_dataset_from_list(all_rnas)
         return dataset
 
