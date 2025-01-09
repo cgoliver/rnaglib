@@ -1,3 +1,5 @@
+"Abstract task classes"
+from typing import Union
 import os
 import hashlib
 from pathlib import Path
@@ -7,10 +9,10 @@ import numpy as np
 from sklearn.metrics import matthews_corrcoef, f1_score, accuracy_score, roc_auc_score
 import torch
 from torch.utils.data import DataLoader
-from typing import Union, Optional
+import tqdm
 
 from rnaglib.data_loading import RNADataset, Collater
-from rnaglib.transforms import FeaturesComputer
+from rnaglib.transforms import FeaturesComputer, ResolutionFilter, SizeFilter
 from rnaglib.splitters import Splitter, RandomSplitter
 from rnaglib.utils import DummyResidueModel, DummyGraphModel, tonumpy
 
@@ -29,13 +31,16 @@ class Task:
     """
 
     def __init__(
-        self,
-        root: Union[str, os.PathLike],
-        recompute: bool = False,
-        splitter: Splitter = None,
-        debug: bool = False,
-        save: bool = True,
-        in_memory: bool = True,
+            self,
+            root: Union[str, os.PathLike],
+            recompute: bool = False,
+            splitter: Splitter = None,
+            debug: bool = False,
+            save: bool = True,
+            in_memory: bool = True,
+            filter_by_size=False,
+            filter_by_resolution=False,
+            multi_label=False
     ):
         self.root = root
         self.dataset_path = os.path.join(self.root, "dataset")
@@ -43,14 +48,30 @@ class Task:
         self.debug = debug
         self.save = save
         self.in_memory = in_memory
+        self.multi_label = multi_label
+        self.filter_by_size = filter_by_size
+        self.filter_by_resolution = filter_by_resolution
         self.metadata = self.init_metadata()
+
+        # init the Filters list
+        self.filters_list = []
+        if self.filter_by_resolution:
+            resolution_filter = ResolutionFilter(resolution_threshold=4.0)
+            self.filters_list.append(resolution_filter)
+        if self.filter_by_size:
+            size_filter = SizeFilter(5, 500)
+            self.filters_list.append(size_filter)
 
         # Load or create dataset
         if not os.path.exists(self.dataset_path) or recompute:
             print(">>> Creating task dataset from scratch...")
             self.dataset = self.process()
         else:
-            self.dataset, self.metadata, (self.train_ind, self.val_ind, self.test_ind) = self.load()
+            (
+                self.dataset,
+                self.metadata,
+                (self.train_ind, self.val_ind, self.test_ind),
+            ) = self.load()
 
         # Set splitter after dataset is available
         self.splitter = self.default_splitter if splitter is None else splitter
@@ -69,7 +90,8 @@ class Task:
 
     def process(self) -> RNADataset:
         """Tasks must implement this method. Executing the method should result in a list of ``.json`` files
-        saved in ``{root}/dataset``. All the RNA graphs should contain all the annotations needed to run the task (e.g. node/edge attributes)
+        saved in ``{root}/dataset``. All the RNA graphs should contain all the annotations needed to run the task
+        (e.g. node/edge attributes)
         """
         raise NotImplementedError
 
@@ -155,11 +177,11 @@ class Task:
         return h.hexdigest()
 
     def write(self):
-        """Save task data and splits to root. Creates a folder in ``root`` called
-        ``'graphs'`` which stores the RNAs that form the dataset, and three `.txt` files (`'{train, val, test}_idx.txt'`,
+        """Save task data and splits to root. Creates a folder in ``root`` called ``'graphs'``
+        which stores the RNAs that form the dataset, and three `.txt` files (`'{train, val, test}_idx.txt'`,
         one for each split with a list of indices.
         """
-        if not os.path.exists(self.dataset_path) or self.recompute:
+        if not os.path.exists(self.dataset_path) or not os.listdir(self.dataset_path) or self.recompute:
             print(">>> Saving dataset.")
             self.dataset.save(self.dataset_path, recompute=self.recompute)
         with open(Path(self.root) / "train_idx.txt", "w") as idx:
@@ -213,7 +235,9 @@ class Task:
             first_item = self.dataset[0]
             compute_num_edge_attributes = "graph" in first_item
 
-            first_node_map = {n: i for i, n in enumerate(sorted(first_item["rna"].nodes()))}
+            first_node_map = {
+                n: i for i, n in enumerate(sorted(first_item["rna"].nodes()))
+            }
             first_features_dict = self.dataset.features_computer(first_item)
             first_features_array = first_features_dict["nt_features"][next(iter(first_node_map.keys()))]
             num_node_features = first_features_array.shape[0]
@@ -224,8 +248,6 @@ class Task:
             unique_edge_attrs = set()  # only used with graphs
 
             # Collect statistics from dataset
-            import tqdm
-
             for item in tqdm.tqdm(self.dataset):
                 if compute_num_edge_attributes:
                     graph = item["graph"]
@@ -243,7 +265,11 @@ class Task:
                 if "rna_targets" in features_dict:
                     y = features_dict["rna_targets"].clone().detach()
 
-                graph_classes = y.unique().tolist()
+                # In the multi_label case, a full binary matrix is better supported by both pytorch and sklearn
+                if not self.multi_label:
+                    graph_classes = y.unique().tolist()
+                else:
+                    graph_classes = torch.where(y > 0)[-1].unique().tolist()
                 classes.update(graph_classes)
 
                 # Count classes in this graph
@@ -251,7 +277,10 @@ class Task:
                     cls_int = int(cls)
                     if cls_int not in class_counts:
                         class_counts[cls_int] = 0
-                    class_counts[cls_int] += torch.sum(y == cls).item()
+                    if not self.multi_label:
+                        class_counts[cls_int] += torch.sum(y == cls).item()
+                    else:
+                        class_counts[cls_int] += torch.sum(torch.where(y > 0)[-1] == cls).item()
 
             info = {
                 "num_node_features": num_node_features,
@@ -261,10 +290,10 @@ class Task:
             }
             if compute_num_edge_attributes:
                 info["num_edge_attributes"] = len(unique_edge_attrs)
+            self.metadata["description"] = info
             if self.save:
                 with open(Path(self.root) / "metadata.json", "w") as meta:
                     json.dump(self.metadata, meta, indent=4)
-            self.metadata["description"] = info
 
         # Print description
         print("Dataset Description:")
@@ -274,15 +303,27 @@ class Task:
             else:
                 print("Class distribution:")
                 for cls in sorted(v.keys()):
-                    print(f"\tClass {cls}: {v[cls]} nodes")
+                    print(f"\tClass {cls}: {v[cls]} {'nodes'}")
         print()
         return info
+    
+    def create_dataset_from_list(self, rna_list):
+        """Computes an RNADataset object from the"""
+        if self.in_memory:
+            dataset = RNADataset(rnas=rna_list)
+        else:
+            dataset = RNADataset(dataset_path=self.dataset_path, rna_id_subset=rna_list)
+        return dataset
 
 
 class ClassificationTask(Task):
     def __init__(self, graph_level=False, num_classes=None, **kwargs):
         super().__init__(**kwargs)
-        self.num_classes = self.metadata["description"]["num_classes"] if num_classes is None else num_classes
+        self.num_classes = (
+            self.metadata["description"]["num_classes"]
+            if num_classes is None
+            else num_classes
+        )
         self.graph_level = graph_level
 
     @property
@@ -316,9 +357,24 @@ class ClassificationTask(Task):
                 # split predictions per RNA if residue level
                 if not self.graph_level:
                     cumulative_sizes = tuple(tonumpy(graph.ptr))
-                    probs = [probs[start:end] for start, end in zip(cumulative_sizes[:-1], cumulative_sizes[1:])]
-                    preds = [preds[start:end] for start, end in zip(cumulative_sizes[:-1], cumulative_sizes[1:])]
-                    labels = [labels[start:end] for start, end in zip(cumulative_sizes[:-1], cumulative_sizes[1:])]
+                    probs = [
+                        probs[start:end]
+                        for start, end in zip(
+                            cumulative_sizes[:-1], cumulative_sizes[1:]
+                        )
+                    ]
+                    preds = [
+                        preds[start:end]
+                        for start, end in zip(
+                            cumulative_sizes[:-1], cumulative_sizes[1:]
+                        )
+                    ]
+                    labels = [
+                        labels[start:end]
+                        for start, end in zip(
+                            cumulative_sizes[:-1], cumulative_sizes[1:]
+                        )
+                    ]
                 all_probs.extend(probs)
                 all_preds.extend(preds)
                 all_labels.extend(labels)
@@ -332,12 +388,18 @@ class ClassificationTask(Task):
     def compute_one_metric(self, preds, probs, labels):
         one_metric = {
             "accuracy": accuracy_score(labels, preds),
-            "f1": f1_score(labels, preds, average="binary" if self.num_classes == 2 else "macro"),
-            "mcc": matthews_corrcoef(labels, preds),
+            "f1": f1_score(
+                labels, preds, average="binary" if self.num_classes == 2 else "macro"
+            ),
         }
+        if not self.multi_label:
+            one_metric["mcc"] = matthews_corrcoef(labels, preds)
         try:
             one_metric["auc"] = roc_auc_score(
-                labels, probs, average=None if self.num_classes == 2 else "macro", multi_class="ovo"
+                labels,
+                probs,
+                average=None if self.num_classes == 2 else "macro",
+                multi_class="ovo",
             )
         except:
             return one_metric
@@ -360,6 +422,9 @@ class ClassificationTask(Task):
                 sorted_keys = sorted(one_metric.keys())
             metrics = np.array(metrics)
             mean_metrics = np.mean(metrics, axis=0)
+            # TO REMOVE
+            print(f"len(sorted_keys)={len(sorted_keys)}")
+            print(f"metrics={metrics}")
             metrics = {k: v for k, v in zip(sorted_keys, mean_metrics)}
 
             # Get the flattened result, renamed to include "global"

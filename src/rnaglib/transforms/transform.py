@@ -36,8 +36,6 @@ class Transform:
     ):
         self.parallel = parallel
         self.num_workers = num_workers
-        print("INIT")
-        pass
 
     def __call__(self, data: Any) -> Any:
         RNADataset = __import__("rnaglib.data_loading").data_loading.RNADataset

@@ -92,6 +92,8 @@ NODE_FEATURE_MAP = {
     "binding_protein_Rz": FloatEncoder(),
     "is_modified": BoolEncoder(),
     "is_broken": BoolEncoder(),
+    "protein_binding": BoolEncoder(),
+    "protein_content": ListEncoder(list_length=3)
 }
 
 # TODO : include edge information, but it's not trivial to deal with edges beyond RGCN...

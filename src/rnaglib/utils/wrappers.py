@@ -44,7 +44,8 @@ def US_align_wrapper(
         ]
 
     result = subprocess.run(command, capture_output=True, text=True)
-    print(result.stdout)
+    # print(result.stdout)
+    # uncomment above for debugging
     # Regular expression to find all TM-scores
     tm_scores = re.findall(r"TM-score=\s*([\d.]+)", result.stdout)
 
