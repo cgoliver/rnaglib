@@ -11,9 +11,8 @@ from rnaglib.transforms import FeaturesComputer, DummyAnnotator, ComposeFilters,
 from rnaglib.transforms import NameFilter, ChainFilter, ChainSplitTransform, ChainNameTransform
 from rnaglib.tasks import ResidueClassificationTask
 from rnaglib.encoders import BoolEncoder, NucleotideEncoder
-
 from rnaglib.splitters import NameSplitter
-from rnaglib.utils import dump_json
+
 
 
 class InverseFolding(ResidueClassificationTask):
@@ -27,9 +26,8 @@ class InverseFolding(ResidueClassificationTask):
     def process(self) -> RNADataset:
         # build the filters
         ribo_filter = RibosomalFilter()
-        resolution_filter = RNAAttributeFilter(
-            attribute="resolution_high", value_checker=lambda val: float(val[0]) < 4.0
-        )
+        resolution_filter = RNAAttributeFilter(attribute="resolution_high",
+            value_checker=lambda val: float(val[0]) < 4.0)
         filters = ComposeFilters([ribo_filter, resolution_filter])
 
         # Define your transforms
@@ -42,11 +40,7 @@ class InverseFolding(ResidueClassificationTask):
         for rna in dataset:
             if filters.forward(rna):
                 rna = annotate_rna(rna)["rna"]
-                if self.in_memory:
-                    all_rnas.append(rna)
-                else:
-                    all_rnas.append(rna.name)
-                    dump_json(os.path.join(self.dataset_path, f"{rna.name}.json"), rna)
+                self.add_rna_to_building_list(all_rnas=all_rnas, rna=rna)
         dataset = self.create_dataset_from_list(all_rnas)
         return dataset
 
@@ -118,7 +112,7 @@ class InverseFolding(ResidueClassificationTask):
         sorted_keys = []
         metrics = []
         for pred, filt_pred, prob, label, filt_label in zip(
-            all_preds, filtered_all_preds, all_probs, all_labels, filtered_all_labels
+                all_preds, filtered_all_preds, all_probs, all_labels, filtered_all_labels
         ):
             # Can't compute metrics over just one class
             if len(np.unique(label)) == 1:
@@ -176,8 +170,6 @@ class gRNAde(InverseFolding):
                     pdb_id = line.split("_")[0].lower()
                     chain = line.split("_")[-1]  # .upper()
                     chain_components = list(chain.split("-"))
-                    # [c.upper() for c in chain.split("-")]
-
                     if pdb_id not in self.splits[split]:
                         self.splits[split].append(pdb_id)
                     if pdb_id not in self.splits["all"]:
@@ -238,10 +230,6 @@ class gRNAde(InverseFolding):
                 renamed_chains = list(add_name_chains(rna_chains))  # Rename
                 for rna_chain in renamed_chains:
                     rna_chain = rna_chain["rna"]
-                    if self.in_memory:
-                        all_rnas.append(rna_chain)
-                    else:
-                        all_rnas.append(rna_chain.name)
-                        dump_json(os.path.join(self.dataset_path, f"{rna_chain.name}.json"), rna_chain)
+                    self.add_rna_to_building_list(all_rnas=all_rnas, rna=rna_chain)
         dataset = self.create_dataset_from_list(all_rnas)
         return dataset

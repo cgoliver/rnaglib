@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # coding: utf-8
-from rnaglib.tasks import ProteinBindingSiteDetection
+from rnaglib.tasks import ProteinBindingSite
 from rnaglib.representations import GraphRepresentation
 from rnaglib.data_loading import Collater
 import torch
@@ -20,7 +20,7 @@ from pathlib import Path
 if Path('test_fri').exists():
     shutil.rmtree('test_fri')
 
-ta = ProteinBindingSiteDetection('test_fri')
+ta = ProteinBindingSite('test_fri')
 ta.dataset.add_representation(GraphRepresentation(framework = 'pyg'))
 
 train_ind, val_ind, test_ind = ta.split()

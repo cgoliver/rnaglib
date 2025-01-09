@@ -5,7 +5,6 @@ from rnaglib.tasks import RNAClassificationTask
 from rnaglib.encoders import MultiLabelOneHotEncoder
 from rnaglib.transforms import ComposeFilters, FeaturesComputer
 from rnaglib.utils.rfam_utils import get_frequent_go_pdbsel
-from rnaglib.utils import dump_json
 
 
 class RNAGo(RNAClassificationTask):
@@ -51,7 +50,7 @@ class RNAGo(RNAClassificationTask):
                 # and not the actual numbering. Hence, if you have residues [110, 111... 160], the RFAM
                 # numbering can look like 2-16. I assume this is residues 111-125.
                 _, chain, start, end = pdbsel.split('_')
-                pdb_chain_numbers = [node_name for node_name in list(sorted(rna['rna'].nodes())) if
+                pdb_chain_numbers = [node_name for node_name in list(sorted(rna_graph.nodes())) if
                                      node_name.startswith(f'{pdb}.{chain}')]
                 chunk_nodes = pdb_chain_numbers[int(start) - 1: int(end)]
                 subgraph = rna_graph.subgraph(chunk_nodes).copy()
@@ -70,12 +69,9 @@ class RNAGo(RNAClassificationTask):
                 chunk_dict = {k: v for k, v in rna.items() if k != 'graph'}
                 chunk_dict['graph'] = subgraph
                 if rna_filter.forward(chunk_dict):
-                    if self.in_memory:
-                        all_rnas.append(subgraph)
-                    else:
-                        all_rnas.append(subgraph.name)
-                        dump_json(os.path.join(self.dataset_path, f"{subgraph.name}.json"), subgraph)
+                    self.add_rna_to_building_list(all_rnas=all_rnas, rna=subgraph)
         dataset = self.create_dataset_from_list(all_rnas)
+
         # compute one-hot mapping of labels
         unique_gos = sorted({go for system_gos in rfam_go_mapping.values() for go in system_gos})
         rfam_mapping = {rfam: i for i, rfam in enumerate(unique_gos)}

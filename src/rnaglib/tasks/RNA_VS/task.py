@@ -11,7 +11,7 @@ from rnaglib.tasks.RNA_VS.evaluate import run_virtual_screen
 from rnaglib.tasks.RNA_VS.ligands import MolGraphEncoder
 
 
-class VSTask:
+class VirtualScreening:
     script_dir = os.path.dirname(__file__)
     json_dump = os.path.join(script_dir, "../data/rna_vs/dataset.p")
     trainval_groups, test_groups = pickle.load(open(json_dump, 'rb'))
@@ -78,7 +78,7 @@ if __name__ == '__main__':
 
     # Create a task
     root = "../../data/tasks/rna_vs"
-    ef_task = VSTask(root)
+    ef_task = VirtualScreening(root)
 
     # Build corresponding datasets and dataloader
     representations = [GraphRepresentation(framework='dgl')]

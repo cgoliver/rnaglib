@@ -1,5 +1,5 @@
 import wandb
-from rnaglib.tasks import BindingSiteDetection
+from rnaglib.tasks import BindingSite
 from rnaglib.representations import GraphRepresentation
 from rnaglib.data_loading import Collater
 from rnaglib.learning.task_models import RGCN_node

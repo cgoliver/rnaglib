@@ -131,7 +131,7 @@ def build_graph_from_cif(cif_path, dump_dir):
     transforms = [
         CifMetadata(structures_dir=structures_dir),
         SmallMoleculeBindingTransform(structures_dir=structures_dir),
-        RBPTransform(structures_dir=structures_dir, protein_number_annotations=True, distances=[4.,6.,8.]),
+        RBPTransform(structures_dir=structures_dir, protein_number_annotations=True, distances=[4., 6., 8.]),
         SecondaryStructureTransform(structures_dir=structures_dir),
     ]
 
@@ -178,7 +178,7 @@ def prepare_data_main(args):
     todo = [Path(args.structures_dir) / f"{pdbid}.cif" for pdbid in rna_list if pdbid not in done]
     if args.debug:
         print(">>> Using debug mode. Preparing only 10 structures.")
-        todo = [item for i, item in enumerate(todo) if i < args.n_debug]
+        todo = todo[:int(args.n_debug)]
 
     # Build Graphs
     total = len(todo)

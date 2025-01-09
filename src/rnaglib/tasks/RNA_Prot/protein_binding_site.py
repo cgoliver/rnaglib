@@ -5,10 +5,9 @@ from rnaglib.tasks import ResidueClassificationTask
 from rnaglib.transforms import FeaturesComputer
 from rnaglib.transforms import ComposeFilters, RibosomalFilter, DummyFilter, ResidueAttributeFilter
 from rnaglib.transforms import PDBIDNameTransform
-from rnaglib.utils import dump_json
 
 
-class ProteinBindingSiteDetection(ResidueClassificationTask):
+class ProteinBindingSite(ResidueClassificationTask):
     """Residue-level task where the job is to predict a binary variable
     at each residue representing the probability that a residue belongs to
     a protein-binding interface
@@ -42,14 +41,6 @@ class ProteinBindingSiteDetection(ResidueClassificationTask):
         for rna in dataset:
             if filters.forward(rna):
                 rna = add_name(rna)
-                rna = rna["rna"]
-                if self.in_memory:
-                    all_rnas.append(rna)
-                else:
-                    all_rnas.append(rna.name)
-                    dump_json(os.path.join(self.dataset_path, f"{rna.name}.json"), rna)
-        if self.in_memory:
-            dataset = RNADataset(rnas=all_rnas)
-        else:
-            dataset = RNADataset(dataset_path=self.dataset_path, rna_id_subset=all_rnas)
+                self.add_rna_to_building_list(all_rnas=all_rnas, rna=rna["rna"])
+        dataset = self.create_dataset_from_list(rnas=all_rnas)
         return dataset
