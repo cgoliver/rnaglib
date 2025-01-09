@@ -2,19 +2,17 @@ import time
 import torch
 import torch.optim as optim
 
-from rnaglib.tasks.RNA_VS.task import VSTask
+from rnaglib.tasks.RNA_VS.task import VirtualScreening
 from rnaglib.tasks.RNA_VS.model import RNAEncoder, LigandGraphEncoder, Decoder, VSModel
 from rnaglib.transforms import GraphRepresentation
 from rnaglib.transforms import FeaturesComputer
 
 # Create a task
-root = "../data/RNA_VS"
-framework = 'dgl'
-ef_task = VSTask(root)
+ef_task = VirtualScreening('RNA_VS')
 
 # Build corresponding datasets and dataloader
 features_computer = FeaturesComputer(nt_features=['nt_code'])
-representations = [GraphRepresentation(framework=framework)]
+representations = [GraphRepresentation(framework='dgl')]
 rna_dataset_args = {'representations': representations, 'features_computer': features_computer}
 rna_loader_args = {'batch_size': 16, 'shuffle': True, 'num_workers': 0}
 train_dataloader, val_dataloader, test_dataloader = ef_task.get_split_loaders(dataset_kwargs=rna_dataset_args,
@@ -22,12 +20,10 @@ train_dataloader, val_dataloader, test_dataloader = ef_task.get_split_loaders(da
 
 # Create an encoding model. This example one is compatible with DGL.
 # This model must implement a predict_ligands(pocket, ligands) method
-rna_encoder = RNAEncoder()
-lig_encoder = LigandGraphEncoder()
-decoder = Decoder()
-model = VSModel(encoder=rna_encoder, lig_encoder=lig_encoder, decoder=decoder)
+model = VSModel(encoder=RNAEncoder(), lig_encoder=LigandGraphEncoder(), decoder=Decoder())
 assert hasattr(model, 'predict_ligands') and callable(getattr(model, 'predict_ligands'))
 
+# Train
 optimizer = optim.Adam(model.parameters(), lr=0.001)
 criterion = torch.nn.BCELoss()
 epochs = 10

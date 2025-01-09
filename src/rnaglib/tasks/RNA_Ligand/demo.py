@@ -11,7 +11,7 @@ batch_size = 8
 data = pd.read_csv(os.path.join(os.path.dirname(__file__), "data/gmsm_dataset.csv"))
 
 # Creating task
-ta = LigandIdentification('RNA-Ligand', data, recompute=True, filter_by_size=True, filter_by_resolution=True, in_memory=False)
+ta = LigandIdentification('RNA_Ligand', data, recompute=True, filter_by_size=True, filter_by_resolution=True, in_memory=False)
 
 # Splitting dataset
 print("Splitting Dataset")

@@ -20,7 +20,7 @@ from rnaglib.transforms import ChainFilter, ComposeFilters, RNAAttributeFilter, 
 from rnaglib.utils import dump_json
 
 
-class BenchmarkBindingSiteDetection(ResidueClassificationTask):
+class BenchmarkBindingSite(ResidueClassificationTask):
     target_var = "binding_site"
     input_var = "nt_code"
 
@@ -73,7 +73,7 @@ class BenchmarkBindingSiteDetection(ResidueClassificationTask):
         )
 
 
-class BindingSiteDetection(ResidueClassificationTask):
+class BindingSite(ResidueClassificationTask):
     target_var = "binding_small-molecule"
     input_var = "nt_code"
 

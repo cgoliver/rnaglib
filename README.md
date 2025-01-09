@@ -133,11 +133,11 @@ All tasks follow a similar pattern.
 ```python
 
 from torch.nn import BCELoss
-from rnaglib.tasks import BindingSiteDetection
+from rnaglib.tasks import BindingSite
 from rnaglib.transforms import GraphRepresentation
 
 # Load the task data and annotations
-ta = BindingSiteDetection("my_root")
+ta = BindingSite("my_root")
 
 # Select a data representation and framework (see docs for support of other data modalities and deep learning frameworks)
 ta.dataset.add_representation(GraphRepresentation(framework="pyg"))

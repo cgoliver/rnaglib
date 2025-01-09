@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # coding: utf-8
-from rnaglib.tasks import BenchmarkLigandBindingSiteDetection, BindingSiteDetection
+from rnaglib.tasks import BenchmarkLigandBindingSiteDetection, BindingSite
 from rnaglib.representations import GraphRepresentation
 from rnaglib.data_loading import Collater
 import torch
@@ -20,7 +20,7 @@ from pathlib import Path
 if Path('test_fri').exists():
     shutil.rmtree('test_fri')
 
-ta = BindingSiteDetection('test_fri')
+ta = BindingSite('test_fri')
 ta.dataset.add_representation(GraphRepresentation(framework = 'pyg'))
 
 train_ind, val_ind, test_ind = ta.split()
