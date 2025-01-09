@@ -307,12 +307,12 @@ class Task:
         print()
         return info
     
-    def create_dataset_from_list(self, rna_list):
+    def create_dataset_from_list(self, rnas):
         """Computes an RNADataset object from the"""
         if self.in_memory:
-            dataset = RNADataset(rnas=rna_list)
+            dataset = RNADataset(rnas=rnas)
         else:
-            dataset = RNADataset(dataset_path=self.dataset_path, rna_id_subset=rna_list)
+            dataset = RNADataset(dataset_path=self.dataset_path, rna_id_subset=rnas)
         return dataset
 
     def add_rna_to_building_list(self, all_rnas, rna):
