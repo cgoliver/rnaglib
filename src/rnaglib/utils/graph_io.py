@@ -1,30 +1,26 @@
-import sys
-import os
-import traceback
+import csv
 import json
+import os
 import pickle
-import requests
-import urllib
-from pathlib import Path
-from typing import Optional, List, Tuple
-from collections import defaultdict
-
-import requests
-import warnings
-import pandas as pd
-
+import sys
 import tarfile
-import zipfile
+import traceback
+import urllib
+import warnings
+from collections import defaultdict
+from pathlib import Path
 
 import networkx as nx
+import pandas as pd
+import requests
 from Bio.PDB.PDBList import PDBList
-
 
 ZENODO_RECORD = "14325403"
 
 
 def multigraph_to_simple(g: nx.MultiDiGraph) -> nx.DiGraph:
     """Convert directed multi graph to simple directed graph.
+
     When multiple edges are found between two nodes, we keep backbone.
     """
     simple_g = nx.DiGraph()
@@ -34,7 +30,6 @@ def multigraph_to_simple(g: nx.MultiDiGraph) -> nx.DiGraph:
         etype = data["LW"]
         if etype in backbone_types:
             simple_g.add_edge(u, v, **data)
-        pass
     # second pass adds non-canonicals when no backbone exists
     basepairs = []
     for u, v, data in g.edges(data=True):
@@ -53,20 +48,20 @@ def multigraph_to_simple(g: nx.MultiDiGraph) -> nx.DiGraph:
 
 
 def dump_json(filename, graph):
-    """
-    Just a shortcut to dump a json graph more compactly.
+    """Just a shortcut to dump a json graph more compactly.
 
     :param filename: The dump name
     :param graph: The graph to dump
     """
     # This is important for nx versionning retrocompatibility
-    if nx.__version__<='2.8':
+    if nx.__version__ <= "2.8":
         from networkx.readwrite import json_graph
+
         g_json = json_graph.node_link_data(graph)
 
-    elif nx.__version__<='3.3':
+    elif nx.__version__ <= "3.3":
         g_json = nx.node_link_data(graph, link="links")
-    
+
     else:
         g_json = nx.node_link_data(graph, edges="links")
 
@@ -75,32 +70,31 @@ def dump_json(filename, graph):
 
 
 def load_json(filename):
-    """
-    Just a shortcut to load a json graph more compactly.
+    """Just a shortcut to load a json graph more compactly.
 
     :param filename: The dump name
 
     :return: The loaded graph
     """
-    with open(filename, "r") as f:
+    with open(filename) as f:
         js_graph = json.load(f)
+
     # This is important for nx versionning retrocompatibility
-    if nx.__version__<='2.8':
+    if nx.__version__ <= "2.8":
         from networkx.readwrite import json_graph
 
         out_graph = json_graph.node_link_graph(js_graph)
 
-    elif nx.__version__<='3.3':
+    elif nx.__version__ <= "3.3":
         out_graph = nx.node_link_graph(js_graph, link="links")
-        
+
     else:
         out_graph = nx.node_link_graph(js_graph, edges="links")
     return out_graph
 
 
 def load_graph(filename, multigraph=False):
-    """
-    This is a utility function that supports loading from json or pickle.
+    """This is a utility function that supports loading from json or pickle.
     Sometimes, the pickle also contains rings in the form of a node dict,
     in which case the rings are added into the graph
 
@@ -140,17 +134,15 @@ def get_name_extension(filename, permissive=False):
         fname, extension = filename[:-5], filename[-5:]
     elif filename.endswith(".p"):
         fname, extension = filename[:-2], filename[-2:]
+    elif permissive:
+        fname, extension = filename, None
     else:
-        if permissive:
-            fname, extension = filename, None
-        else:
-            raise NotImplementedError(f"We have not implemented this data format yet: {filename}")
+        raise NotImplementedError(f"We have not implemented this data format yet: {filename}")
     return fname, extension
 
 
-def get_all_existing(dataset_path: os.PathLike, all_rnas: Optional[List[str]] = None) -> Tuple[List[str], str]:
-    """
-    Return list of graph IDs in a given dataset directory in sorted() order. If you pass ``all_rnas``
+def get_all_existing(dataset_path: os.PathLike, all_rnas: list[str] | None = None) -> tuple[list[str], str]:
+    """Return list of graph IDs in a given dataset directory in sorted() order. If you pass ``all_rnas``
     as a list of, returns the graph IDs in ``all_rnas`` that have a matching file in the dataset folder.
 
     :param dataset_path: where all the RNA JSONs are stored.
@@ -172,9 +164,7 @@ def get_all_existing(dataset_path: os.PathLike, all_rnas: Optional[List[str]] = 
 
 
 def get_default_download_dir():
-    """
-    Get the absolute path to the download directory.
-    """
+    """Get the absolute path to the download directory."""
     dirname = os.path.join(os.path.expanduser("~"), ".rnaglib/")
     if not os.path.exists(dirname):
         os.makedirs(dirname)
@@ -184,8 +174,7 @@ def get_default_download_dir():
 
 
 def download(url, path=None, overwrite=True, retries=5, verify_ssl=True, log=True):
-    """
-    Download a given URL.
+    """Download a given URL.
 
     Codes borrowed from mxnet/gluon/utils.py
 
@@ -204,7 +193,7 @@ def download(url, path=None, overwrite=True, retries=5, verify_ssl=True, log=Tru
     if path is None:
         fname = url.split("/")[-1]
         # Empty filenames are invalid
-        assert fname, "Can't construct file-name from this URL. " "Please set the `path` option manually."
+        assert fname, "Can't construct file-name from this URL. Please set the `path` option manually."
     else:
         path = os.path.expanduser(path)
         if os.path.isdir(path):
@@ -216,7 +205,7 @@ def download(url, path=None, overwrite=True, retries=5, verify_ssl=True, log=Tru
     if not verify_ssl:
         warnings.warn(
             "Unverified HTTPS request is being made (verify_ssl=False). "
-            "Adding certificate verification is strongly advised."
+            "Adding certificate verification is strongly advised.",
         )
 
     if overwrite or not os.path.exists(fname):
@@ -246,7 +235,7 @@ def download(url, path=None, overwrite=True, retries=5, verify_ssl=True, log=Tru
                                     "=" * done,
                                     " " * (50 - done),
                                     dl / total_length * 100,
-                                )
+                                ),
                             )
                             sys.stdout.flush()
                 break
@@ -256,18 +245,14 @@ def download(url, path=None, overwrite=True, retries=5, verify_ssl=True, log=Tru
                 retries -= 1
                 if retries <= 0:
                     raise e
-                else:
-                    if log:
-                        print(
-                            "download failed, retrying, {} attempt{} left".format(retries, "s" if retries > 1 else "")
-                        )
+                if log:
+                    print("download failed, retrying, {} attempt{} left".format(retries, "s" if retries > 1 else ""))
 
     return fname
 
 
 def download_name_generator(version="1.0.0", redundancy="nr", annotated=False, record="14325118", debug=False):
-    """
-    This returns the zenodo URL given dataset choices.
+    """This returns the zenodo URL given dataset choices.
 
     :param version: Which data version to use.
     :param redundancy: Whether we want all RNA structures or just a filtered set
@@ -282,8 +267,7 @@ def download_name_generator(version="1.0.0", redundancy="nr", annotated=False, r
             print("Annotated version for v 1.0.0 not available. Try a higher version")
             return None
         return f"https://zenodo.org/records/{record}/files/rnaglib-{redundancy}-{version}-annotated.tar.gz?download=1"
-    else:
-        return f"https://zenodo.org/records/{record}/files/rnaglib-{redundancy}-{version}.tar.gz?download=1"
+    return f"https://zenodo.org/records/{record}/files/rnaglib-{redundancy}-{version}.tar.gz?download=1"
 
 
 def download_graphs(
@@ -297,8 +281,7 @@ def download_graphs(
     get_pdbs=False,
     debug=False,
 ):
-    """
-    Based on the options, get the right data from the latest release and put it in download_dir.
+    """Based on the options, get the right data from the latest release and put it in download_dir.
 
     :param redundancy: Whether to include all RNAs or just a non-redundant set as defined by BGSU
     :param annotated: Whether to include graphlet annotations in the graphs. This will also create a hashing directory and table
@@ -321,7 +304,11 @@ def download_graphs(
     else:
         tag = f"rnaglib-{redundancy}-{version}{'-chop' if chop else ''}{'-' + 'annotated' if annotated else ''}"
     url = download_name_generator(
-        redundancy=redundancy, version=version, annotated=annotated, debug=debug, record=ZENODO_RECORD
+        redundancy=redundancy,
+        version=version,
+        annotated=annotated,
+        debug=debug,
+        record=ZENODO_RECORD,
     )
     dl_path = Path(data_root) / "downloads" / Path(tag + ".tar.gz")
     data_path = Path(data_root) / "datasets"
@@ -344,12 +331,11 @@ def download_graphs(
             update_RNApdb(pdb_path, rna_list=rna_list, nr_only=redundancy == "nr")
 
     else:
-        print(f"Database was found and not overwritten")
-    
+        print("Database was found and not overwritten")
+
     if get_pdbs:
         return os.path.join(data_root, "datasets", tag, "graphs"), os.path.join(data_root, "structures")
-    else:
-        return os.path.join(data_root, "datasets", tag, "graphs"), None
+    return os.path.join(data_root, "datasets", tag, "graphs"), None
 
 
 def available_pdbids(
@@ -377,10 +363,7 @@ def available_pdbids(
 
 
 def get_rna_list(nr_only=False):
-    """
-    Fetch a list of PDBs containing RNA from RCSB API.
-
-    """
+    """Fetch a list of PDBs containing RNA from RCSB API."""
     payload = {
         "query": {
             "type": "terminal",
@@ -406,7 +389,7 @@ def get_rna_list(nr_only=False):
             nr_chains = [c.lower() for c in get_NRchains("4.0A")]
             ids = [pdbid.lower() for pdbid in ids if pdbid in nr_chains]
     except Exception as e:
-        print(f"An error occured when querying RCSB or BGSU Atlas")
+        print("An error occured when querying RCSB or BGSU Atlas")
         print(r.text)
         print(e)
         exit()
@@ -414,12 +397,10 @@ def get_rna_list(nr_only=False):
 
 
 def get_NRlist(resolution):
-    """
-    Get non-redudant RNA list from the BGSU website
+    """Get non-redudant RNA list from the BGSU website
 
     :param resolution: minimum rseolution to apply
     """
-
     base_url = "http://rna.bgsu.edu/rna3dhub/nrlist/download/rna"
     release = "current"  # can be replaced with a specific release id, e.g. 0.70
     # release = '3.186'
@@ -436,15 +417,14 @@ def get_NRlist(resolution):
 
 
 def load_csv(input_file, quiet=False):
-    """
-    Load a csv of from rna.bgsu.edu of representative set
+    """Load a csv of from rna.bgsu.edu of representative set
 
     :param input_file: path to csv file
     :param quiet: set to true to turn off warnings
     :return repr_set: list of equivalence class RNAs
     """
     NRlist = []
-    with open(input_file, "r") as f:
+    with open(input_file) as f:
         reader = csv.reader(f)
         for row in reader:
             try:
@@ -457,8 +437,7 @@ def load_csv(input_file, quiet=False):
 
 
 def parse_NRlist(NRlist):
-    """
-    Parse NR BGSU csv file for a list of non-redundant RNA chains
+    """Parse NR BGSU csv file for a list of non-redundant RNA chains
     list can be downloaded from:
         http://rna.bgsu.edu/rna3dhub/nrlist
 
@@ -466,7 +445,6 @@ def parse_NRlist(NRlist):
 
     :return: set of non-redundant RNA chains (tuples of (structure, model, chain))
     """
-
     NRchains = defaultdict(set)
 
     # split into each IFE (Integrated Functional Element)
@@ -480,22 +458,19 @@ def parse_NRlist(NRlist):
 
 
 def get_NRchains(resolution):
-    """
-    Get a map of non redundant IFEs (integrated functional elements) from
+    """Get a map of non redundant IFEs (integrated functional elements) from
     rna.bgsu.edu/rna3dhub/nrlist
 
     :param resolution: (string) one of
     [1.0A, 1.5A, 2.0A, 2.5A, 3.0A, 3.5A, 4.0A, 20.0A]
     :return: Dictionary, keys=PDB IDs, Values=(set) Chain IDs
     """
-
     NR_list = get_NRlist(resolution)
     return parse_NRlist(NR_list)
 
 
 def update_RNApdb(pdir, nr_only=True, rna_list=None, debug=False):
-    """
-    Download a list of RNA containing structures from the PDB
+    """Download a list of RNA containing structures from the PDB
     overwrite exising files
 
     :param pdbdir: path containing downloaded PDBs
@@ -534,8 +509,7 @@ def update_RNApdb(pdir, nr_only=True, rna_list=None, debug=False):
 
 
 def get_Ribochains():
-    """
-    Get a list of all PDB structures containing RNA and have the text 'ribosome'
+    """Get a list of all PDB structures containing RNA and have the text 'ribosome'
 
     :return: dictionary, keys=pbid, value='all'
     """
@@ -553,8 +527,7 @@ def get_Ribochains():
 
 
 def get_NonRibochains():
-    """
-    Get a list of all PDB structures containing RNA
+    """Get a list of all PDB structures containing RNA
     and do not have the text 'ribosome'
 
     :return: dictionary, keys=pbid, value='all'
@@ -566,8 +539,7 @@ def get_NonRibochains():
 
 
 def get_Custom(text):
-    """
-    Get a list of all PDB structures containing RNA
+    """Get a list of all PDB structures containing RNA
     and do not have the text 'ribosome'
 
     :return: dictionary, keys=pbid, value='all'
