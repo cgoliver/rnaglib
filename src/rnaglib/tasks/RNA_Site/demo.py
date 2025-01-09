@@ -1,9 +1,9 @@
-from rnaglib.tasks import BindingSiteDetection
+from rnaglib.tasks import BindingSite
 from rnaglib.transforms import GraphRepresentation
 from rnaglib.learning.task_models import PygModel
 
 # Creating task
-ta = BindingSiteDetection(root="RNA-Site", debug=False, recompute=True, filter_by_size=True, filter_by_resolution=True)
+ta = BindingSite(root="RNA_Site", debug=False, recompute=True, filter_by_size=True, filter_by_resolution=True)
 
 # Add representation
 ta.dataset.add_representation(GraphRepresentation(framework="pyg"))

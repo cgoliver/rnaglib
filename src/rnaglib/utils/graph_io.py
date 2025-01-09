@@ -506,7 +506,7 @@ def update_RNApdb(pdir, nr_only=True, rna_list=None, debug=False):
     """
     print(f"Updating PDB mirror in {pdir}")
     # Get a list of PDBs containing RNA
-    if not rna_list is None:
+    if rna_list is not None:
         rna = set(rna_list)
     else:
         rna = set(get_rna_list(nr_only=nr_only))

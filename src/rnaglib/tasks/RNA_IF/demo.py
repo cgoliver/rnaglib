@@ -2,7 +2,7 @@ from rnaglib.tasks import InverseFolding
 from rnaglib.transforms import GraphRepresentation
 from rnaglib.learning.task_models import PygModel
 
-ta = InverseFolding(root="IF", recompute=False, in_memory=False, debug=True)
+ta = InverseFolding(root="RNA_IF", recompute=False, in_memory=False, debug=True)
 
 ta.dataset.add_representation(GraphRepresentation(framework="pyg"))
 

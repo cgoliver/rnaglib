@@ -6,7 +6,8 @@ import numpy as np
 from rnaglib.tasks import RNAClassificationTask
 from rnaglib.data_loading import RNADataset
 from rnaglib.encoders import IntEncoder
-from rnaglib.transforms import FeaturesComputer, AnnotatorFromDict, PartitionFromDict, ResidueNameFilter, RBPTransform, ComposeFilters, ResidueAttributeFilter, RNAAttributeFilter
+from rnaglib.transforms import FeaturesComputer, AnnotatorFromDict, PartitionFromDict, ResidueNameFilter, RBPTransform, \
+    ComposeFilters, ResidueAttributeFilter, RNAAttributeFilter
 from rnaglib.utils import dump_json
 
 
@@ -42,14 +43,15 @@ class LigandIdentification(RNAClassificationTask):
 
         # Instantiate filters to apply
         rna_set_filter = ResidueNameFilter(value_checker=lambda name: name in self.nodes_keep, min_valid=1)
-        non_bind_filter = ResidueAttributeFilter(attribute="protein_binding", value_checker=lambda val: val==False)
+        non_bind_filter = ResidueAttributeFilter(attribute="protein_binding", value_checker=lambda val: val == False)
         self.filters_list += [rna_set_filter, non_bind_filter]
         filters = ComposeFilters(self.filters_list)
 
         # Instantiate transforms to apply
         nt_partition = PartitionFromDict(partition_dict=self.bp_dict)
         annotator = AnnotatorFromDict(annotation_dict=self.ligands_dict, name="ligand_code")
-        protein_content_annotator = RBPTransform(structures_dir=dataset.structures_path, protein_number_annotations=False, distances=[4.,6.,8.])
+        protein_content_annotator = RBPTransform(structures_dir=dataset.structures_path,
+            protein_number_annotations=False, distances=[4., 6., 8.])
 
         # Run through database, applying our filters
         all_binding_pockets = []
@@ -59,7 +61,8 @@ class LigandIdentification(RNAClassificationTask):
                 for binding_pocket_dict in nt_partition(rna):
                     annotated_binding_pocket_dict = annotator(binding_pocket_dict)
                     annotated_binding_pocket = protein_content_annotator(annotated_binding_pocket_dict)
-                    protein_content_filter = ResidueAttributeFilter(attribute="protein_content_8.0", aggregation_mode="aggfunc", value_checker=lambda x: x<10, aggfunc = np.mean)
+                    protein_content_filter = ResidueAttributeFilter(attribute="protein_content_8.0",
+                        aggregation_mode="aggfunc", value_checker=lambda x: x < 10, aggfunc=np.mean)
                     if protein_content_filter.forward(annotated_binding_pocket):
                         if self.in_memory:
                             all_binding_pockets.append(annotated_binding_pocket["rna"])
@@ -70,7 +73,6 @@ class LigandIdentification(RNAClassificationTask):
                                 annotated_binding_pocket["rna"],
                             )
         dataset = self.create_dataset_from_list(all_binding_pockets)
-
         return dataset
 
     def get_task_vars(self) -> FeaturesComputer:
