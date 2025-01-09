@@ -80,9 +80,11 @@ class RBPTransform(AnnotationTransform):
         close_residues = set()
 
         if self.protein_number_annotations:
-            protein_numbers_list = [{} for element in self.distances]
+            protein_numbers_list = [{} for _ in self.distances]
 
-        if len(all_protein_atoms) > 1:
+        protein_proximity = len(all_protein_atoms) > 1
+
+        if protein_proximity:
             neighbor_search = NeighborSearch(all_protein_atoms)
 
             # Find RNA residues near protein residues
@@ -99,6 +101,7 @@ class RBPTransform(AnnotationTransform):
                         rna_residue = rna_atom.get_parent()
                         protein_numbers_list[i][(rna_residue.get_parent().id, rna_residue.id[1])] = len(close_atoms)
 
+
         # Output the results
         rbp_status = {}
         protein_numbers = {}
@@ -106,9 +109,21 @@ class RBPTransform(AnnotationTransform):
             chain, pos = node.split(".")[1:]
             rbp_status[node] = (chain, int(pos)) in close_residues
             if self.protein_number_annotations:
-                protein_numbers[node] = [protein_numbers_dict[(chain,int(pos))] for protein_numbers_dict in protein_numbers_list]
+                node_protein_numbers_list = []
+                for i in range(len(self.distances)):
+                    if protein_proximity:
+                        try:
+                            node_protein_numbers_list.append(protein_numbers_list[i][(chain,int(pos))])
+                        except:
+                            node_protein_numbers_list.append(0)
+                    else:
+                        node_protein_numbers_list.append(0)
+                protein_numbers[node] = node_protein_numbers_list
 
         nx.set_node_attributes(g, rbp_status, "protein_binding")
         if self.protein_number_annotations:
             nx.set_node_attributes(g, protein_numbers, "protein_content")
+            for i, distance in enumerate(self.distances):
+                protein_numbers_distance = {node: protein_numbers[node][i] for node in protein_numbers}
+                nx.set_node_attributes(g, protein_numbers_distance, "protein_content_"+str(distance))
         return rna_dict

@@ -21,6 +21,17 @@ class OneHotEncoder:
                 num_values += 1
         self.num_values = num_values
 
+    def add_value(self, value, x):
+        """
+        Useful for the multi-class case.
+        """
+        try:
+            ind = self.mapping[value]
+            x[ind] = 1.0
+        except KeyError:
+            pass
+        return x
+
     def encode(self, value):
         """
         Assign encoding of `value` according to known possible values.
@@ -28,12 +39,7 @@ class OneHotEncoder:
         :param value: The value to encode. If missing a default vector of full zeroes is produced.
         """
         x = self.encode_default()
-        try:
-            ind = self.mapping[value]
-            x[ind] = 1.0
-            return x
-        except KeyError:
-            return x
+        return self.add_value(value, x)
 
     def encode_default(self):
         x = torch.zeros(self.num_values)
@@ -47,10 +53,26 @@ class OneHotEncoder:
             return None
 
 
+class MultiLabelOneHotEncoder(OneHotEncoder):
+    def __init__(self, mapping, num_values=None):
+        super(MultiLabelOneHotEncoder, self).__init__(mapping, num_values)
+
+    def encode(self, values):
+        x = self.encode_default()
+        for value in values:
+            self.add_value(value, x)
+        return x[None, ...]
+
+    def decode(self, one_hot):
+        decoded = []
+        for non_zero in torch.where(one_hot).tolist():
+            decoded.append(self.reverse_mapping[non_zero.item()])
+
+
 class IntMappingEncoder:
     def __init__(self, mapping, default_value=0):
         """
-        To one-hot encode this feature.
+        To encode this feature as an int.
 
         :param mapping: This is a dictionnary that gives an index for each possible value.
         :param num_values: If the mapping can be many to one, you should specifiy it here.
@@ -63,9 +85,10 @@ class IntMappingEncoder:
         """
         Assign encoding of `value` according to known possible values.
 
-        :param value: The value to encode. If missing a default vector of full zeroes is produced.
+        :param value: The value to encode. If missing, a default vector of full zeroes is produced.
         """
         try:
+            a = 1
             return torch.tensor(self.mapping[value], dtype=torch.int)
         except KeyError:
             return self.encode_default()
@@ -242,7 +265,6 @@ class NucleotideEncoder:
             return self.reverse_mapping.get(int_value, "X")
         except (AttributeError, TypeError):
             return "X"
-
 
 # Interesting Counters :
 # To get those, run 'get_all_labels with the counter option. This is useful to produce the

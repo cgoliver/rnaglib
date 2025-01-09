@@ -1,24 +1,27 @@
 from .task import Task
 from .task import ClassificationTask, RNAClassificationTask, ResidueClassificationTask
 
-from .RNA_Family.rfam import RNAFamily
-from .RBP_Node.protein_binding_site import ProteinBindingSiteDetection
 from .RNA_CM.chemical_modification import ChemicalModification
+from .RNA_GO.rna_go import RNAGo
 from .RNA_IF.inverse_folding import InverseFolding, gRNAde
 from .RNA_Ligand.ligand_identity import LigandIdentification
-from .RNA_Site.binding_site import BindingSiteDetection, BenchmarkBindingSiteDetection
+from .RNA_Prot.protein_binding_site import ProteinBindingSite
+from .RNA_Site.binding_site import BindingSite, BenchmarkBindingSite
+# from .RNA_VS.task import VirtualScreening
 
 __all__ = [
     "Task",
-    "ResidueClassificationTask",
     "RNAClassificationTask",
-    "BindingSiteDetection",
-    "ProteinBindingSiteDetection",
+    "ResidueClassificationTask",
     "ChemicalModification",
+    "RNAGo",
     "InverseFolding",
     "gRNAde",
     "LigandIdentification",
-    "RNAFamily",
+    "ProteinBindingSite",
+    "BindingSite",
+    "BenchmarkBindingSite",
+    # "VirtualScreening",
 ]
 
 classes = __all__

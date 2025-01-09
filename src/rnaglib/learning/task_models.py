@@ -15,6 +15,7 @@ class PygModel(torch.nn.Module):
                  num_layers=2,
                  hidden_channels=128,
                  dropout_rate=0.5,
+                 multi_label=False,
                  ):
         super().__init__()
         self.num_layers = num_layers
@@ -23,6 +24,7 @@ class PygModel(torch.nn.Module):
         self.dropouts = torch.nn.ModuleList()
         self.graph_level = graph_level
         self.num_classes = num_classes
+        self.multi_label = multi_label
 
         # Input layer
         in_channels = num_node_features
@@ -34,12 +36,16 @@ class PygModel(torch.nn.Module):
 
         # Initialize training components
         # Output layer
-        if num_classes == 2:
-            self.final_linear = torch.nn.Linear(in_channels, 1)
+        if multi_label:
+            self.final_linear = torch.nn.Linear(in_channels, num_classes)
             self.criterion = torch.nn.BCEWithLogitsLoss()
         else:
-            self.final_linear = torch.nn.Linear(in_channels, num_classes)
-            self.criterion = torch.nn.CrossEntropyLoss()
+            if num_classes == 2:
+                self.final_linear = torch.nn.Linear(in_channels, 1)
+                self.criterion = torch.nn.BCEWithLogitsLoss()
+            else:
+                self.final_linear = torch.nn.Linear(in_channels, num_classes)
+                self.criterion = torch.nn.CrossEntropyLoss()
         self.optimizer = None
         self.device = None
 
@@ -65,10 +71,11 @@ class PygModel(torch.nn.Module):
     def compute_loss(self, out, target):
         # If just two classes, flatten outputs since BCE behavior expects equal dimensions and CE (N,k):(N)
         # Otherwise CE expects long as outputs
-        if self.num_classes == 2:
-            out = out.flatten()
-        else:
-            target = target.long()
+        if not self.multi_label:
+            if self.num_classes == 2:
+                out = out.flatten()
+            else:
+                target = target.long()
         loss = self.criterion(out, target)
         return loss
 
@@ -121,12 +128,16 @@ class PygModel(torch.nn.Module):
                 total_loss += loss.item()
 
                 # get preds and probas + cast to numpy
-                if self.num_classes == 2:
-                    probs = torch.sigmoid(out.flatten())
+                if self.multi_label:
+                    probs = torch.sigmoid(out)
                     preds = (probs > 0.5).float()
                 else:
-                    probs = torch.softmax(out, dim=1)
-                    preds = probs.argmax(dim=1)
+                    if self.num_classes == 2:
+                        probs = torch.sigmoid(out.flatten())
+                        preds = (probs > 0.5).float()
+                    else:
+                        probs = torch.softmax(out, dim=1)
+                        preds = probs.argmax(dim=1)
                 probs = tonumpy(probs)
                 preds = tonumpy(preds)
                 labels = tonumpy(labels)
@@ -140,6 +151,7 @@ class PygModel(torch.nn.Module):
                 all_probs.extend(probs)
                 all_preds.extend(preds)
                 all_labels.extend(labels)
+
 
         if self.graph_level:
             all_probs = np.stack(all_probs)
@@ -163,4 +175,3 @@ class PygModel(torch.nn.Module):
         metrics = task.compute_metrics(all_preds, all_probs, all_labels)
         metrics['loss'] = mean_loss
         return metrics
-

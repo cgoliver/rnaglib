@@ -5,17 +5,14 @@ import pandas as pd
 
 from rnaglib.transforms import GraphRepresentation
 from rnaglib.tasks import Task
-from rnaglib.tasks import RNAFamily
-from rnaglib.tasks import ProteinBindingSiteDetection
-from rnaglib.tasks import ChemicalModification
 
-from rnaglib.tasks import RNAFamily
-from rnaglib.tasks import ProteinBindingSiteDetection
+from rnaglib.tasks import RNAGo
+from rnaglib.tasks import ProteinBindingSite
 from rnaglib.tasks import ChemicalModification
 from rnaglib.tasks import InverseFolding
 from rnaglib.tasks import gRNAde
 from rnaglib.tasks import LigandIdentification
-from rnaglib.tasks import BindingSiteDetection, BenchmarkBindingSiteDetection
+from rnaglib.tasks import BindingSite, BenchmarkBindingSite
 
 
 class TaskTest(unittest.TestCase):
@@ -30,12 +27,12 @@ class TaskTest(unittest.TestCase):
 
     def test_RNAFamily(self):
         with tempfile.TemporaryDirectory() as tmp:
-            ta = RNAFamily(root=tmp, **self.default_dataset_params)
+            ta = RNAGo(root=tmp, **self.default_dataset_params)
             self.check_task(ta)
 
     def test_ProteinBindingSiteDetectionTask(self):
         with tempfile.TemporaryDirectory() as tmp:
-            ta = ProteinBindingSiteDetection(root=tmp, **self.default_dataset_params)
+            ta = ProteinBindingSite(root=tmp, **self.default_dataset_params)
             self.check_task(ta)
 
     def test_ChemicalModification(self):
@@ -64,12 +61,12 @@ class TaskTest(unittest.TestCase):
 
     def test_BindingSiteDetection(self):
         with tempfile.TemporaryDirectory() as tmp:
-            ta = BindingSiteDetection(root=tmp, **self.default_dataset_params)
+            ta = BindingSite(root=tmp, **self.default_dataset_params)
             self.check_task(ta)
 
     def test_BenchmarkBindingSiteDetection(self):
         with tempfile.TemporaryDirectory() as tmp:
-            ta = BenchmarkBindingSiteDetection(root=tmp, **self.default_dataset_params)
+            ta = BenchmarkBindingSite(root=tmp, **self.default_dataset_params)
             self.check_task(ta)
 
     def test_eval(self):

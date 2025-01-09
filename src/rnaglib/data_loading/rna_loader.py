@@ -13,23 +13,12 @@ class Collater:
 
     def __init__(self, dataset):
         """ Initialize a Collater object.
-
-        :param node_simfunc: A node comparison function as defined in kernels, to optionally return a pairwise
-        comparison of the nodes in the batch
-        :param max_size_kernel: If the node comparison is not None, optionnaly only return a pairwise
-        comparison between a subset of all nodes, of size max_size_kernel
-        :param hstack: If True, hstack point cloud return
-
         :return: a picklable python function that can be called on a batch by Pytorch loaders
-
         """
         self.dataset = dataset
 
     def __call__(self, samples):
         """
-        New format that iterates through the possible keys returned by get_item
-
-        The graphs are batched, the rings are compared with self.node_simfunc and the features are just put into a list.
         :param samples:
         :return: a dict
 

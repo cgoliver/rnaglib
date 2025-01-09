@@ -1,9 +1,9 @@
-from rnaglib.tasks import BenchmarkBindingSiteDetection
+from rnaglib.tasks import BenchmarkBindingSite
 from rnaglib.transforms import GraphRepresentation
 from rnaglib.learning.task_models import PygModel
 
 # Creating task
-ta = BenchmarkBindingSiteDetection(root="RNA-Site-Bench", recompute=True, debug=True)
+ta = BenchmarkBindingSite(root="RNA_Site_Bench", recompute=True, debug=True)
 
 # Add representation
 ta.dataset.add_representation(GraphRepresentation(framework="pyg"))

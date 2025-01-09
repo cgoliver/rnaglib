@@ -14,9 +14,9 @@ def pdb_sel_to_rfam():
     script_dir = os.path.dirname(os.path.abspath(__file__))
     file_name = os.path.join(script_dir, "Rfam.pdb")
     df = pd.read_csv(file_name, sep='\t')
-    df['unique_id'] = df.apply(lambda row: f"{row['pdb_id']}_{row['chain']}_{row['pdb_start']}_{row['pdb_end']}",
+    df['pdbsel'] = df.apply(lambda row: f"{row['pdb_id']}_{row['chain']}_{row['pdb_start']}_{row['pdb_end']}",
         axis=1)
-    df = df[['unique_id', 'pdb_id', 'rfam_acc']]
+    df = df[['pdbsel', 'pdb_id', 'rfam_acc']]
     return df
 
 
@@ -55,7 +55,7 @@ def get_frequent_go_pdbsel(min_count=50, cache=True):
         return pickle.load(open(out_file_name, "rb"))
     # Get all pdbs with an existing RFAM annotation and group the corresponding selections by pdb
     df = pdb_sel_to_rfam()
-    pdb_dict = df.groupby('pdb_id').apply(lambda group: group.to_dict(orient='records')).to_dict()
+    # pdb_dict = df.groupby('pdb_id').apply(lambda group: group.to_dict(orient='records')).to_dict()
     # print(len(pdb_dict))
     # print(sum([len(x) for x in pdb_dict.values()]))
     # df holds 14709 lines, present in 3121 PDB files
