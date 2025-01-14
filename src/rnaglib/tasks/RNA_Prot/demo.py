@@ -2,7 +2,7 @@ from rnaglib.transforms import GraphRepresentation
 from rnaglib.tasks import ProteinBindingSite
 from rnaglib.learning.task_models import PygModel
 
-ta = ProteinBindingSite("RNA_Prot", recompute=True, debug=False, filter_by_size=True, filter_by_resolution=True)
+ta = ProteinBindingSite("RNA_Prot", recompute=True, debug=False, size_thresholds=[5,500])
 
 # Add representation
 ta.dataset.add_representation(GraphRepresentation(framework="pyg"))
