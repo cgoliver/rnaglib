@@ -5,6 +5,7 @@ from rnaglib.tasks import ResidueClassificationTask
 from rnaglib.transforms import FeaturesComputer
 from rnaglib.transforms import ComposeFilters, RibosomalFilter, DummyFilter, ResidueAttributeFilter
 from rnaglib.transforms import PDBIDNameTransform
+from rnaglib.transforms import ConnectedComponentPartition
 
 
 class ProteinBindingSite(ResidueClassificationTask):
@@ -25,14 +26,14 @@ class ProteinBindingSite(ResidueClassificationTask):
     def process(self):
         # build the filters
         ribo_filter = RibosomalFilter()
-        non_bind_filter = ResidueAttributeFilter(attribute=self.target_var, value_checker=lambda val: val)
-        self.filters_list += [ribo_filter, non_bind_filter]
-        filters = ComposeFilters(self.filters_list)
+        non_bind_filter = ResidueAttributeFilter(attribute=self.target_var, value_checker=lambda val: val is not None)
+        filters_list = [ribo_filter, non_bind_filter]
+        filters = ComposeFilters(filters_list)
         if self.debug:
             filters = DummyFilter()
 
         # Define your transforms
-        add_name = PDBIDNameTransform()
+        connected_components_partition = ConnectedComponentPartition()
 
         # Run through database, applying our filters
         dataset = RNADataset(debug=self.debug, in_memory=False)
@@ -40,7 +41,11 @@ class ProteinBindingSite(ResidueClassificationTask):
         os.makedirs(self.dataset_path, exist_ok=True)
         for rna in dataset:
             if filters.forward(rna):
-                rna = add_name(rna)
-                self.add_rna_to_building_list(all_rnas=all_rnas, rna=rna["rna"])
+                for rna_connected_component in connected_components_partition(rna):
+                    if self.size_thresholds is not None:
+                        if not self.size_filter.forward(rna_connected_component):
+                            continue
+                    rna = rna_connected_component["rna"]
+                    self.add_rna_to_building_list(all_rnas=all_rnas, rna=rna)
         dataset = self.create_dataset_from_list(rnas=all_rnas)
         return dataset
