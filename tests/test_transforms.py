@@ -12,7 +12,7 @@ from rnaglib.transforms import SecondaryStructureTransform
 from rnaglib.transforms import Compose
 from rnaglib.transforms import SizeFilter
 from rnaglib.transforms import ChainSplitTransform
-from rnaglib.transforms import ConnectedComponentSplitTransform
+from rnaglib.transforms import ConnectedComponentPartition
 
 
 class TransformsTest(unittest.TestCase):
@@ -73,7 +73,7 @@ class TransformsTest(unittest.TestCase):
         assert len(new_data) > len(self.dataset)
 
     def test_connected_component_partition(self):
-        t = ConnectedComponentSplitTransform()
+        t = ConnectedComponentPartition()
         new_data = list(t(self.dataset))
         assert len(new_data) > len(self.dataset)
 
