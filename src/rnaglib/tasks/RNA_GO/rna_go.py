@@ -3,7 +3,7 @@ import os
 from rnaglib.data_loading import RNADataset
 from rnaglib.tasks import RNAClassificationTask
 from rnaglib.encoders import MultiLabelOneHotEncoder
-from rnaglib.transforms import ComposeFilters, FeaturesComputer
+from rnaglib.transforms import ComposeFilters, FeaturesComputer, ConnectedComponentPartition
 from rnaglib.utils.rfam_utils import get_frequent_go_pdbsel
 
 
@@ -27,9 +27,6 @@ class RNAGo(RNAClassificationTask):
             custom_encoders={self.target_var: MultiLabelOneHotEncoder(self.metadata["label_mapping"])}, )
 
     def process(self):
-        # Fetch task level filters
-        rna_filter = ComposeFilters(self.filters_list)
-
         # Get initial mapping files:
         df, rfam_go_mapping = get_frequent_go_pdbsel()
         if self.debug:
@@ -51,7 +48,7 @@ class RNAGo(RNAClassificationTask):
                 # numbering can look like 2-16. I assume this is residues 111-125.
                 _, chain, start, end = pdbsel.split('_')
                 pdb_chain_numbers = [node_name for node_name in list(sorted(rna_graph.nodes())) if
-                                     node_name.startswith(f'{pdb}.{chain}')]
+                                    node_name.startswith(f'{pdb}.{chain}')]
                 chunk_nodes = pdb_chain_numbers[int(start) - 1: int(end)]
                 subgraph = rna_graph.subgraph(chunk_nodes).copy()
                 subgraph.name = pdbsel
@@ -68,8 +65,10 @@ class RNAGo(RNAClassificationTask):
                 # A feature dict (including structure path) is needed for the filtering
                 chunk_dict = {k: v for k, v in rna.items() if k != 'graph'}
                 chunk_dict['graph'] = subgraph
-                if rna_filter.forward(chunk_dict):
-                    self.add_rna_to_building_list(all_rnas=all_rnas, rna=subgraph)
+                if self.size_thresholds is not None:
+                    if not self.size_filter.forward(chunk_dict):
+                        continue
+                self.add_rna_to_building_list(all_rnas=all_rnas, rna=subgraph)
         dataset = self.create_dataset_from_list(all_rnas)
 
         # compute one-hot mapping of labels
