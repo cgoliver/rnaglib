@@ -99,7 +99,9 @@ SPLITTING_VARS["PDB_TO_CHAIN_TR60_TE18"] = id_to_chains
 
 class Splitter:
     def __init__(self, split_train=0.7, split_valid=0.15, split_test=0.15):
-        assert sum([split_train, split_valid, split_test]) == 1, "Splits don't sum to 1."
+        assert (
+            sum([split_train, split_valid, split_test]) == 1
+        ), "Splits don't sum to 1."
         self.split_train = split_train
         self.split_valid = split_valid
         self.split_test = split_test
@@ -150,16 +152,22 @@ class NameSplitter(Splitter):
 
     def forward(self, dataset):
         dataset_map = dataset.all_rnas
-        train_ind = [dataset_map[name] for name in self.train_names if name in dataset_map]
+        train_ind = [
+            dataset_map[name] for name in self.train_names if name in dataset_map
+        ]
         val_ind = [dataset_map[name] for name in self.val_names if name in dataset_map]
-        test_ind = [dataset_map[name] for name in self.test_names if name in dataset_map]
+        test_ind = [
+            dataset_map[name] for name in self.test_names if name in dataset_map
+        ]
         return train_ind, val_ind, test_ind
 
 
 def default_splitter_tr60_tr18():
     train_names = [f"{name[:-1]}_{name[-1]}" for name in SPLITTING_VARS["TR60"][:-6]]
     val_names = [f"{name[:-1]}_{name[-1]}" for name in SPLITTING_VARS["TR60"][-6:]]
-    test_names = [f"{name[:-1]}_{name[-1]}" for name in SPLITTING_VARS["TE18"] if name != "1f1tA"]
+    test_names = [
+        f"{name[:-1]}_{name[-1]}" for name in SPLITTING_VARS["TE18"] if name != "1f1tA"
+    ]
     return NameSplitter(train_names, val_names, test_names)
 
 

@@ -1,16 +1,16 @@
-from collections import Counter
-from typing import List, Tuple, Dict, Optional
-from dataclasses import dataclass
-from pulp import LpProblem, LpMinimize, LpVariable, lpSum, LpStatus, value
 import logging
+from collections import Counter
+from dataclasses import dataclass
+
+from pulp import PULP_CBC_CMD, LpMinimize, LpProblem, LpStatus, LpVariable, lpSum, value
 
 logger = logging.getLogger(__name__)
 
 
 @dataclass
 class SplitMetrics:
-    size_deviation: Dict[str, float]
-    label_deviation: Dict[str, float]
+    size_deviation: dict[str, float]
+    label_deviation: dict[str, float]
 
 
 class ValidationError(Exception):
@@ -18,9 +18,9 @@ class ValidationError(Exception):
 
 
 def validate_inputs(
-    clusters: List[List[str]],
-    cluster_counters: List[Counter],
-    split_ratios: Tuple[float, float, float],
+    clusters: list[list[str]],
+    cluster_counters: list[Counter],
+    split_ratios: tuple[float, float, float],
     ratio_tolerance: float,
 ) -> None:
     """Validate all input parameters."""
@@ -38,12 +38,12 @@ def validate_inputs(
 
 
 def calculate_balance_metrics(
-    splits: List[List[List[str]]],
-    clusters: List[List[str]],
-    target_sizes: List[float],
-    cluster_sizes: List[int],
-    cluster_counters: List[Counter],
-    split_ratios: Tuple[float, float, float],
+    splits: list[list[list[str]]],
+    clusters: list[list[str]],
+    target_sizes: list[float],
+    cluster_sizes: list[int],
+    cluster_counters: list[Counter],
+    split_ratios: tuple[float, float, float],
 ) -> SplitMetrics:
     """Calculate metrics showing how well the splits achieve balance targets."""
     size_errors = []
@@ -54,9 +54,7 @@ def calculate_balance_metrics(
     for split_idx, split in enumerate(splits):
         actual_size = sum(cluster_sizes[clusters.index(cluster)] for cluster in split)
         if target_sizes[split_idx] > 0:
-            relative_error = (
-                abs(actual_size - target_sizes[split_idx]) / target_sizes[split_idx]
-            )
+            relative_error = abs(actual_size - target_sizes[split_idx]) / target_sizes[split_idx]
             size_errors.append(relative_error)
 
     # Calculate label distribution deviations
@@ -65,10 +63,7 @@ def calculate_balance_metrics(
         label_total = sum(counter[label] for counter in cluster_counters)
         if label_total > 0:
             for split_idx, split in enumerate(splits):
-                split_count = sum(
-                    cluster_counters[clusters.index(cluster)][label]
-                    for cluster in split
-                )
+                split_count = sum(cluster_counters[clusters.index(cluster)][label] for cluster in split)
                 target_count = label_total * split_ratios[split_idx]
                 if target_count > 0:
                     relative_error = abs(split_count - target_count) / target_count
@@ -76,10 +71,7 @@ def calculate_balance_metrics(
                     per_split_label_errors[split_idx].append(relative_error)
 
     # Calculate per-split averages
-    per_split_avg = [
-        sum(errors) / len(errors) if errors else 0.0
-        for errors in per_split_label_errors
-    ]
+    per_split_avg = [sum(errors) / len(errors) if errors else 0.0 for errors in per_split_label_errors]
 
     return SplitMetrics(
         size_deviation={
@@ -97,23 +89,23 @@ def calculate_balance_metrics(
 
 
 def assign_clusters(
-    clusters: List[List[str]],
-    cluster_counters: List[Counter],
-    split_ratios: Tuple[float, float, float] = (0.7, 0.15, 0.15),
+    clusters: list[list[str]],
+    cluster_counters: list[Counter],
+    split_ratios: tuple[float, float, float] = (0.7, 0.15, 0.15),
     ratio_tolerance: float = 0.5,
     size_weight: float = 1.0,
     label_weight: float = 1.0,
-) -> Tuple[
-    Optional[List[List[str]]],
-    Optional[List[List[str]]],
-    Optional[List[List[str]]],
-    Optional[SplitMetrics],
+) -> tuple[
+    list[list[str]] | None,
+    list[list[str]] | None,
+    list[list[str]] | None,
+    SplitMetrics | None,
 ]:
     """Split clusters into train/val/test sets optimizing for balance."""
     try:
         validate_inputs(clusters, cluster_counters, split_ratios, ratio_tolerance)
     except ValidationError as e:
-        logger.error(f"Input validation failed: {e}")
+        logger.error("Input validation failed: %s", e)
         return None, None, None, None
 
     cluster_sizes = [len(c) for c in clusters]
@@ -130,7 +122,9 @@ def assign_clusters(
 
     # Decision variables
     x = LpVariable.dicts(
-        "split", ((i, j) for i in range(n_clusters) for j in splits), cat="Binary"
+        "split",
+        ((i, j) for i in range(n_clusters) for j in splits),
+        cat="Binary",
     )
 
     # Constraints
@@ -165,9 +159,7 @@ def assign_clusters(
         if label_total > 0:
             for j in splits:
                 diff = LpVariable(f"ratio_diff_{label}_{j}", lowBound=0)
-                split_count = lpSum(
-                    cluster_counters[i][label] * x[i, j] for i in range(n_clusters)
-                )
+                split_count = lpSum(cluster_counters[i][label] * x[i, j] for i in range(n_clusters))
                 target_count = label_total * split_ratios[j]
 
                 prob += split_count - target_count <= diff * label_total
@@ -180,10 +172,13 @@ def assign_clusters(
         normalized_label_diff = label_weight * lpSum(label_diff_vars)
         prob += normalized_size_diff + normalized_label_diff
 
-    # Solve
-    status = prob.solve()
+        # Solve
+        # This allows the solver to accept non perfect solutions
+        solver = PULP_CBC_CMD(timeLimit=300, gapRel=0.05)
+
+    status = prob.solve(solver)
     if status != 1:
-        logger.error(f"Failed to find optimal solution. Status: {LpStatus[status]}")
+        logger.error("Failed to find optimal solution. Status: %s", LpStatus[status])
         return None, None, None, None
 
     # Extract results
@@ -196,7 +191,12 @@ def assign_clusters(
 
     # Calculate metrics
     metrics = calculate_balance_metrics(
-        result, clusters, target_sizes, cluster_sizes, cluster_counters, split_ratios
+        result,
+        clusters,
+        target_sizes,
+        cluster_sizes,
+        cluster_counters,
+        split_ratios,
     )
 
     return result[0], result[1], result[2], metrics
@@ -206,12 +206,12 @@ def print_split_metrics(metrics: SplitMetrics) -> None:
     """Print formatted metrics for the splits."""
     print("\nBalance Metrics:")
     print(
-        f"Size deviation - Mean: {metrics.size_deviation['mean']*100:.1f}%, "
-        f"Max: {metrics.size_deviation['max']*100:.1f}%"
+        f"Size deviation - Mean: {metrics.size_deviation['mean'] * 100:.1f}%, "
+        f"Max: {metrics.size_deviation['max'] * 100:.1f}%",
     )
     print(
-        f"Label deviation - Mean: {metrics.label_deviation['mean']*100:.1f}%, "
-        f"Max: {metrics.label_deviation['max']*100:.1f}%"
+        f"Label deviation - Mean: {metrics.label_deviation['mean'] * 100:.1f}%, "
+        f"Max: {metrics.label_deviation['max'] * 100:.1f}%",
     )
 
     print("\nPer-split deviations:")
@@ -220,8 +220,8 @@ def print_split_metrics(metrics: SplitMetrics) -> None:
         size_dev = metrics.size_deviation["per_split"][i]
         label_dev = metrics.label_deviation["per_split"][i]
         print(f"{split_names[i]}:")
-        print(f"  Size deviation: {size_dev*100:.1f}%")
-        print(f"  Label deviation: {label_dev*100:.1f}%")
+        print(f"  Size deviation: {size_dev * 100:.1f}%")
+        print(f"  Label deviation: {label_dev * 100:.1f}%")
 
 
 if __name__ == "__main__":
