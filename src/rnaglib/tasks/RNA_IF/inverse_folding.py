@@ -8,7 +8,7 @@ from sklearn.metrics import matthews_corrcoef, f1_score, accuracy_score, roc_auc
 
 from rnaglib.data_loading import RNADataset
 from rnaglib.transforms import FeaturesComputer, DummyAnnotator, ComposeFilters, RibosomalFilter, RNAAttributeFilter
-from rnaglib.transforms import NameFilter, ChainFilter, ChainSplitTransform, ChainNameTransform
+from rnaglib.transforms import NameFilter, ChainFilter, ChainSplitTransform, ChainNameTransform, ConnectedComponentPartition
 from rnaglib.tasks import ResidueClassificationTask
 from rnaglib.encoders import BoolEncoder, NucleotideEncoder
 from rnaglib.splitters import NameSplitter
@@ -26,21 +26,23 @@ class InverseFolding(ResidueClassificationTask):
     def process(self) -> RNADataset:
         # build the filters
         ribo_filter = RibosomalFilter()
-        resolution_filter = RNAAttributeFilter(attribute="resolution_high",
-            value_checker=lambda val: float(val[0]) < 4.0)
-        filters = ComposeFilters([ribo_filter, resolution_filter])
 
         # Define your transforms
         annotate_rna = DummyAnnotator()
+        connected_components_partition = ConnectedComponentPartition()
 
         # Run through database, applying our filters
         dataset = RNADataset(debug=self.debug, in_memory=self.in_memory)
         all_rnas = []
         os.makedirs(self.dataset_path, exist_ok=True)
         for rna in dataset:
-            if filters.forward(rna):
-                rna = annotate_rna(rna)["rna"]
-                self.add_rna_to_building_list(all_rnas=all_rnas, rna=rna)
+            if ribo_filter.forward(rna):
+                for rna_connected_component in connected_components_partition(rna):
+                    if self.size_thresholds is not None:
+                        if not self.size_filter.forward(rna_connected_component):
+                            continue
+                    rna = annotate_rna(rna_connected_component)["rna"]
+                    self.add_rna_to_building_list(all_rnas=all_rnas, rna=rna)
         dataset = self.create_dataset_from_list(all_rnas)
         return dataset
 

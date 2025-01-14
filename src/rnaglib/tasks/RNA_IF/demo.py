@@ -2,12 +2,12 @@ from rnaglib.tasks import InverseFolding
 from rnaglib.transforms import GraphRepresentation
 from rnaglib.learning.task_models import PygModel
 
-ta = InverseFolding(root="RNA_IF", recompute=False, in_memory=False, debug=True)
+ta = InverseFolding(root="RNA_IF", recompute=True, debug=False, size_thresholds=[5,500])
 
 ta.dataset.add_representation(GraphRepresentation(framework="pyg"))
 
 # Splitting dataset
-ta.get_split_loaders(recompute=False)
+ta.get_split_loaders(recompute=True)
 
 # Train model
 model = PygModel(
