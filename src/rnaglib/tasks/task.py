@@ -195,7 +195,6 @@ class Task:
 
         if hasattr(self.dataset, "distances"):
             self.save_distances()
-        print(f"distance from write:{self.dataset.distances}")
 
         # task id is only available (and tractable) for small, in-memory datasets
         if self.in_memory:
