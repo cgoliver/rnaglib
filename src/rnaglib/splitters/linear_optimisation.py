@@ -172,9 +172,10 @@ def assign_clusters(
         normalized_label_diff = label_weight * lpSum(label_diff_vars)
         prob += normalized_size_diff + normalized_label_diff
 
-        # Solve
-        # This allows the solver to accept non perfect solutions
-        solver = PULP_CBC_CMD(timeLimit=300, gapRel=0.05)
+    # Solve
+
+    # This allows the solver to accept non perfect solutions
+    solver = PULP_CBC_CMD(timeLimit=300, gapRel=0.05)
 
     status = prob.solve(solver)
     if status != 1:

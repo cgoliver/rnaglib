@@ -48,16 +48,10 @@ class ClusterSplitter(Splitter):
         super().__init__(**kwargs)
 
     def forward(self, dataset):
-        # overall_test_proportion = self.split_test + self.split_valid
-        # relative_test_proportion = self.split_test / overall_test_proportion
-        # if not self.balanced:
-        #     train, test = self.cluster_split(dataset, overall_test_proportion, n=0.2)
-        #     val, test = self.cluster_split(test, relative_test_proportion, n=0.2)
-        # else:
         clusters, keep_dataset = self.cluster_split(dataset, frac=0, split=False)
         _, label_counts = label_counter(dataset)
         print(f"dataset:{dataset}")
-
+        print(f"label_counts:{label_counts}")
         named_clusters = []
         for cluster in clusters:
             named_clusters.append([keep_dataset[i]["rna"].name for i in cluster])
@@ -105,9 +99,9 @@ class ClusterSplitter(Splitter):
 
         print(f"metrics:{metrics}")
         return (
-            [dataset[x] for x in range(len(dataset)) if dataset[x]["rna"].name in sum(train, [])],
-            [dataset[x] for x in range(len(dataset)) if dataset[x]["rna"].name in sum(val, [])],
-            [dataset[x] for x in range(len(dataset)) if dataset[x]["rna"].name in sum(test, [])],
+            [x for x in range(len(dataset)) if dataset[x]["rna"].name in sum(train, [])],
+            [x for x in range(len(dataset)) if dataset[x]["rna"].name in sum(val, [])],
+            [x for x in range(len(dataset)) if dataset[x]["rna"].name in sum(test, [])],
         )
 
     def compute_similarity_matrix(self, dataset: RNADataset) -> tuple[np.array, list]:
@@ -143,8 +137,17 @@ class ClusterSplitter(Splitter):
         :param split: if split is False, we return all clusters instead of splitting them
         """
         print("Computing similarity matrix...")
-        similarity_matrix, keep_dataset = self.compute_similarity_matrix(dataset)
-        print("Clustering...")  # DEBUG: can confirm sim matrix is symmetric
+        if hasattr(dataset, "distances"):
+            similarity_matrix, keep_dataset_names = dataset.distances
+            keep_dataset = [rna for rna in dataset if rna["rna"].name in keep_dataset_names]
+        else:
+            similarity_matrix, keep_dataset = self.compute_similarity_matrix(dataset)
+            # saving the distances to the object in case we want to use them later
+            keep_dataset_names = [rna["rna"].name for rna in keep_dataset]
+        dataset.distances = (similarity_matrix, keep_dataset_names)
+        print(f"keep_dataset:{keep_dataset}")
+        print(f"similarity_matrix:{similarity_matrix}")
+        print("Clustering...")
         adjacency_matrix = (similarity_matrix >= self.similarity_threshold).astype(int)
         n_components, labels = connected_components(adjacency_matrix)
 
