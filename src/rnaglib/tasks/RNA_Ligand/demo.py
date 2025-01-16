@@ -7,11 +7,8 @@ from rnaglib.learning.task_models import PygModel
 # Hyperparameters to tune
 batch_size = 8
 
-# Get ligand labels data
-data = pd.read_csv(os.path.join(os.path.dirname(__file__), "data/gmsm_dataset.csv"))
-
-# Creating task
-ta = LigandIdentification('RNA_Ligand', data, recompute=True, filter_by_size=True, filter_by_resolution=True, in_memory=False)
+# Creating task 
+ta = LigandIdentification('RNA_Ligand', bp_dict_path='data/bp_dict.json', ligands_dict_path='data/ligands_dict.json', recompute=True, size_thresholds=[5,500])
 
 # Splitting dataset
 print("Splitting Dataset")
@@ -30,7 +27,7 @@ ta.set_loaders(batch_size=batch_size)
 # Or using a wrapper class
 model = PygModel(ta.metadata["description"]["num_node_features"], ta.metadata["description"]["num_classes"], graph_level=True)
 model.configure_training(learning_rate=0.001)
-model.train_model(ta, epochs=10)
+model.train_model(ta, epochs=1)
 
 # Final evaluation
 test_metrics = model.evaluate(ta)
