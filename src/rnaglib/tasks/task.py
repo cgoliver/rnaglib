@@ -217,7 +217,7 @@ class Task:
         # Load distances if they exist
         array_path = Path(self.root) / "distances_array.csv"
         list_path = Path(self.root) / "distances_list.csv"
-        if array_path.exists() and list_path.exists():
+        if array_path.exists() and list_path.exists() and not self.recompute:
             print("array path exists")
             distances_array = np.loadtxt(array_path, delimiter=",")
             with Path.open(list_path) as f:

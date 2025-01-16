@@ -1,8 +1,16 @@
+from rnaglib.learning.task_models import PygModel
+from rnaglib.splitters import RNAalignSplitter
 from rnaglib.tasks import ChemicalModification
 from rnaglib.transforms import GraphRepresentation
-from rnaglib.learning.task_models import PygModel
 
-ta = ChemicalModification(root="RNA_CM", recompute=True, size_thresholds=[5,500])
+ta = ChemicalModification(
+    root="RNA_CM",
+    recompute=True,
+    filter_by_size=True,
+    filter_by_resolution=True,
+    splitter=RNAalignSplitter(structures_dir="~/.rnaglib/structures"),
+)
+# replace with your own path
 
 # Add representation
 ta.dataset.add_representation(GraphRepresentation(framework="pyg"))
@@ -18,7 +26,11 @@ ta.get_split_loaders(recompute=True)
 #         ...
 
 # Or using a wrapper class
-model = PygModel(ta.metadata["description"]["num_node_features"], ta.metadata["description"]["num_classes"], graph_level=False)
+model = PygModel(
+    ta.metadata["description"]["num_node_features"],
+    ta.metadata["description"]["num_classes"],
+    graph_level=False,
+)
 model.configure_training(learning_rate=0.001)
 model.train_model(ta, epochs=10)
 

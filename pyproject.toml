@@ -65,3 +65,30 @@ rnaglib = ["data_loading/graph_index_NR.json",
 
 testpaths = ["tests"]
 pythonpath = ["src"]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 120
+show-fixes = true
+
+
+[tool.ruff.format]
+quote-style = "double"  # Same as Black
+indent-style = "space"
+
+[tool.ruff.lint]
+# Rules - targeting Pylint-like strictness
+select = [
+    "ALL"
+]
+ignore = [
+    "ANN",  # Type annotations - might be too strict if you're not fully typed
+]
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.lint.pylint]
+max-branches = 12
+max-statements = 50
+max-args = 5
+max-locals = 15

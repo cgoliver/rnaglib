@@ -10,7 +10,6 @@ from pathlib import Path
 
 import numpy as np
 from joblib import Parallel, delayed
-from scipy.optimize import linear_sum_assignment
 from scipy.sparse.csgraph import connected_components
 from tqdm import tqdm
 
@@ -24,8 +23,6 @@ from rnaglib.utils import (
     cdhit_wrapper,
     cif_remove_residues,
     clean_mmcif,
-    rna_align_wrapper,
-    split_mmcif_by_chain,
 )
 
 
@@ -162,12 +159,14 @@ class ClusterSplitter(Splitter):
 
 class CDHitSplitter(ClusterSplitter):
     """Splits based on sequence similarity using CDHit.
+
     NOTE: Make sure cd-hit is in your PATH.
     """
 
     def compute_similarity_matrix(self, dataset: RNADataset) -> tuple[np.array, list]:
-        """Computes sequence similarity between all pairs
-        of RNAs. To deal with multi-chain RNAs we cluster all chains independently
+        """Computes sequence similarity between all pairs of RNAs.
+
+        To deal with multi-chain RNAs we cluster all chains independently
         using CD-Hit. For a given pair of multi-chained RNAs, their overall similarity score
         is given by the Tanimoto coefficient of the sets of clusters assigned to each of the RNA's chains.
 
@@ -197,10 +196,7 @@ class CDHitSplitter(ClusterSplitter):
             idx_to_clusters[int(idx)].add(cluster_id)
         idxs = sorted(idxs)
 
-        if len(idxs) != len(dataset):
-            keep_dataset = [rna for i, rna in enumerate(dataset) if i in idxs]
-        else:
-            keep_dataset = dataset
+        keep_dataset = [rna for i, rna in enumerate(dataset) if i in idxs] if len(idxs) != len(dataset) else dataset
 
         def tanimoto(set_1, set_2):
             return len(set_1 & set_2) / len(set_1 | set_2)
@@ -264,10 +260,12 @@ class RNAalignSplitter(ClusterSplitter):
                 pdb_paths = new_paths
 
             pdb_paths_clean = []
-            for pdb_path in pdb_paths:
+
+            for pdb_path in tqdm(pdb_paths, desc="Cleaning PDB files"):
                 clean_path = Path(tmpdir) / Path(pdb_path).name
                 clean_mmcif(pdb_path, clean_path)
                 pdb_paths_clean.append(clean_path)
+
             todo = list(itertools.combinations(pdb_paths_clean, 2))
             sims = Parallel(n_jobs=self.n_jobs)(
                 delayed(US_align_wrapper)(pdbid1, pdbid2)
@@ -284,84 +282,4 @@ class RNAalignSplitter(ClusterSplitter):
         sim_mat = sim_mat[keep_idx][:, keep_idx]
 
         keep_dataset = [rna for i, rna in enumerate(dataset) if i in keep_idx]
-        return sim_mat, keep_dataset
-
-    def compute_similarity_matrix_(self, dataset: RNADataset):
-        """Computes pairwise structural similarity between all pairs
-        of RNAs using rna-align. Stalls with larger RNA (> 200 nts).
-
-        :param dataset: RNA dataset to compute similarity over.
-        :returns np.array: Array of pairwise similarities in order of given dataset.
-        """
-        pdbids = [rna["rna"].graph["pdbid"] for rna in dataset]
-        pdb_paths = (Path(self.structures_dir) / f"{pdbid.lower()}.cif" for pdbid in pdbids)
-
-        with tempfile.TemporaryDirectory() as tmpdir:
-            if self.use_substructures:
-                reslists = [[(n.split(".")[1], n.split(".")[2]) for n in rna["rna"].nodes()] for rna in dataset]
-                new_paths = []
-                for idx, (cif_path, reslist) in enumerate(zip(pdb_paths, reslists, strict=False)):
-                    new_cif = Path(tmpdir) / f"{idx}.cif"
-                    cif_remove_residues(cif_path, reslist, new_cif)
-                    new_paths.append(new_cif)
-                pdb_paths = new_paths
-
-        def rna_align_wrapper_(a, b):
-            return 1
-
-        # first sim mat is all chains vs all chains
-        with tempfile.TemporaryDirectory() as tmpdir:
-            chain_paths = []
-            pdbid_to_idxlist = {}
-            pdbids_keep = []
-            for i, pdb in enumerate(pdb_paths):
-                chain_pdbs = split_mmcif_by_chain(
-                    pdb,
-                    output_dir=tmpdir,
-                    min_length=5,
-                    max_length=1000,
-                )
-                pdbid_to_idxlist[Path(pdb).stem.lower()] = list(
-                    range(i, i + len(chain_pdbs)),
-                )
-                chain_paths.extend(chain_pdbs)
-                if len(chain_pdbs) > 1:
-                    pdbids_keep.append(Path(pdb).stem.lower())
-
-            todo = list(itertools.combinations(chain_paths, 2))
-            sims_chain = Parallel(n_jobs=self.n_jobs)(
-                delayed(rna_align_wrapper)(pdbid1, pdbid2)
-                for pdbid1, pdbid2 in tqdm(todo, total=len(todo), desc="RNAalign")
-            )
-
-            sim_mat_chain = np.zeros((len(chain_paths), len(chain_paths)))
-            sim_mat_chain[np.triu_indices(len(chain_paths), 1)] = sims_chain
-            sim_mat_chain += sim_mat_chain.T
-            np.fill_diagonal(sim_mat_chain, 1)
-
-        # coalesce chain-wise sim-mat by taking a hungarian between chains of two
-        # PDBs being compared
-        final_sims = []
-        for pdbid1, pdbid2 in itertools.combinations(pdbids_keep, 2):
-            rows = pdbid_to_idxlist[pdbid1.lower()]
-            cols = pdbid_to_idxlist[pdbid2.lower()]
-            cost_matrix = 1 - sim_mat_chain[np.ix_(rows, cols)]
-            row_indices, col_indices = linear_sum_assignment(cost_matrix)
-            total_cost = cost_matrix[row_indices, col_indices].sum()
-            # put back to similarity
-            final_sims.append(1 - total_cost)
-
-        # final sim mat is coalesced chain-wise sim mat.
-        sim_mat = np.zeros((len(pdbids_keep), len(pdbids_keep)))
-        sim_mat[np.triu_indices(len(pdbids_keep), 1)] = final_sims
-        sim_mat += sim_mat.T
-        np.fill_diagonal(sim_mat, 1)
-
-        row_nan_count = np.isnan(sim_mat).sum(axis=1)
-        # find rnas that failed against all others
-        keep_idx = np.where(row_nan_count != sim_mat.shape[0] - 1)[0]
-        final_pdbids = [pdbids_keep[i] for i in keep_idx]
-        sim_mat = sim_mat[keep_idx][:, keep_idx]
-
-        keep_dataset = [rna for i, rna in enumerate(dataset) if rna["rna"].graph["pdbid"].lower() in final_pdbids]
         return sim_mat, keep_dataset
