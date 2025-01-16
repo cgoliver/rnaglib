@@ -1,37 +1,35 @@
-""" Various wrappers for external tools """
+"""Various wrappers for external tools"""
 
 import os
 import re
-import shutil
-from pathlib import Path
-from collections import defaultdict
-from typing import Union, Optional
-import tempfile
 import subprocess
+import tempfile
+from collections import defaultdict
+from pathlib import Path
 
 from rnaglib.utils import cif_remove_residues
 
 
 def US_align_wrapper(
-    cif_path_1: Union[str, os.PathLike],
-    cif_path_2: Union[str, os.PathLike],
+    cif_path_1: str | os.PathLike,
+    cif_path_2: str | os.PathLike,
     flags: tuple = ("-mm", "1", "-ter", "1"),
-    reslist_1: Optional[list] = None,
-    reslist_2: Optional[list] = None,
+    reslist_1: list | None = None,
+    reslist_2: list | None = None,
 ):
     """Calls USalign on two mmCIF files and returns the output.
+
     Must have USalign (https://zhanggroup.org/US-align/bin/module/USalign.cpp) in your executable path.
     """
-
     assert Path(cif_path_1).exists(), f"{cif_path_1} missing"
     assert Path(cif_path_2).exists(), f"{cif_path_2} missing"
 
     with tempfile.TemporaryDirectory() as tmpdir:
-        if not reslist_1 is None:
+        if reslist_1 is not None:
             new_cif_1 = Path(tmpdir) / "rna_1.cif"
             cif_remove_residues(cif_path_1, reslist_1, new_cif_1)
             cif_path_1 = new_cif_1
-        if not reslist_2 is None:
+        if reslist_2 is not None:
             new_cif_2 = Path(tmpdir) / "rna_2.cif"
             cif_remove_residues(cif_path_2, reslist_2, new_cif_2)
             cif_path_2 = new_cif_2
@@ -43,7 +41,7 @@ def US_align_wrapper(
             cif_path_2,
         ]
 
-    result = subprocess.run(command, capture_output=True, text=True)
+    result = subprocess.run(command, capture_output=True, text=True, check=False)
     # print(result.stdout)
     # uncomment above for debugging
     # Regular expression to find all TM-scores
@@ -59,16 +57,16 @@ def US_align_wrapper(
 
 
 def rna_align_wrapper(
-    cif_path_1: Union[str, os.PathLike],
-    cif_path_2: Union[str, os.PathLike],
+    cif_path_1: str | os.PathLike,
+    cif_path_2: str | os.PathLike,
     flags: tuple = ("-a", "T"),
-    reslist_1: Optional[list] = None,
-    reslist_2: Optional[list] = None,
+    reslist_1: list | None = None,
+    reslist_2: list | None = None,
 ):
     """Calls RNAalign on two mmCIF files and returns the output.
+
     Must have RNAalign (https://zhanggroup.org/RNA-align/download.html) in your executable path.
     """
-
     # assert shutil.which('RNAalign') is not None,\
     # "RNAalign installation not found. Go here https://zhanggroup.org/RNA-align/"
 
@@ -76,11 +74,11 @@ def rna_align_wrapper(
     assert Path(cif_path_2).exists(), f"{cif_path_2} missing"
 
     with tempfile.TemporaryDirectory() as tmpdir:
-        if not reslist_1 is None:
+        if reslist_1 is not None:
             new_cif_1 = Path(tmpdir) / "rna_1.cif"
             cif_remove_residues(cif_path_1, reslist_1, new_cif_1)
             cif_path_1 = new_cif_1
-        if not reslist_2 is None:
+        if reslist_2 is not None:
             new_cif_2 = Path(tmpdir) / "rna_1.cif"
             cif_remove_residues(cif_path_2, reslist_2, new_cif_2)
             cif_path_2 = new_cif_2
@@ -92,7 +90,7 @@ def rna_align_wrapper(
             cif_path_2,
         ]
 
-    result = subprocess.run(command, capture_output=True, text=True)
+    result = subprocess.run(command, capture_output=True, text=True, check=False)
     if "-a" in flags:
         pattern = r"TM-score=\s*([\d.]+)\s*\(if normalized by average length of two structures"
         match = re.search(pattern, result.stdout)
@@ -100,16 +98,13 @@ def rna_align_wrapper(
         if match:
             tm = float(match.group(1))
             return tm
-        else:
-            print(result.stderr)
-            print(result.stdout)
-            return None
-    pass
+        print(result.stderr)
+        print(result.stdout)
+        return None
 
 
 def locarna_wrapper(seq_1: str, seq_2: str):
     """Calls LocaRNA on two RNA sequences to perform sequence-2d-structure aligment"""
-
     with tempfile.TemporaryDirectory as tdir:
         seq_1_file = Path(tdir) / "seq_1.fa"
         seq_2_file = Path(tdir) / "seq_2.fa"
@@ -121,8 +116,7 @@ def locarna_wrapper(seq_1: str, seq_2: str):
             seq_2_file.write(f"> s2\n {seq_2}")
 
         command = ["locarna", seq_1_file, seq_2_file]
-        result = subprocess.run(command, capture_output=True, text=True)
-    pass
+        result = subprocess.run(command, capture_output=True, text=True, check=False)
 
 
 def cdhit_wrapper(ids, sequences, sim_thresh=0.6, n_jobs=1):
@@ -139,7 +133,7 @@ def cdhit_wrapper(ids, sequences, sim_thresh=0.6, n_jobs=1):
     sequences: list
         List of protein sequences to cluster.
 
-    Returns
+    Returns:
     --------
     representatives: list
         List of sequence indices to preserve as representatives.
@@ -160,13 +154,13 @@ def cdhit_wrapper(ids, sequences, sim_thresh=0.6, n_jobs=1):
     "CD-HIT installation not found. Go here https://github.com/weizhongli/cdhit to install"
     """
 
-    n_jobs = 0 if n_jobs < 0 else n_jobs
+    n_jobs = max(n_jobs, 0)
 
     with tempfile.TemporaryDirectory() as tmpdir:
         in_file = Path(tmpdir) / "in.fasta"
         out_file = Path(tmpdir) / "out.fasta"
         with open(in_file, "w") as inp:
-            for id, s in zip(ids, sequences):
+            for id, s in zip(ids, sequences, strict=False):
                 inp.write(f">{id}\n")
                 inp.write(s + "\n")
         cmd = [
@@ -184,12 +178,12 @@ def cdhit_wrapper(ids, sequences, sim_thresh=0.6, n_jobs=1):
             "-M",
             "0",  # unlimited memory
         ]
-        subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=False)
 
         # parse cluster assignments
         pdb2cluster = {}
         cluster2pdb = defaultdict(list)
-        with open(str(out_file) + ".clstr", "r") as out:
+        with open(str(out_file) + ".clstr") as out:
             for line in out:
                 if line.startswith(">"):
                     clust_id = int(line.split()[1])
