@@ -1,10 +1,9 @@
-import os
 import json
-from typing import Union, Optional
+import os
 from pathlib import Path
+
 import gemmi
 from torch.utils.data import Subset
-import torch
 
 
 def listdir_fullpath(d):
@@ -12,8 +11,7 @@ def listdir_fullpath(d):
 
 
 def tonumpy(torch_array):
-    """
-    Routine to get any torch tensor back to numpy without cpu or gradient problems
+    """Routine to get any torch tensor back to numpy without cpu or gradient problems
 
     :param torch_array: A torch array
 
@@ -23,8 +21,7 @@ def tonumpy(torch_array):
 
 
 def get_dataset(loader):
-    """
-    Using torch subsets have a weird property that messes up the dataset accessing.
+    """Using torch subsets have a weird property that messes up the dataset accessing.
      This is the recommended fix in https://discuss.pytorch.org/t/how-to-get-a-part-of-datasets/82161/7
 
     :param dataset: either a dataset or a Subset
@@ -34,15 +31,14 @@ def get_dataset(loader):
     """
     if isinstance(loader, Subset):
         return loader.dataset.dataset
-    else:
-        return loader.dataset
+    return loader.dataset
 
 
 def load_index(redundancy="nr", version="1.0.0", glib_path=f"{os.path.expanduser('~')}/.rnaglib"):
     index_file = os.path.join(glib_path, f"indexes/rnaglib-{redundancy}-{version}.json")
 
     try:
-        with open(index_file, "r") as indx:
+        with open(index_file) as indx:
             return json.load(indx)
     except FileNotFoundError:
         print(f"Index file not found at {index_file}. Run rnaglib_index")
@@ -50,13 +46,13 @@ def load_index(redundancy="nr", version="1.0.0", glib_path=f"{os.path.expanduser
 
 
 def cif_remove_residues(
-    cif_path: Union[str, os.PathLike],
-    keep_residues: Optional[list],
-    out_path: Union[str, os.PathLike],
+    cif_path: str | os.PathLike,
+    keep_residues: list | None,
+    out_path: str | os.PathLike,
 ):
     """Remove all residues from a cif file except for those in `keep_residues` list.
-    Save the new cif to `out_path`.
 
+    Save the new cif to `out_path`.
     :param cif_path: path to input cif
     :param keep_residues: list of residue IDs in format (chain_id, position) to keep.
     :param out_path: path to write new cif file
@@ -66,26 +62,32 @@ def cif_remove_residues(
 
     # Iterate through models and chains
     for model in cif_model:
+        empty_chains = []
         for chain in model:
-            for res in chain:
-                if (chain.name, res.seqid.num) not in keep_residues:
-                    del res
+            for i in range(len(chain) - 1, -1, -1):
+                res = chain[i]
+                if (chain.name, int(res.seqid.num)) not in keep_residues:
+                    del chain[i]
+            # Mark chain for removal if it's empty
+            if len(chain) == 0:
+                empty_chains.append(chain.name)
 
+        # Remove empty chains
+        for chain_name in empty_chains:
+            model.remove_chain(chain_name)
     # Save the modified structure to a new mmCIF file
     cif_model.make_mmcif_document().write_file(str(out_path))
-    pass
 
 
 def clean_mmcif(
-    cif_path: Union[str, os.PathLike],
-    output_path: Union[str, os.PathLike] = ".",
+    cif_path: str | os.PathLike,
+    output_path: str | os.PathLike = ".",
 ):
     """Remove non-RNA entities.
 
     :param cif_path: path to input cif
     :param output_path: path to cleaned structure.
     """
-
     # Load the MMCIF file
     structure = gemmi.read_structure(str(cif_path))
     rna_residues = ["A", "U", "C", "G"]
@@ -106,8 +108,8 @@ def clean_mmcif(
 
 
 def split_mmcif_by_chain(
-    cif_path: Union[str, os.PathLike],
-    output_dir: Union[str, os.PathLike] = ".",
+    cif_path: str | os.PathLike,
+    output_dir: str | os.PathLike = ".",
     prefix=None,
     min_length=0,
     max_length=1000,
@@ -121,7 +123,6 @@ def split_mmcif_by_chain(
 
     :return: list of paths to new chain PDBs
     """
-
     if prefix is None:
         prefix = Path(cif_path).stem
     # Load the MMCIF file

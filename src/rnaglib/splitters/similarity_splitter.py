@@ -251,7 +251,7 @@ class RNAalignSplitter(ClusterSplitter):
 
         with tempfile.TemporaryDirectory() as tmpdir:
             if self.use_substructures:
-                reslists = [[(n.split(".")[1], n.split(".")[2]) for n in rna["rna"].nodes()] for rna in dataset]
+                reslists = [[(n.split(".")[1], int(n.split(".")[2])) for n in rna["rna"].nodes()] for rna in dataset]
                 new_paths = []
                 for idx, (cif_path, reslist) in enumerate(zip(pdb_paths, reslists, strict=False)):
                     new_cif = Path(tmpdir) / f"{idx}.cif"
