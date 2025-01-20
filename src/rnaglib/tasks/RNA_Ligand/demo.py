@@ -8,7 +8,7 @@ from rnaglib.learning.task_models import PygModel
 batch_size = 8
 
 # Creating task 
-ta = LigandIdentification('RNA_Ligand', data_filename='binding_pockets.csv', ligands_nb=10, recompute=True, size_thresholds=[5,500])
+ta = LigandIdentification('RNA_Ligand', data_filename='binding_pockets.csv', recompute=True)
 
 # Splitting dataset
 print("Splitting Dataset")

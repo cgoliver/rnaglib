@@ -14,23 +14,20 @@ class LigandIdentification(RNAClassificationTask):
     to bind a binding pocket with a given structure
     """
     input_var = "nt_code"
-    # target_var = "ligand_code"
     target_var = "ligand"
+    ligands_nb = 10
+    size_thresholds=[5,500]
 
-    def __init__(self, root, data_filename, ligands_nb=10, splitter=None, **kwargs):
-        self.ligands_nb = ligands_nb
+    def __init__(self, root, data_filename, splitter=None, **kwargs):
         self.data_path  = os.path.join(os.path.dirname(__file__), "data", data_filename)
         binding_pockets = pd.read_csv(self.data_path)
-        #top_ligands = binding_pockets.groupby('ligand').count()[['nid']].sort_values(by='nid', ascending=False).reset_index().reset_index()[['index','ligand']][:self.ligands_nb]
-        #binding_pockets2 = binding_pockets.merge(top_ligands, on='ligand').rename({'index':'ligand_code'},axis=1)
-        # binding_pockets3 = binding_pockets2[["RNA", "bp_id", "nid"]].groupby(["RNA", "bp_id"])["nid"].apply(lambda x: x.to_list())
         binding_pockets3 = binding_pockets[["RNA", "bp_id", "nid"]].groupby(["RNA", "bp_id"])["nid"].apply(lambda x: x.to_list())
+
         # create a dict where key is RNA name and values are lists of lists [[residue 1 of binding pocket 1,...,residue N of BP 1],...,[residue 1 of BP k,...]]
         self.bp_dict = {
             rna: [binding_pockets3[rna, bp_idx] for bp_idx in binding_pockets3[rna].index]
             for rna in binding_pockets3.index.droplevel(1)
         }
-        # self.ligands_dict = {rna_ligand[0]:rna_ligand[1] for rna_ligand in binding_pockets2[["nid","ligand_code"]].values}
         self.ligands_dict = {rna_ligand[0]:rna_ligand[1] for rna_ligand in binding_pockets[["nid","ligand"]].values}
         self.nodes_keep = list(self.bp_dict.keys())
         super().__init__(root=root, splitter=splitter, **kwargs)
@@ -61,10 +58,8 @@ class LigandIdentification(RNAClassificationTask):
                     annotated_binding_pocket = annotator(binding_pocket_dict)
                     self.add_rna_to_building_list(all_rnas=all_binding_pockets, rna=annotated_binding_pocket["rna"])
                     try:
-                        # ligands_dict[annotated_binding_pocket["rna"].graph["ligand_code"]].append(idx)
                         ligands_dict[annotated_binding_pocket["rna"].graph["ligand"]].append(idx)
                     except:
-                        # ligands_dict[annotated_binding_pocket["rna"].graph["ligand_code"]] = [idx]
                         ligands_dict[annotated_binding_pocket["rna"].graph["ligand"]] = [idx]
                     idx += 1
         ligands_binding_pockets_nb = np.array([len(ligands_dict[ligand]) for ligand in ligands_dict])

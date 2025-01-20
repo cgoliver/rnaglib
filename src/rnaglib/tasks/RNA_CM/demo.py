@@ -6,8 +6,6 @@ from rnaglib.transforms import GraphRepresentation
 ta = ChemicalModification(
     root="RNA_CM",
     recompute=True,
-    filter_by_size=True,
-    filter_by_resolution=True,
     splitter=RNAalignSplitter(structures_dir="~/.rnaglib/structures"),
 )
 # replace with your own path

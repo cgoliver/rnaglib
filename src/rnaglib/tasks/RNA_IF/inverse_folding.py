@@ -19,6 +19,7 @@ class InverseFolding(ResidueClassificationTask):
     target_var = "nt_code"  # in rna graph
     input_var = "dummy"  # should be dummy variable
     nucs = ["A", "C", "G", "U"]
+    size_thresholds = [5,300]
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
