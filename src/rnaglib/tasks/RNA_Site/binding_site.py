@@ -24,6 +24,7 @@ from rnaglib.transforms import ConnectedComponentPartition
 class BenchmarkBindingSite(ResidueClassificationTask):
     target_var = "binding_site"
     input_var = "nt_code"
+    size_thresholds = [5, 500]
 
     def __init__(self, root, splitter=None, **kwargs):
         super().__init__(root=root, splitter=splitter, **kwargs)
@@ -80,6 +81,7 @@ class BenchmarkBindingSite(ResidueClassificationTask):
 class BindingSite(ResidueClassificationTask):
     target_var = "binding_small-molecule"
     input_var = "nt_code"
+    size_thresholds = [5, 500]
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)

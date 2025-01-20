@@ -16,6 +16,7 @@ class ProteinBindingSite(ResidueClassificationTask):
 
     target_var = "protein_binding"
     input_var = "nt_code"
+    size_thresholds = [5,500]
 
     def __init__(self, root, splitter=None, **kwargs):
         super().__init__(root=root, splitter=splitter, **kwargs)

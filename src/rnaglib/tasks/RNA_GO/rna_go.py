@@ -16,6 +16,7 @@ class RNAGo(RNAClassificationTask):
 
     input_var = "nt_code"  # node level attribute
     target_var = "go_terms"  # graph level attribute
+    size_thresholds = [5,500]
 
     def __init__(self, **kwargs):
         super().__init__(multi_label=True, **kwargs)
