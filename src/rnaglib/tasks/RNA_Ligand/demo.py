@@ -8,14 +8,14 @@ from rnaglib.learning.task_models import PygModel
 batch_size = 8
 
 # Creating task 
-ta = LigandIdentification('RNA_Ligand', bp_dict_path='data/bp_dict.json', ligands_dict_path='data/ligands_dict.json', recompute=True, size_thresholds=[5,500])
+ta = LigandIdentification('RNA_Ligand', data_filename='binding_pockets.csv', ligands_nb=10, recompute=True, size_thresholds=[5,500])
 
 # Splitting dataset
 print("Splitting Dataset")
 ta.dataset.add_representation(GraphRepresentation(framework="pyg"))
 
 # Splitting dataset
-ta.set_loaders(batch_size=batch_size)
+ta.set_loaders(batch_size=batch_size, recompute=True)
 
 # Train model
 # Either by hand:
