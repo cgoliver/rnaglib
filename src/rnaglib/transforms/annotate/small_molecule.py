@@ -116,6 +116,9 @@ def hariboss_filter(lig, cif_dict, mass_lower_limit=160, mass_upper_limit=1000):
         lig_name = lig.id[0][2:]
         if lig_name == "HOH":
             return None
+        
+        if cif_dict["_chem_comp.type"][cif_dict["_chem_comp.id"].index(lig_name)] in ["RNA linking", "DNA linking"]:
+            return None
 
         if lig_name in IONS:
             return "ion"
