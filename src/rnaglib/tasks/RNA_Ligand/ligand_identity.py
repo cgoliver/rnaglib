@@ -1,36 +1,37 @@
 import os
+import pandas as pd
 import numpy as np
 import json
 
 from rnaglib.tasks import RNAClassificationTask
 from rnaglib.data_loading import RNADataset
-from rnaglib.encoders import IntEncoder
+from rnaglib.encoders import IntMappingEncoder
 from rnaglib.transforms import (FeaturesComputer, AnnotatorFromDict, PartitionFromDict, ResolutionFilter,
                                 ComposeFilters, ResidueAttributeFilter)
-
 
 class LigandIdentification(RNAClassificationTask):
     """Binding pocket-level task where the job is to predict the (small molecule) ligand which is the most likely
     to bind a binding pocket with a given structure
     """
     input_var = "nt_code"
-    target_var = "ligand_code"
-    num_classes = 10
+    # target_var = "ligand_code"
+    target_var = "ligand"
 
-    def __init__(self, root, bp_dict_path, ligands_dict_path, splitter=None, **kwargs):
-        self.bp_dict_path  = os.path.join(os.path.dirname(__file__), bp_dict_path)
-        self.ligands_dict_path = os.path.join(os.path.dirname(__file__), ligands_dict_path)
-
-        # bp_dict is a dictionary where a key is an RNA and a value is a list of binding pockets, each binding pocket
-        # being itself a list of names of residues
-        with open(self.bp_dict_path, 'r') as f1:
-            self.bp_dict = json.load(f1)
-
-        # ligands_dict is a dictionary where a key is a residue name and a value is the ligand code of the ligand binding
-        # this residue
-        with open(self.ligands_dict_path, 'r') as f2:
-            self.ligands_dict = json.load(f2)
-        self.mapping = {i: i for i in range(self.num_classes)}
+    def __init__(self, root, data_filename, ligands_nb=10, splitter=None, **kwargs):
+        self.ligands_nb = ligands_nb
+        self.data_path  = os.path.join(os.path.dirname(__file__), "data", data_filename)
+        binding_pockets = pd.read_csv(self.data_path)
+        #top_ligands = binding_pockets.groupby('ligand').count()[['nid']].sort_values(by='nid', ascending=False).reset_index().reset_index()[['index','ligand']][:self.ligands_nb]
+        #binding_pockets2 = binding_pockets.merge(top_ligands, on='ligand').rename({'index':'ligand_code'},axis=1)
+        # binding_pockets3 = binding_pockets2[["RNA", "bp_id", "nid"]].groupby(["RNA", "bp_id"])["nid"].apply(lambda x: x.to_list())
+        binding_pockets3 = binding_pockets[["RNA", "bp_id", "nid"]].groupby(["RNA", "bp_id"])["nid"].apply(lambda x: x.to_list())
+        # create a dict where key is RNA name and values are lists of lists [[residue 1 of binding pocket 1,...,residue N of BP 1],...,[residue 1 of BP k,...]]
+        self.bp_dict = {
+            rna: [binding_pockets3[rna, bp_idx] for bp_idx in binding_pockets3[rna].index]
+            for rna in binding_pockets3.index.droplevel(1)
+        }
+        # self.ligands_dict = {rna_ligand[0]:rna_ligand[1] for rna_ligand in binding_pockets2[["nid","ligand_code"]].values}
+        self.ligands_dict = {rna_ligand[0]:rna_ligand[1] for rna_ligand in binding_pockets[["nid","ligand"]].values}
         self.nodes_keep = list(self.bp_dict.keys())
         super().__init__(root=root, splitter=splitter, **kwargs)
 
@@ -43,10 +44,13 @@ class LigandIdentification(RNAClassificationTask):
 
         # Instantiate transforms to apply
         nt_partition = PartitionFromDict(partition_dict=self.bp_dict)
-        annotator = AnnotatorFromDict(annotation_dict=self.ligands_dict, name="ligand_code")
+        # annotator = AnnotatorFromDict(annotation_dict=self.ligands_dict, name="ligand_code")
+        annotator = AnnotatorFromDict(annotation_dict=self.ligands_dict, name="ligand")
 
         # Run through database, applying our filters
         all_binding_pockets = []
+        ligands_dict = {}
+        idx = 0
         os.makedirs(self.dataset_path, exist_ok=True)
         for rna in dataset:
             if resolution_filter.forward(rna):
@@ -56,12 +60,29 @@ class LigandIdentification(RNAClassificationTask):
                             continue
                     annotated_binding_pocket = annotator(binding_pocket_dict)
                     self.add_rna_to_building_list(all_rnas=all_binding_pockets, rna=annotated_binding_pocket["rna"])
-        dataset = self.create_dataset_from_list(all_binding_pockets)
+                    try:
+                        # ligands_dict[annotated_binding_pocket["rna"].graph["ligand_code"]].append(idx)
+                        ligands_dict[annotated_binding_pocket["rna"].graph["ligand"]].append(idx)
+                    except:
+                        # ligands_dict[annotated_binding_pocket["rna"].graph["ligand_code"]] = [idx]
+                        ligands_dict[annotated_binding_pocket["rna"].graph["ligand"]] = [idx]
+                    idx += 1
+        ligands_binding_pockets_nb = np.array([len(ligands_dict[ligand]) for ligand in ligands_dict])
+        ligands_to_keep_indices = np.argsort(ligands_binding_pockets_nb)[-self.ligands_nb:]
+        ligands_to_keep = list(np.array(list(ligands_dict.keys()))[ligands_to_keep_indices])
+        indices_to_keep = sorted([bp_idx for ligand in ligands_to_keep for bp_idx in ligands_dict[ligand]])
+        top_ligand_binding_pockets = [all_binding_pockets[i] for i in indices_to_keep]
+
+        dataset = self.create_dataset_from_list(top_ligand_binding_pockets)
         return dataset
 
     def get_task_vars(self) -> FeaturesComputer:
+        represented_values = set()
+        for rna in self.dataset:
+            represented_values.add(rna['rna'].graph[self.target_var])
+        self.mapping = {target_value: i for i, target_value in enumerate(represented_values)}
         return FeaturesComputer(
             nt_features=self.input_var,
             rna_targets=self.target_var,
-            custom_encoders={self.target_var: IntEncoder(mapping=self.mapping)},
+            custom_encoders={self.target_var: IntMappingEncoder(mapping=self.mapping)},
         )
