@@ -1,3 +1,4 @@
+import os
 from rnaglib.learning.task_models import PygModel
 from rnaglib.splitters import RNAalignSplitter
 from rnaglib.tasks import ChemicalModification
@@ -6,7 +7,7 @@ from rnaglib.transforms import GraphRepresentation
 ta = ChemicalModification(
     root="RNA_CM",
     recompute=True,
-    splitter=RNAalignSplitter(structures_dir="~/.rnaglib/structures"),
+    splitter=RNAalignSplitter(structures_dir=str(os.path.join(os.path.expanduser("~"), ".rnaglib/structures"))),
 )
 # replace with your own path
 
