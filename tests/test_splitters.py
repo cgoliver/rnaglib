@@ -6,6 +6,7 @@ from rnaglib.data_loading import RNADataset
 from rnaglib.splitters import RandomSplitter
 from rnaglib.splitters import RNAalignSplitter
 from rnaglib.splitters import CDHitSplitter
+from rnaglib.transforms import FeaturesComputer
 from rnaglib.utils import available_pdbids
 
 
@@ -36,16 +37,18 @@ class SplitterTest(unittest.TestCase):
 
     def test_RNAalignSplitter(self):
         with tempfile.TemporaryDirectory() as tmpdir:
-            splitter = RNAalignSplitter(structures_dir=self.dataset.structures_path, similarity_threshold=0.3)
-            train, val, test = splitter(self.dataset)
+            splitter = RNAalignSplitter(structures_dir=self.dataset.structures_path, similarity_threshold=0.7)
+            dataset = self.dataset
+            dataset.features_computer = FeaturesComputer(nt_targets="is_modified")
+            train, val, test = splitter(dataset)
             self.check_splits(train, val, test)
-
         pass
 
     def test_CDHitSplitter(self):
         with tempfile.TemporaryDirectory() as tmpdir:
-            splitter = CDHitSplitter(similarity_threshold=0.5)
-            train, val, test = splitter(self.dataset)
+            splitter = CDHitSplitter(similarity_threshold=0.7)
+            dataset = self.dataset
+            dataset.features_computer = FeaturesComputer(nt_targets="is_modified")
+            train, val, test = splitter(dataset)
             self.check_splits(train, val, test)
-
         pass
