@@ -114,7 +114,7 @@ class RNADataset:
 
             # If debugging, only keep the first few
             if debug:
-                existing_all_rnas = existing_all_rnas[:30]
+                existing_all_rnas = existing_all_rnas[:50]
 
             # Keep track of a list_id <=> system mapping. First remove extensions
             existing_all_rna_names = [get_name_extension(rna, permissive=True)[0] for rna in existing_all_rnas]
