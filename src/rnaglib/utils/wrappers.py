@@ -16,6 +16,7 @@ def US_align_wrapper(
     flags: tuple = ("-mm", "1", "-ter", "1"),
     reslist_1: list | None = None,
     reslist_2: list | None = None,
+    file_type: str = "cif",
 ):
     """Calls USalign on two mmCIF files and returns the output.
 
@@ -26,12 +27,12 @@ def US_align_wrapper(
 
     with tempfile.TemporaryDirectory() as tmpdir:
         if reslist_1 is not None:
-            new_cif_1 = Path(tmpdir) / "rna_1.cif"
-            cif_remove_residues(cif_path_1, reslist_1, new_cif_1)
+            new_cif_1 = Path(tmpdir) / "rna_1." + str(file_type)
+            cif_remove_residues(cif_path_1, reslist_1, new_cif_1, file_type)
             cif_path_1 = new_cif_1
         if reslist_2 is not None:
-            new_cif_2 = Path(tmpdir) / "rna_2.cif"
-            cif_remove_residues(cif_path_2, reslist_2, new_cif_2)
+            new_cif_2 = Path(tmpdir) / "rna_2." + str(file_type)
+            cif_remove_residues(cif_path_2, reslist_2, new_cif_2, file_type)
             cif_path_2 = new_cif_2
 
         command = [

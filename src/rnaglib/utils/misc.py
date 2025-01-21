@@ -49,6 +49,7 @@ def cif_remove_residues(
     cif_path: str | os.PathLike,
     keep_residues: list | None,
     out_path: str | os.PathLike,
+    file_type: str = "cif",
 ):
     """Remove all residues from a cif file except for those in `keep_residues` list.
 
@@ -75,13 +76,17 @@ def cif_remove_residues(
         # Remove empty chains
         for chain_name in empty_chains:
             model.remove_chain(chain_name)
-    # Save the modified structure to a new mmCIF file
-    cif_model.make_mmcif_document().write_file(str(out_path))
+    # Save the modified structure to a new mmCIF or PDB file
+    if file_type=='cif':
+        cif_model.make_mmcif_document().write_file(str(out_path))
+    else:
+        cif_model.write_pdb(str(out_path))
 
 
 def clean_mmcif(
     cif_path: str | os.PathLike,
     output_path: str | os.PathLike = ".",
+    file_type: str = "cif",
 ):
     """Remove non-RNA entities.
 
@@ -103,8 +108,12 @@ def clean_mmcif(
         chain_copy = chain.clone()
         chain_structure[0].add_chain(chain_copy)
 
-    with open(output_path, "w") as f:
-        f.write(chain_structure.make_mmcif_document().as_string())
+    if file_type=='cif':
+        with open(output_path, "w") as f:
+            f.write(chain_structure.make_mmcif_document().as_string())
+    else:
+        with open(output_path, "w") as f:
+            f.write(chain_structure.make_pdb_string())
 
 
 def split_mmcif_by_chain(
