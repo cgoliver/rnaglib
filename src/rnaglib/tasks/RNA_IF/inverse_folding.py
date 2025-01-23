@@ -22,7 +22,7 @@ class InverseFolding(ResidueClassificationTask):
     size_thresholds = [5,300]
 
     def __init__(self, **kwargs):
-        super().__init__(**kwargs)
+        super().__init__(size_thresholds=self.size_thresholds, **kwargs)
 
     def process(self) -> RNADataset:
         # build the filters
