@@ -14,7 +14,6 @@ from scipy.sparse.csgraph import connected_components
 from tqdm import tqdm
 
 from rnaglib.algorithms import get_sequences
-from rnaglib.data_loading.rna_dataset import RNADataset
 from rnaglib.splitters import Splitter
 from rnaglib.splitters.linear_optimisation import assign_clusters
 from rnaglib.splitters.splitting_utils import label_counter
@@ -25,7 +24,6 @@ from rnaglib.utils import (
     clean_mmcif,
 )
 
-
 class ClusterSplitter(Splitter):
     """Abstract class for splitting by clustering with a similarity function."""
 
@@ -35,6 +33,7 @@ class ClusterSplitter(Splitter):
         n_jobs: int = -1,
         seed: int = 0,
         balanced: bool = True,
+        distance_name: str = "rna_align",
         *args,
         **kwargs,
     ):
@@ -42,22 +41,23 @@ class ClusterSplitter(Splitter):
         self.n_jobs = n_jobs
         self.seed = seed
         self.balanced = balanced
+        self.distance_name = distance_name
         super().__init__(**kwargs)
 
     def forward(self, dataset):
-        clusters, keep_dataset = self.cluster_split(dataset, frac=0, split=False)
+        clusters = self.cluster_split(dataset, frac=0, split=False)
         _, label_counts = label_counter(dataset)
         print(f"dataset:{dataset}")
         print(f"label_counts:{label_counts}")
         named_clusters = []
         for cluster in clusters:
-            named_clusters.append([keep_dataset[i]["rna"].name for i in cluster])
+            named_clusters.append([dataset[i]["rna"].name for i in cluster])
         print(f"names:{named_clusters}")
         print(f"clusters: {clusters}")
         train, val, test = self.balancer(
             named_clusters,
             label_counts,
-            keep_dataset,
+            dataset,
             (self.split_train, self.split_valid, self.split_test),
         )
         return train, val, test
@@ -101,10 +101,6 @@ class ClusterSplitter(Splitter):
             [x for x in range(len(dataset)) if dataset[x]["rna"].name in sum(test, [])],
         )
 
-    def compute_similarity_matrix(self, dataset: RNADataset) -> tuple[np.array, list]:
-        """Must be implemented by splitter inherting from ClusterSplitter."""
-        raise NotImplementedError
-
     def cluster_split(
         self,
         dataset: Iterable,
@@ -134,17 +130,10 @@ class ClusterSplitter(Splitter):
         :param split: if split is False, we return all clusters instead of splitting them
         """
         print("Computing similarity matrix...")
-        if hasattr(dataset, "distances"):
-            similarity_matrix, keep_dataset_names = dataset.distances
-            keep_dataset = [rna for rna in dataset if rna["rna"].name in keep_dataset_names]
-        else:
-            similarity_matrix, keep_dataset = self.compute_similarity_matrix(dataset)
-            # saving the distances to the object in case we want to use them later
-            keep_dataset_names = [rna["rna"].name for rna in keep_dataset]
-        dataset.distances = (similarity_matrix, keep_dataset_names)
-        print(f"keep_dataset:{keep_dataset}")
-        print(f"similarity_matrix:{similarity_matrix}")
-        print("Clustering...")
+        if not self.distance_name in dataset.distances:
+            raise ValueError(f"The distance matrix using distances {self.distance_name} has not been computed")
+
+        similarity_matrix = 1-dataset.distances[self.distance_name]
         adjacency_matrix = (similarity_matrix >= self.similarity_threshold).astype(int)
         n_components, labels = connected_components(adjacency_matrix)
 
@@ -154,132 +143,4 @@ class ClusterSplitter(Splitter):
             neighbors.append(neighborhood)
 
         print(f"We have {len(neighbors)} clusters.")
-        return neighbors, keep_dataset
-
-
-class CDHitSplitter(ClusterSplitter):
-    """Splits based on sequence similarity using CDHit.
-
-    NOTE: Make sure cd-hit is in your PATH.
-    """
-
-    def compute_similarity_matrix(self, dataset: RNADataset) -> tuple[np.array, list]:
-        """Computes sequence similarity between all pairs of RNAs.
-
-        To deal with multi-chain RNAs we cluster all chains independently
-        using CD-Hit. For a given pair of multi-chained RNAs, their overall similarity score
-        is given by the Tanimoto coefficient of the sets of clusters assigned to each of the RNA's chains.
-
-        :param dataset: RNA dataset to compute similarity over.
-        :returns np.array: Array of pairwise similarities in order of given dataset.
-        """
-        # prepare input for CD-Hit. One entry per chain.
-        ids, sequences = [], []
-        for idx, rna in enumerate(dataset):
-            seqs = get_sequences(rna["rna"])
-            ids.extend(
-                [f"{idx}-{seq_id.replace('.', '-')}" for seq_id, (seq, _) in seqs.items()],
-            )
-            sequences.extend([seq for _, (seq, _) in seqs.items()])
-
-        ids_to_cluster, cluster_to_ids = cdhit_wrapper(
-            ids,
-            sequences,
-            sim_thresh=self.similarity_threshold,
-        )
-
-        idx_to_clusters = defaultdict(set)
-        idxs = set()
-        for seq_id, cluster_id in ids_to_cluster.items():
-            idx = seq_id.split("-")[0]
-            idxs.add(int(idx))
-            idx_to_clusters[int(idx)].add(cluster_id)
-        idxs = sorted(idxs)
-
-        keep_dataset = [rna for i, rna in enumerate(dataset) if i in idxs] if len(idxs) != len(dataset) else dataset
-
-        def tanimoto(set_1, set_2):
-            return len(set_1 & set_2) / len(set_1 | set_2)
-
-        sims = [
-            tanimoto(idx_to_clusters[rna_1], idx_to_clusters[rna_2])
-            for rna_1, rna_2 in tqdm(itertools.combinations(idxs, 2), desc="CD-Hit")
-        ]
-        sim_mat = np.zeros((len(idxs), len(idxs)))
-        sim_mat[np.triu_indices(len(idxs), 1)] = sims
-        sim_mat += sim_mat.T
-        np.fill_diagonal(sim_mat, 1)
-        return sim_mat, keep_dataset
-
-
-class RNAalignSplitter(ClusterSplitter):
-    """Splits based on structural similarity using RNAalign.
-
-    NOTE: running this splitter requires that you have the
-    RNAalign executable in your PATH. You can install it by
-    following these instructions: https://zhanggroup.org/RNA-align/download.html.
-    """
-
-    def __init__(
-        self,
-        structures_dir: str | os.PathLike,
-        seed: int = 0,
-        use_substructures: bool = True,
-        *args,
-        **kwargs,
-    ):
-        """Use RNAalign to split structures.
-
-        :param structures_dir: path to folder containing mmCIF files for all elements in dataset.
-        :param seed: random seed for reproducibility.
-        :param use_substructures: if True only uses residues in the dataset item's graph.nodes().
-            Useful for pocket tasks. Otherwise uses the full mmCIF file from the PDB.
-
-        """
-        self.use_substructures = use_substructures
-        self.structures_dir = structures_dir
-        super().__init__(**kwargs)
-
-    def compute_similarity_matrix(self, dataset: RNADataset):
-        """Computes pairwise structural similarity between all pairs of RNAs with rna-align. Stalls with RNAs > 200 nts.
-
-        :param dataset: RNA dataset to compute similarity over.
-        :returns np.array: Array of pairwise similarities in order of given dataset.
-        """
-        pdbids = [rna["rna"].graph["pdbid"] for rna in dataset]
-        pdb_paths = (Path(self.structures_dir) / f"{pdbid.lower()}.cif" for pdbid in pdbids)
-
-        with tempfile.TemporaryDirectory() as tmpdir:
-            if self.use_substructures:
-                reslists = [[(n.split(".")[1], int(n.split(".")[2])) for n in rna["rna"].nodes()] for rna in dataset]
-                new_paths = []
-                for idx, (cif_path, reslist) in enumerate(zip(pdb_paths, reslists, strict=False)):
-                    new_cif = Path(tmpdir) / f"{idx}.cif"
-                    cif_remove_residues(cif_path, reslist, new_cif)
-                    new_paths.append(new_cif)
-                pdb_paths = new_paths
-
-            pdb_paths_clean = []
-
-            for pdb_path in tqdm(pdb_paths, desc="Cleaning PDB files"):
-                clean_path = Path(tmpdir) / Path(pdb_path).name
-                clean_mmcif(pdb_path, clean_path)
-                pdb_paths_clean.append(clean_path)
-
-            todo = list(itertools.combinations(pdb_paths_clean, 2))
-            sims = Parallel(n_jobs=self.n_jobs)(
-                delayed(US_align_wrapper)(pdbid1, pdbid2)
-                for pdbid1, pdbid2 in tqdm(todo, total=len(todo), desc="RNAalign")
-            )
-        sim_mat = np.zeros((len(pdb_paths_clean), len(pdb_paths_clean)))
-        sim_mat[np.triu_indices(len(pdb_paths_clean), 1)] = sims
-        sim_mat += sim_mat.T
-        np.fill_diagonal(sim_mat, 1)
-
-        row_nan_count = np.isnan(sim_mat).sum(axis=1)
-        # find rnas that failed against all others
-        keep_idx = np.where(row_nan_count != sim_mat.shape[0] - 1)[0]
-        sim_mat = sim_mat[keep_idx][:, keep_idx]
-
-        keep_dataset = [rna for i, rna in enumerate(dataset) if i in keep_idx]
-        return sim_mat, keep_dataset
+        return neighbors

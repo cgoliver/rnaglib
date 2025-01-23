@@ -1,14 +1,19 @@
 import os
 from rnaglib.learning.task_models import PygModel
-from rnaglib.splitters import RNAalignSplitter
+from rnaglib.distance_computer import RNAalignComputer
+from rnaglib.redundancy_remover import RedundancyRemover
+from rnaglib.splitters import ClusterSplitter
 from rnaglib.tasks import ChemicalModification
 from rnaglib.transforms import GraphRepresentation
 
 ta = ChemicalModification(
     root="RNA_CM",
     recompute=True,
-    splitter=RNAalignSplitter(structures_dir=str(os.path.join(os.path.expanduser("~"), ".rnaglib/structures"))),
+    distance_computers=[RNAalignComputer(structures_path=str(os.path.join(os.path.expanduser("~"), ".rnaglib/structures")))],
+    redundancy_remover = RedundancyRemover(distance_name="rna_align"),
+    splitter=ClusterSplitter(distance_name="rna_align"),
 )
+
 # replace with your own path
 
 # Add representation

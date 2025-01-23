@@ -10,6 +10,7 @@ from collections.abc import Iterable
 
 from bidict import bidict
 import networkx as nx
+import numpy as np
 
 from rnaglib.transforms.transform import Transform
 from rnaglib.transforms.represent import Representation
@@ -157,6 +158,8 @@ class RNADataset:
         else:
             self.representations = representations
 
+        self.distances = {}
+
     @classmethod
     def from_database(
         cls,
@@ -278,6 +281,11 @@ class RNADataset:
             subset.rnas = [self.rnas[i] for i in list_of_ids]
         subset_names = [self.all_rnas.inv[i] for i in list_of_ids]
         subset.all_rnas = bidict({rna: i for i, rna in enumerate(subset_names)})
+
+        # Update the distance matrices
+        for distance_name in self.distances:
+            subset.distances[distance_name] = self.distances[distance_name][np.ix_(list_of_ids, list_of_ids)]
+
         return subset
 
     def save(self, dump_path, recompute=False):
