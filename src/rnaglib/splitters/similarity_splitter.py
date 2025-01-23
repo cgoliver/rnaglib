@@ -23,6 +23,7 @@ from rnaglib.utils import (
     cif_remove_residues,
     clean_mmcif,
 )
+from rnaglib.utils.misc import filter_cif_with_res
 
 class ClusterSplitter(Splitter):
     """Abstract class for splitting by clustering with a similarity function."""
@@ -102,11 +103,11 @@ class ClusterSplitter(Splitter):
         )
 
     def cluster_split(
-        self,
-        dataset: Iterable,
-        frac: float,
-        n: float = 0.05,
-        split: bool = True,
+            self,
+            dataset: Iterable,
+            frac: float,
+            n: float = 0.05,
+            split: bool = True,
     ):
         """Fast cluster-based splitting adapted from ProteinShake.
 
