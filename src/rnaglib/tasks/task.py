@@ -12,11 +12,14 @@ import torch
 import tqdm
 from sklearn.metrics import accuracy_score, f1_score, matthews_corrcoef, roc_auc_score
 from torch.utils.data import DataLoader
+from scipy.sparse.csgraph import connected_components
 
 from rnaglib.data_loading import Collater, RNADataset
 from rnaglib.splitters import RandomSplitter, Splitter
 from rnaglib.transforms import FeaturesComputer, SizeFilter
 from rnaglib.utils import DummyGraphModel, DummyResidueModel, dump_json, tonumpy
+from rnaglib.distance_computer import DistanceComputer
+from rnaglib.redundancy_remover import RedundancyRemover
 
 
 class Task:
@@ -42,6 +45,8 @@ class Task:
         in_memory: bool = True,
         size_thresholds: float = None,
         multi_label=False,
+        distance_computers: list[DistanceComputer] = [],
+        redundancy_remover: RedundancyRemover = None,
     ):
         self.root = root
         self.dataset_path = os.path.join(self.root, "dataset")
@@ -49,8 +54,10 @@ class Task:
         self.debug = debug
         self.save = save
         self.in_memory = in_memory
-        self.multi_label = multi_label
         self.size_thresholds = size_thresholds
+        self.multi_label = multi_label
+        self.distance_computers = distance_computers
+        self.redundancy_remover = redundancy_remover
         self.metadata = self.init_metadata()
 
         # instantiate the Size filter if required
@@ -69,6 +76,14 @@ class Task:
             ) = self.load()
 
         self.dataset.features_computer = self.get_task_vars()
+
+        # Apply the distances computations specified in self.distance_computers
+        for distance_computer in self.distance_computers:
+            self.dataset = distance_computer(self.dataset)
+
+        # Remove redundancy if specified
+        if self.redundancy_remover is not None:
+            self.dataset = redundancy_remover(self.dataset)
 
         # Set splitter after dataset is available
         self.splitter = self.default_splitter if splitter is None else splitter
@@ -215,15 +230,16 @@ class Task:
             metadata = json.load(meta)
 
         # Load distances if they exist
-        array_path = Path(self.root) / "distances_array.csv"
-        list_path = Path(self.root) / "distances_list.csv"
-        if array_path.exists() and list_path.exists() and not self.recompute:
-            print("array path exists")
-            distances_array = np.loadtxt(array_path, delimiter=",")
+        
+        list_path = Path(self.root) / "distances_names_list.csv"
+        if list_path.exists() and not self.recompute:
             with Path.open(list_path) as f:
                 reader = csv.reader(f)
-                distances_list = list(next(reader))
-            dataset.distances = (distances_array, distances_list)
+                distances_names_list = list(next(reader))
+            for distance_name in distances_names_list:
+                array_path = Path(self.root) / distance_name + "distances_array.csv"
+                distances_array = np.loadtxt(array_path, delimiter=",")
+                dataset.distances[distance_name] = distances_array
 
         return dataset, metadata, (train_ind, val_ind, test_ind)
 
@@ -339,18 +355,25 @@ class Task:
 
     def save_distances(self):
         """Save distance matrix if computed."""
-        # Get the distances tuple
+        # Get the distances dictionary
         distances = self.dataset.distances
 
-        # Save distances[0] array as CSV
-        array_path = Path(self.root) / "distances_array.csv"
-        np.savetxt(array_path, distances[0], delimiter=",")
+        for distance_name in distances:
+            # Save distance array as CSV
+            array_path = Path(self.root) / distance_name + "distances_array.csv"
+            np.savetxt(array_path, distances[distance_name], delimiter=",")
 
         # Save distances[1] list as CSV
-        list_path = Path(self.root) / "distances_list.csv"
+        list_path = Path(self.root) / "distances_names_list.csv"
         with Path.open(list_path, "w", newline="") as f:
             writer = csv.writer(f)
-            writer.writerow(distances[1])
+            writer.writerow(distance_name)
+
+    def compute_distances(self):
+        self.dataset = self.dataset.similarity_matrix_computer.compute_distances(self.dataset)
+
+    def remove_redundancy(self):
+        self.dataset = self.dataset.similarity_matrix_computer.remove_redundancy(self.dataset)
 
 
 class ClassificationTask(Task):
