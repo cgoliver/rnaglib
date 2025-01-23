@@ -30,7 +30,7 @@ class LigandIdentification(RNAClassificationTask):
         }
         self.ligands_dict = {rna_ligand[0]:rna_ligand[1] for rna_ligand in binding_pockets[["nid","ligand"]].values}
         self.nodes_keep = list(self.bp_dict.keys())
-        super().__init__(root=root, splitter=splitter, **kwargs)
+        super().__init__(root=root, splitter=splitter, size_thresholds=self.size_thresholds, **kwargs)
 
     def process(self):
         # Initialize dataset with in_memory=False to avoid loading everything at once
