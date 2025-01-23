@@ -46,10 +46,10 @@ def load_index(redundancy="nr", version="1.0.0", glib_path=f"{os.path.expanduser
 
 
 def cif_remove_residues(
-    cif_path: str | os.PathLike,
-    keep_residues: list | None,
-    out_path: str | os.PathLike,
-    file_type: str = "cif",
+        cif_path: str | os.PathLike,
+        keep_residues: list | None,
+        out_path: str | os.PathLike,
+        file_type: str = "cif",
 ):
     """Remove all residues from a cif file except for those in `keep_residues` list.
 
@@ -77,16 +77,46 @@ def cif_remove_residues(
         for chain_name in empty_chains:
             model.remove_chain(chain_name)
     # Save the modified structure to a new mmCIF or PDB file
-    if file_type=='cif':
+    if file_type == 'cif':
         cif_model.make_mmcif_document().write_file(str(out_path))
     else:
         cif_model.write_pdb(str(out_path))
 
 
+def filter_cif_with_res(cif_path, keep_residues, out_path, file_type="cif"):
+    # Read the CIF file and keep only the first model.
+    structure = gemmi.read_structure(str(cif_path))
+    if len(structure) > 1:
+        del structure[1:]
+    model = structure[0]
+
+    # Hash things to keep
+    keep_residues = set(keep_residues)
+    keep_chains = set([x[0] for x in keep_residues])
+
+    # Iterate over all residues and keep only the allowed ones
+    # Use reverse to avoid index errors after deletions
+    for i, chain in reversed(list(enumerate(model))):
+        # Skip the whole chain if not using it
+        if chain.name not in keep_chains:
+            del model[i]
+            continue
+        for i, res in reversed(list(enumerate(chain))):
+            if (chain.name, int(res.seqid.num)) not in keep_residues:
+                del chain[i]
+
+    structure.remove_empty_chains()
+    # Save the modified structure to a new mmCIF or PDB file
+    if file_type == 'cif':
+        structure.make_mmcif_document().write_file(str(out_path))
+    else:
+        structure.write_pdb(str(out_path))
+
+
 def clean_mmcif(
-    cif_path: str | os.PathLike,
-    output_path: str | os.PathLike = ".",
-    file_type: str = "cif",
+        cif_path: str | os.PathLike,
+        output_path: str | os.PathLike = ".",
+        file_type: str = "cif",
 ):
     """Remove non-RNA entities.
 
@@ -108,7 +138,7 @@ def clean_mmcif(
         chain_copy = chain.clone()
         chain_structure[0].add_chain(chain_copy)
 
-    if file_type=='cif':
+    if file_type == 'cif':
         with open(output_path, "w") as f:
             f.write(chain_structure.make_mmcif_document().as_string())
     else:
@@ -116,12 +146,35 @@ def clean_mmcif(
             f.write(chain_structure.make_pdb_string())
 
 
+def subset_mmcif_biopython(input_cif, allowed_residues, output_cif):
+    from Bio.PDB import FastMMCIFParser, Select, PDBIO
+
+    class ResidueSelector(Select):
+        """Selector to filter residues by chain and residue ID."""
+
+        def __init__(self, allowed_residues):
+            super().__init__()
+            self.allowed_residues = set(allowed_residues)  # List of (chain_id, res_id)
+
+        def accept_residue(self, residue):
+            chain_id = residue.parent.id  # Parent of residue is a chain
+            res_id = residue.id[1]  # Residue ID is a tuple, use the numeric part
+            return (chain_id, res_id) in self.allowed_residues
+
+    # Parse the CIF file
+    parser = FastMMCIFParser(QUIET=True)
+    structure = parser.get_structure("structure", input_cif)
+    io = PDBIO()
+    io.set_structure(structure)
+    io.save(output_cif, ResidueSelector(allowed_residues))
+
+
 def split_mmcif_by_chain(
-    cif_path: str | os.PathLike,
-    output_dir: str | os.PathLike = ".",
-    prefix=None,
-    min_length=0,
-    max_length=1000,
+        cif_path: str | os.PathLike,
+        output_dir: str | os.PathLike = ".",
+        prefix=None,
+        min_length=0,
+        max_length=1000,
 ):
     """Write one mmCIF for each chain in the input mmCIF.
 

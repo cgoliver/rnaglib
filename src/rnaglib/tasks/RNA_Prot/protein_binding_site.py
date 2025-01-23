@@ -4,7 +4,6 @@ from rnaglib.data_loading import RNADataset
 from rnaglib.tasks import ResidueClassificationTask
 from rnaglib.transforms import FeaturesComputer
 from rnaglib.transforms import ComposeFilters, RibosomalFilter, DummyFilter, ResidueAttributeFilter
-from rnaglib.transforms import PDBIDNameTransform
 from rnaglib.transforms import ConnectedComponentPartition
 
 
@@ -25,15 +24,14 @@ class ProteinBindingSite(ResidueClassificationTask):
         return FeaturesComputer(nt_features=self.input_var, nt_targets=self.target_var)
 
     def process(self):
-        # build the filters
+        # Define your transforms
         ribo_filter = RibosomalFilter()
-        non_bind_filter = ResidueAttributeFilter(attribute=self.target_var, value_checker=lambda val: val is not None)
+        non_bind_filter = ResidueAttributeFilter(attribute=self.target_var,
+            value_checker=lambda val: val is not None)
         filters_list = [ribo_filter, non_bind_filter]
         filters = ComposeFilters(filters_list)
         if self.debug:
             filters = DummyFilter()
-
-        # Define your transforms
         connected_components_partition = ConnectedComponentPartition()
 
         # Run through database, applying our filters
