@@ -19,7 +19,7 @@ class RNAGo(RNAClassificationTask):
     size_thresholds = [5,500]
 
     def __init__(self, **kwargs):
-        super().__init__(multi_label=True, **kwargs)
+        super().__init__(multi_label=True, size_thresholds=self.size_thresholds, **kwargs)
 
     def get_task_vars(self):
         return FeaturesComputer(

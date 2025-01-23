@@ -27,7 +27,7 @@ class BenchmarkBindingSite(ResidueClassificationTask):
     size_thresholds = [5, 500]
 
     def __init__(self, root, splitter=None, **kwargs):
-        super().__init__(root=root, splitter=splitter, **kwargs)
+        super().__init__(root=root, splitter=splitter, size_thresholds=self.size_thresholds, **kwargs)
 
     @property
     def default_splitter(self):

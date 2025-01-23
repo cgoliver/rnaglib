@@ -19,7 +19,7 @@ class ProteinBindingSite(ResidueClassificationTask):
     size_thresholds = [5,500]
 
     def __init__(self, root, splitter=None, **kwargs):
-        super().__init__(root=root, splitter=splitter, **kwargs)
+        super().__init__(root=root, splitter=splitter, size_thresholds=self.size_thresholds, **kwargs)
 
     def get_task_vars(self):
         return FeaturesComputer(nt_features=self.input_var, nt_targets=self.target_var)
