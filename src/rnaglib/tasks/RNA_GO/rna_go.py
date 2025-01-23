@@ -3,7 +3,7 @@ import os
 from rnaglib.data_loading import RNADataset
 from rnaglib.tasks import RNAClassificationTask
 from rnaglib.encoders import MultiLabelOneHotEncoder
-from rnaglib.transforms import ComposeFilters, FeaturesComputer, ConnectedComponentPartition
+from rnaglib.transforms import FeaturesComputer
 from rnaglib.utils.rfam_utils import get_frequent_go_pdbsel
 
 

@@ -39,7 +39,7 @@ class Task:
         splitter: Splitter = None,
         debug: bool = False,
         save: bool = True,
-        in_memory: bool = True,
+        in_memory: bool = False,
         size_thresholds: float = None,
         multi_label=False,
     ):
