@@ -24,19 +24,20 @@ from rnaglib.utils import (
     cif_remove_residues,
     clean_mmcif,
 )
+from rnaglib.utils.misc import filter_cif_with_res
 
 
 class ClusterSplitter(Splitter):
     """Abstract class for splitting by clustering with a similarity function."""
 
     def __init__(
-        self,
-        similarity_threshold: float = 0.5,
-        n_jobs: int = -1,
-        seed: int = 0,
-        balanced: bool = True,
-        *args,
-        **kwargs,
+            self,
+            similarity_threshold: float = 0.5,
+            n_jobs: int = -1,
+            seed: int = 0,
+            balanced: bool = True,
+            *args,
+            **kwargs,
     ):
         self.similarity_threshold = similarity_threshold
         self.n_jobs = n_jobs
@@ -106,11 +107,11 @@ class ClusterSplitter(Splitter):
         raise NotImplementedError
 
     def cluster_split(
-        self,
-        dataset: Iterable,
-        frac: float,
-        n: float = 0.05,
-        split: bool = True,
+            self,
+            dataset: Iterable,
+            frac: float,
+            n: float = 0.05,
+            split: bool = True,
     ):
         """Fast cluster-based splitting adapted from ProteinShake.
 
@@ -221,12 +222,12 @@ class RNAalignSplitter(ClusterSplitter):
     """
 
     def __init__(
-        self,
-        structures_dir: str | os.PathLike,
-        seed: int = 0,
-        use_substructures: bool = True,
-        *args,
-        **kwargs,
+            self,
+            structures_dir: str | os.PathLike,
+            seed: int = 0,
+            use_substructures: bool = True,
+            *args,
+            **kwargs,
     ):
         """Use RNAalign to split structures.
 
@@ -246,33 +247,30 @@ class RNAalignSplitter(ClusterSplitter):
         :param dataset: RNA dataset to compute similarity over.
         :returns np.array: Array of pairwise similarities in order of given dataset.
         """
-        pdbids = [rna["rna"].graph["pdbid"] for rna in dataset]
-        pdb_paths = (Path(self.structures_dir) / f"{pdbid.lower()}.cif" for pdbid in pdbids)
-
         with tempfile.TemporaryDirectory() as tmpdir:
-            if self.use_substructures:
-                reslists = [[(n.split(".")[1], int(n.split(".")[2])) for n in rna["rna"].nodes()] for rna in dataset]
-                new_paths = []
-                for idx, (cif_path, reslist) in enumerate(zip(pdb_paths, reslists, strict=False)):
-                    new_cif = Path(tmpdir) / f"{idx}.cif"
-                    cif_remove_residues(cif_path, reslist, new_cif)
-                    new_paths.append(new_cif)
-                pdb_paths = new_paths
+            print('dumping structures...')
+            os.makedirs(tmpdir, exist_ok=True)
+            all_pdb_path = []
+            for idx, rna in tqdm(enumerate(dataset), total=len(dataset)):
+                rna_graph = rna["rna"]
+                cif_path = Path(self.structures_dir) / f"{rna_graph.graph['pdbid'].lower()}.cif"
+                if self.use_substructures:
+                    reslist = [(n.split(".")[1], int(n.split(".")[2])) for n in rna["rna"].nodes()]
+                    new_cif = os.path.join(tmpdir, f"{rna_graph.name}.cif")
+                    filter_cif_with_res(cif_path, reslist, new_cif)
+                    all_pdb_path.append(new_cif)
+                else:
+                    clean_path = Path(tmpdir) / f"{rna_graph.name}.cif"
+                    clean_mmcif(cif_path, clean_path)
+                    all_pdb_path.append(clean_path)
 
-            pdb_paths_clean = []
-
-            for pdb_path in tqdm(pdb_paths, desc="Cleaning PDB files"):
-                clean_path = Path(tmpdir) / Path(pdb_path).name
-                clean_mmcif(pdb_path, clean_path)
-                pdb_paths_clean.append(clean_path)
-
-            todo = list(itertools.combinations(pdb_paths_clean, 2))
+            todo = list(itertools.combinations(all_pdb_path, 2))
             sims = Parallel(n_jobs=self.n_jobs)(
                 delayed(US_align_wrapper)(pdbid1, pdbid2)
                 for pdbid1, pdbid2 in tqdm(todo, total=len(todo), desc="RNAalign")
             )
-        sim_mat = np.zeros((len(pdb_paths_clean), len(pdb_paths_clean)))
-        sim_mat[np.triu_indices(len(pdb_paths_clean), 1)] = sims
+        sim_mat = np.zeros((len(all_pdb_path), len(all_pdb_path)))
+        sim_mat[np.triu_indices(len(all_pdb_path), 1)] = sims
         sim_mat += sim_mat.T
         np.fill_diagonal(sim_mat, 1)
 
