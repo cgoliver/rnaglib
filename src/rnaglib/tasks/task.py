@@ -360,7 +360,10 @@ class Task:
 
         for distance_name in distances:
             # Save distance array as CSV
-            array_path = Path(self.root) / distance_name + "distances_array.csv"
+            print(f'type(distance_name)={type(distance_name)}')
+            print(f"""type("distances_array.csv")={type("distances_array.csv")}""")
+            distances_array_path = distance_name + "distances_array.csv"
+            array_path = Path(self.root) / distances_array_path
             np.savetxt(array_path, distances[distance_name], delimiter=",")
 
         # Save distances[1] list as CSV
