@@ -317,13 +317,14 @@ class RNADataset:
 
         return subset
 
-    def save(self, dump_path, recompute=False):
+    def save(self, dump_path, recompute=False, verbose=True):
         """Save a local copy of the dataset"""
         if self.distances is not None:
             np.savez(self.distances_path, **self.distances)
 
         if os.path.exists(dump_path) and os.listdir(dump_path) and not recompute:
-            print('files already exist, set "recompute=True" to overwrite')
+            if verbose:
+                print('files already exist, set "recompute=True" to overwrite')
             return
         os.makedirs(dump_path, exist_ok=True)
         for rna_name, i in self.all_rnas.items():

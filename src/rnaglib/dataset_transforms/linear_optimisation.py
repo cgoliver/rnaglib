@@ -95,6 +95,7 @@ def assign_clusters(
     ratio_tolerance: float = 0.5,
     size_weight: float = 1.0,
     label_weight: float = 1.0,
+    verbose=False
 ) -> tuple[
     list[list[str]] | None,
     list[list[str]] | None,
@@ -119,6 +120,8 @@ def assign_clusters(
     prob = LpProblem("ClusterSplit", LpMinimize)
     n_clusters = len(clusters)
     splits = range(3)
+
+
 
     # Decision variables
     x = LpVariable.dicts(
@@ -175,7 +178,7 @@ def assign_clusters(
     # Solve
 
     # This allows the solver to accept non perfect solutions
-    solver = PULP_CBC_CMD(timeLimit=300, gapRel=0.05)
+    solver = PULP_CBC_CMD(msg=verbose, timeLimit=300, gapRel=0.05)
 
     status = prob.solve(solver)
     if status != 1:

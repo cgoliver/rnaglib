@@ -1,4 +1,3 @@
-import os
 from rnaglib.learning.task_models import PygModel
 from rnaglib.tasks import ChemicalModification
 from rnaglib.transforms import GraphRepresentation
@@ -9,7 +8,6 @@ ta = ChemicalModification(
     debug=True,
 )
 
-# replace with your own path
 
 # Add representation
 ta.dataset.add_representation(GraphRepresentation(framework="pyg"))

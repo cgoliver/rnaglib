@@ -17,8 +17,14 @@ class ProteinBindingSite(ResidueClassificationTask):
     target_var = "protein_binding"
     input_var = "nt_code"
 
-    def __init__(self, root, splitter=ClusterSplitter(distance_name="USalign"), size_thresholds=[5, 500], distance_computers=[StructureDistanceComputer(name="USalign")], redundancy_remover=RedundancyRemover(distance_name="USalign"), **kwargs):
-        super().__init__(root=root, splitter=splitter, size_thresholds=size_thresholds, distance_computers=distance_computers, redundancy_remover=redundancy_remover, **kwargs)
+    def __init__(self, root,
+                 size_thresholds=(10, 500),
+                 distance_computers=StructureDistanceComputer(name="USalign"),
+                 redundancy_remover=RedundancyRemover(distance_name="USalign"),
+                 splitter=ClusterSplitter(distance_name="USalign"),
+                 **kwargs):
+        super().__init__(root=root, splitter=splitter, size_thresholds=size_thresholds,
+            distance_computers=distance_computers, redundancy_remover=redundancy_remover, **kwargs)
 
     def get_task_vars(self):
         return FeaturesComputer(nt_features=self.input_var, nt_targets=self.target_var)
@@ -56,5 +62,5 @@ class ProteinBindingSite(ResidueClassificationTask):
         # Remove redundancy if specified
         if self.redundancy_remover is not None:
             dataset = self.redundancy_remover(dataset)
-        
+
         return dataset

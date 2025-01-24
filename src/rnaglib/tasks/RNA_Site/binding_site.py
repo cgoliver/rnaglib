@@ -1,11 +1,3 @@
-from networkx import (
-    set_node_attributes,
-)  # check whether needed after rna-fm integration
-
-from rnaglib.data_loading.create_dataset import (
-    annotator_add_embeddings,
-    nt_filter_split_chains,
-)  # check whether needed after rna-fm integration
 import os
 import numpy as np
 
@@ -15,7 +7,7 @@ from rnaglib.dataset_transforms import SPLITTING_VARS, default_splitter_tr60_tr1
 from rnaglib.tasks import ResidueClassificationTask
 from rnaglib.encoders import BoolEncoder
 from rnaglib.transforms import ResidueAttributeFilter
-from rnaglib.transforms import PDBIDNameTransform, ChainNameTransform
+from rnaglib.transforms import ChainNameTransform
 from rnaglib.transforms import BindingSiteAnnotator
 from rnaglib.transforms import ChainFilter, ComposeFilters
 from rnaglib.transforms import ConnectedComponentPartition
@@ -25,10 +17,15 @@ from rnaglib.dataset_transforms import ClusterSplitter, StructureDistanceCompute
 class BenchmarkBindingSite(ResidueClassificationTask):
     target_var = "binding_site"
     input_var = "nt_code"
-    size_thresholds = [5, 500]
 
-    def __init__(self, root, splitter=ClusterSplitter(distance_name="USalign"), size_thresholds=[5, 500], distance_computers=[StructureDistanceComputer(name="USalign")], redundancy_remover=RedundancyRemover(distance_name="USalign"), **kwargs):
-        super().__init__(root=root, splitter=splitter, size_thresholds=size_thresholds, distance_computers=distance_computers, redundancy_remover=redundancy_remover, **kwargs)
+    def __init__(self, root,
+                 size_thresholds=(10, 500),
+                 distance_computers=StructureDistanceComputer(name="USalign"),
+                 redundancy_remover=RedundancyRemover(distance_name="USalign"),
+                 splitter=ClusterSplitter(distance_name="USalign"),
+                 **kwargs):
+        super().__init__(root=root, splitter=splitter, size_thresholds=size_thresholds,
+            distance_computers=distance_computers, redundancy_remover=redundancy_remover, **kwargs)
 
     @property
     def default_splitter(self):
@@ -42,7 +39,7 @@ class BenchmarkBindingSite(ResidueClassificationTask):
         chain_filter = ChainFilter(SPLITTING_VARS["PDB_TO_CHAIN_TR60_TE18"])
         filters_list = [chain_filter]
         rna_filter = ComposeFilters(filters_list)
-        
+
         bs_annotator = BindingSiteAnnotator()
         namer = ChainNameTransform()
         connected_components_partition = ConnectedComponentPartition()
@@ -90,7 +87,6 @@ class BenchmarkBindingSite(ResidueClassificationTask):
 class BindingSite(ResidueClassificationTask):
     target_var = "binding_small-molecule"
     input_var = "nt_code"
-    size_thresholds = [5, 500]
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -100,7 +96,8 @@ class BindingSite(ResidueClassificationTask):
         rna_filter = ResidueAttributeFilter(attribute=self.target_var, value_checker=lambda val: val is not None)
         connected_components_partition = ConnectedComponentPartition()
 
-        protein_content_filter = ResidueAttributeFilter(attribute="protein_content_8.0", aggregation_mode="aggfunc", value_checker=lambda x: x < 10, aggfunc=np.mean)
+        protein_content_filter = ResidueAttributeFilter(attribute="protein_content_8.0", aggregation_mode="aggfunc",
+            value_checker=lambda x: x < 10, aggfunc=np.mean)
         connected_component_filters_list = [protein_content_filter]
         if self.size_thresholds is not None:
             connected_component_filters_list.append(self.size_filter)

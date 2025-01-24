@@ -15,21 +15,22 @@ from rnaglib.utils import (
 )
 from rnaglib.utils.misc import filter_cif_with_res
 from rnaglib.utils.graph_io import get_default_download_dir
- 
+
+
 class StructureDistanceComputer(DistanceComputer):
     def __init__(
-        self,
-        name: str = "USalign",
-        use_substructures: bool = True,
-        structures_path: Path = None,
-        n_jobs: int = -1,
-        **kwargs,
+            self,
+            name: str = "USalign",
+            use_substructures: bool = True,
+            structures_path: Path = None,
+            n_jobs: int = -1,
+            **kwargs,
     ):
         self.name = name
         self.use_substructures = use_substructures
         self.structures_path = structures_path
         self.n_jobs = n_jobs
-        super().__init__(name=self.name,**kwargs)
+        super().__init__(name=self.name, **kwargs)
 
     def forward(self, dataset):
         """Computes pairwise structural similarity between all pairs of RNAs with rna-align. Stalls with RNAs > 200 nts.
@@ -37,9 +38,9 @@ class StructureDistanceComputer(DistanceComputer):
         :param dataset: RNA dataset to compute similarity over.
         :returns np.array: Array of pairwise similarities in order of given dataset.
         """
-        if self.name not in ["RNAalign","USalign"]:
+        if self.name not in ["RNAalign", "USalign"]:
             raise ValueError("""name must be 'RNAalign' or 'USalign'""")
-        
+
         # set default structures dir if a specific directory wasn't specified by the user
         if self.structures_path is None:
             dirname = get_default_download_dir()
@@ -47,6 +48,7 @@ class StructureDistanceComputer(DistanceComputer):
 
         with tempfile.TemporaryDirectory() as tmpdir:
             print('dumping structures...')
+            # tmpdir = 'debug_persistent'
             os.makedirs(tmpdir, exist_ok=True)
             all_pdb_path = []
             for idx, rna in tqdm(enumerate(dataset), total=len(dataset)):
