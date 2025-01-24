@@ -71,22 +71,22 @@ class RNADataset:
     """
 
     def __init__(
-        self,
-        rnas: List[nx.Graph] = None,
-        dataset_path: Union[str, os.PathLike] = None,
-        version="2.0.0",
-        redundancy="nr",
-        rna_id_subset: List[str] = None,
-        in_memory: bool = True,
-        features_computer: FeaturesComputer = None,
-        representations: Union[List[Representation], Representation] = None,
-        debug: bool = False,
-        get_pdbs: bool = True,
-        overwrite: bool = False,
-        multigraph: bool = False,
-        pre_transforms: Union[List[Transform], Transform] = None,
-        transforms: Union[List[Transform], Transform] = None,
-        **kwargs,
+            self,
+            rnas: List[nx.Graph] = None,
+            dataset_path: Union[str, os.PathLike] = None,
+            version="2.0.0",
+            redundancy="nr",
+            rna_id_subset: List[str] = None,
+            in_memory: bool = True,
+            features_computer: FeaturesComputer = None,
+            representations: Union[List[Representation], Representation] = None,
+            debug: bool = False,
+            get_pdbs: bool = True,
+            overwrite: bool = False,
+            multigraph: bool = False,
+            pre_transforms: Union[List[Transform], Transform] = None,
+            transforms: Union[List[Transform], Transform] = None,
+            **kwargs,
     ):
         self.in_memory = in_memory
         self.transforms = transforms
@@ -141,6 +141,10 @@ class RNADataset:
             )
             self.all_rnas = bidict({rna.name: i for i, rna in enumerate(rnas)})
 
+        # Distance is computed as a cached property
+        self.distances_ = None
+        self.distances_path = os.path.join(self.dataset_path, "distances.npz")
+
         # Now that we have the raw data setup, let us set up the features we want to be using:
         self.features_computer = FeaturesComputer() if features_computer is None else features_computer
 
@@ -158,15 +162,34 @@ class RNADataset:
         else:
             self.representations = representations
 
-        self.distances = {}
+    @property
+    def distances(self):
+        """
+        Using a cached property is useful for loading precomputed data.
+        If this is the first call, try loading. Otherwise, return the loaded value
+        """
+        if self.distances_ is not None:
+            return self.distances_
+        if os.path.exists(self.distances_path):
+            # Actually materialize memory (lightweight anyway) since npz loading is lazy
+            self.distances_ = {k: v for k, v in np.load(self.distances_path).items()}
+            return self.distances_
+        return None
+
+    def add_distance(self, name, distance_mat):
+        assert distance_mat.shape[0] == distance_mat.shape[1] == len(self)
+        if self.distances is None:
+            self.distances_ = {name: distance_mat}
+        else:
+            self.distances_[name] = distance_mat
 
     @classmethod
     def from_database(
-        cls,
-        representations=None,
-        features_computer=None,
-        in_memory=True,
-        **dataset_build_params,
+            cls,
+            representations=None,
+            features_computer=None,
+            in_memory=True,
+            **dataset_build_params,
     ):
         """Run the steps to build a dataset from scratch.
 
@@ -283,13 +306,17 @@ class RNADataset:
         subset.all_rnas = bidict({rna: i for i, rna in enumerate(subset_names)})
 
         # Update the distance matrices
-        for distance_name in self.distances:
-            subset.distances[distance_name] = self.distances[distance_name][np.ix_(list_of_ids, list_of_ids)]
+        if self.distances is not None:
+            for distance_name in self.distances:
+                subset.add_distance(distance_name, self.distances[distance_name][np.ix_(list_of_ids, list_of_ids)])
 
         return subset
 
     def save(self, dump_path, recompute=False):
         """Save a local copy of the dataset"""
+        if self.distances is not None:
+            np.savez(self.distances_path, **self.distances)
+
         if os.path.exists(dump_path) and os.listdir(dump_path) and not recompute:
             print('files already exist, set "recompute=True" to overwrite')
             return
