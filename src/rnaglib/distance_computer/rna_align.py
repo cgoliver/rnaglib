@@ -15,19 +15,20 @@ from rnaglib.utils import (
     cif_remove_residues,
     clean_mmcif,
 )
- 
+
+
 class RNAalignComputer(DistanceComputer):
     def __init__(
-        self,
-        use_substructures: bool = True,
-        structures_path: Path = os.path.join(os.path.expanduser("~"), ".rnaglib/structures"),
-        n_jobs: int = -1,
-        **kwargs,
+            self,
+            use_substructures: bool = True,
+            structures_path: Path = os.path.join(os.path.expanduser("~"), ".rnaglib/structures"),
+            n_jobs: int = -1,
+            **kwargs,
     ):
         self.use_substructures = use_substructures
         self.structures_path = structures_path
         self.n_jobs = n_jobs
-        super().__init__(name="rna_align",**kwargs)
+        super().__init__(name="rna_align", **kwargs)
 
     def forward(self, dataset: RNADataset):
         """Computes pairwise structural similarity between all pairs of RNAs with rna-align. Stalls with RNAs > 200 nts.
@@ -70,5 +71,5 @@ class RNAalignComputer(DistanceComputer):
         keep_idx = np.where(row_nan_count != sim_mat.shape[0] - 1)[0]
         sim_mat = sim_mat[keep_idx][:, keep_idx]
 
-        keep_dataset_names = [rna["rna"].name for i, rna in  enumerate(dataset) if i in keep_idx]
+        keep_dataset_names = [rna["rna"].name for i, rna in enumerate(dataset) if i in keep_idx]
         return sim_mat, keep_dataset_names
