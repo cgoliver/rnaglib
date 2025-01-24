@@ -8,8 +8,9 @@ from rnaglib.transforms import GraphRepresentation
 
 ta = ChemicalModification(
     root="RNA_CM",
-    recompute=True,
-    distance_computers=[RNAalignComputer(structures_path=str(os.path.join(os.path.expanduser("~"), ".rnaglib/structures")))],
+    recompute=False,
+    debug=True,
+    distance_computers=[RNAalignComputer()],
     redundancy_remover = RedundancyRemover(distance_name="rna_align"),
     splitter=ClusterSplitter(distance_name="rna_align"),
 )

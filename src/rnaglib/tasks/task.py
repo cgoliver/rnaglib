@@ -36,17 +36,17 @@ class Task:
     """
 
     def __init__(
-        self,
-        root: str | os.PathLike,
-        recompute: bool = False,
-        splitter: Splitter = None,
-        debug: bool = False,
-        save: bool = True,
-        in_memory: bool = False,
-        size_thresholds: float = None,
-        multi_label=False,
-        distance_computers: list[DistanceComputer] = [],
-        redundancy_remover: RedundancyRemover = None,
+            self,
+            root: str | os.PathLike,
+            recompute: bool = False,
+            splitter: Splitter = None,
+            debug: bool = False,
+            save: bool = True,
+            in_memory: bool = False,
+            size_thresholds: float = None,
+            multi_label=False,
+            distance_computers: list[DistanceComputer] = [],
+            redundancy_remover: RedundancyRemover = None,
     ):
         self.root = root
         self.dataset_path = os.path.join(self.root, "dataset")
@@ -69,17 +69,14 @@ class Task:
             print(">>> Creating task dataset from scratch...")
             self.dataset = self.process()
         else:
-            (
-                self.dataset,
-                self.metadata,
-                (self.train_ind, self.val_ind, self.test_ind),
-            ) = self.load()
+            self.dataset, self.metadata, (self.train_ind, self.val_ind, self.test_ind) = self.load()
 
         self.dataset.features_computer = self.get_task_vars()
 
         # Apply the distances computations specified in self.distance_computers
         for distance_computer in self.distance_computers:
             self.dataset = distance_computer(self.dataset)
+        self.dataset.save(self.dataset_path, recompute=False)
 
         # Remove redundancy if specified
         if self.redundancy_remover is not None:
@@ -208,9 +205,6 @@ class Task:
         with open(Path(self.root) / "metadata.json", "w") as meta:
             json.dump(self.metadata, meta, indent=4)
 
-        if hasattr(self.dataset, "distances"):
-            self.save_distances()
-
         # task id is only available (and tractable) for small, in-memory datasets
         if self.in_memory:
             with open(Path(self.root) / "task_id.txt", "w") as tid:
@@ -228,18 +222,6 @@ class Task:
 
         with Path.open(Path(self.root) / "metadata.json") as meta:
             metadata = json.load(meta)
-
-        # Load distances if they exist
-        
-        list_path = Path(self.root) / "distances_names_list.csv"
-        if list_path.exists() and not self.recompute:
-            with Path.open(list_path) as f:
-                reader = csv.reader(f)
-                distances_names_list = list(next(reader))
-            for distance_name in distances_names_list:
-                array_path = Path(self.root) / distance_name + "distances_array.csv"
-                distances_array = np.loadtxt(array_path, delimiter=",")
-                dataset.distances[distance_name] = distances_array
 
         return dataset, metadata, (train_ind, val_ind, test_ind)
 
@@ -352,25 +334,6 @@ class Task:
         else:
             all_rnas.append(rna.name)
             dump_json(os.path.join(self.dataset_path, f"{rna.name}.json"), rna)
-
-    def save_distances(self):
-        """Save distance matrix if computed."""
-        # Get the distances dictionary
-        distances = self.dataset.distances
-
-        for distance_name in distances:
-            # Save distance array as CSV
-            print(f'type(distance_name)={type(distance_name)}')
-            print(f"""type("distances_array.csv")={type("distances_array.csv")}""")
-            distances_array_path = distance_name + "distances_array.csv"
-            array_path = Path(self.root) / distances_array_path
-            np.savetxt(array_path, distances[distance_name], delimiter=",")
-
-        # Save distances[1] list as CSV
-        list_path = Path(self.root) / "distances_names_list.csv"
-        with Path.open(list_path, "w", newline="") as f:
-            writer = csv.writer(f)
-            writer.writerow(distance_name)
 
     def compute_distances(self):
         self.dataset = self.dataset.similarity_matrix_computer.compute_distances(self.dataset)
