@@ -3,7 +3,7 @@ from rnaglib.transforms import GraphRepresentation
 from rnaglib.learning.task_models import PygModel
 
 # Creating task
-ta = BindingSite(root="RNA_Site", debug=False, recompute=True)
+ta = BindingSite(root="RNA_Site", debug=True, recompute=True)
 
 # Add representation
 ta.dataset.add_representation(GraphRepresentation(framework="pyg"))

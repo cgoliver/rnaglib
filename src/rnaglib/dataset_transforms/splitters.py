@@ -1,7 +1,7 @@
 from collections import defaultdict
 import requests
 
-from rnaglib.splitters import random_split
+from rnaglib.dataset_transforms import random_split
 
 SPLITTING_VARS = {
     "TR60": [

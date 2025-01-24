@@ -4,8 +4,7 @@ import numpy as np
 from tqdm import tqdm
 
 from rnaglib.algorithms import get_sequences
-from rnaglib.data_loading import RNADataset
-from rnaglib.distance_computer import DistanceComputer
+from .distance_computer import DistanceComputer
 from rnaglib.utils import cdhit_wrapper
 
 class CDHitComputer(DistanceComputer):
@@ -17,7 +16,7 @@ class CDHitComputer(DistanceComputer):
         self.similarity_threshold = similarity_threshold
         super().__init__(name="cd_hit", **kwargs)
         
-    def forward(self, dataset: RNADataset) -> tuple[np.array, list]:
+    def forward(self, dataset) -> tuple[np.array, list]:
         """Computes sequence similarity between all pairs of RNAs.
 
         To deal with multi-chain RNAs we cluster all chains independently

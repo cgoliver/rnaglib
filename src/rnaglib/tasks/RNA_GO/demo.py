@@ -2,7 +2,7 @@ from rnaglib.tasks import RNAGo
 from rnaglib.transforms import GraphRepresentation
 from rnaglib.learning.task_models import PygModel
 
-ta = RNAGo(root="RNA_GO", debug=False)
+ta = RNAGo(root="RNA_GO", recompute=True, debug=False)
 
 ta.dataset.add_representation(GraphRepresentation(framework="pyg"))
 

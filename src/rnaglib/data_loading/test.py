@@ -5,7 +5,7 @@ from rnaglib.representations import PointCloudRepresentation, VoxelRepresentatio
 from rnaglib.data_loading import RNADataset, get_loader, FeaturesComputer
 from rnaglib.kernels import node_sim
 from rnaglib.data_loading import Collater
-from rnaglib.splitters import split_dataset
+from rnaglib.dataset_transforms import split_dataset
 
 features_computer = FeaturesComputer(nt_features='nt_code', nt_targets='binding_protein')
 da = RNADataset(features_computer=features_computer)

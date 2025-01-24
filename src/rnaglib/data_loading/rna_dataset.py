@@ -126,6 +126,8 @@ class RNADataset:
             else:
                 self.rnas = None
         else:
+            self.dataset_path = None
+            self.structures_path = None
             assert in_memory, (
                 "Conflicting arguments: if an RNADataset is instantiated with a list of graphs, "
                 "it must use 'in_memory=True'"
@@ -143,7 +145,10 @@ class RNADataset:
 
         # Distance is computed as a cached property
         self.distances_ = None
-        self.distances_path = os.path.join(self.dataset_path, "distances.npz")
+        if self.dataset_path is not None:
+            self.distances_path = os.path.join(self.dataset_path, "distances.npz")
+        else:
+            self.distances_path = None
 
         # Now that we have the raw data setup, let us set up the features we want to be using:
         self.features_computer = FeaturesComputer() if features_computer is None else features_computer

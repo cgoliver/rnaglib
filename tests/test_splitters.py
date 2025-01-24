@@ -3,9 +3,9 @@ import tempfile
 from pathlib import Path
 
 from rnaglib.data_loading import RNADataset
-from rnaglib.splitters import RandomSplitter
-from rnaglib.splitters import RNAalignSplitter
-from rnaglib.splitters import CDHitSplitter
+from rnaglib.dataset_transforms import RandomSplitter
+from rnaglib.dataset_transforms import ClusterSplitter
+from rnaglib.dataset_transforms import CDHitComputer, StructureDistanceComputer
 from rnaglib.transforms import FeaturesComputer
 from rnaglib.utils import available_pdbids
 
@@ -35,20 +35,24 @@ class SplitterTest(unittest.TestCase):
             self.check_splits(train, val, test)
             pass
 
-    def test_RNAalignSplitter(self):
+    def test_USalignSplitter(self):
         with tempfile.TemporaryDirectory() as tmpdir:
-            splitter = RNAalignSplitter(structures_dir=self.dataset.structures_path, similarity_threshold=0.7)
+            distance_computer = StructureDistanceComputer(name="USalign",structures_path=self.dataset.structures_path)
+            splitter = ClusterSplitter(similarity_threshold=0.7, distance_name="USalign")
             dataset = self.dataset
             dataset.features_computer = FeaturesComputer(nt_targets="is_modified")
+            dataset = distance_computer(dataset)
             train, val, test = splitter(dataset)
             self.check_splits(train, val, test)
         pass
 
     def test_CDHitSplitter(self):
         with tempfile.TemporaryDirectory() as tmpdir:
-            splitter = CDHitSplitter(similarity_threshold=0.7)
+            distance_computer = CDHitComputer(similarity_threshold=0.7)
+            splitter = ClusterSplitter(similarity_threshold=0.7, distance_name="cd_hit")
             dataset = self.dataset
             dataset.features_computer = FeaturesComputer(nt_targets="is_modified")
+            dataset = distance_computer(dataset)
             train, val, test = splitter(dataset)
             self.check_splits(train, val, test)
         pass

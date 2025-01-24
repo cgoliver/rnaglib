@@ -1,12 +1,10 @@
 import numpy as np
 from scipy.sparse.csgraph import connected_components
 
-from rnaglib.data_loading import RNADataset
-
 class RedundancyRemover:
     def __init__(
         self,
-        distance_name: str = "rna_align",
+        distance_name: str = "USalign",
         threshold: float = 0.95,
     ):
         self.distance_name = distance_name
