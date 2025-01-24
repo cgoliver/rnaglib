@@ -9,6 +9,7 @@ from rnaglib.encoders import IntMappingEncoder
 from rnaglib.transforms import FeaturesComputer, AnnotatorFromDict, PartitionFromDict, ResolutionFilter
 from rnaglib.dataset_transforms import ClusterSplitter, StructureDistanceComputer, RedundancyRemover
 
+
 class LigandIdentification(RNAClassificationTask):
     """Binding pocket-level task where the job is to predict the (small molecule) ligand which is the most likely
     to bind a binding pocket with a given structure
@@ -17,19 +18,26 @@ class LigandIdentification(RNAClassificationTask):
     target_var = "ligand"
     ligands_nb = 10
 
-    def __init__(self, root, data_filename, splitter=ClusterSplitter(distance_name="USalign"), size_thresholds=[5, 500], distance_computers=[StructureDistanceComputer(name="USalign")], redundancy_remover=RedundancyRemover(distance_name="USalign"), **kwargs):
-        self.data_path  = os.path.join(os.path.dirname(__file__), "data", data_filename)
+    def __init__(self, root, data_filename,
+                 size_thresholds=(10, 500),
+                 distance_computers=StructureDistanceComputer(name="USalign"),
+                 redundancy_remover=RedundancyRemover(distance_name="USalign"),
+                 splitter=ClusterSplitter(distance_name="USalign"),
+                 **kwargs):
+        self.data_path = os.path.join(os.path.dirname(__file__), "data", data_filename)
         binding_pockets = pd.read_csv(self.data_path)
-        binding_pockets3 = binding_pockets[["RNA", "bp_id", "nid"]].groupby(["RNA", "bp_id"])["nid"].apply(lambda x: x.to_list())
+        binding_pockets3 = binding_pockets[["RNA", "bp_id", "nid"]].groupby(["RNA", "bp_id"])["nid"].apply(
+            lambda x: x.to_list())
 
         # create a dict where key is RNA name and values are lists of lists [[residue 1 of binding pocket 1,...,residue N of BP 1],...,[residue 1 of BP k,...]]
         self.bp_dict = {
             rna: [binding_pockets3[rna, bp_idx] for bp_idx in binding_pockets3[rna].index]
             for rna in binding_pockets3.index.droplevel(1)
         }
-        self.ligands_dict = {rna_ligand[0]:rna_ligand[1] for rna_ligand in binding_pockets[["nid","ligand"]].values}
+        self.ligands_dict = {rna_ligand[0]: rna_ligand[1] for rna_ligand in binding_pockets[["nid", "ligand"]].values}
         self.nodes_keep = list(self.bp_dict.keys())
-        super().__init__(root=root, splitter=splitter, size_thresholds=size_thresholds, distance_computers=distance_computers, redundancy_remover=redundancy_remover, **kwargs)
+        super().__init__(root=root, splitter=splitter, size_thresholds=size_thresholds,
+            distance_computers=distance_computers, redundancy_remover=redundancy_remover, **kwargs)
 
     def process(self):
         # Initialize dataset with in_memory=False to avoid loading everything at once
@@ -77,7 +85,7 @@ class LigandIdentification(RNAClassificationTask):
         # Remove redundancy if specified
         if self.redundancy_remover is not None:
             dataset = self.redundancy_remover(dataset)
-            
+
         return dataset
 
     def get_task_vars(self) -> FeaturesComputer:

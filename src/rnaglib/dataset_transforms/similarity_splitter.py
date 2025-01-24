@@ -1,60 +1,48 @@
 """Various splitters taking similarity into account for RNA tasks."""
 
-import itertools
-import os
-import tempfile
-from collections import Counter, defaultdict
+from collections import Counter
 from collections.abc import Iterable
-from functools import reduce
-from pathlib import Path
 
 import numpy as np
-from joblib import Parallel, delayed
 from scipy.sparse.csgraph import connected_components
-from tqdm import tqdm
 
-from rnaglib.algorithms import get_sequences
 from rnaglib.dataset_transforms import Splitter
 from rnaglib.dataset_transforms.linear_optimisation import assign_clusters
 from rnaglib.dataset_transforms.splitting_utils import label_counter
-from rnaglib.utils import (
-    US_align_wrapper,
-    cdhit_wrapper,
-    cif_remove_residues,
-    clean_mmcif,
-)
-from rnaglib.utils.misc import filter_cif_with_res
+
 
 class ClusterSplitter(Splitter):
     """Abstract class for splitting by clustering with a similarity function."""
 
     def __init__(
-        self,
-        similarity_threshold: float = 0.5,
-        n_jobs: int = -1,
-        seed: int = 0,
-        balanced: bool = True,
-        distance_name: str = "USalign",
-        *args,
-        **kwargs,
+            self,
+            similarity_threshold: float = 0.5,
+            n_jobs: int = -1,
+            seed: int = 0,
+            balanced: bool = True,
+            distance_name: str = "USalign",
+            verbose=False,
+            *args,
+            **kwargs,
     ):
         self.similarity_threshold = similarity_threshold
         self.n_jobs = n_jobs
         self.seed = seed
         self.balanced = balanced
         self.distance_name = distance_name
+        self.verbose = verbose
         super().__init__(**kwargs)
 
     def forward(self, dataset):
         clusters = self.cluster_split(dataset, frac=0, split=False)
         _, label_counts = label_counter(dataset)
-        print(f"dataset:{dataset}")
-        print(f"label_counts:{label_counts}")
+        # print(f"dataset:{dataset}")
+        # print(f"label_counts:{label_counts}")
         named_clusters = []
         for cluster in clusters:
             named_clusters.append([dataset[i]["rna"].name for i in cluster])
-        print(f"names:{named_clusters}")
-        print(f"clusters: {clusters}")
+        # print(f"names:{named_clusters}")
+        # print(f"clusters: {clusters}")
         train, val, test = self.balancer(
             named_clusters,
             label_counts,
@@ -78,24 +66,25 @@ class ClusterSplitter(Splitter):
         labelcounts = []
         for cluster in clusters:
             # Summing all the label counts from each element of the cluster
-            print(f"cluster:{cluster}")
+            # print(f"cluster:{cluster}")
 
             labelcount = sum([label_counts[i] for i in cluster], Counter())
-            print(f"labelcount:{labelcount}")
+            # print(f"labelcount:{labelcount}")
             labelcounts.append(labelcount)
 
-        overall_counts = reduce(lambda x, y: x + y, labelcounts)
-        print(f"overall_counts:{overall_counts}")
+        # overall_counts = reduce(lambda x, y: x + y, labelcounts)
+        # print(f"overall_counts:{overall_counts}")
 
-        print(f"balanced:{self.balanced}")
+        # print(f"balanced:{self.balanced}")
         train, val, test, metrics = assign_clusters(
             clusters,
             labelcounts,
             split_ratios=fracs,
             label_weight=int(self.balanced),
+            verbose=self.verbose
         )
 
-        print(f"metrics:{metrics}")
+        # print(f"metrics:{metrics}")
         return (
             [x for x in range(len(dataset)) if dataset[x]["rna"].name in sum(train, [])],
             [x for x in range(len(dataset)) if dataset[x]["rna"].name in sum(val, [])],
@@ -130,11 +119,10 @@ class ClusterSplitter(Splitter):
         :param n: portion of the test set size to use as largest test set cluster size
         :param split: if split is False, we return all clusters instead of splitting them
         """
-        print("Computing similarity matrix...")
         if not self.distance_name in dataset.distances:
             raise ValueError(f"The distance matrix using distances {self.distance_name} has not been computed")
 
-        similarity_matrix = 1-dataset.distances[self.distance_name]
+        similarity_matrix = 1 - dataset.distances[self.distance_name]
         adjacency_matrix = (similarity_matrix >= self.similarity_threshold).astype(int)
         n_components, labels = connected_components(adjacency_matrix)
 

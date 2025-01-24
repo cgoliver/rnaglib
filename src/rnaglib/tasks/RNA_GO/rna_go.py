@@ -18,8 +18,13 @@ class RNAGo(RNAClassificationTask):
     input_var = "nt_code"  # node level attribute
     target_var = "go_terms"  # graph level attribute
 
-    def __init__(self, root, splitter=ClusterSplitter(distance_name="USalign"), size_thresholds=[5, 500], distance_computers=[StructureDistanceComputer(name="USalign")], redundancy_remover=None, **kwargs):
-        super().__init__(root=root, splitter=splitter, size_thresholds=size_thresholds, distance_computers=distance_computers, redundancy_remover=redundancy_remover,multi_label=True, **kwargs)
+    def __init__(self, root,
+                 size_thresholds=(10, 500),
+                 distance_computers=StructureDistanceComputer(name="USalign"),
+                 splitter=ClusterSplitter(distance_name="USalign"),
+                 redundancy_remover=None, **kwargs):
+        super().__init__(root=root, splitter=splitter, size_thresholds=size_thresholds,
+            distance_computers=distance_computers, redundancy_remover=redundancy_remover, multi_label=True, **kwargs)
 
     def get_task_vars(self):
         return FeaturesComputer(
@@ -49,7 +54,7 @@ class RNAGo(RNAClassificationTask):
                 # numbering can look like 2-16. I assume this is residues 111-125.
                 _, chain, start, end = pdbsel.split('_')
                 pdb_chain_numbers = [node_name for node_name in list(sorted(rna_graph.nodes())) if
-                                    node_name.startswith(f'{pdb}.{chain}')]
+                                     node_name.startswith(f'{pdb}.{chain}')]
                 chunk_nodes = pdb_chain_numbers[int(start) - 1: int(end)]
                 subgraph = rna_graph.subgraph(chunk_nodes).copy()
                 subgraph.name = pdbsel
@@ -59,7 +64,7 @@ class RNAGo(RNAClassificationTask):
                 rfams_pdbsel = lines.loc[lines['pdbsel'] == pdbsel]['rfam_acc'].values
                 go_terms = [go for rfam_id in rfams_pdbsel for go in rfam_go_mapping[rfam_id]]
                 subgraph.graph['go_terms'] = list(set(go_terms))
-                
+
                 # Finally, apply quality filters
                 if len(subgraph) < 5 or len(subgraph.edges()) < 5:
                     continue

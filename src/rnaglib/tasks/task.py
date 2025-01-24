@@ -1,18 +1,16 @@
 """Abstract task classes"""
 
-import csv
+from collections.abc import Sequence
+from functools import cached_property
 import hashlib
 import json
-import os
-from functools import cached_property
-from pathlib import Path
-
 import numpy as np
-import torch
-import tqdm
+import os
+from pathlib import Path
 from sklearn.metrics import accuracy_score, f1_score, matthews_corrcoef, roc_auc_score
+import torch
 from torch.utils.data import DataLoader
-from scipy.sparse.csgraph import connected_components
+import tqdm
 
 from rnaglib.data_loading import Collater, RNADataset
 from rnaglib.transforms import FeaturesComputer, SizeFilter
@@ -41,9 +39,9 @@ class Task:
             debug: bool = False,
             save: bool = True,
             in_memory: bool = False,
-            size_thresholds: float = None,
+            size_thresholds: Sequence = None,
             multi_label=False,
-            distance_computers: list[DistanceComputer] = [],
+            distance_computers: DistanceComputer | list[DistanceComputer] = (),
             redundancy_remover: RedundancyRemover = None,
     ):
         self.root = root
@@ -54,20 +52,22 @@ class Task:
         self.in_memory = in_memory
         self.size_thresholds = size_thresholds
         self.multi_label = multi_label
-        self.distance_computers = distance_computers
+        self.distance_computers = [distance_computers] if not isinstance(distance_computers,
+            Sequence) else distance_computers
         self.redundancy_remover = redundancy_remover
-        self.metadata = self.init_metadata()
 
-        # instantiate the Size filter if required
-        if self.size_thresholds is not None:
-            self.size_filter = SizeFilter(size_thresholds[0], size_thresholds[1])
+        self.metadata = self.init_metadata()
 
         # Load or create dataset
         if not os.path.exists(self.dataset_path) or recompute:
             print(">>> Creating task dataset from scratch...")
+            # instantiate the Size filter if required
+            if self.size_thresholds is not None:
+                self.size_filter = SizeFilter(size_thresholds[0], size_thresholds[1])
             self.dataset = self.process()
         else:
-            self.dataset, self.metadata, (self.train_ind, self.val_ind, self.test_ind) = self.load()
+            # self.dataset, self.metadata, (self.train_ind, self.val_ind, self.test_ind) = self.load()
+            self.load()
 
         self.dataset.features_computer = self.get_task_vars()
 
@@ -204,15 +204,16 @@ class Task:
         """Load dataset and splits from disk."""
         # load splits
         print(">>> Loading precomputed dataset...")
-        train_ind = [int(ind) for ind in open(os.path.join(self.root, "train_idx.txt")).readlines()]
-        val_ind = [int(ind) for ind in open(os.path.join(self.root, "val_idx.txt")).readlines()]
-        test_ind = [int(ind) for ind in open(os.path.join(self.root, "test_idx.txt")).readlines()]
-        dataset = RNADataset(dataset_path=self.dataset_path, in_memory=self.in_memory, debug=self.debug)
+        self.train_ind = [int(ind) for ind in open(os.path.join(self.root, "train_idx.txt")).readlines()]
+        self.val_ind = [int(ind) for ind in open(os.path.join(self.root, "val_idx.txt")).readlines()]
+        self.test_ind = [int(ind) for ind in open(os.path.join(self.root, "test_idx.txt")).readlines()]
+
+        self.dataset = RNADataset(dataset_path=self.dataset_path, in_memory=self.in_memory, debug=self.debug)
 
         with Path.open(Path(self.root) / "metadata.json") as meta:
-            metadata = json.load(meta)
+            self.metadata = json.load(meta)
 
-        return dataset, metadata, (train_ind, val_ind, test_ind)
+        return self.dataset, self.metadata, (self.train_ind, self.val_ind, self.test_ind)
 
     def __eq__(self, other):
         return self.task_id == other.task_id

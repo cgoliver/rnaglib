@@ -1,10 +1,11 @@
 class DistanceComputer:
-    def __init__(self, name):
+    def __init__(self, name, recompute=False):
         self.name = name
+        self.recompute = recompute
         pass
 
     def __call__(self, dataset):
-        if dataset.distances is None or self.name not in dataset.distances:
+        if dataset.distances is None or self.name not in dataset.distances or self.recompute:
             similarity_matrix, keep_dataset_names = self.forward(dataset)
             if len(keep_dataset_names) != len(dataset):
                 print(

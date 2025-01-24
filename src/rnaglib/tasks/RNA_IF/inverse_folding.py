@@ -8,22 +8,27 @@ from sklearn.metrics import matthews_corrcoef, f1_score, accuracy_score, roc_auc
 
 from rnaglib.data_loading import RNADataset
 from rnaglib.transforms import FeaturesComputer, DummyAnnotator, ComposeFilters, RibosomalFilter, RNAAttributeFilter
-from rnaglib.transforms import NameFilter, ChainFilter, ChainSplitTransform, ChainNameTransform, ConnectedComponentPartition
+from rnaglib.transforms import NameFilter, ChainFilter, ChainSplitTransform, ChainNameTransform, \
+    ConnectedComponentPartition
 from rnaglib.tasks import ResidueClassificationTask
 from rnaglib.encoders import BoolEncoder, NucleotideEncoder
 from rnaglib.dataset_transforms import NameSplitter
 from rnaglib.dataset_transforms import ClusterSplitter, StructureDistanceComputer, RedundancyRemover
 
 
-
 class InverseFolding(ResidueClassificationTask):
     target_var = "nt_code"  # in rna graph
     input_var = "dummy"  # should be dummy variable
     nucs = ["A", "C", "G", "U"]
-    size_thresholds = [5,300]
 
-    def __init__(self, root, splitter=ClusterSplitter(distance_name="USalign"), size_thresholds=[5, 500], distance_computers=[StructureDistanceComputer(name="USalign")], redundancy_remover=RedundancyRemover(distance_name="USalign"), **kwargs):
-        super().__init__(root=root, splitter=splitter, size_thresholds=size_thresholds, distance_computers=distance_computers, redundancy_remover=redundancy_remover, **kwargs)
+    def __init__(self, root,
+                 size_thresholds=(10, 300),
+                 distance_computers=StructureDistanceComputer(name="USalign"),
+                 redundancy_remover=RedundancyRemover(distance_name="USalign"),
+                 splitter=ClusterSplitter(distance_name="USalign"),
+                 **kwargs):
+        super().__init__(root=root, splitter=splitter, size_thresholds=size_thresholds,
+            distance_computers=distance_computers, redundancy_remover=redundancy_remover, **kwargs)
 
     def process(self) -> RNADataset:
         # build the filters
