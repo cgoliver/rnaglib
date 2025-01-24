@@ -6,8 +6,8 @@ import json
 from rnaglib.tasks import RNAClassificationTask
 from rnaglib.data_loading import RNADataset
 from rnaglib.encoders import IntMappingEncoder
-from rnaglib.transforms import (FeaturesComputer, AnnotatorFromDict, PartitionFromDict, ResolutionFilter,
-                                ComposeFilters, ResidueAttributeFilter)
+from rnaglib.transforms import FeaturesComputer, AnnotatorFromDict, PartitionFromDict, ResolutionFilter
+from rnaglib.dataset_transforms import ClusterSplitter, StructureDistanceComputer, RedundancyRemover
 
 class LigandIdentification(RNAClassificationTask):
     """Binding pocket-level task where the job is to predict the (small molecule) ligand which is the most likely
@@ -16,9 +16,8 @@ class LigandIdentification(RNAClassificationTask):
     input_var = "nt_code"
     target_var = "ligand"
     ligands_nb = 10
-    size_thresholds=[5,500]
 
-    def __init__(self, root, data_filename, splitter=None, **kwargs):
+    def __init__(self, root, data_filename, splitter=ClusterSplitter(distance_name="USalign"), size_thresholds=[5, 500], distance_computers=[StructureDistanceComputer(name="USalign")], redundancy_remover=RedundancyRemover(distance_name="USalign"), **kwargs):
         self.data_path  = os.path.join(os.path.dirname(__file__), "data", data_filename)
         binding_pockets = pd.read_csv(self.data_path)
         binding_pockets3 = binding_pockets[["RNA", "bp_id", "nid"]].groupby(["RNA", "bp_id"])["nid"].apply(lambda x: x.to_list())
@@ -30,7 +29,7 @@ class LigandIdentification(RNAClassificationTask):
         }
         self.ligands_dict = {rna_ligand[0]:rna_ligand[1] for rna_ligand in binding_pockets[["nid","ligand"]].values}
         self.nodes_keep = list(self.bp_dict.keys())
-        super().__init__(root=root, splitter=splitter, size_thresholds=self.size_thresholds, **kwargs)
+        super().__init__(root=root, splitter=splitter, size_thresholds=size_thresholds, distance_computers=distance_computers, redundancy_remover=redundancy_remover, **kwargs)
 
     def process(self):
         # Initialize dataset with in_memory=False to avoid loading everything at once
@@ -69,6 +68,16 @@ class LigandIdentification(RNAClassificationTask):
         top_ligand_binding_pockets = [all_binding_pockets[i] for i in indices_to_keep]
 
         dataset = self.create_dataset_from_list(top_ligand_binding_pockets)
+
+        # Apply the distances computations specified in self.distance_computers
+        for distance_computer in self.distance_computers:
+            dataset = distance_computer(dataset)
+        dataset.save(self.dataset_path, recompute=False)
+
+        # Remove redundancy if specified
+        if self.redundancy_remover is not None:
+            dataset = self.redundancy_remover(dataset)
+            
         return dataset
 
     def get_task_vars(self) -> FeaturesComputer:

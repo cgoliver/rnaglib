@@ -14,9 +14,9 @@ from scipy.sparse.csgraph import connected_components
 from tqdm import tqdm
 
 from rnaglib.algorithms import get_sequences
-from rnaglib.splitters import Splitter
-from rnaglib.splitters.linear_optimisation import assign_clusters
-from rnaglib.splitters.splitting_utils import label_counter
+from rnaglib.dataset_transforms import Splitter
+from rnaglib.dataset_transforms.linear_optimisation import assign_clusters
+from rnaglib.dataset_transforms.splitting_utils import label_counter
 from rnaglib.utils import (
     US_align_wrapper,
     cdhit_wrapper,
@@ -34,7 +34,7 @@ class ClusterSplitter(Splitter):
         n_jobs: int = -1,
         seed: int = 0,
         balanced: bool = True,
-        distance_name: str = "rna_align",
+        distance_name: str = "USalign",
         *args,
         **kwargs,
     ):

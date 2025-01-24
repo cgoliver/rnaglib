@@ -7,22 +7,21 @@ import numpy as np
 from joblib import Parallel, delayed
 from tqdm import tqdm
 
-from rnaglib.data_loading.rna_dataset import RNADataset
-from rnaglib.data_loading import RNADataset
-from rnaglib.distance_computer import DistanceComputer
+from .distance_computer import DistanceComputer
 from rnaglib.utils import (
     US_align_wrapper,
     rna_align_wrapper,
     clean_mmcif,
 )
 from rnaglib.utils.misc import filter_cif_with_res
+from rnaglib.utils.graph_io import get_default_download_dir
  
 class StructureDistanceComputer(DistanceComputer):
     def __init__(
         self,
         name: str = "USalign",
         use_substructures: bool = True,
-        structures_path: Path = os.path.join(os.path.expanduser("~"), ".rnaglib/structures"),
+        structures_path: Path = None,
         n_jobs: int = -1,
         **kwargs,
     ):
@@ -32,7 +31,7 @@ class StructureDistanceComputer(DistanceComputer):
         self.n_jobs = n_jobs
         super().__init__(name=self.name,**kwargs)
 
-    def forward(self, dataset: RNADataset):
+    def forward(self, dataset):
         """Computes pairwise structural similarity between all pairs of RNAs with rna-align. Stalls with RNAs > 200 nts.
 
         :param dataset: RNA dataset to compute similarity over.
@@ -40,6 +39,11 @@ class StructureDistanceComputer(DistanceComputer):
         """
         if self.name not in ["RNAalign","USalign"]:
             raise ValueError("""name must be 'RNAalign' or 'USalign'""")
+        
+        # set default structures dir if a specific directory wasn't specified by the user
+        if self.structures_path is None:
+            dirname = get_default_download_dir()
+            self.structures_path = os.path.join(dirname, "structures")
 
         with tempfile.TemporaryDirectory() as tmpdir:
             print('dumping structures...')
@@ -47,7 +51,7 @@ class StructureDistanceComputer(DistanceComputer):
             all_pdb_path = []
             for idx, rna in tqdm(enumerate(dataset), total=len(dataset)):
                 rna_graph = rna["rna"]
-                cif_path = Path(self.structures_dir) / f"{rna_graph.graph['pdbid'].lower()}.cif"
+                cif_path = Path(self.structures_path) / f"{rna_graph.graph['pdbid'].lower()}.cif"
                 if self.use_substructures:
                     reslist = [(n.split(".")[1], int(n.split(".")[2])) for n in rna["rna"].nodes()]
                     new_cif = os.path.join(tmpdir, f"{rna_graph.name}.cif")

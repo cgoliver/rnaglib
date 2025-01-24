@@ -1,6 +1,6 @@
 from rnaglib.data_loading import RNADataset
 from rnaglib.tasks import ResidueClassificationTask
-from rnaglib.splitters import DasSplitter, RandomSplitter
+from rnaglib.dataset_transforms import DasSplitter, RandomSplitter
 from networkx import set_node_attributes
 
 from rnaglib.utils import load_index

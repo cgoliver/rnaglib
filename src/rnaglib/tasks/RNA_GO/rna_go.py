@@ -4,6 +4,7 @@ from rnaglib.data_loading import RNADataset
 from rnaglib.tasks import RNAClassificationTask
 from rnaglib.encoders import MultiLabelOneHotEncoder
 from rnaglib.transforms import FeaturesComputer
+from rnaglib.dataset_transforms import ClusterSplitter, StructureDistanceComputer, RedundancyRemover
 from rnaglib.utils.rfam_utils import get_frequent_go_pdbsel
 
 
@@ -16,10 +17,9 @@ class RNAGo(RNAClassificationTask):
 
     input_var = "nt_code"  # node level attribute
     target_var = "go_terms"  # graph level attribute
-    size_thresholds = [5,500]
 
-    def __init__(self, **kwargs):
-        super().__init__(multi_label=True, size_thresholds=self.size_thresholds, **kwargs)
+    def __init__(self, root, splitter=ClusterSplitter(distance_name="USalign"), size_thresholds=[5, 500], distance_computers=[StructureDistanceComputer(name="USalign")], redundancy_remover=None, **kwargs):
+        super().__init__(root=root, splitter=splitter, size_thresholds=size_thresholds, distance_computers=distance_computers, redundancy_remover=redundancy_remover,multi_label=True, **kwargs)
 
     def get_task_vars(self):
         return FeaturesComputer(
@@ -72,8 +72,18 @@ class RNAGo(RNAClassificationTask):
                 self.add_rna_to_building_list(all_rnas=all_rnas, rna=subgraph)
         dataset = self.create_dataset_from_list(all_rnas)
 
+        # Apply the distances computations specified in self.distance_computers
+        for distance_computer in self.distance_computers:
+            dataset = distance_computer(dataset)
+        dataset.save(self.dataset_path, recompute=False)
+
+        # Remove redundancy if specified
+        if self.redundancy_remover is not None:
+            dataset = self.redundancy_remover(dataset)
+
         # compute one-hot mapping of labels
         unique_gos = sorted({go for system_gos in rfam_go_mapping.values() for go in system_gos})
         rfam_mapping = {rfam: i for i, rfam in enumerate(unique_gos)}
         self.metadata["label_mapping"] = rfam_mapping
+
         return dataset

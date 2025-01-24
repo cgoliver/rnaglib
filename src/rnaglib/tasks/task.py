@@ -15,11 +15,9 @@ from torch.utils.data import DataLoader
 from scipy.sparse.csgraph import connected_components
 
 from rnaglib.data_loading import Collater, RNADataset
-from rnaglib.splitters import RandomSplitter, Splitter
 from rnaglib.transforms import FeaturesComputer, SizeFilter
 from rnaglib.utils import DummyGraphModel, DummyResidueModel, dump_json, tonumpy
-from rnaglib.distance_computer import DistanceComputer
-from rnaglib.redundancy_remover import RedundancyRemover
+from rnaglib.dataset_transforms import RandomSplitter, Splitter, DistanceComputer, RedundancyRemover
 
 
 class Task:
@@ -31,7 +29,7 @@ class Task:
 
     :param root: path to a folder where the task information will be stored for fast loading.
     :param recompute: whether to recompute the task info from scratch or use what is stored in root.
-    :param splitter: rnaglib.splitters.Splitter object that handles splitting of data into train/val/test indices.
+    :param splitter: rnaglib.dataset_transforms.Splitter object that handles splitting of data into train/val/test indices.
     If None uses task's default_splitter() attribute.
     """
 
@@ -72,15 +70,6 @@ class Task:
             self.dataset, self.metadata, (self.train_ind, self.val_ind, self.test_ind) = self.load()
 
         self.dataset.features_computer = self.get_task_vars()
-
-        # Apply the distances computations specified in self.distance_computers
-        for distance_computer in self.distance_computers:
-            self.dataset = distance_computer(self.dataset)
-        self.dataset.save(self.dataset_path, recompute=False)
-
-        # Remove redundancy if specified
-        if self.redundancy_remover is not None:
-            self.dataset = redundancy_remover(self.dataset)
 
         # Set splitter after dataset is available
         self.splitter = self.default_splitter if splitter is None else splitter

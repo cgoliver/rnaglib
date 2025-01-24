@@ -1,6 +1,6 @@
 from rnaglib.data_loading import RNADataset, FeaturesComputer
 from rnaglib.tasks import ResidueClassificationTask, RNAClassificationTask
-from rnaglib.splitters import RandomSplitter
+from rnaglib.dataset_transforms import RandomSplitter
 
 from rnaglib.utils import load_index
 import requests
