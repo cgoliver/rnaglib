@@ -78,5 +78,5 @@ class StructureDistanceComputer(DistanceComputer):
         keep_idx = np.where(row_nan_count != sim_mat.shape[0] - 1)[0]
         sim_mat = sim_mat[keep_idx][:, keep_idx]
 
-        keep_dataset_names = [rna["rna"].name for i, rna in  enumerate(dataset) if i in keep_idx]
+        keep_dataset_names = [rna["rna"].name for i, rna in enumerate(dataset) if i in keep_idx]
         return sim_mat, keep_dataset_names

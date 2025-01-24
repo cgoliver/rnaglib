@@ -14,7 +14,7 @@ class RedundancyRemover:
         pass
 
     def __call__(self, dataset):
-        if not self.distance_name in dataset.distances:
+        if dataset.distances is None or not self.distance_name in dataset.distances:
             raise ValueError(f"The distance matrix using distances {self.distance_name} has not been computed")
         
         adjacency_matrix = (dataset.distances[self.distance_name] <= 1-self.threshold).astype(int)
