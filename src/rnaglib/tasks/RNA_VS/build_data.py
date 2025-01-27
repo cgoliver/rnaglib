@@ -1,25 +1,22 @@
 import os
-import sys
 
 import networkx as nx
 import pickle
 from tqdm import tqdm
 
-if __name__ == "__main__":
-    sys.path = [os.path.join(os.path.abspath(os.path.dirname(__file__)), "../../..")] + sys.path
-
 from rnaglib.tasks.RNA_VS.ligands import MolGraphEncoder
-from rnaglib.utils import graph_from_pdbid, graph_io
+from rnaglib.utils import graph_io
+from rnaglib.data_loading import rna_from_pdbid
 
 
 def build_data(root, recompute=False):
     script_dir = os.path.dirname(__file__)
-    json_dump = os.path.join(script_dir, "../data/rna_vs/dataset.p")
+    json_dump = os.path.join(script_dir, "../data/rna_vs/dataset_as_json.json")
     train_groups, test_groups = pickle.load(open(json_dump, 'rb'))
     all_groups = {**train_groups, **test_groups}
 
     # Check data was properly downloaded by getting one graph
-    if graph_from_pdbid("1k73", redundancy='all') is None:
+    if rna_from_pdbid("1k73", redundancy='all') is None:
         raise FileNotFoundError("We could not fetch graphs, please be sure that you have downloaded all rna graphs. "
                                 "If you didn't, you can run: rnaglib_download -r all")
 
@@ -33,7 +30,7 @@ def build_data(root, recompute=False):
         if os.path.exists(pocket_path) and not recompute:
             continue
         pdb_id = group[:4].lower()
-        rglib_graph = graph_from_pdbid(pdb_id, redundancy='all')
+        rglib_graph = rna_from_pdbid(pdb_id, redundancy='all', verbose=False)['rna']
         if rglib_graph is None:
             failed_set.add(group)
             print(rglib_graph, 'not found')
@@ -46,6 +43,7 @@ def build_data(root, recompute=False):
     print(failed_set)
     print(f"{len(failed_set)}/{len(all_groups)} failed systems")
 
+    # Go through all the ligands in the dataset, and dump a precomputed DGL representation
     ligand_file = os.path.join(root, 'ligands.p')
     if not os.path.exists(ligand_file) or recompute:
         print("Processing ligands")

@@ -261,6 +261,11 @@ class RNADataset:
             rna_dict[rep.name] = rep(rna_graph, features_dict)
         return rna_dict
 
+    def get_by_name(self, rna_name):
+        """Grab an RNA by its pdbid"""
+        rna_idx = self.all_rnas[rna_name]
+        return self.__getitem__(rna_idx)
+
     def add_representation(self, representations: Union[List[Representation], Representation]):
         """Add a representation object to dataset.
 
