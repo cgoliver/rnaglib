@@ -14,6 +14,7 @@ def rna_from_pdbid(
     chop=False,
     redundancy="nr",
     download_dir=None,
+        verbose=True,
 ):
     """Fetch an annotated graph with a PDBID.
 
@@ -46,6 +47,7 @@ pass a path to the  `graph_dir` argument. """
             graph = build_graph_from_cif(cif_path, None)
 
     else:
-        print("Loading graph from local database...")
+        if verbose:
+            print("Loading graph from local database...")
         graph = {"rna": load_graph(graph_path)}
     return graph

@@ -1,5 +1,4 @@
 import os
-import sys
 
 import numpy as np
 import pickle
@@ -13,15 +12,19 @@ from rnaglib.tasks.RNA_VS.ligands import MolGraphEncoder
 
 class VirtualScreening:
     script_dir = os.path.dirname(__file__)
-    json_dump = os.path.join(script_dir, "../data/rna_vs/dataset.p")
+    json_dump = os.path.join(script_dir, "../data/rna_vs/dataset_as_json.json")
     trainval_groups, test_groups = pickle.load(open(json_dump, 'rb'))
 
     def __init__(self, root, ligand_framework='dgl', recompute=False):
         self.root = root
         self.recompute = recompute
+
+        # If not present, dump RNA and molecules as graphs
         self.build_dataset()
-        train_cut = int(0.9 * len(self.trainval_groups))
-        train_groups_keys = set(np.random.choice(list(self.trainval_groups.keys()), size=train_cut, replace=False))
+
+        # Get data splits
+        train_val_cut = int(0.9 * len(self.trainval_groups))
+        train_groups_keys = set(np.random.choice(list(self.trainval_groups.keys()), size=train_val_cut, replace=False))
         self.train_groups = {k: v for k, v in self.trainval_groups.items() if k in train_groups_keys}
         self.val_groups = {k: v for k, v in self.trainval_groups.items() if k not in train_groups_keys}
         # TODO: add support for pyg ligand graphs
@@ -74,7 +77,7 @@ class VirtualScreening:
 
 
 if __name__ == '__main__':
-    from rnaglib.representations.graph import GraphRepresentation
+    from rnaglib.transforms import GraphRepresentation
 
     # Create a task
     root = "../../data/tasks/rna_vs"
