@@ -42,7 +42,6 @@ class VSRNADataset(Dataset):
         # To load ligands
         self.ligand_embedder = ligand_embedder
 
-
     def add_inpocket_flag(self, graph, rna):
         # TODO also add for point representation and pyg graphs
         import dgl
@@ -97,17 +96,18 @@ class VSRNATestDataset(VSRNADataset):
 
 
 if __name__ == '__main__':
-    import pickle
+    import json
     from rnaglib.transforms import FeaturesComputer
     from rnaglib.transforms import GraphRepresentation
     from rnaglib.tasks.RNA_VS.build_data import build_data
     from rnaglib.tasks.RNA_VS.ligands import MolGraphEncoder
 
     script_dir = os.path.dirname(__file__)
-    json_dump = os.path.join(script_dir, "../data/rna_vs/dataset.p")
-    trainval_groups, test_groups = pickle.load(open(json_dump, 'rb'))
+    json_dump = os.path.join(script_dir, "data/dataset_as_json.json")
+    whole_data = json.load(open(json_dump, 'r'))
+    train_groups, test_groups = whole_data["trainval"], whole_data["test"]
 
-    root = "../data/rna_vs"
+    root = "data"
     build_data(root=root, recompute=False)
     ligand_encoder = MolGraphEncoder(cache_path=os.path.join(root, 'ligands.p'))
     features_computer = FeaturesComputer(nt_features=['nt_code'])

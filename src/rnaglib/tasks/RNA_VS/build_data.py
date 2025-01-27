@@ -1,18 +1,24 @@
+import json
 import os
-
 import networkx as nx
 import pickle
 from tqdm import tqdm
+
 
 from rnaglib.tasks.RNA_VS.ligands import MolGraphEncoder
 from rnaglib.utils import graph_io
 from rnaglib.data_loading import rna_from_pdbid
 
 
+
 def build_data(root, recompute=False):
     script_dir = os.path.dirname(__file__)
-    json_dump = os.path.join(script_dir, "../data/rna_vs/dataset_as_json.json")
-    train_groups, test_groups = pickle.load(open(json_dump, 'rb'))
+    json_dump = os.path.join(script_dir, "data/dataset_as_json.json")
+    if not os.path.exists(json_dump):
+        json_dump_compressed = os.path.join(script_dir, "data/dataset_compressed.json")
+        expand_compressed_data(in_path=json_dump_compressed, out_path=json_dump)
+    whole_data = json.load(open(json_dump, 'r'))
+    train_groups, test_groups = whole_data["trainval"], whole_data["test"]
     all_groups = {**train_groups, **test_groups}
 
     # Check data was properly downloaded by getting one graph
@@ -62,6 +68,67 @@ def build_data(root, recompute=False):
         pickle.dump(all_mol_graphs, open(ligand_file, 'wb'))
 
 
+def compress_migos_data(in_path="data/dataset_as_json.json", out_path="data/dataset_compressed.json"):
+    """
+    To go from the format in migos, with list of smiles, to more lightweight lists of ids.
+
+    We use the compressed format for distributing the data.
+    :param in_path:
+    :param out_path:
+    :return:
+    """
+    whole_data = json.load(open(in_path, 'r'))
+    trainval_groups, test_groups = whole_data["trainval"], whole_data["test"]
+    mol_to_id = dict()
+    max_mol = 0
+    reduced_datasets = []
+    for dataset in [trainval_groups, test_groups]:
+        dataset_reduced = dataset.copy()
+        for k, v in dataset.items():
+            for mol_name in ['actives', 'pdb_decoys', 'chembl_decoys']:
+                mol_name_mapping = []
+                for mol in v[mol_name]:
+                    if mol not in mol_to_id:
+                        mol_to_id[mol] = max_mol
+                        max_mol += 1
+                    mol_name_mapping.append(mol_to_id[mol])
+                dataset_reduced[k][mol_name] = mol_name_mapping
+        reduced_datasets.append(dataset_reduced)
+
+    compressed_data = {
+        'compressed_trainval_groups': reduced_datasets[0],
+        'compressed_test_groups': reduced_datasets[1],
+        'mapper': mol_to_id
+    }
+    json.dump(compressed_data, open(out_path, 'w'))
+
+
+def expand_compressed_data(in_path="data/dataset_compressed.json", out_path="data/dataset_as_json.json"):
+    """
+    To go from more lightweight lists of ids to the format in migos with list of smiles.
+    :param in_path:
+    :param out_path:
+    :return:
+    """
+    compressed = json.load(open(in_path, 'r'))
+    mol_to_id = compressed["mapper"]
+    id_to_mol = {v: k for k, v in mol_to_id.items()}
+    compressed_datasets = [compressed["compressed_trainval_groups"], compressed["compressed_test_groups"]]
+
+    expanded_datasets = []
+    for compressed_dataset in compressed_datasets:
+        expanded = compressed_dataset.copy()
+        for k, v in compressed_dataset.items():
+            for mol_name in ['actives', 'pdb_decoys', 'chembl_decoys']:
+                mol_name_mapping = [id_to_mol[mol_id] for mol_id in v[mol_name]]
+                expanded[k][mol_name] = mol_name_mapping
+        expanded_datasets.append(expanded)
+    expanded_data = {"trainval": expanded_datasets[0], "test": expanded_datasets[1]}
+    json.dump(expanded_data, open(out_path, 'w'))
+
+
 if __name__ == "__main__":
-    default_dir = "../data/rna_vs"
+    default_dir = "data"
+    # compress_migos_data()
+    # expand_compressed_data()
     build_data(root=default_dir, recompute=False)
