@@ -80,7 +80,7 @@ class LigandIdentification(RNAClassificationTask):
         # Apply the distances computations specified in self.distance_computers
         for distance_computer in self.distance_computers:
             dataset = distance_computer(dataset)
-        dataset.save(self.dataset_path, recompute=False)
+        dataset.save(self.dataset_path, recompute=False, verbose=False)
 
         # Remove redundancy if specified
         if self.redundancy_remover is not None:

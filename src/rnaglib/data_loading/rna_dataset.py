@@ -182,6 +182,10 @@ class RNADataset:
                 return self.distances_
         return None
 
+    def remove_distance(self, name):
+        if self.distances is not None and name in self.distances:
+            del self.distances_[name]
+
     def add_distance(self, name, distance_mat):
         assert distance_mat.shape[0] == distance_mat.shape[1] == len(self)
         if self.distances is None:
