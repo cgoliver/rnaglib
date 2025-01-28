@@ -119,8 +119,9 @@ class ClusterSplitter(Splitter):
         :param n: portion of the test set size to use as largest test set cluster size
         :param split: if split is False, we return all clusters instead of splitting them
         """
-        if not self.distance_name in dataset.distances:
-            raise ValueError(f"The distance matrix using distances {self.distance_name} has not been computed")
+        if hasattr(dataset, "distances"):
+            if not self.distance_name in dataset.distances:
+                raise ValueError(f"The distance matrix using distances {self.distance_name} has not been computed")
 
         similarity_matrix = 1 - dataset.distances[self.distance_name]
         adjacency_matrix = (similarity_matrix >= self.similarity_threshold).astype(int)
