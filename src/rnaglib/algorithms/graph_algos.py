@@ -4,7 +4,6 @@ import pickle
 import os
 from typing import Optional, Hashable, Dict, List, Tuple
 
-
 from tqdm import tqdm
 import networkx as nx
 import numpy as np
@@ -689,7 +688,11 @@ def fix_buggy_edges(graph, label="LW", strategy="remove", edge_map=GRAPH_KEYS["e
     return graph
 
 
-def get_sequences(graph: nx.Graph) -> Tuple[Dict[str, Tuple[str, List[str]]]]:
+def get_sequences(graph: nx.Graph,
+                  gap_tolerance=2,
+                  longest_only=True,
+                  min_size_return=5,
+                  verbose=True) -> Tuple[Dict[str, Tuple[str, List[str]]]]:
     """Extract ordered sequences from each chain of the RNA.
     Returns a dictionary mapping <pdbid.chain>: (sequence, list of node IDs)
 
@@ -701,7 +704,6 @@ def get_sequences(graph: nx.Graph) -> Tuple[Dict[str, Tuple[str, List[str]]]]:
     """
 
     sequences = {}
-    node_ids = {}
     chains = set([n.split(".")[1] for n in graph.nodes()])
     seqs = {c: [] for c in chains}
     for nt, d in graph.nodes(data=True):
@@ -714,17 +716,39 @@ def get_sequences(graph: nx.Graph) -> Tuple[Dict[str, Tuple[str, List[str]]]]:
     for ch, seq in seqs.items():
         sorted_seq = sorted(seq, key=lambda x: x[1])
         sorted_ids = [f"{pdbid}.{ch}.{pos}" for _, pos in sorted_seq]
-        # check sequence discontinous
+
+        # check if sequence is discontinuous and keep track of all its consecutive segments
+        previous = 0
+        consecutives = []
         for i in range(len(sorted_ids) - 1):
             fivep = int(sorted_ids[i].split(".")[2])
             threep = int(sorted_ids[i + 1].split(".")[2])
             if threep != fivep + 1:
-                print(f"WARNING: chain discontinuous.")
-                break
+                if verbose:
+                    print(f"WARNING: chain discontinuous.")
+                gap = threep - fivep - 1
+                if gap >= gap_tolerance:
+                    consecutives.append((previous, i + 1))
+                    previous = i + 1
+        consecutives.append((previous, len(sorted_ids)))
 
-        node_ids[f"{pdbid}.{ch}"] = sorted_ids
+        # Simply return the longest
+        if longest_only:
+            longest = sorted(consecutives, key=lambda x: x[1] - x[0])[-1]
+            consecutives = [longest]
+        # If we return more than one, only keep ones larger than a threshold, using 5 is nice for CD-Hit usage
+        else:
+            consecutives = [x for x in consecutives if x[1] - x[0] > min_size_return]
 
-        sorted_seq = "".join([s for s, _ in sorted_seq])
-        sequences[f"{pdbid}.{ch}"] = (sorted_seq, node_ids[f"{pdbid}.{ch}"])
-
+        # Finally, return all such chunks, named with their start/end residues
+        for i, (start, end) in enumerate(consecutives):
+            sorted_seq_chunk = "".join([s for s, _ in sorted_seq[start:end]])
+            sorted_ids_chunk = sorted_ids[start:end]
+            if len(consecutives) == 1:
+                chunk_name = f"{pdbid}.{ch}"
+            else:
+                start_id = sorted_ids_chunk[0].split('.')[-1]
+                end_id = sorted_ids_chunk[-1].split('.')[-1]
+                chunk_name = f"{pdbid}.{ch}.{start_id}.{end_id}"
+            sequences[chunk_name] = sorted_seq_chunk, sorted_ids_chunk
     return sequences
