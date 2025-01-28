@@ -50,7 +50,7 @@ class MolGraphEncoder:
 
     def __init__(self, cache_path=None):
         script_dir = os.path.dirname(__file__)
-        with open(os.path.join(script_dir,  '../data/rna_vs/edges_and_nodes_map.p'), "rb") as f:
+        with open(os.path.join(script_dir,  'data/edges_and_nodes_map.p'), "rb") as f:
             self.edge_map = pickle.load(f)
             self.at_map = pickle.load(f)
             self.chi_map = pickle.load(f)
