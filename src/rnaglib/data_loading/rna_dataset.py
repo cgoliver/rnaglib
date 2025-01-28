@@ -175,10 +175,11 @@ class RNADataset:
         """
         if self.distances_ is not None:
             return self.distances_
-        if os.path.exists(self.distances_path):
-            # Actually materialize memory (lightweight anyway) since npz loading is lazy
-            self.distances_ = {k: v for k, v in np.load(self.distances_path).items()}
-            return self.distances_
+        if self.distances_path is not None:
+            if os.path.exists(self.distances_path):
+                # Actually materialize memory (lightweight anyway) since npz loading is lazy
+                self.distances_ = {k: v for k, v in np.load(self.distances_path).items()}
+                return self.distances_
         return None
 
     def add_distance(self, name, distance_mat):
@@ -236,11 +237,11 @@ class RNADataset:
         rna_name = self.all_rnas.inv[idx]
         nx_path, cif_path = None, None
 
-        if hasattr(self, "dataset_path"):
+        if self.dataset_path is not None:
             nx_path = Path(self.dataset_path) / f"{rna_name}{self.extension}"
-
         if hasattr(self, "structures_path"):
-            cif_path = Path(self.structures_path) / f"{rna_name}.cif"
+            if self.structures_path is not None:
+                cif_path = Path(self.structures_path) / f"{rna_name}.cif"
 
         if self.in_memory:
             rna_graph = self.rnas[idx]
