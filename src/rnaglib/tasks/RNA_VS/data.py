@@ -1,5 +1,4 @@
 import os
-import sys
 
 import numpy as np
 import random
@@ -28,31 +27,32 @@ class VSCollater:
 
 class VSRNADataset(Dataset):
     def __init__(self, groups, ligand_embedder, dataset_path, decoy_mode='pdb', features_computer=None, **kwargs):
-        # To load RNAs. We don't pass the features_encoder for graph construction, to avoid discarding other fields
-        self.rna_dataset = RNADataset.from_database(dataset_path=dataset_path, features_computer=None, **kwargs)
-        self.rna_dataset.features_computer = features_computer
-        self.name_id_mapping = {rna['rna'].graph['pocket_name']: idx for idx, rna in enumerate(iter(self.rna_dataset))}
-
-        # To load ligands
-        self.ligand_embedder = ligand_embedder
-
         # To get the right data
         self.groups = groups
         self.sorted_groups = np.sort(list(groups.keys()))
         self.decoy_mode = decoy_mode
 
+        # To load RNAs.
+        self.rna_dataset = RNADataset(
+            dataset_path=dataset_path,
+            features_computer=features_computer,
+            rna_id_subset=self.sorted_groups,
+            **kwargs)
+
+        # To load ligands
+        self.ligand_embedder = ligand_embedder
+
     def add_inpocket_flag(self, graph, rna):
         # TODO also add for point representation and pyg graphs
         import dgl
-        pocket_graph_dgl = dgl.from_networkx(nx_graph=rna,
-                                             node_attrs=['in_pocket'])
+        pocket_graph_dgl = dgl.from_networkx(nx_graph=rna, node_attrs=['in_pocket'])
         graph.ndata['in_pocket'] = pocket_graph_dgl.ndata['in_pocket']
 
     def __len__(self):
         return len(self.groups)
 
     def get_pocket_representations(self, group_rep):
-        pocket_representations = self.rna_dataset[self.name_id_mapping[group_rep]]
+        pocket_representations = self.rna_dataset.get_by_name(group_rep)
         self.add_inpocket_flag(pocket_representations['graph'], pocket_representations['rna'])
         return pocket_representations
 
@@ -96,30 +96,31 @@ class VSRNATestDataset(VSRNADataset):
 
 
 if __name__ == '__main__':
-    import pickle
+    import json
     from rnaglib.transforms import FeaturesComputer
     from rnaglib.transforms import GraphRepresentation
     from rnaglib.tasks.RNA_VS.build_data import build_data
     from rnaglib.tasks.RNA_VS.ligands import MolGraphEncoder
 
     script_dir = os.path.dirname(__file__)
-    json_dump = os.path.join(script_dir, "../data/rna_vs/dataset.p")
-    trainval_groups, test_groups = pickle.load(open(json_dump, 'rb'))
+    json_dump = os.path.join(script_dir, "data/dataset_as_json.json")
+    whole_data = json.load(open(json_dump, 'r'))
+    train_groups, test_groups = whole_data["trainval"], whole_data["test"]
 
-    root = "../data/rna_vs"
+    root = "data"
     build_data(root=root, recompute=False)
     ligand_encoder = MolGraphEncoder(cache_path=os.path.join(root, 'ligands.p'))
     features_computer = FeaturesComputer(nt_features=['nt_code'])
     representations = GraphRepresentation(framework='dgl')
     rna_dataset_args = {'representations': representations, 'features_computer': features_computer}
     train_dataset_debug = VSRNATrainDataset(groups=test_groups,
-                                            ligand_embedder=ligand_encoder,
-                                            dataset_path=os.path.join(root, 'graphs'),
-                                            **rna_dataset_args)
+        ligand_embedder=ligand_encoder,
+        dataset_path=os.path.join(root, 'graphs'),
+        **rna_dataset_args)
     test_dataset_debug = VSRNATrainDataset(groups=test_groups,
-                                           ligand_embedder=ligand_encoder,
-                                           dataset_path=os.path.join(root, 'graphs'),
-                                           **rna_dataset_args)
+        ligand_embedder=ligand_encoder,
+        dataset_path=os.path.join(root, 'graphs'),
+        **rna_dataset_args)
 
     for i, elt in enumerate(train_dataset_debug):
         a = 1

@@ -1,5 +1,5 @@
 class DistanceComputer:
-    def __init__(self, name, recompute=False):
+    def __init__(self, name, recompute=True):
         self.name = name
         self.recompute = recompute
         pass
