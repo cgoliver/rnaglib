@@ -14,6 +14,7 @@ class DistanceComputer:
                         New dataset has: {len(keep_dataset_names)}\n"""
                 )
             # saving the distance matrices to the object in case we want to use them later
+            dataset.remove_distance(self.name)
             dataset = dataset.subset(list_of_names=keep_dataset_names)
             dataset.add_distance(self.name, 1 - similarity_matrix)
         return dataset
