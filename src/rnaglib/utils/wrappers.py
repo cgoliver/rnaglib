@@ -172,6 +172,8 @@ def cdhit_wrapper(ids, sequences, sim_thresh=0.6, n_jobs=1):
             in_file,
             "-n",
             str(word_size),
+            "-l",
+            "5",
             "-o",
             out_file,
             "-T",
