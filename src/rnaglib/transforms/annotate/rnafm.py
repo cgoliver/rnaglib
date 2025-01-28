@@ -30,8 +30,8 @@ class RNAFMTransform(Transform):
     :param chunking_strategy: how to process sequences longer than 1024. ``'simple'`` just
     splits into non-overlapping segments.
     :param chunk_size: size of chunks to use (default is 512)
-    :param cache_path: a directory containing pre-computed npz embeddings 
-    :param expand_mean: True 
+    :param cache_path: a directory containing pre-computed npz embeddings
+    :param expand_mean: True
 
     .. note::
         Maximum size for basic RNA-FM model is 1024. If sequence is larger
@@ -42,7 +42,7 @@ class RNAFMTransform(Transform):
     encoder = ListEncoder(640)
 
     def __init__(
-            self, chunking_strategy: str = "simple", chunk_size: int = 512, cache_path=None, expand_mean=True, **kwargs
+        self, chunking_strategy: str = "simple", chunk_size: int = 512, cache_path=None, expand_mean=True, **kwargs
     ):
         # Load RNA-FM model
         self.model, self.alphabet = fm.pretrained.rna_fm_t12()
@@ -55,7 +55,7 @@ class RNAFMTransform(Transform):
         super().__init__(**kwargs)
 
     def basic_chunking(self, seq):
-        return [seq[i: i + self.chunk_size] for i in range(0, len(seq), self.chunk_size)]
+        return [seq[i : i + self.chunk_size] for i in range(0, len(seq), self.chunk_size)]
 
     def chunk(self, seq_data: List[Tuple]) -> List[Tuple]:
         """Apply a chunking strategy to sequences longer than 1024."""
@@ -75,6 +75,7 @@ class RNAFMTransform(Transform):
 
         # Try to load the embs if possible.
         if self.cache_path is not None:
+            print(f"Loading embeddings from {self.cache_path}.")
             chains = list(chain_seqs.keys())
             for chain in chains:
                 embs_path = Path(self.cache_path) / f"{chain}.npz"
@@ -98,17 +99,22 @@ class RNAFMTransform(Transform):
             results = self.model(batch_tokens, repr_layers=[12])
         token_embeddings = results["representations"][12]
 
+        all_embs = []
         for i, (_, (seq, node_ids)) in enumerate(seq_data.items()):
             Z = token_embeddings[i, : len(seq)]
-            emb_dict = {n: list(Z[i].detach().numpy()) for i, n in enumerate(node_ids)}
-            nx.set_node_attributes(rna_dict["rna"], emb_dict, self.name)
+            emb_dict = {n: Z[i].clone().detach() for i, n in enumerate(node_ids)}
+            for i, n in enumerate(node_ids):
+                z = Z[i].clone().detach()
+                rna_dict["rna"].nodes[n][self.name] = list(z.numpy())
+                all_embs.append(z)
 
         # Add mean embedding to missing nodes, if self.expand mean
         if self.expand_mean:
-            existing_nodes, existing_embs = list(zip(*nx.get_node_attributes(rna_dict["rna"], self.name).items()))
+            existing_nodes, _ = list(zip(*nx.get_node_attributes(rna_dict["rna"], self.name).items()))
             missing_nodes = set(rna_dict["rna"].nodes()) - set(existing_nodes)
             if len(missing_nodes) > 0:
-                mean_emb = torch.mean(torch.stack(existing_embs), dim=0)
-                missing_embs = {node: mean_emb for node in missing_nodes}
+                embs = torch.stack(all_embs, dim=0)
+                mean_emb = torch.mean(embs, dim=0)
+                missing_embs = {node: mean_emb.tolist() for node in missing_nodes}
                 nx.set_node_attributes(rna_dict["rna"], name=self.name, values=missing_embs)
         return rna_dict

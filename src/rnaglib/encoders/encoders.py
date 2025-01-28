@@ -266,6 +266,7 @@ class NucleotideEncoder:
         except (AttributeError, TypeError):
             return "X"
 
+
 # Interesting Counters :
 # To get those, run 'get_all_labels with the counter option. This is useful to produce the
 # one hot encoding (by discarding the really scarce ones)
