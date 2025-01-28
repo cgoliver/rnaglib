@@ -51,6 +51,9 @@ class CDHitComputer(DistanceComputer):
 
         def tanimoto(set_1, set_2):
             return len(set_1 & set_2) / len(set_1 | set_2)
+        
+        def custom_tanimoto(set_1, set_2):
+            return len(set_1 & set_2) / min(len(set_1), len(set_2))
 
         sims = [
             tanimoto(idx_to_clusters[rna_1], idx_to_clusters[rna_2])
