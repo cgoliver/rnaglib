@@ -1,6 +1,3 @@
-import os
-import sys
-
 import numpy as np
 from sklearn import metrics
 
@@ -52,9 +49,9 @@ def run_virtual_screen(model, dataloader):
 
 
 if __name__ == "__main__":
-    from rnaglib.tasks.rna_vs.task import VSTask
-    from rnaglib.tasks.rna_vs.model import RNAEncoder, LigandGraphEncoder, Decoder, VSModel
-    from rnaglib.representations.graph import GraphRepresentation
+    from rnaglib.tasks.RNA_VS.task import VSTask
+    from rnaglib.tasks.RNA_VS.model import RNAEncoder, LigandGraphEncoder, Decoder, VSModel
+    from rnaglib.transforms import GraphRepresentation
 
     # Get a test loader
     root = "../../data/tasks/rna_vs"
