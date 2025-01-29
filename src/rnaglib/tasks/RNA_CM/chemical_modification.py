@@ -20,7 +20,6 @@ class ChemicalModification(ResidueClassificationTask):
 
     def __init__(self, root,
                  size_thresholds=(10, 500),
-
                  splitter=ClusterSplitter(distance_name="USalign"),
                  **kwargs):
         super().__init__(root=root, splitter=splitter, size_thresholds=size_thresholds, **kwargs)

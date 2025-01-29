@@ -37,6 +37,7 @@ def US_align_wrapper(
 
         command = [
             "USalign",
+            # "/home/vincent/bin/USAlign/USalign",
             *flags,
             cif_path_1,
             cif_path_2,
@@ -166,6 +167,7 @@ def cdhit_wrapper(ids, sequences, sim_thresh=0.6, n_jobs=1):
                 inp.write(s + "\n")
         cmd = [
             "cd-hit",
+            # "/home/vincent/bin/cd_hit/cd-hit",
             "-c",
             str(sim_thresh),
             "-i",
