@@ -16,6 +16,7 @@ class ChemicalModification(ResidueClassificationTask):
 
     target_var = "is_modified"
     input_var = "nt_code"
+    name = "rna_cm"
 
     def __init__(self, root,
                  size_thresholds=(10, 500),

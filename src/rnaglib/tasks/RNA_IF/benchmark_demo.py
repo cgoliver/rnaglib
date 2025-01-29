@@ -2,7 +2,7 @@ from rnaglib.tasks import gRNAde
 from rnaglib.transforms import GraphRepresentation
 from rnaglib.learning.task_models import PygModel
 
-ta = gRNAde(root="gRNAde", recompute=False, in_memory=False, debug=True)
+ta = gRNAde(root="gRNAde", recompute=True, in_memory=False, debug=True)
 
 ta.dataset.add_representation(GraphRepresentation(framework="pyg"))
 

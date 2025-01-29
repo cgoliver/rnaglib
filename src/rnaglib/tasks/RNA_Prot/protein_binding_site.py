@@ -16,6 +16,7 @@ class ProteinBindingSite(ResidueClassificationTask):
 
     target_var = "protein_binding"
     input_var = "nt_code"
+    name = "rna_prot"
 
     def __init__(self, root,
                  size_thresholds=(10, 500),

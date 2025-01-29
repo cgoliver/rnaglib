@@ -17,6 +17,7 @@ from rnaglib.dataset_transforms import ClusterSplitter, StructureDistanceCompute
 class BenchmarkBindingSite(ResidueClassificationTask):
     target_var = "binding_site"
     input_var = "nt_code"
+    name = "rna_site_bench"
 
     def __init__(self, root,
                  size_thresholds=(10, 500),
@@ -77,6 +78,7 @@ class BenchmarkBindingSite(ResidueClassificationTask):
 class BindingSite(ResidueClassificationTask):
     target_var = "binding_small-molecule"
     input_var = "nt_code"
+    name = "rna_site"
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
