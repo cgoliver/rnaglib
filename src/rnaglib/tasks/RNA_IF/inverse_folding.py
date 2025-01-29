@@ -51,16 +51,6 @@ class InverseFolding(ResidueClassificationTask):
                     rna = annotate_rna(rna_connected_component)["rna"]
                     self.add_rna_to_building_list(all_rnas=all_rnas, rna=rna)
         dataset = self.create_dataset_from_list(all_rnas)
-
-        # Apply the distances computations specified in self.distance_computers
-        for distance_computer in self.distance_computers:
-            dataset = distance_computer(dataset)
-        dataset.save(self.dataset_path, recompute=False, verbose=False)
-
-        # Remove redundancy if specified
-        if self.redundancy_remover is not None:
-            dataset = self.redundancy_remover(dataset)
-
         return dataset
 
     def get_task_vars(self) -> FeaturesComputer:
@@ -252,3 +242,6 @@ class gRNAde(InverseFolding):
                     self.add_rna_to_building_list(all_rnas=all_rnas, rna=rna_chain)
         dataset = self.create_dataset_from_list(all_rnas)
         return dataset
+
+    def post_process(self):
+        pass

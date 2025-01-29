@@ -39,7 +39,7 @@ class StructureDistanceComputer(DistanceComputer):
         :returns np.array: Array of pairwise similarities in order of given dataset.
         """
         if self.name not in ["RNAalign", "USalign"]:
-            raise ValueError("""name must be 'RNAalign' or 'USalign'""")
+            raise ValueError("name must be 'RNAalign' or 'USalign'")
 
         # set default structures dir if a specific directory wasn't specified by the user
         if self.structures_path is None:
