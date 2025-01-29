@@ -1,13 +1,12 @@
 import os
 import pandas as pd
 import numpy as np
-import json
 
 from rnaglib.tasks import RNAClassificationTask
 from rnaglib.data_loading import RNADataset
 from rnaglib.encoders import IntMappingEncoder
 from rnaglib.transforms import FeaturesComputer, AnnotatorFromDict, PartitionFromDict, ResolutionFilter
-from rnaglib.dataset_transforms import ClusterSplitter, StructureDistanceComputer, RedundancyRemover
+from rnaglib.dataset_transforms import ClusterSplitter
 
 
 class LigandIdentification(RNAClassificationTask):
@@ -20,8 +19,6 @@ class LigandIdentification(RNAClassificationTask):
 
     def __init__(self, root, data_filename,
                  size_thresholds=(10, 500),
-                 distance_computers=StructureDistanceComputer(name="USalign"),
-                 redundancy_remover=RedundancyRemover(distance_name="USalign"),
                  splitter=ClusterSplitter(distance_name="USalign"),
                  **kwargs):
         self.data_path = os.path.join(os.path.dirname(__file__), "data", data_filename)
@@ -36,8 +33,7 @@ class LigandIdentification(RNAClassificationTask):
         }
         self.ligands_dict = {rna_ligand[0]: rna_ligand[1] for rna_ligand in binding_pockets[["nid", "ligand"]].values}
         self.nodes_keep = list(self.bp_dict.keys())
-        super().__init__(root=root, splitter=splitter, size_thresholds=size_thresholds,
-            distance_computers=distance_computers, redundancy_remover=redundancy_remover, **kwargs)
+        super().__init__(root=root, splitter=splitter, size_thresholds=size_thresholds, **kwargs)
 
     def process(self):
         # Initialize dataset with in_memory=False to avoid loading everything at once
@@ -76,16 +72,6 @@ class LigandIdentification(RNAClassificationTask):
         top_ligand_binding_pockets = [all_binding_pockets[i] for i in indices_to_keep]
 
         dataset = self.create_dataset_from_list(top_ligand_binding_pockets)
-
-        # Apply the distances computations specified in self.distance_computers
-        for distance_computer in self.distance_computers:
-            dataset = distance_computer(dataset)
-        dataset.save(self.dataset_path, recompute=False, verbose=False)
-
-        # Remove redundancy if specified
-        if self.redundancy_remover is not None:
-            dataset = self.redundancy_remover(dataset)
-
         return dataset
 
     def get_task_vars(self) -> FeaturesComputer:

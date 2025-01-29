@@ -18,13 +18,8 @@ class RNAGo(RNAClassificationTask):
     input_var = "nt_code"  # node level attribute
     target_var = "go_terms"  # graph level attribute
 
-    def __init__(self, root,
-                 size_thresholds=(10, 500),
-                 distance_computers=StructureDistanceComputer(name="USalign"),
-                 splitter=ClusterSplitter(distance_name="USalign"),
-                 redundancy_remover=None, **kwargs):
-        super().__init__(root=root, splitter=splitter, size_thresholds=size_thresholds,
-            distance_computers=distance_computers, redundancy_remover=redundancy_remover, multi_label=True, **kwargs)
+    def __init__(self, root, size_thresholds=(10, 500), splitter=ClusterSplitter(distance_name="USalign"), **kwargs):
+        super().__init__(root=root, splitter=splitter, size_thresholds=size_thresholds, multi_label=True, **kwargs)
 
     def get_task_vars(self):
         return FeaturesComputer(
@@ -77,18 +72,12 @@ class RNAGo(RNAClassificationTask):
                 self.add_rna_to_building_list(all_rnas=all_rnas, rna=subgraph)
         dataset = self.create_dataset_from_list(all_rnas)
 
-        # Apply the distances computations specified in self.distance_computers
-        for distance_computer in self.distance_computers:
-            dataset = distance_computer(dataset)
-        dataset.save(self.dataset_path, recompute=False, verbose=False)
-
-        # Remove redundancy if specified
-        if self.redundancy_remover is not None:
-            dataset = self.redundancy_remover(dataset)
-
         # compute one-hot mapping of labels
         unique_gos = sorted({go for system_gos in rfam_go_mapping.values() for go in system_gos})
         rfam_mapping = {rfam: i for i, rfam in enumerate(unique_gos)}
         self.metadata["label_mapping"] = rfam_mapping
 
         return dataset
+
+    def post_process(self):
+        pass

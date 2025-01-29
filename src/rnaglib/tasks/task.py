@@ -9,6 +9,7 @@ import os
 from pathlib import Path
 from sklearn.metrics import accuracy_score, f1_score, matthews_corrcoef, roc_auc_score
 import torch
+from torch.ao.nn.quantized.functional import threshold
 from torch.utils.data import DataLoader
 import tqdm
 
@@ -16,6 +17,7 @@ from rnaglib.data_loading import Collater, RNADataset
 from rnaglib.transforms import FeaturesComputer, SizeFilter
 from rnaglib.utils import DummyGraphModel, DummyResidueModel, dump_json, tonumpy
 from rnaglib.dataset_transforms import RandomSplitter, Splitter, DistanceComputer, RedundancyRemover
+from rnaglib.dataset_transforms import StructureDistanceComputer, CDHitComputer
 
 
 class Task:
@@ -65,6 +67,7 @@ class Task:
             if self.size_thresholds is not None:
                 self.size_filter = SizeFilter(size_thresholds[0], size_thresholds[1])
             self.dataset = self.process()
+            self.post_process()
         else:
             # self.dataset, self.metadata, (self.train_ind, self.val_ind, self.test_ind) = self.load()
             self.load()
@@ -105,6 +108,23 @@ class Task:
     def default_splitter(self):
         """The splitter used if no other splitter is specified."""
         return RandomSplitter()
+
+    def post_process(self):
+        """
+        The most common post_processing steps to remove redundancy.
+
+        Other tasks should implement their own if this is not the desired default behavior
+        """
+        cd_hit_computer = CDHitComputer(similarity_threshold=0.9)
+        cd_hit_rr = RedundancyRemover(distance_name="cd_hit", threshold=0.9)
+        self.dataset = cd_hit_computer(self.dataset)
+        self.dataset = cd_hit_rr(self.dataset)
+
+        us_align_computer = StructureDistanceComputer(name="USalign")
+        us_align_rr = RedundancyRemover(distance_name="USalign", threshold=0.7)
+        self.dataset = us_align_computer(self.dataset)
+        self.dataset = us_align_rr(self.dataset)
+        self.dataset.save(self.dataset_path, recompute=False, verbose=False)
 
     def split(self, dataset):
         """Calls the splitter and returns train, val, test splits."""

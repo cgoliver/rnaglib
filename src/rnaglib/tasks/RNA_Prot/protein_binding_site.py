@@ -19,12 +19,9 @@ class ProteinBindingSite(ResidueClassificationTask):
 
     def __init__(self, root,
                  size_thresholds=(10, 500),
-                 distance_computers=StructureDistanceComputer(name="USalign"),
-                 redundancy_remover=RedundancyRemover(distance_name="USalign"),
                  splitter=ClusterSplitter(distance_name="USalign"),
                  **kwargs):
-        super().__init__(root=root, splitter=splitter, size_thresholds=size_thresholds,
-            distance_computers=distance_computers, redundancy_remover=redundancy_remover, **kwargs)
+        super().__init__(root=root, splitter=splitter, size_thresholds=size_thresholds, **kwargs)
 
     def get_task_vars(self):
         return FeaturesComputer(nt_features=self.input_var, nt_targets=self.target_var)
@@ -53,14 +50,4 @@ class ProteinBindingSite(ResidueClassificationTask):
                     rna = rna_connected_component["rna"]
                     self.add_rna_to_building_list(all_rnas=all_rnas, rna=rna)
         dataset = self.create_dataset_from_list(rnas=all_rnas)
-
-        # Apply the distances computations specified in self.distance_computers
-        for distance_computer in self.distance_computers:
-            dataset = distance_computer(dataset)
-        dataset.save(self.dataset_path, recompute=False, verbose=False)
-
-        # Remove redundancy if specified
-        if self.redundancy_remover is not None:
-            dataset = self.redundancy_remover(dataset)
-
         return dataset
