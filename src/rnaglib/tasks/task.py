@@ -112,7 +112,7 @@ class Task:
         self.dataset = cd_hit_rr(self.dataset)
 
         us_align_computer = StructureDistanceComputer(name="USalign")
-        us_align_rr = RedundancyRemover(distance_name="USalign", threshold=0.7)
+        us_align_rr = RedundancyRemover(distance_name="USalign", threshold=0.8)
         self.dataset = us_align_computer(self.dataset)
         self.dataset = us_align_rr(self.dataset)
         self.dataset.save_distances()
