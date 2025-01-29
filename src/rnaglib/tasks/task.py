@@ -124,7 +124,7 @@ class Task:
         us_align_rr = RedundancyRemover(distance_name="USalign", threshold=0.7)
         self.dataset = us_align_computer(self.dataset)
         self.dataset = us_align_rr(self.dataset)
-        self.dataset.save(self.dataset_path, recompute=False, verbose=False)
+        self.dataset.save_distances()
 
     def split(self, dataset):
         """Calls the splitter and returns train, val, test splits."""
