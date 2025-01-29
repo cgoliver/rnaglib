@@ -69,7 +69,6 @@ class Task:
             self.dataset = self.process()
             self.post_process()
         else:
-            # self.dataset, self.metadata, (self.train_ind, self.val_ind, self.test_ind) = self.load()
             self.load()
 
         self.dataset.features_computer = self.get_task_vars()
@@ -224,9 +223,14 @@ class Task:
         """Load dataset and splits from disk."""
         # load splits
         print(">>> Loading precomputed dataset...")
-        self.train_ind = [int(ind) for ind in open(os.path.join(self.root, "train_idx.txt")).readlines()]
-        self.val_ind = [int(ind) for ind in open(os.path.join(self.root, "val_idx.txt")).readlines()]
-        self.test_ind = [int(ind) for ind in open(os.path.join(self.root, "test_idx.txt")).readlines()]
+        if (
+                os.path.exists(os.path.join(self.root, "train_idx.txt")) and
+                os.path.exists(os.path.join(self.root, "val_idx.txt")) and
+                os.path.exists(os.path.join(self.root, "test_idx.txt"))
+        ):
+            self.train_ind = [int(ind) for ind in open(os.path.join(self.root, "train_idx.txt")).readlines()]
+            self.val_ind = [int(ind) for ind in open(os.path.join(self.root, "val_idx.txt")).readlines()]
+            self.test_ind = [int(ind) for ind in open(os.path.join(self.root, "test_idx.txt")).readlines()]
 
         self.dataset = RNADataset(dataset_path=self.dataset_path, in_memory=self.in_memory, debug=self.debug)
 

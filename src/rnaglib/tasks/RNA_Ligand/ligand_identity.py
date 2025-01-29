@@ -1,6 +1,8 @@
 import os
-import pandas as pd
+
 import numpy as np
+import pandas as pd
+from tqdm import tqdm
 
 from rnaglib.tasks import RNAClassificationTask
 from rnaglib.data_loading import RNADataset
@@ -17,7 +19,6 @@ class LigandIdentification(RNAClassificationTask):
     target_var = "ligand"
     ligands_nb = 10
     name = "rna_ligand"
-
 
     def __init__(self, root, data_filename,
                  size_thresholds=(10, 500),
@@ -54,7 +55,7 @@ class LigandIdentification(RNAClassificationTask):
         ligands_dict = {}
         idx = 0
         os.makedirs(self.dataset_path, exist_ok=True)
-        for rna in dataset:
+        for rna in tqdm(dataset):
             if resolution_filter.forward(rna):
                 for binding_pocket_dict in nt_partition(rna):
                     if self.size_thresholds is not None:
@@ -86,3 +87,6 @@ class LigandIdentification(RNAClassificationTask):
             rna_targets=self.target_var,
             custom_encoders={self.target_var: IntMappingEncoder(mapping=self.mapping)},
         )
+
+    def post_process(self):
+        pass
