@@ -126,7 +126,6 @@ class RNADataset:
             else:
                 self.rnas = None
         else:
-            self.dataset_path = None
             self.structures_path = None
             assert in_memory, (
                 "Conflicting arguments: if an RNADataset is instantiated with a list of graphs, "
@@ -179,6 +178,7 @@ class RNADataset:
             if os.path.exists(self.distances_path):
                 # Actually materialize memory (lightweight anyway) since npz loading is lazy
                 self.distances_ = {k: v for k, v in np.load(self.distances_path).items()}
+                self.distances_ = {k: v for k, v in self.distances_.items() if v.shape[0] == v.shape[1] == len(self)}
                 return self.distances_
         return None
 
@@ -192,6 +192,7 @@ class RNADataset:
             self.distances_ = {name: distance_mat}
         else:
             self.distances_[name] = distance_mat
+        self.save_distances()
 
     def save_distances(self):
         if self.distances is not None:
