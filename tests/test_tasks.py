@@ -1,8 +1,5 @@
-import os
-from pathlib import Path
 import unittest
 import tempfile
-import pandas as pd
 
 from rnaglib.transforms import GraphRepresentation
 from rnaglib.tasks import Task
@@ -26,7 +23,7 @@ class TaskTest(unittest.TestCase):
         assert task.test_ind is not None
         assert task.val_ind is not None
 
-    def test_RNAFamily(self):
+    def test_RNAGO(self):
         with tempfile.TemporaryDirectory() as tmp:
             ta = RNAGo(root=tmp, **self.default_dataset_params)
             self.check_task(ta)

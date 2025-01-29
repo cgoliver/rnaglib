@@ -22,7 +22,6 @@ class LigandIdentification(RNAClassificationTask):
 
     def __init__(self, root, data_filename,
                  size_thresholds=(10, 500),
-                 splitter=ClusterSplitter(distance_name="USalign"),
                  **kwargs):
         self.data_path = os.path.join(os.path.dirname(__file__), "data", data_filename)
         binding_pockets = pd.read_csv(self.data_path)
@@ -36,7 +35,11 @@ class LigandIdentification(RNAClassificationTask):
         }
         self.ligands_dict = {rna_ligand[0]: rna_ligand[1] for rna_ligand in binding_pockets[["nid", "ligand"]].values}
         self.nodes_keep = list(self.bp_dict.keys())
-        super().__init__(root=root, splitter=splitter, size_thresholds=size_thresholds, **kwargs)
+        super().__init__(root=root, size_thresholds=size_thresholds, **kwargs)
+
+    # @property
+    # def default_splitter(self):
+    #     return ClusterSplitter(distance_name="USalign")
 
     def process(self):
         # Initialize dataset with in_memory=False to avoid loading everything at once

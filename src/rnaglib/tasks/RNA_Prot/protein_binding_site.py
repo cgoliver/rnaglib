@@ -20,9 +20,12 @@ class ProteinBindingSite(ResidueClassificationTask):
 
     def __init__(self, root,
                  size_thresholds=(10, 500),
-                 splitter=ClusterSplitter(distance_name="USalign"),
                  **kwargs):
-        super().__init__(root=root, splitter=splitter, size_thresholds=size_thresholds, **kwargs)
+        super().__init__(root=root, size_thresholds=size_thresholds, **kwargs)
+
+    @property
+    def default_splitter(self):
+        return ClusterSplitter(distance_name="USalign")
 
     def get_task_vars(self):
         return FeaturesComputer(nt_features=self.input_var, nt_targets=self.target_var)
