@@ -193,6 +193,10 @@ class RNADataset:
         else:
             self.distances_[name] = distance_mat
 
+    def save_distances(self):
+        if self.distances is not None:
+            np.savez(self.distances_path, **self.distances)
+
     @classmethod
     def from_database(
             cls,
@@ -329,8 +333,8 @@ class RNADataset:
 
     def save(self, dump_path, recompute=False, verbose=True):
         """Save a local copy of the dataset"""
-        if self.distances is not None:
-            np.savez(self.distances_path, **self.distances)
+
+        self.save_distances()
 
         if os.path.exists(dump_path) and os.listdir(dump_path) and not recompute:
             if verbose:
