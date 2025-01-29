@@ -19,7 +19,7 @@ class ProteinBindingSite(ResidueClassificationTask):
     name = "rna_prot"
 
     def __init__(self, root,
-                 size_thresholds=(10, 500),
+                 size_thresholds=(15, 500),
                  **kwargs):
         super().__init__(root=root, size_thresholds=size_thresholds, **kwargs)
 

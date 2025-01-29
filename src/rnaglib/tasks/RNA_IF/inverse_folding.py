@@ -23,7 +23,7 @@ class InverseFolding(ResidueClassificationTask):
     name = "rna_if"
 
     def __init__(self, root,
-                 size_thresholds=(10, 300),
+                 size_thresholds=(15, 300),
                  **kwargs):
         super().__init__(root=root, size_thresholds=size_thresholds, **kwargs)
 
@@ -160,7 +160,7 @@ class gRNAde(InverseFolding):
     name = "rna_if_bench"
 
 
-    def __init__(self, **kwargs):
+    def __init__(self, root, size_thresholds=(15, 300), **kwargs):
         self.splits = {
             "train": [],
             "test": [],
@@ -191,7 +191,7 @@ class gRNAde(InverseFolding):
                     self.splits[f"pdb_to_chain_{split}"][pdb_id].update(chain_components)
                     self.splits["pdb_to_chain_all"][pdb_id].update(chain_components)
 
-        super().__init__(**kwargs)
+        super().__init__(root=root, size_thresholds=size_thresholds,**kwargs)
 
     @property
     def default_splitter(self):
