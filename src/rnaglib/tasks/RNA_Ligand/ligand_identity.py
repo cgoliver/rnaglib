@@ -21,7 +21,7 @@ class LigandIdentification(RNAClassificationTask):
     name = "rna_ligand"
 
     def __init__(self, root, data_filename,
-                 size_thresholds=(10, 500),
+                 size_thresholds=(15, 500),
                  **kwargs):
         self.data_path = os.path.join(os.path.dirname(__file__), "data", data_filename)
         binding_pockets = pd.read_csv(self.data_path)

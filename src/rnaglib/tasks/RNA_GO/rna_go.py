@@ -19,7 +19,7 @@ class RNAGo(RNAClassificationTask):
     target_var = "go_terms"  # graph level attribute
     name = "rna_go"
 
-    def __init__(self, root, size_thresholds=(10, 500), **kwargs):
+    def __init__(self, root, size_thresholds=(15, 500), **kwargs):
         super().__init__(root=root, size_thresholds=size_thresholds, multi_label=True, **kwargs)
 
     @property
