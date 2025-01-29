@@ -1,6 +1,4 @@
-import os
 from typing import Iterator
-import pandas as pd
 
 from rnaglib.transforms import PartitionTransform
 

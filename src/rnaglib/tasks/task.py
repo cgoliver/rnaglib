@@ -9,14 +9,13 @@ import os
 from pathlib import Path
 from sklearn.metrics import accuracy_score, f1_score, matthews_corrcoef, roc_auc_score
 import torch
-from torch.ao.nn.quantized.functional import threshold
 from torch.utils.data import DataLoader
 import tqdm
 
 from rnaglib.data_loading import Collater, RNADataset
 from rnaglib.transforms import FeaturesComputer, SizeFilter
 from rnaglib.utils import DummyGraphModel, DummyResidueModel, dump_json, tonumpy
-from rnaglib.dataset_transforms import RandomSplitter, Splitter, DistanceComputer, RedundancyRemover
+from rnaglib.dataset_transforms import RandomSplitter, Splitter, RedundancyRemover
 from rnaglib.dataset_transforms import StructureDistanceComputer, CDHitComputer
 
 
@@ -43,8 +42,6 @@ class Task:
             in_memory: bool = False,
             size_thresholds: Sequence = None,
             multi_label=False,
-            distance_computers: DistanceComputer | list[DistanceComputer] = (),
-            redundancy_remover: RedundancyRemover = None,
     ):
         self.root = root
         self.dataset_path = os.path.join(self.root, "dataset")
@@ -54,10 +51,6 @@ class Task:
         self.in_memory = in_memory
         self.size_thresholds = size_thresholds
         self.multi_label = multi_label
-        self.distance_computers = [distance_computers] if not isinstance(distance_computers,
-            Sequence) else distance_computers
-        self.redundancy_remover = redundancy_remover
-
         self.metadata = self.init_metadata()
 
         # Load or create dataset

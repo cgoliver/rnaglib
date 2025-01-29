@@ -4,7 +4,7 @@ from rnaglib.data_loading import RNADataset
 from rnaglib.tasks import RNAClassificationTask
 from rnaglib.encoders import MultiLabelOneHotEncoder
 from rnaglib.transforms import FeaturesComputer
-from rnaglib.dataset_transforms import ClusterSplitter, StructureDistanceComputer, RedundancyRemover
+from rnaglib.dataset_transforms import ClusterSplitter, CDHitComputer
 from rnaglib.utils.rfam_utils import get_frequent_go_pdbsel
 
 
@@ -19,8 +19,12 @@ class RNAGo(RNAClassificationTask):
     target_var = "go_terms"  # graph level attribute
     name = "rna_go"
 
-    def __init__(self, root, size_thresholds=(10, 500), splitter=ClusterSplitter(distance_name="USalign"), **kwargs):
-        super().__init__(root=root, splitter=splitter, size_thresholds=size_thresholds, multi_label=True, **kwargs)
+    def __init__(self, root, size_thresholds=(10, 500), **kwargs):
+        super().__init__(root=root, size_thresholds=size_thresholds, multi_label=True, **kwargs)
+
+    @property
+    def default_splitter(self):
+        return ClusterSplitter(distance_name="cd_hit")
 
     def get_task_vars(self):
         return FeaturesComputer(
@@ -77,8 +81,8 @@ class RNAGo(RNAClassificationTask):
         unique_gos = sorted({go for system_gos in rfam_go_mapping.values() for go in system_gos})
         rfam_mapping = {rfam: i for i, rfam in enumerate(unique_gos)}
         self.metadata["label_mapping"] = rfam_mapping
-
         return dataset
 
     def post_process(self):
-        pass
+        cd_hit_computer = CDHitComputer(similarity_threshold=0.9)
+        self.dataset = cd_hit_computer(self.dataset)

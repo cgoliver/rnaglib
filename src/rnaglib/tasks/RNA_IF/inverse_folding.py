@@ -7,7 +7,7 @@ from pathlib import Path
 from sklearn.metrics import matthews_corrcoef, f1_score, accuracy_score, roc_auc_score, confusion_matrix
 
 from rnaglib.data_loading import RNADataset
-from rnaglib.transforms import FeaturesComputer, DummyAnnotator, ComposeFilters, RibosomalFilter, RNAAttributeFilter
+from rnaglib.transforms import FeaturesComputer, DummyAnnotator, ComposeFilters, RibosomalFilter
 from rnaglib.transforms import NameFilter, ChainFilter, ChainSplitTransform, ChainNameTransform, \
     ConnectedComponentPartition
 from rnaglib.tasks import ResidueClassificationTask
@@ -24,12 +24,12 @@ class InverseFolding(ResidueClassificationTask):
 
     def __init__(self, root,
                  size_thresholds=(10, 300),
-                 distance_computers=StructureDistanceComputer(name="USalign"),
-                 redundancy_remover=RedundancyRemover(distance_name="USalign"),
-                 splitter=ClusterSplitter(distance_name="USalign"),
                  **kwargs):
-        super().__init__(root=root, splitter=splitter, size_thresholds=size_thresholds,
-            distance_computers=distance_computers, redundancy_remover=redundancy_remover, **kwargs)
+        super().__init__(root=root, size_thresholds=size_thresholds, **kwargs)
+
+    @property
+    def default_splitter(self):
+        return ClusterSplitter(distance_name="USalign")
 
     def process(self) -> RNADataset:
         # build the filters
