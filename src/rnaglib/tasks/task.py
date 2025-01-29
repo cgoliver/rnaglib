@@ -74,9 +74,8 @@ class Task:
         self.dataset.features_computer = self.get_task_vars()
 
         # Set splitter after dataset is available
-        self.splitter = self.default_splitter if splitter is None else splitter
-
         # Split dataset if it wasn't loaded from file
+        self.splitter = self.default_splitter if splitter is None else splitter
         if not hasattr(self, "train_ind"):
             self.split(self.dataset)
 
@@ -204,12 +203,13 @@ class Task:
         if not os.path.exists(self.dataset_path) or not os.listdir(self.dataset_path) or self.recompute:
             print(">>> Saving dataset.")
             self.dataset.save(self.dataset_path, recompute=self.recompute)
-        with open(Path(self.root) / "train_idx.txt", "w") as idx:
-            [idx.write(str(ind) + "\n") for ind in self.train_ind]
-        with open(Path(self.root) / "val_idx.txt", "w") as idx:
-            [idx.write(str(ind) + "\n") for ind in self.val_ind]
-        with open(Path(self.root) / "test_idx.txt", "w") as idx:
-            [idx.write(str(ind) + "\n") for ind in self.test_ind]
+        if hasattr(self, "train_ind"):
+            with open(Path(self.root) / "train_idx.txt", "w") as idx:
+                [idx.write(str(ind) + "\n") for ind in self.train_ind]
+            with open(Path(self.root) / "val_idx.txt", "w") as idx:
+                [idx.write(str(ind) + "\n") for ind in self.val_ind]
+            with open(Path(self.root) / "test_idx.txt", "w") as idx:
+                [idx.write(str(ind) + "\n") for ind in self.test_ind]
         with open(Path(self.root) / "metadata.json", "w") as meta:
             json.dump(self.metadata, meta, indent=4)
 
@@ -223,6 +223,14 @@ class Task:
         """Load dataset and splits from disk."""
         # load splits
         print(">>> Loading precomputed dataset...")
+        self.dataset = RNADataset(
+            dataset_path=self.dataset_path,
+            in_memory=self.in_memory,
+            debug=self.debug,
+            recompute_mapping=self.recompute)
+
+        with Path.open(Path(self.root) / "metadata.json") as meta:
+            self.metadata = json.load(meta)
         if (
                 os.path.exists(os.path.join(self.root, "train_idx.txt")) and
                 os.path.exists(os.path.join(self.root, "val_idx.txt")) and
@@ -231,11 +239,6 @@ class Task:
             self.train_ind = [int(ind) for ind in open(os.path.join(self.root, "train_idx.txt")).readlines()]
             self.val_ind = [int(ind) for ind in open(os.path.join(self.root, "val_idx.txt")).readlines()]
             self.test_ind = [int(ind) for ind in open(os.path.join(self.root, "test_idx.txt")).readlines()]
-
-        self.dataset = RNADataset(dataset_path=self.dataset_path, in_memory=self.in_memory, debug=self.debug)
-
-        with Path.open(Path(self.root) / "metadata.json") as meta:
-            self.metadata = json.load(meta)
 
         return self.dataset, self.metadata, (self.train_ind, self.val_ind, self.test_ind)
 

@@ -58,6 +58,7 @@ class ClusterSplitter(Splitter):
         Dataset needs to be passed since the cluster indices apply to keep_dataset,
         not necessarily the original one.
         """
+        print("Computing balanced clusters...")
         # Here we need to choose from clusters keeping labels in account.
         # Like Plinder, we should (potentially) make sure that singleton
         # clusters don't go into test in a second step.
@@ -83,6 +84,7 @@ class ClusterSplitter(Splitter):
             label_weight=int(self.balanced),
             verbose=self.verbose
         )
+        print('Done.')
 
         # print(f"metrics:{metrics}")
         return (

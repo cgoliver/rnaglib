@@ -1,5 +1,5 @@
 """Main class for collections of RNAs."""
-
+import json
 import os
 import copy
 
@@ -77,6 +77,7 @@ class RNADataset:
             version="2.0.0",
             redundancy="nr",
             rna_id_subset: List[str] = None,
+            recompute_mapping: bool = True,
             in_memory: bool = True,
             features_computer: FeaturesComputer = None,
             representations: Union[List[Representation], Representation] = None,
@@ -93,10 +94,17 @@ class RNADataset:
         self.pre_transforms = pre_transforms
         self.multigraph = multigraph
 
+        if dataset_path is not None:
+            self.dataset_path = dataset_path
+
+        # Distance is computed as a cached property
+        # We potentially want to save distances and the bidict mapping
+        self.distances_ = None
+        self.distances_path = os.path.join(dataset_path, "distances.npz") if dataset_path is not None else None
+        self.bidict_path = os.path.join(dataset_path, "bidict.json") if dataset_path is not None else None
+
         if rnas is None:
-            if dataset_path is not None:
-                self.dataset_path = dataset_path
-            else:
+            if dataset_path is None:
                 # By default, use non redundant (nr), v1.0.0 dataset of rglib
                 dataset_path, structures_path = download_graphs(
                     redundancy=redundancy,
@@ -105,21 +113,25 @@ class RNADataset:
                     get_pdbs=get_pdbs,
                     overwrite=overwrite,
                 )
-
                 self.dataset_path = dataset_path
                 self.structures_path = structures_path
 
             # One can restrict the number of graphs to use
             existing_all_rnas, extension = get_all_existing(dataset_path=self.dataset_path, all_rnas=rna_id_subset)
             self.extension = extension
+            if recompute_mapping or not os.path.exists(self.bidict_path):
 
-            # If debugging, only keep the first few
-            if debug:
-                existing_all_rnas = existing_all_rnas[:50]
+                # If debugging, only keep the first few
+                if debug:
+                    existing_all_rnas = existing_all_rnas[:50]
 
-            # Keep track of a list_id <=> system mapping. First remove extensions
-            existing_all_rna_names = [get_name_extension(rna, permissive=True)[0] for rna in existing_all_rnas]
-            self.all_rnas = bidict({rna: i for i, rna in enumerate(existing_all_rna_names)})
+                # Keep track of a list_id <=> system mapping. First remove extensions
+                existing_all_rna_names = [get_name_extension(rna, permissive=True)[0] for rna in existing_all_rnas]
+                self.all_rnas = bidict({rna: i for i, rna in enumerate(existing_all_rna_names)})
+
+            else:
+                simple_dict = json.load(open(self.bidict_path, 'r'))
+                self.all_rnas = bidict(simple_dict)
 
             if in_memory:
                 self.to_memory()
@@ -141,13 +153,6 @@ class RNADataset:
                 "When creating a RNAdataset from rnas, please " "use uniquely named networkx graphs"
             )
             self.all_rnas = bidict({rna.name: i for i, rna in enumerate(rnas)})
-
-        # Distance is computed as a cached property
-        self.distances_ = None
-        if self.dataset_path is not None:
-            self.distances_path = os.path.join(self.dataset_path, "distances.npz")
-        else:
-            self.distances_path = None
 
         # Now that we have the raw data setup, let us set up the features we want to be using:
         self.features_computer = FeaturesComputer() if features_computer is None else features_computer
@@ -192,7 +197,6 @@ class RNADataset:
             self.distances_ = {name: distance_mat}
         else:
             self.distances_[name] = distance_mat
-        self.save_distances()
 
     def save_distances(self):
         if self.distances is not None:
@@ -329,13 +333,14 @@ class RNADataset:
         if self.distances is not None:
             for distance_name in self.distances:
                 subset.add_distance(distance_name, self.distances[distance_name][np.ix_(list_of_ids, list_of_ids)])
-
         return subset
 
     def save(self, dump_path, recompute=False, verbose=True):
         """Save a local copy of the dataset"""
 
         self.save_distances()
+        with open(self.bidict_path, "w") as js:
+            json.dump(dict(self.all_rnas), js)
 
         if os.path.exists(dump_path) and os.listdir(dump_path) and not recompute:
             if verbose:
