@@ -20,6 +20,7 @@ class InverseFolding(ResidueClassificationTask):
     target_var = "nt_code"  # in rna graph
     input_var = "dummy"  # should be dummy variable
     nucs = ["A", "C", "G", "U"]
+    name = "rna_if"
 
     def __init__(self, root,
                  size_thresholds=(10, 300),
@@ -156,6 +157,8 @@ class gRNAde(InverseFolding):
     """This class is a subclass of InverseFolding and is used to train a model on the gRNAde dataset."""
 
     # everything is inherited except for process and splitter.
+    name = "rna_if_bench"
+
 
     def __init__(self, **kwargs):
         self.splits = {

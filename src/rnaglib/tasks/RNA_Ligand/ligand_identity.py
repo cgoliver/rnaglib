@@ -16,6 +16,8 @@ class LigandIdentification(RNAClassificationTask):
     input_var = "nt_code"
     target_var = "ligand"
     ligands_nb = 10
+    name = "rna_ligand"
+
 
     def __init__(self, root, data_filename,
                  size_thresholds=(10, 500),

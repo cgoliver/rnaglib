@@ -15,6 +15,7 @@ class VirtualScreening:
     json_dump = os.path.join(script_dir, "data/dataset_as_json.json")
     whole_data = json.load(open(json_dump, 'r'))
     trainval_groups, test_groups = whole_data["trainval"], whole_data["test"]
+    name = "rna_vs"
 
     def __init__(self, root, ligand_framework='dgl', recompute=False):
         self.root = root

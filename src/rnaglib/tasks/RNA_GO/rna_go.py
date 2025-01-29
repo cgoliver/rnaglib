@@ -17,6 +17,7 @@ class RNAGo(RNAClassificationTask):
 
     input_var = "nt_code"  # node level attribute
     target_var = "go_terms"  # graph level attribute
+    name = "rna_go"
 
     def __init__(self, root, size_thresholds=(10, 500), splitter=ClusterSplitter(distance_name="USalign"), **kwargs):
         super().__init__(root=root, splitter=splitter, size_thresholds=size_thresholds, multi_label=True, **kwargs)
