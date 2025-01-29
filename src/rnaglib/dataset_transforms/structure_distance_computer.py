@@ -33,7 +33,8 @@ class StructureDistanceComputer(DistanceComputer):
         super().__init__(name=self.name, **kwargs)
 
     def forward(self, dataset):
-        """Computes pairwise structural similarity between all pairs of RNAs with rna-align. Stalls with RNAs > 200 nts.
+        """Computes pairwise structural similarity between all pairs of RNAs with rna-align.
+        Stalls with RNAs > 200 nts.
 
         :param dataset: RNA dataset to compute similarity over.
         :returns np.array: Array of pairwise similarities in order of given dataset.
