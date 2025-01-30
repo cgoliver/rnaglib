@@ -50,8 +50,9 @@ class TaskTest(unittest.TestCase):
 
     def test_LigandIdentification(self):
         with tempfile.TemporaryDirectory() as tmp:
-            data_filename='binding_pockets.csv'
-            ta = LigandIdentification(root=tmp, data_filename=data_filename, recompute=True, **self.default_dataset_params)
+            data_filename = 'binding_pockets.csv'
+            ta = LigandIdentification(root=tmp, data_filename=data_filename,
+                **self.default_dataset_params)
             self.check_task(ta)
 
     def test_BindingSiteDetection(self):

@@ -19,10 +19,8 @@ class BenchmarkBindingSite(ResidueClassificationTask):
     input_var = "nt_code"
     name = "rna_site_bench"
 
-    def __init__(self, root,
-                 size_thresholds=(15, 500),
-                 **kwargs):
-        super().__init__(root=root, size_thresholds=size_thresholds, **kwargs)
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
 
     @property
     def default_splitter(self):
@@ -74,8 +72,7 @@ class BindingSite(ResidueClassificationTask):
     input_var = "nt_code"
     name = "rna_site"
 
-    def __init__(self,root,
-                 size_thresholds=(15, 500), **kwargs):
+    def __init__(self, root, size_thresholds=(15, 500), **kwargs):
         super().__init__(root=root, size_thresholds=size_thresholds, **kwargs)
 
     def process(self) -> RNADataset:
