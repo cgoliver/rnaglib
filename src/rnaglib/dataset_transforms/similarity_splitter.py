@@ -121,7 +121,7 @@ class ClusterSplitter(Splitter):
         :param n: portion of the test set size to use as largest test set cluster size
         :param split: if split is False, we return all clusters instead of splitting them
         """
-        if hasattr(dataset, "distances"):
+        if dataset.distances is not None:
             if not self.distance_name in dataset.distances:
                 raise ValueError(f"The distance matrix using distances {self.distance_name} has not been computed")
 

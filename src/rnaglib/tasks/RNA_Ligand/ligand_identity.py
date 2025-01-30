@@ -9,7 +9,8 @@ from rnaglib.tasks import RNAClassificationTask
 from rnaglib.data_loading import RNADataset
 from rnaglib.encoders import IntMappingEncoder
 from rnaglib.transforms import FeaturesComputer, AnnotatorFromDict, PartitionFromDict, ResolutionFilter
-from rnaglib.dataset_transforms import ClusterSplitter, CDHitComputer, RedundancyRemover
+from rnaglib.dataset_transforms import ClusterSplitter, CDHitComputer, StructureDistanceComputer
+from .prepare_dataset import PrepareDataset
 
 
 class LigandIdentification(RNAClassificationTask):
@@ -18,12 +19,13 @@ class LigandIdentification(RNAClassificationTask):
     """
     input_var = "nt_code"
     target_var = "ligand"
-    ligands_nb = 5
     name = "rna_ligand"
 
     def __init__(self, root, data_filename,
                  size_thresholds=(15, 500),
+                 admissible_ligands = ['PAR','LLL','8UZ'],
                  **kwargs):
+        self.admissible_ligands = admissible_ligands
         self.data_path = os.path.join(os.path.dirname(__file__), "data", data_filename)
         binding_pockets = pd.read_csv(self.data_path)
         binding_pockets3 = binding_pockets[["RNA", "bp_id", "nid"]].groupby(["RNA", "bp_id"])["nid"].apply(
@@ -62,19 +64,15 @@ class LigandIdentification(RNAClassificationTask):
                         if not self.size_filter.forward(binding_pocket_dict):
                             continue
                     annotated_binding_pocket = annotator(binding_pocket_dict)
-                    self.add_rna_to_building_list(all_rnas=all_binding_pockets, rna=annotated_binding_pocket["rna"])
-                    try:
-                        ligands_dict[annotated_binding_pocket["rna"].graph["ligand"]].append(idx)
-                    except:
-                        ligands_dict[annotated_binding_pocket["rna"].graph["ligand"]] = [idx]
-                    idx += 1
-        ligands_binding_pockets_nb = np.array([len(ligands_dict[ligand]) for ligand in ligands_dict])
-        ligands_to_keep_indices = np.argsort(ligands_binding_pockets_nb)[-self.ligands_nb:]
-        ligands_to_keep = list(np.array(list(ligands_dict.keys()))[ligands_to_keep_indices])
-        indices_to_keep = sorted([bp_idx for ligand in ligands_to_keep for bp_idx in ligands_dict[ligand]])
-        top_ligand_binding_pockets = [all_binding_pockets[i] for i in indices_to_keep]
-
-        dataset = self.create_dataset_from_list(top_ligand_binding_pockets)
+                    current_ligand = binding_pocket_dict["rna"].graph["ligand"]
+                    if current_ligand in self.admissible_ligands:
+                        self.add_rna_to_building_list(all_rnas=all_binding_pockets, rna=annotated_binding_pocket["rna"])
+                        try:
+                            ligands_dict[current_ligand].append(idx)
+                        except:
+                            ligands_dict[current_ligand] = [idx]
+                        idx += 1
+        dataset = self.create_dataset_from_list(all_binding_pockets)
         return dataset
 
     def get_task_vars(self) -> FeaturesComputer:
@@ -88,13 +86,6 @@ class LigandIdentification(RNAClassificationTask):
             custom_encoders={self.target_var: IntMappingEncoder(mapping=self.mapping)},
         )
 
-    # def post_process(self):
-    #     pass
-
-    # @property
-    # def default_splitter(self):
-    #     return ClusterSplitter(distance_name="USalign")
-
     def post_process(self):
         """
         The most common post_processing steps to remove redundancy.
@@ -102,12 +93,12 @@ class LigandIdentification(RNAClassificationTask):
         Other tasks should implement their own if this is not the desired default behavior
         """
         cd_hit_computer = CDHitComputer(similarity_threshold=0.9)
-        cd_hit_rr = RedundancyRemover(distance_name="cd_hit", threshold=0.9)
+        prepare_dataset = PrepareDataset(distance_name="cd_hit", threshold=0.9)
+        us_align_computer = StructureDistanceComputer(name="USalign")
         self.dataset = cd_hit_computer(self.dataset)
-        self.dataset = cd_hit_rr(self.dataset)
+        self.dataset = prepare_dataset(self.dataset)
+        self.dataset = us_align_computer(self.dataset)
 
     @property
     def default_splitter(self):
-        if self.debug:
-            return RandomSplitter()
-        return ClusterSplitter(distance_name="cd_hit")
+        return ClusterSplitter(distance_name="USalign")
