@@ -91,13 +91,13 @@ class ResidueAttributeFilter(FilterTransform):
     """
 
     def __init__(
-        self,
-        attribute: str,
-        aggregation_mode: str = "min_valid",
-        value_checker: Callable = None,
-        min_valid: int = 1,
-        aggfunc: Callable = None,
-        **kwargs,
+            self,
+            attribute: str,
+            aggregation_mode: str = "min_valid",
+            value_checker: Callable = None,
+            min_valid: int = 1,
+            aggfunc: Callable = None,
+            **kwargs,
     ):
         self.attribute = attribute
         self.aggregation_mode = aggregation_mode
@@ -110,7 +110,7 @@ class ResidueAttributeFilter(FilterTransform):
     def forward(self, data: dict):
         n_valid = 0
         g = data["rna"]
-        if self.aggregation_mode=="aggfunc":
+        if self.aggregation_mode == "aggfunc":
             vals_list = []
         for node, ndata in g.nodes(data=True):
             try:
@@ -118,23 +118,24 @@ class ResidueAttributeFilter(FilterTransform):
             except KeyError:
                 continue
             else:
-                if self.aggregation_mode=="min_valid" and self.value_checker(val):
+                if self.aggregation_mode == "min_valid" and self.value_checker(val):
                     n_valid += 1
-                elif self.aggregation_mode=="aggfunc":
+                elif self.aggregation_mode == "aggfunc":
                     vals_list.append(val)
-            if self.aggregation_mode=="min_valid" and n_valid >= self.min_valid:
+            if self.aggregation_mode == "min_valid" and n_valid >= self.min_valid:
                 return True
-        if self.aggregation_mode=="min_valid":
+        if self.aggregation_mode == "min_valid":
             return False
         else:
             return self.aggfunc(vals_list)
 
+
 class ResidueNameFilter(FilterTransform):
     def __init__(
-        self,
-        value_checker: Callable = None,
-        min_valid: int = 1,
-        **kwargs,
+            self,
+            value_checker: Callable = None,
+            min_valid: int = 1,
+            **kwargs,
     ):
         self.min_valid = min_valid
         self.value_checker = value_checker
@@ -146,10 +147,11 @@ class ResidueNameFilter(FilterTransform):
         g = data["rna"]
         for node, ndata in g.nodes(data=True):
             if self.value_checker(node):
-                    n_valid += 1
+                n_valid += 1
             if n_valid >= self.min_valid:
                 return True
         return False
+
 
 class RibosomalFilter(FilterTransform):
     """Remove RNA if ribosomal"""
@@ -248,6 +250,7 @@ class ChainFilter(FilterTransform):
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(valid_chains_dict={self.valid_chains_dict})"
 
+
 class ResolutionFilter(RNAAttributeFilter):
     def __init__(self, resolution_threshold: float, **kwargs):
         def value_checker(val):
@@ -255,5 +258,5 @@ class ResolutionFilter(RNAAttributeFilter):
                 return float(val[0]) < resolution_threshold
             except:
                 return False
+
         super().__init__(attribute="resolution_high", value_checker=value_checker, **kwargs)
-        pass

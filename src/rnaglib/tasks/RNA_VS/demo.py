@@ -16,7 +16,7 @@ representations = [GraphRepresentation(framework='dgl')]
 rna_dataset_args = {'representations': representations, 'features_computer': features_computer}
 rna_loader_args = {'batch_size': 16, 'shuffle': True, 'num_workers': 0}
 train_dataloader, val_dataloader, test_dataloader = ef_task.get_split_loaders(dataset_kwargs=rna_dataset_args,
-                                                                              dataloader_kwargs=rna_loader_args)
+    dataloader_kwargs=rna_loader_args)
 
 # Create an encoding model. This example one is compatible with DGL.
 # This model must implement a predict_ligands(pocket, ligands) method
