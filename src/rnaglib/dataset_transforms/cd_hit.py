@@ -55,13 +55,14 @@ class CDHitComputer(DistanceComputer):
         # Compute an RNA-level pairwise distance by the clusters its chunks belong to
         def tanimoto(set_1, set_2):
             return len(set_1 & set_2) / len(set_1 | set_2)
-        
+
         def custom_tanimoto(set_1, set_2):
             return len(set_1 & set_2) / min(len(set_1), len(set_2))
 
+        todo = list(itertools.combinations(idxs, 2))
         sims = [
             tanimoto(idx_to_clusters[rna_1], idx_to_clusters[rna_2])
-            for rna_1, rna_2 in tqdm(itertools.combinations(idxs, 2), desc="CD-Hit")
+            for rna_1, rna_2 in tqdm(todo, desc="CD-Hit", total=len(todo))
         ]
         sim_mat = np.zeros((len(idxs), len(idxs)))
         sim_mat[np.triu_indices(len(idxs), 1)] = sims

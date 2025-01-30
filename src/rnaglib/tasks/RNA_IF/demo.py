@@ -22,3 +22,4 @@ model.train_model(ta, epochs=10)
 test_metrics = model.evaluate(ta)
 for k, v in test_metrics.items():
     print(f"Test {k}: {f'{v:.4f}' if k != 'confusion_matrix' else v}")
+

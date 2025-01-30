@@ -5,6 +5,7 @@ from collections import defaultdict
 import numpy as np
 from pathlib import Path
 from sklearn.metrics import matthews_corrcoef, f1_score, accuracy_score, roc_auc_score, confusion_matrix
+from tqdm import tqdm
 
 from rnaglib.data_loading import RNADataset
 from rnaglib.transforms import FeaturesComputer, DummyAnnotator, ComposeFilters, RibosomalFilter
@@ -13,7 +14,7 @@ from rnaglib.transforms import NameFilter, ChainFilter, ChainSplitTransform, Cha
 from rnaglib.tasks import ResidueClassificationTask
 from rnaglib.encoders import BoolEncoder, NucleotideEncoder
 from rnaglib.dataset_transforms import NameSplitter
-from rnaglib.dataset_transforms import ClusterSplitter, StructureDistanceComputer, RedundancyRemover
+from rnaglib.dataset_transforms import ClusterSplitter, StructureDistanceComputer, CDHitComputer, RedundancyRemover
 
 
 class InverseFolding(ResidueClassificationTask):
@@ -32,27 +33,33 @@ class InverseFolding(ResidueClassificationTask):
         return ClusterSplitter(distance_name="USalign")
 
     def process(self) -> RNADataset:
-        # build the filters
-        ribo_filter = RibosomalFilter()
-
         # Define your transforms
         annotate_rna = DummyAnnotator()
         connected_components_partition = ConnectedComponentPartition()
 
         # Run through database, applying our filters
-        dataset = RNADataset(debug=self.debug, in_memory=self.in_memory)
+        dataset = RNADataset(debug=self.debug, in_memory=self.in_memory, redundancy="all")
         all_rnas = []
         os.makedirs(self.dataset_path, exist_ok=True)
-        for rna in dataset:
-            if ribo_filter.forward(rna):
-                for rna_connected_component in connected_components_partition(rna):
-                    if self.size_thresholds is not None:
-                        if not self.size_filter.forward(rna_connected_component):
-                            continue
-                    rna = annotate_rna(rna_connected_component)["rna"]
-                    self.add_rna_to_building_list(all_rnas=all_rnas, rna=rna)
+        for rna in tqdm(dataset):
+            for rna_connected_component in connected_components_partition(rna):
+                if self.size_thresholds is not None:
+                    if not self.size_filter.forward(rna_connected_component):
+                        continue
+                rna = annotate_rna(rna_connected_component)["rna"]
+                self.add_rna_to_building_list(all_rnas=all_rnas, rna=rna)
         dataset = self.create_dataset_from_list(all_rnas)
         return dataset
+
+    def post_process(self):
+        cd_hit_computer = CDHitComputer(similarity_threshold=0.99)
+        cd_hit_rr = RedundancyRemover(distance_name="cd_hit", threshold=0.9)
+        self.dataset = cd_hit_computer(self.dataset)
+        self.dataset = cd_hit_rr(self.dataset)
+
+        us_align_computer = StructureDistanceComputer(name="USalign")
+        self.dataset = us_align_computer(self.dataset)
+        self.dataset.save_distances()
 
     def get_task_vars(self) -> FeaturesComputer:
         return FeaturesComputer(
@@ -159,7 +166,6 @@ class gRNAde(InverseFolding):
     # everything is inherited except for process and splitter.
     name = "rna_if_bench"
 
-
     def __init__(self, root, size_thresholds=(15, 300), **kwargs):
         self.splits = {
             "train": [],
@@ -191,7 +197,7 @@ class gRNAde(InverseFolding):
                     self.splits[f"pdb_to_chain_{split}"][pdb_id].update(chain_components)
                     self.splits["pdb_to_chain_all"][pdb_id].update(chain_components)
 
-        super().__init__(root=root, size_thresholds=size_thresholds,**kwargs)
+        super().__init__(root=root, size_thresholds=size_thresholds, **kwargs)
 
     @property
     def default_splitter(self):
