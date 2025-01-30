@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 from tqdm import tqdm
 
+from rnaglib.dataset_transforms import RandomSplitter
 from rnaglib.tasks import RNAClassificationTask
 from rnaglib.data_loading import RNADataset
 from rnaglib.encoders import IntMappingEncoder
@@ -107,4 +108,6 @@ class LigandIdentification(RNAClassificationTask):
 
     @property
     def default_splitter(self):
+        if self.debug:
+            return RandomSplitter()
         return ClusterSplitter(distance_name="cd_hit")

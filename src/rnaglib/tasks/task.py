@@ -254,8 +254,6 @@ class Task:
             info = self.metadata["description"]
         else:
             print(">>> Computing description of task...")
-            self.get_split_loaders(recompute=False)
-
             # Get dimensions from first graph
             first_item = self.dataset[0]
             compute_num_edge_attributes = "graph" in first_item
