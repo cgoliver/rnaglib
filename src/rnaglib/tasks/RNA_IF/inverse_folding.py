@@ -166,43 +166,39 @@ class gRNAde(InverseFolding):
     # everything is inherited except for process and splitter.
     name = "rna_if_bench"
 
-    def __init__(self, root, size_thresholds=(15, 300), **kwargs):
+    def __init__(self, root, size_thresholds=(15, 300), debug=False, **kwargs):
         self.splits = {
-            "train": [],
-            "test": [],
-            "val": [],
-            "all": [],
             # Use sets instead of lists for chains since order doesn't matter
             "pdb_to_chain_train": defaultdict(set),
             "pdb_to_chain_test": defaultdict(set),
             "pdb_to_chain_val": defaultdict(set),
             "pdb_to_chain_all": defaultdict(set),
+            "pdb_to_chain_all_single": defaultdict(set),
         }
         # Populate the structure
         data_dir = Path(os.path.dirname(os.path.abspath(__file__))) / "data"
         for split in ["train", "test", "val"]:
             file_path = data_dir / f"{split}_ids_das.txt"
             with open(file_path, "r") as f:
-                for line in f:
+                for i, line in enumerate(f):
+                    if debug and i > 10:
+                        break
                     line = line.strip()
                     pdb_id = line.split("_")[0].lower()
-                    chain = line.split("_")[-1]  # .upper()
+                    chain = line.split("_")[-1]
                     chain_components = list(chain.split("-"))
-                    if pdb_id not in self.splits[split]:
-                        self.splits[split].append(pdb_id)
-                    if pdb_id not in self.splits["all"]:
-                        self.splits["all"].append(pdb_id)
 
                     # Using update for sets automatically handles duplicates
-                    self.splits[f"pdb_to_chain_{split}"][pdb_id].update(chain_components)
-                    self.splits["pdb_to_chain_all"][pdb_id].update(chain_components)
+                    self.splits[f"pdb_to_chain_{split}"][pdb_id].add(chain)
+                    self.splits["pdb_to_chain_all"][pdb_id].add(chain)
+                    self.splits["pdb_to_chain_all_single"][pdb_id].update(chain_components)
 
         super().__init__(root=root, size_thresholds=size_thresholds, **kwargs)
 
     @property
     def default_splitter(self):
         train_names = [
-            f"{pdb.lower()}_{chain}"  # .upper()
+            f"{pdb.lower()}_{chain}"
             for pdb in self.splits["pdb_to_chain_train"]
             for chain in self.splits["pdb_to_chain_train"][pdb]
         ]
@@ -226,29 +222,33 @@ class gRNAde(InverseFolding):
         Process the dataset in batches to avoid memory issues.
         Returns a filtered and processed RNADataset.
         """
-        name_filter = NameFilter(self.splits["train"] + self.splits["test"] + self.splits["val"])
-        chain_filter = ChainFilter(self.splits["pdb_to_chain_all"])
-        filters = ComposeFilters([name_filter, chain_filter])
+        pdb_to_single_chains = {pdb.lower():
+                                    [chain for chain in self.splits["pdb_to_chain_all_single"][pdb]]
+                                for pdb in self.splits["pdb_to_chain_all_single"]
+                                }
 
+        chain_filter = ChainFilter(pdb_to_single_chains)
         annote_dummy = DummyAnnotator()
-        split_chain = ChainSplitTransform()
-        add_name_chains = ChainNameTransform()
 
         # Initialize dataset with in_memory=False to avoid loading everything at once
-        source_dataset = RNADataset(debug=self.debug, redundancy="all", in_memory=False)
+        source_dataset = RNADataset(rna_id_subset=list(pdb_to_single_chains.keys()),
+            redundancy="all",
+            in_memory=False)
 
         all_rnas = []
         os.makedirs(self.dataset_path, exist_ok=True)
-        import tqdm
 
-        for rna in tqdm.tqdm(source_dataset):
-            if filters.forward(rna):
+        for rna in tqdm(source_dataset):
+            if chain_filter.forward(rna):
                 rna = annote_dummy(rna)
-                rna_chains = split_chain(rna)  # Split by chain
-                renamed_chains = list(add_name_chains(rna_chains))  # Rename
-                for rna_chain in renamed_chains:
-                    rna_chain = rna_chain["rna"]
-                    self.add_rna_to_building_list(all_rnas=all_rnas, rna=rna_chain)
+                base_graph = rna['rna']
+                pdb = base_graph.name
+                for chain in self.splits["pdb_to_chain_all"][pdb]:
+                    chain_components = set(chain.split("-"))
+                    selected_nodes = [node for node in base_graph.nodes() if node.split('.')[1] in chain_components]
+                    selected_chains = base_graph.copy().subgraph(selected_nodes)
+                    selected_chains.name = f"{pdb.lower()}_{chain}"
+                    self.add_rna_to_building_list(all_rnas=all_rnas, rna=selected_chains)
         dataset = self.create_dataset_from_list(all_rnas)
         return dataset
 
