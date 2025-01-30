@@ -33,9 +33,9 @@ ligands_dict = {}
 bp_id = 0
 dataset_size = len(dataset)
 for i, rna in tqdm(enumerate(dataset)):
+    cif = str(Path(dataset.structures_path) / f"{rna['rna'].graph['pdbid'].lower()}.cif")
+    mmcif_dict = MMCIF2Dict(cif)
     for ligand in rna['rna'].graph['ligands']:
-        cif = str(Path(dataset.structures_path) / f"{rna['rna'].graph['pdbid'].lower()}.cif")
-        mmcif_dict = MMCIF2Dict(cif)
         if not mmcif_dict['_chem_comp.type'][mmcif_dict['_chem_comp.id'].index(ligand['name'])] in ['RNA linking','DNA linking']:
             existing_nodes = set(rna['rna'].nodes())
             clean_rna_neighs = [nei for nei in ligand['rna_neighs'] if nei in existing_nodes]
