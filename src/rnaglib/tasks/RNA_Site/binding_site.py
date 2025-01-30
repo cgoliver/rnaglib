@@ -103,3 +103,10 @@ class BindingSite(ResidueClassificationTask):
 
     def get_task_vars(self) -> FeaturesComputer:
         return FeaturesComputer(nt_features=self.input_var, nt_targets=self.target_var)
+
+    @property
+    def default_splitter(self):
+        if self.debug:
+            return RandomSplitter()
+        else:
+            return ClusterSplitter(distance_name="USalign")
