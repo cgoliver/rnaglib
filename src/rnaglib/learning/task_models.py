@@ -7,45 +7,52 @@ from rnaglib.utils.misc import tonumpy
 
 
 class PygModel(torch.nn.Module):
-    def __init__(self,
-                 num_node_features,
-                 num_classes,
-                 num_unique_edge_attrs=20,
-                 graph_level=False,
-                 num_layers=2,
-                 hidden_channels=128,
-                 dropout_rate=0.5,
-                 multi_label=False,
-                 ):
+    def __init__(
+        self,
+        num_node_features,
+        num_classes,
+        num_unique_edge_attrs=20,
+        graph_level=False,
+        num_layers=2,
+        hidden_channels=128,
+        dropout_rate=0.5,
+        multi_label=False,
+    ):
         super().__init__()
+        self.num_node_features = num_node_features
+        self.num_classes = num_classes
+        self.num_unique_edge_attrs = num_unique_edge_attrs
+        self.graph_level = graph_level
         self.num_layers = num_layers
+        self.hidden_channels = hidden_channels
+        self.dropout_rate = dropout_rate
+        self.multi_label = multi_label
+
         self.convs = torch.nn.ModuleList()
         self.bns = torch.nn.ModuleList()
         self.dropouts = torch.nn.ModuleList()
-        self.graph_level = graph_level
-        self.num_classes = num_classes
-        self.multi_label = multi_label
 
         # Input layer
-        in_channels = num_node_features
-        for i in range(num_layers):
-            self.convs.append(RGCNConv(in_channels, hidden_channels, num_unique_edge_attrs))
-            self.bns.append(BatchNorm1d(hidden_channels))
-            self.dropouts.append(Dropout(dropout_rate))
-            in_channels = hidden_channels
+        in_channels = self.num_node_features
+        for i in range(self.num_layers):
+            self.convs.append(RGCNConv(in_channels, self.hidden_channels, self.num_unique_edge_attrs))
+            self.bns.append(BatchNorm1d(self.hidden_channels))
+            self.dropouts.append(Dropout(self.dropout_rate))
+            in_channels = self.hidden_channels
 
         # Initialize training components
         # Output layer
-        if multi_label:
-            self.final_linear = torch.nn.Linear(in_channels, num_classes)
+        if self.multi_label:
+            self.final_linear = torch.nn.Linear(in_channels, self.num_classes)
             self.criterion = torch.nn.BCEWithLogitsLoss()
         else:
             if num_classes == 2:
                 self.final_linear = torch.nn.Linear(in_channels, 1)
                 self.criterion = torch.nn.BCEWithLogitsLoss()
             else:
-                self.final_linear = torch.nn.Linear(in_channels, num_classes)
+                self.final_linear = torch.nn.Linear(in_channels, self.num_classes)
                 self.criterion = torch.nn.CrossEntropyLoss()
+
         self.optimizer = None
         self.device = None
 
@@ -96,8 +103,8 @@ class PygModel(torch.nn.Module):
                 self.optimizer.step()
 
             # Evaluation phase
-            train_metrics = self.evaluate(task, split='train')
-            val_metrics = self.evaluate(task, split='val')
+            train_metrics = self.evaluate(task, split="train")
+            val_metrics = self.evaluate(task, split="val")
 
             print(
                 f"Epoch {epoch + 1}, "
@@ -152,7 +159,6 @@ class PygModel(torch.nn.Module):
                 all_preds.extend(preds)
                 all_labels.extend(labels)
 
-
         if self.graph_level:
             all_probs = np.stack(all_probs)
             all_preds = np.stack(all_preds)
@@ -160,18 +166,18 @@ class PygModel(torch.nn.Module):
         mean_loss = total_loss / len(loader)
         return mean_loss, all_preds, all_probs, all_labels
 
-    def get_dataloader(self, task, split='test'):
-        if split == 'test':
+    def get_dataloader(self, task, split="test"):
+        if split == "test":
             dataloader = task.test_dataloader
-        elif split == 'val':
+        elif split == "val":
             dataloader = task.val_dataloader
         else:
             dataloader = task.train_dataloader
         return dataloader
 
-    def evaluate(self, task, split='test'):
+    def evaluate(self, task, split="test"):
         dataloader = self.get_dataloader(task=task, split=split)
         mean_loss, all_preds, all_probs, all_labels = self.inference(loader=dataloader)
         metrics = task.compute_metrics(all_preds, all_probs, all_labels)
-        metrics['loss'] = mean_loss
+        metrics["loss"] = mean_loss
         return metrics
