@@ -19,10 +19,8 @@ class BenchmarkBindingSite(ResidueClassificationTask):
     input_var = "nt_code"
     name = "rna_site_bench"
 
-    def __init__(self, root,
-                 size_thresholds=(15, 500),
-                 **kwargs):
-        super().__init__(root=root, size_thresholds=size_thresholds, **kwargs)
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
 
     @property
     def default_splitter(self):
@@ -39,7 +37,6 @@ class BenchmarkBindingSite(ResidueClassificationTask):
 
         bs_annotator = BindingSiteAnnotator()
         namer = ChainNameTransform()
-        connected_components_partition = ConnectedComponentPartition()
 
         dataset = RNADataset(
             debug=self.debug,
@@ -53,11 +50,7 @@ class BenchmarkBindingSite(ResidueClassificationTask):
         os.makedirs(self.dataset_path, exist_ok=True)
         for rna in dataset:
             if rna_filter.forward(rna):
-                for rna_connected_component in connected_components_partition(rna):
-                    if self.size_thresholds is not None:
-                        if not self.size_filter.forward(rna_connected_component):
-                            pass
-                rna = bs_annotator(rna_connected_component)
+                rna = bs_annotator(rna)
                 rna = namer(rna)['rna']
                 self.add_rna_to_building_list(all_rnas=all_rnas, rna=rna)
         dataset = self.create_dataset_from_list(all_rnas)
@@ -79,8 +72,7 @@ class BindingSite(ResidueClassificationTask):
     input_var = "nt_code"
     name = "rna_site"
 
-    def __init__(self,root,
-                 size_thresholds=(15, 500), **kwargs):
+    def __init__(self, root, size_thresholds=(15, 500), **kwargs):
         super().__init__(root=root, size_thresholds=size_thresholds, **kwargs)
 
     def process(self) -> RNADataset:

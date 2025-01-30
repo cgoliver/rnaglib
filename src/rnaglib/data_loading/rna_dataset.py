@@ -338,7 +338,10 @@ class RNADataset:
     def save(self, dump_path, recompute=False, verbose=True):
         """Save a local copy of the dataset"""
 
+        os.makedirs(dump_path, exist_ok=True)
+
         self.save_distances()
+
         with open(self.bidict_path, "w") as js:
             json.dump(dict(self.all_rnas), js)
 
@@ -346,7 +349,6 @@ class RNADataset:
             if verbose:
                 print('files already exist, set "recompute=True" to overwrite')
             return
-        os.makedirs(dump_path, exist_ok=True)
         for rna_name, i in self.all_rnas.items():
             if not self.in_memory:
                 # It's already saved !

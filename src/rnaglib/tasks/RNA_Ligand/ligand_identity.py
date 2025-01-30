@@ -4,11 +4,12 @@ import numpy as np
 import pandas as pd
 from tqdm import tqdm
 
+from rnaglib.dataset_transforms import RandomSplitter
 from rnaglib.tasks import RNAClassificationTask
 from rnaglib.data_loading import RNADataset
 from rnaglib.encoders import IntMappingEncoder
 from rnaglib.transforms import FeaturesComputer, AnnotatorFromDict, PartitionFromDict, ResolutionFilter
-from rnaglib.dataset_transforms import ClusterSplitter
+from rnaglib.dataset_transforms import ClusterSplitter, CDHitComputer, RedundancyRemover
 
 
 class LigandIdentification(RNAClassificationTask):
@@ -17,7 +18,7 @@ class LigandIdentification(RNAClassificationTask):
     """
     input_var = "nt_code"
     target_var = "ligand"
-    ligands_nb = 10
+    ligands_nb = 5
     name = "rna_ligand"
 
     def __init__(self, root, data_filename,
@@ -36,10 +37,6 @@ class LigandIdentification(RNAClassificationTask):
         self.ligands_dict = {rna_ligand[0]: rna_ligand[1] for rna_ligand in binding_pockets[["nid", "ligand"]].values}
         self.nodes_keep = list(self.bp_dict.keys())
         super().__init__(root=root, size_thresholds=size_thresholds, **kwargs)
-
-    # @property
-    # def default_splitter(self):
-    #     return ClusterSplitter(distance_name="USalign")
 
     def process(self):
         # Initialize dataset with in_memory=False to avoid loading everything at once
@@ -91,5 +88,26 @@ class LigandIdentification(RNAClassificationTask):
             custom_encoders={self.target_var: IntMappingEncoder(mapping=self.mapping)},
         )
 
+    # def post_process(self):
+    #     pass
+
+    # @property
+    # def default_splitter(self):
+    #     return ClusterSplitter(distance_name="USalign")
+
     def post_process(self):
-        pass
+        """
+        The most common post_processing steps to remove redundancy.
+
+        Other tasks should implement their own if this is not the desired default behavior
+        """
+        cd_hit_computer = CDHitComputer(similarity_threshold=0.9)
+        cd_hit_rr = RedundancyRemover(distance_name="cd_hit", threshold=0.9)
+        self.dataset = cd_hit_computer(self.dataset)
+        self.dataset = cd_hit_rr(self.dataset)
+
+    @property
+    def default_splitter(self):
+        if self.debug:
+            return RandomSplitter()
+        return ClusterSplitter(distance_name="cd_hit")
