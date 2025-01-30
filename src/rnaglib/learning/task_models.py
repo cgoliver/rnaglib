@@ -33,24 +33,29 @@ class PygModel(torch.nn.Module):
         self.dropouts = torch.nn.ModuleList()
 
         # Input layer
-        in_channels = self.num_node_features
+
+        self.input_non_linear_layer = torch.nn.Sequential(
+            torch.nn.Linear(num_node_features, self.hidden_channels),
+            torch.nn.ReLU(),
+            torch.nn.Dropout(self.dropout_rate),
+        )
+
         for i in range(self.num_layers):
-            self.convs.append(RGCNConv(in_channels, self.hidden_channels, self.num_unique_edge_attrs))
+            self.convs.append(RGCNConv(self.hidden_channels, self.hidden_channels, self.num_unique_edge_attrs))
             self.bns.append(BatchNorm1d(self.hidden_channels))
             self.dropouts.append(Dropout(self.dropout_rate))
-            in_channels = self.hidden_channels
 
         # Initialize training components
         # Output layer
         if self.multi_label:
-            self.final_linear = torch.nn.Linear(in_channels, self.num_classes)
+            self.final_linear = torch.nn.Linear(self.hidden_channels, self.num_classes)
             self.criterion = torch.nn.BCEWithLogitsLoss()
         else:
             if num_classes == 2:
-                self.final_linear = torch.nn.Linear(in_channels, 1)
+                self.final_linear = torch.nn.Linear(self.hidden_channels, 1)
                 self.criterion = torch.nn.BCEWithLogitsLoss()
             else:
-                self.final_linear = torch.nn.Linear(in_channels, self.num_classes)
+                self.final_linear = torch.nn.Linear(self.hidden_channels, self.num_classes)
                 self.criterion = torch.nn.CrossEntropyLoss()
 
         self.optimizer = None
@@ -58,6 +63,8 @@ class PygModel(torch.nn.Module):
 
     def forward(self, data):
         x, edge_index, edge_type, batch = data.x, data.edge_index, data.edge_attr, data.batch
+
+        x = self.input_non_linear_layer(x)
 
         for i in range(self.num_layers):
             x = self.convs[i](x, edge_index, edge_type)
