@@ -24,7 +24,7 @@ def multigraph_to_simple(g: nx.MultiDiGraph) -> nx.DiGraph:
     for u, v, data in g.edges(data=True):
         etype = data["LW"]
         if etype in backbone_types:
-            simple_g.add_edge(u, v, **d)
+            simple_g.add_edge(u, v, **data)
         pass
     # second pass adds non-canonicals when no backbone exists
     basepairs = []
