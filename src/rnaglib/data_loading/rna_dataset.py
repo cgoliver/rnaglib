@@ -250,8 +250,9 @@ class RNADataset:
         rna_name = self.all_rnas.inv[idx]
         nx_path, cif_path = None, None
 
-        if self.dataset_path is not None:
-            nx_path = Path(self.dataset_path) / f"{rna_name}{self.extension}"
+        if hasattr(self, "dataset_path"):
+            if self.dataset_path is not None:
+                nx_path = Path(self.dataset_path) / f"{rna_name}{self.extension}"
         if hasattr(self, "structures_path"):
             if self.structures_path is not None:
                 cif_path = Path(self.structures_path) / f"{rna_name}.cif"
