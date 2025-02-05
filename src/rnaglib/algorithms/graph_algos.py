@@ -30,13 +30,15 @@ def multigraph_to_simple(g: nx.MultiDiGraph) -> nx.DiGraph:
     basepairs = []
     for u, v, data in g.edges(data=True):
         etype = data["LW"]
-        if etype not in backbone_types and (u, v) not in simple_g.has_edge(u, v):
+        if etype not in backbone_types and not simple_g.has_edge(u, v):
             basepairs.append((u, v, data))
 
     simple_g.add_edges_from(basepairs)
-
     simple_g.graph = g.graph.copy()
 
+    simple_g_nodes = set(simple_g.nodes())
+    simple_g_node_attrs = {k: v for k, v in dict(g.nodes(data=True)).items() if k in simple_g_nodes}
+    nx.set_node_attributes(simple_g, simple_g_node_attrs)
     return simple_g
 
 
@@ -141,7 +143,7 @@ def nc_clean_dir(graph_dir, dump_dir):
 
 def incident_nodes(graph, nodes):
     """
-    Returns set of nodes in $graph \ nodes$ incident to nodes.
+    Returns set of nodes in $graph$ incident to input nodes.
 
     :param graph: A networkx graph
     :param nodes: set of nodes in graph
