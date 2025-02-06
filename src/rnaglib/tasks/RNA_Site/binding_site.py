@@ -11,7 +11,7 @@ from rnaglib.transforms import ChainNameTransform
 from rnaglib.transforms import BindingSiteAnnotator
 from rnaglib.transforms import ChainFilter, ComposeFilters
 from rnaglib.transforms import ConnectedComponentPartition
-from rnaglib.dataset_transforms import ClusterSplitter, StructureDistanceComputer, RedundancyRemover
+from rnaglib.dataset_transforms import ClusterSplitter
 
 
 class BenchmarkBindingSite(ResidueClassificationTask):

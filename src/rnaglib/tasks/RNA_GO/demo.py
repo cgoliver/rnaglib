@@ -1,8 +1,13 @@
+from rnaglib.dataset_transforms import RandomSplitter
 from rnaglib.tasks import RNAGo
 from rnaglib.transforms import GraphRepresentation
 from rnaglib.learning.task_models import PygModel
 
-ta = RNAGo(root="RNA_GO", recompute=True, debug=False)
+ta = RNAGo(
+    root="RNA_GO_random",
+    splitter=RandomSplitter(),
+    recompute=False,
+    debug=False)
 
 ta.dataset.add_representation(GraphRepresentation(framework="pyg"))
 
@@ -14,8 +19,8 @@ model = PygModel(ta.metadata["description"]["num_node_features"],
     num_classes=len(ta.metadata["label_mapping"]),
     graph_level=True,
     multi_label=True)
-model.configure_training(learning_rate=0.001)
-model.train_model(ta, epochs=1)
+model.configure_training(learning_rate=0.0001)
+model.train_model(ta, epochs=20)
 
 # Final evaluation
 test_metrics = model.evaluate(ta)
