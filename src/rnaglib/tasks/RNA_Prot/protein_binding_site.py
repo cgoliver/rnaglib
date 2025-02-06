@@ -1,11 +1,12 @@
 import os
+from tqdm import tqdm
 
 from rnaglib.data_loading import RNADataset
 from rnaglib.tasks import ResidueClassificationTask
 from rnaglib.transforms import FeaturesComputer
-from rnaglib.transforms import ComposeFilters, RibosomalFilter, DummyFilter, ResidueAttributeFilter
+from rnaglib.transforms import DummyFilter, ResidueAttributeFilter
 from rnaglib.transforms import ConnectedComponentPartition
-from rnaglib.dataset_transforms import ClusterSplitter, StructureDistanceComputer, RedundancyRemover
+from rnaglib.dataset_transforms import ClusterSplitter
 
 
 class ProteinBindingSite(ResidueClassificationTask):
@@ -32,11 +33,8 @@ class ProteinBindingSite(ResidueClassificationTask):
 
     def process(self):
         # Define your transforms
-        ribo_filter = RibosomalFilter()
-        non_bind_filter = ResidueAttributeFilter(attribute=self.target_var,
+        filters = ResidueAttributeFilter(attribute=self.target_var,
             value_checker=lambda val: val is not None)
-        filters_list = [ribo_filter, non_bind_filter]
-        filters = ComposeFilters(filters_list)
         if self.debug:
             filters = DummyFilter()
         connected_components_partition = ConnectedComponentPartition()
@@ -45,7 +43,7 @@ class ProteinBindingSite(ResidueClassificationTask):
         dataset = RNADataset(debug=self.debug, in_memory=False)
         all_rnas = []
         os.makedirs(self.dataset_path, exist_ok=True)
-        for rna in dataset:
+        for rna in tqdm(dataset, total=len(dataset)):
             if filters.forward(rna):
                 for rna_connected_component in connected_components_partition(rna):
                     if self.size_thresholds is not None:
