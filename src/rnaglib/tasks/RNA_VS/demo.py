@@ -18,6 +18,7 @@ rna_loader_args = {'batch_size': 16, 'shuffle': True, 'num_workers': 0}
 train_dataloader, val_dataloader, test_dataloader = ef_task.get_split_loaders(dataset_kwargs=rna_dataset_args,
     dataloader_kwargs=rna_loader_args)
 
+
 # Create an encoding model. This example one is compatible with DGL.
 # This model must implement a predict_ligands(pocket, ligands) method
 model = VSModel(encoder=RNAEncoder(), lig_encoder=LigandGraphEncoder(), decoder=Decoder())
