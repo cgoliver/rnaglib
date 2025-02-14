@@ -7,7 +7,7 @@ import json
 import numpy as np
 import os
 from pathlib import Path
-from sklearn.metrics import accuracy_score, f1_score, matthews_corrcoef, roc_auc_score
+from sklearn.metrics import accuracy_score, f1_score, matthews_corrcoef, roc_auc_score, jaccard_score
 import torch
 from torch.utils.data import DataLoader
 import tqdm
@@ -432,6 +432,8 @@ class ClassificationTask(Task):
         }
         if not self.multi_label:
             one_metric["mcc"] = matthews_corrcoef(labels, preds)
+        if self.multi_label:
+            one_metric["jaccard"] = jaccard_score(labels, preds, average="macro")
         try:
             one_metric["auc"] = roc_auc_score(
                 labels,
