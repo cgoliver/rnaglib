@@ -115,9 +115,14 @@ class PygModel(torch.nn.Module):
 
             print(
                 f"Epoch {epoch + 1}, "
-                f"Train Loss: {train_metrics['loss']:.4f}, Val Loss: {val_metrics['loss']:.4f}, "
+                f"Train Loss: {train_metrics['loss']:.4f}, Val Loss: {val_metrics['loss']:.4f}"
                 f"Train Acc: {train_metrics['accuracy']:.4f}, Val Acc: {val_metrics['accuracy']:.4f}"
             )
+
+            if self.multi_label:
+                print(
+                    f"Train Jaccard: {train_metrics['jaccard']:.4f}, Val Jaccard: {val_metrics['jaccard']:.4f}"
+                )
 
     def inference(self, loader) -> tuple:
         """
