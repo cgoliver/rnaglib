@@ -6,6 +6,7 @@ import hashlib
 import json
 import numpy as np
 import os
+from typing import Union, Literal
 from pathlib import Path
 from sklearn.metrics import accuracy_score, f1_score, matthews_corrcoef, roc_auc_score, jaccard_score
 import torch
@@ -13,7 +14,7 @@ from torch.utils.data import DataLoader
 import tqdm
 
 from rnaglib.data_loading import Collater, RNADataset
-from rnaglib.transforms import FeaturesComputer, SizeFilter
+from rnaglib.transforms import Transform, FeaturesComputer, SizeFilter
 from rnaglib.utils import DummyGraphModel, DummyResidueModel, dump_json, tonumpy
 from rnaglib.dataset_transforms import RandomSplitter, Splitter, RedundancyRemover
 from rnaglib.dataset_transforms import StructureDistanceComputer, CDHitComputer
@@ -33,15 +34,15 @@ class Task:
     """
 
     def __init__(
-            self,
-            root: str | os.PathLike,
-            recompute: bool = False,
-            splitter: Splitter = None,
-            debug: bool = False,
-            save: bool = True,
-            in_memory: bool = False,
-            size_thresholds: Sequence = None,
-            multi_label=False,
+        self,
+        root: str | os.PathLike,
+        recompute: bool = False,
+        splitter: Splitter = None,
+        debug: bool = False,
+        save: bool = True,
+        in_memory: bool = False,
+        size_thresholds: Sequence = None,
+        multi_label=False,
     ):
         self.root = root
         self.dataset_path = os.path.join(self.root, "dataset")
@@ -55,6 +56,7 @@ class Task:
 
         # Load or create dataset
         if not os.path.exists(self.dataset_path) or recompute:
+            os.makedirs(self.dataset_path, exist_ok=True)
             print(">>> Creating task dataset from scratch...")
             # instantiate the Size filter if required
             if self.size_thresholds is not None:
@@ -70,9 +72,10 @@ class Task:
         # Split dataset if it wasn't loaded from file
         self.splitter = self.default_splitter if splitter is None else splitter
         if not hasattr(self, "train_ind"):
+            print("no split found, splitting")
             self.split(self.dataset)
 
-        if self.save:
+        if self.save and not os.path.exists(self.root):
             self.write()
 
         # compute metadata
@@ -115,6 +118,12 @@ class Task:
         us_align_rr = RedundancyRemover(distance_name="USalign", threshold=0.8)
         self.dataset = us_align_computer(self.dataset)
         self.dataset = us_align_rr(self.dataset)
+
+        # PATCH: delete graphs from dataset/ lost during redundancy removal
+        for f in os.listdir(self.dataset.dataset_path):
+            if Path(f).stem not in self.dataset.all_rnas:
+                os.remove(Path(self.dataset.dataset_path) / f)
+
         self.dataset.save_distances()
 
     def split(self, dataset):
@@ -160,6 +169,16 @@ class Task:
             self.set_datasets(recompute=recompute)
             print(">>> Done")
         return self.train_dataset, self.val_dataset, self.test_dataset
+
+    def add_feature(
+        self,
+        feature: Union[str, Transform],
+        feature_level: Literal["residue", "rna"] = "residue",
+        is_input: bool = True,
+    ):
+        """Shortcut to RNADataset.add_feature"""
+        self.dataset.add_feature(feature, feature_level, is_input)
+        pass
 
     def get_split_loaders(self, recompute=True, **dataloader_kwargs):
         # If dataloaders were not already precomputed or if we want to recompute them to account
@@ -217,17 +236,15 @@ class Task:
         # load splits
         print(">>> Loading precomputed dataset...")
         self.dataset = RNADataset(
-            dataset_path=self.dataset_path,
-            in_memory=self.in_memory,
-            debug=self.debug,
-            recompute_mapping=self.recompute)
+            dataset_path=self.dataset_path, in_memory=self.in_memory, debug=self.debug, recompute_mapping=self.recompute
+        )
 
         with Path.open(Path(self.root) / "metadata.json") as meta:
             self.metadata = json.load(meta)
         if (
-                os.path.exists(os.path.join(self.root, "train_idx.txt")) and
-                os.path.exists(os.path.join(self.root, "val_idx.txt")) and
-                os.path.exists(os.path.join(self.root, "test_idx.txt"))
+            os.path.exists(os.path.join(self.root, "train_idx.txt"))
+            and os.path.exists(os.path.join(self.root, "val_idx.txt"))
+            and os.path.exists(os.path.join(self.root, "test_idx.txt"))
         ):
             self.train_ind = [int(ind) for ind in open(os.path.join(self.root, "train_idx.txt")).readlines()]
             self.val_ind = [int(ind) for ind in open(os.path.join(self.root, "val_idx.txt")).readlines()]
@@ -331,8 +348,10 @@ class Task:
     def create_dataset_from_list(self, rnas):
         """Computes an RNADataset object from the"""
         if self.in_memory:
+            print("in memory from list")
             dataset = RNADataset(rnas=rnas)
         else:
+            print("disk from list")
             dataset = RNADataset(dataset_path=self.dataset_path, rna_id_subset=rnas)
         return dataset
 

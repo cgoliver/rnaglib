@@ -41,9 +41,9 @@ class Transform:
         RNADataset = __import__("rnaglib.data_loading").data_loading.RNADataset
         if isinstance(data, (list, Generator, RNADataset)):
             if self.parallel:
-                return Parallel(n_jobs=self.num_workers)(delayed(self.forward)(d) for d in data)
+                return list(Parallel(n_jobs=self.num_workers)(delayed(self.forward)(d) for d in data))
             else:
-                return (self.forward(d) for d in data)
+                return [self.forward(d) for d in data]
         else:
             return self.forward(data)
 

@@ -18,9 +18,7 @@ class ChemicalModification(ResidueClassificationTask):
     input_var = "nt_code"
     name = "rna_cm"
 
-    def __init__(self, root,
-                 size_thresholds=(15, 500),
-                 **kwargs):
+    def __init__(self, root, size_thresholds=(15, 500), **kwargs):
         super().__init__(root=root, size_thresholds=size_thresholds, **kwargs)
 
     @property
@@ -32,8 +30,9 @@ class ChemicalModification(ResidueClassificationTask):
 
     def process(self):
         # Define your transforms
-        residue_attribute_filter = ResidueAttributeFilter(attribute=self.target_var,
-            value_checker=lambda val: val == True)
+        residue_attribute_filter = ResidueAttributeFilter(
+            attribute=self.target_var, value_checker=lambda val: val == True
+        )
         if self.debug:
             residue_attribute_filter = DummyFilter()
         connected_components_partition = ConnectedComponentPartition()
@@ -41,7 +40,6 @@ class ChemicalModification(ResidueClassificationTask):
         # Run through database, applying our filters
         dataset = RNADataset(debug=self.debug, in_memory=self.in_memory)
         all_rnas = []
-        os.makedirs(self.dataset_path, exist_ok=True)
         for rna in tqdm(dataset):
             for rna_connected_component in connected_components_partition(rna):
                 if residue_attribute_filter.forward(rna_connected_component):
@@ -50,4 +48,5 @@ class ChemicalModification(ResidueClassificationTask):
                     rna = rna_connected_component["rna"]
                     self.add_rna_to_building_list(all_rnas=all_rnas, rna=rna)
         dataset = self.create_dataset_from_list(all_rnas)
+        print(f"len of process: {len(dataset)}")
         return dataset

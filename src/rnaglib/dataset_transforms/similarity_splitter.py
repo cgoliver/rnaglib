@@ -15,15 +15,15 @@ class ClusterSplitter(Splitter):
     """Abstract class for splitting by clustering with a similarity function."""
 
     def __init__(
-            self,
-            similarity_threshold: float = 0.5,
-            n_jobs: int = -1,
-            seed: int = 0,
-            balanced: bool = True,
-            distance_name: str = "USalign",
-            verbose=False,
-            *args,
-            **kwargs,
+        self,
+        similarity_threshold: float = 0.5,
+        n_jobs: int = -1,
+        seed: int = 0,
+        balanced: bool = True,
+        distance_name: str = "USalign",
+        verbose=False,
+        *args,
+        **kwargs,
     ):
         self.similarity_threshold = similarity_threshold
         self.n_jobs = n_jobs
@@ -34,6 +34,7 @@ class ClusterSplitter(Splitter):
         super().__init__(**kwargs)
 
     def forward(self, dataset):
+        print(f"pre cluster len: {len(dataset)}")
         clusters = self.cluster_split(dataset, frac=0, split=False)
         _, label_counts = label_counter(dataset)
         # print(f"dataset:{dataset}")
@@ -78,13 +79,9 @@ class ClusterSplitter(Splitter):
 
         # print(f"balanced:{self.balanced}")
         train, val, test, metrics = assign_clusters(
-            clusters,
-            labelcounts,
-            split_ratios=fracs,
-            label_weight=int(self.balanced),
-            verbose=self.verbose
+            clusters, labelcounts, split_ratios=fracs, label_weight=int(self.balanced), verbose=self.verbose
         )
-        print('Done.')
+        print("Done.")
 
         # print(f"metrics:{metrics}")
         return (
@@ -94,11 +91,11 @@ class ClusterSplitter(Splitter):
         )
 
     def cluster_split(
-            self,
-            dataset: Iterable,
-            frac: float,
-            n: float = 0.05,
-            split: bool = True,
+        self,
+        dataset: Iterable,
+        frac: float,
+        n: float = 0.05,
+        split: bool = True,
     ):
         """Fast cluster-based splitting adapted from ProteinShake.
 
