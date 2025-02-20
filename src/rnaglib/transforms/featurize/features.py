@@ -1,6 +1,6 @@
 """Cast annotations to feature tensors."""
 
-from typing import Dict, Union, List, TYPE_CHECKING
+from typing import Dict, Union, List, TYPE_CHECKING, Literal
 
 import torch
 import networkx as nx
@@ -28,15 +28,15 @@ class FeaturesComputer(Transform):
     """
 
     def __init__(
-            self,
-            nt_features: Union[List, str] = None,
-            nt_targets: Union[List, str] = None,
-            rna_features: Union[List, str] = None,
-            rna_targets: Union[List, str] = None,
-            bp_features: Union[List, str] = None,
-            bp_targets: Union[List, str] = None,
-            extra_useful_keys: Union[List, str] = None,
-            custom_encoders: dict = None,
+        self,
+        nt_features: Union[List, str] = None,
+        nt_targets: Union[List, str] = None,
+        rna_features: Union[List, str] = None,
+        rna_targets: Union[List, str] = None,
+        bp_features: Union[List, str] = None,
+        bp_targets: Union[List, str] = None,
+        extra_useful_keys: Union[List, str] = None,
+        custom_encoders: dict = None,
     ):
 
         self.rna_features_parser = self.build_feature_parser(rna_features, custom_encoders=custom_encoders)
@@ -54,19 +54,32 @@ class FeaturesComputer(Transform):
         self.bp_features = bp_features
         self.bp_targets = bp_targets
 
-    def add_feature(self, feature_names=None, custom_encoders=None, input_feature=True):
+    def add_feature(
+        self,
+        feature_names=None,
+        custom_encoders=None,
+        input_feature=True,
+        feature_level: Literal["rna", "residue"] = "residue",
+    ):
         """
         Update the input/output feature selector with either an extra available named feature or a custom encoder
         :param feature_names: Name of the input feature to add
         :param transforms: A Transform object to compute new features with
+        :param feature_level: If featureis RNA-level ('rna`) or residue-level (`residue`)
         :param input_feature: Set to true to modify the input feature encoder, false for the target one
         :return: None
         """
         # Select the right node_parser and update it
 
-        node_parser = self.node_features_parser if input_feature else self.node_target_parser
-        new_node_parser = self.build_feature_parser(asked_features=feature_names, custom_encoders=custom_encoders)
-        node_parser.update(new_node_parser)
+        if feature_level == "residue":
+            old_parser = self.node_features_parser if input_feature else self.node_target_parser
+        elif feature_level == "rna":
+            old_parser = self.rna_features_parser if input_feature else self.rna_target_parser
+        else:
+            raise ValueError(f"Invalid feature level {feature_level}, must be 'rna' or 'residue'")
+
+        new_parser = self.build_feature_parser(asked_features=feature_names, custom_encoders=custom_encoders)
+        old_parser.update(new_node_parser)
 
     def remove_feature(self, feature_name=None, input_feature=True):
         """
@@ -181,10 +194,10 @@ class FeaturesComputer(Transform):
         return node_encodings
 
     def build_feature_parser(
-            self,
-            asked_features: Union[List, str] = None,
-            custom_encoders: dict = None,
-            feature_map: dict = None,
+        self,
+        asked_features: Union[List, str] = None,
+        custom_encoders: dict = None,
+        feature_map: dict = None,
     ) -> dict:
         """
         This function will load the predefined feature maps available globally.

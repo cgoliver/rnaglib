@@ -51,7 +51,7 @@ class BenchmarkBindingSite(ResidueClassificationTask):
         for rna in dataset:
             if rna_filter.forward(rna):
                 rna = bs_annotator(rna)
-                rna = namer(rna)['rna']
+                rna = namer(rna)["rna"]
                 self.add_rna_to_building_list(all_rnas=all_rnas, rna=rna)
         dataset = self.create_dataset_from_list(all_rnas)
         return dataset
@@ -80,15 +80,16 @@ class BindingSite(ResidueClassificationTask):
         rna_filter = ResidueAttributeFilter(attribute=self.target_var, value_checker=lambda val: val is not None)
         connected_components_partition = ConnectedComponentPartition()
 
-        protein_content_filter = ResidueAttributeFilter(attribute="protein_content_8.0", aggregation_mode="aggfunc",
-            value_checker=lambda x: x < 10, aggfunc=np.mean)
+        protein_content_filter = ResidueAttributeFilter(
+            attribute="protein_content_8.0", aggregation_mode="aggfunc", value_checker=lambda x: x < 10, aggfunc=np.mean
+        )
         connected_component_filters_list = [protein_content_filter]
         if self.size_thresholds is not None:
             connected_component_filters_list.append(self.size_filter)
         connected_component_filters = ComposeFilters(connected_component_filters_list)
 
         # Run through database, applying our filters
-        dataset = RNADataset(debug=self.debug, in_memory=self.in_memory)
+        dataset = RNADataset(debug=self.debug, in_memory=self.in_memory, redundancy="all")
         all_rnas = []
         os.makedirs(self.dataset_path, exist_ok=True)
         for rna in dataset:
