@@ -1,18 +1,19 @@
 """Main class for collections of RNAs."""
+
 import json
 import os
 import copy
 
 from bidict import bidict
 from pathlib import Path
-from typing import Dict, List, Union
+from typing import Dict, List, Union, Literal
 from collections.abc import Iterable
 
 from bidict import bidict
 import networkx as nx
 import numpy as np
 
-from rnaglib.transforms.transform import Transform
+from rnaglib.transforms.transform import Transform, AnnotationTransform
 from rnaglib.transforms.represent import Representation
 from rnaglib.transforms.featurize import FeaturesComputer
 from rnaglib.data_loading.create_dataset import database_to_dataset
@@ -71,23 +72,23 @@ class RNADataset:
     """
 
     def __init__(
-            self,
-            rnas: List[nx.Graph] = None,
-            dataset_path: Union[str, os.PathLike] = None,
-            version="2.0.0",
-            redundancy="nr",
-            rna_id_subset: List[str] = None,
-            recompute_mapping: bool = True,
-            in_memory: bool = True,
-            features_computer: FeaturesComputer = None,
-            representations: Union[List[Representation], Representation] = None,
-            debug: bool = False,
-            get_pdbs: bool = True,
-            overwrite: bool = False,
-            multigraph: bool = False,
-            pre_transforms: Union[List[Transform], Transform] = None,
-            transforms: Union[List[Transform], Transform] = None,
-            **kwargs,
+        self,
+        rnas: List[nx.Graph] = None,
+        dataset_path: Union[str, os.PathLike] = None,
+        version="2.0.0",
+        redundancy="nr",
+        rna_id_subset: List[str] = None,
+        recompute_mapping: bool = True,
+        in_memory: bool = True,
+        features_computer: FeaturesComputer = None,
+        representations: Union[List[Representation], Representation] = None,
+        debug: bool = False,
+        get_pdbs: bool = True,
+        overwrite: bool = False,
+        multigraph: bool = False,
+        pre_transforms: Union[List[Transform], Transform] = None,
+        transforms: Union[List[Transform], Transform] = None,
+        **kwargs,
     ):
         self.in_memory = in_memory
         self.transforms = transforms
@@ -130,7 +131,7 @@ class RNADataset:
                 self.all_rnas = bidict({rna: i for i, rna in enumerate(existing_all_rna_names)})
 
             else:
-                simple_dict = json.load(open(self.bidict_path, 'r'))
+                simple_dict = json.load(open(self.bidict_path, "r"))
                 self.all_rnas = bidict(simple_dict)
 
             if in_memory:
@@ -204,11 +205,11 @@ class RNADataset:
 
     @classmethod
     def from_database(
-            cls,
-            representations=None,
-            features_computer=None,
-            in_memory=True,
-            **dataset_build_params,
+        cls,
+        representations=None,
+        features_computer=None,
+        in_memory=True,
+        **dataset_build_params,
     ):
         """Run the steps to build a dataset from scratch.
 
@@ -293,6 +294,45 @@ class RNADataset:
         to_print = [repr.name for repr in representations] if len(representations) > 1 else representations[0].name
         print(f">>> Adding {to_print} to dataset representations.")
         self.representations.extend(representations)
+
+    def add_feature(
+        self,
+        feature: Union[str, AnnotationTransform],
+        feature_level: Literal["residue", "rna"] = "residue",
+        is_input: bool = True,
+    ):
+        """Add a feature to the dataset for model training. If you pass a string,
+        we use it to pull the feature from the RNA dictionary. If you pass an AnnotationTransform,
+        we check if it has been applied already , if not apply it to store the annotation in the
+        dataset and then use it as a feature.
+
+        :param feature: Can be a string representing a key in the RNA dict or an AnnotationTransform.
+        :param feature_level: Residue-level (`residue`), or RNA-level (`rna`) feature.
+        :param is_input: Are you using the feature on the input side (`True`) or as a prediction target (`False`)?
+        """
+
+        feature_name = feature
+        # using an existing key in the RNA dictionary as feature
+        if isinstance(feature, AnnotationTransform):
+            # check if transform has already been applied
+            g = self.dataset["rna"][0]
+            feature_exists = False
+            if feature_level == "residue" and g.nodes[node].get(feature.name) is not None:
+                node = next(iter(g.nodes))
+                feature_exists = True
+            if feature_level == "rna" and g.graph.get(feature.name) is not None:
+                feature_exists = True
+
+            # transform not applied, so apply it
+            print("Applying transform...")
+            [feature(d) for d in self.dataset]
+
+            feature_name = feature.name
+
+        self.features_computer.add_feature(
+            feature_names=feature_name, feature_level=feature_level, input_feature=is_input
+        )
+        pass
 
     def remove_representation(self, names):
         names = [names] if not isinstance(names, Iterable) else names
