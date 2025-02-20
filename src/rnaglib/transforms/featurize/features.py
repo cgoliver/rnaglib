@@ -79,7 +79,7 @@ class FeaturesComputer(Transform):
             raise ValueError(f"Invalid feature level {feature_level}, must be 'rna' or 'residue'")
 
         new_parser = self.build_feature_parser(asked_features=feature_names, custom_encoders=custom_encoders)
-        old_parser.update(new_node_parser)
+        old_parser.update(new_parser)
 
     def remove_feature(self, feature_name=None, input_feature=True):
         """

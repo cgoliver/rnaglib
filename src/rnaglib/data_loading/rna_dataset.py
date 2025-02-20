@@ -312,25 +312,29 @@ class RNADataset:
         """
 
         feature_name = feature
+        custom_encoders = None
         # using an existing key in the RNA dictionary as feature
-        if isinstance(feature, AnnotationTransform):
+        if isinstance(feature, Transform):
             # check if transform has already been applied
-            g = self.dataset["rna"][0]
+            g = self[0]["rna"]
+            node = next(iter(g.nodes))
             feature_exists = False
             if feature_level == "residue" and g.nodes[node].get(feature.name) is not None:
-                node = next(iter(g.nodes))
                 feature_exists = True
             if feature_level == "rna" and g.graph.get(feature.name) is not None:
                 feature_exists = True
 
             # transform not applied, so apply it
-            print("Applying transform...")
-            [feature(d) for d in self.dataset]
+            feature(self)
 
             feature_name = feature.name
+            custom_encoders = {feature_name: feature.encoder}
 
         self.features_computer.add_feature(
-            feature_names=feature_name, feature_level=feature_level, input_feature=is_input
+            feature_names=feature_name,
+            feature_level=feature_level,
+            input_feature=is_input,
+            custom_encoders=custom_encoders,
         )
         pass
 
@@ -379,6 +383,7 @@ class RNADataset:
     def save(self, dump_path, recompute=False, verbose=True):
         """Save a local copy of the dataset"""
 
+        print(f"dumping {len(self.all_rnas)} rnas")
         os.makedirs(dump_path, exist_ok=True)
 
         self.save_distances()

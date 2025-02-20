@@ -19,12 +19,12 @@ from rnaglib.utils.graph_io import get_default_download_dir
 
 class StructureDistanceComputer(DistanceComputer):
     def __init__(
-            self,
-            name: str = "USalign",
-            use_substructures: bool = True,
-            structures_path: Path = None,
-            n_jobs: int = -1,
-            **kwargs,
+        self,
+        name: str = "USalign",
+        use_substructures: bool = True,
+        structures_path: Path = None,
+        n_jobs: int = -1,
+        **kwargs,
     ):
         self.name = name
         self.use_substructures = use_substructures
@@ -48,7 +48,7 @@ class StructureDistanceComputer(DistanceComputer):
             self.structures_path = os.path.join(dirname, "structures")
 
         with tempfile.TemporaryDirectory() as tmpdir:
-            print('dumping structures...')
+            print("dumping structures...")
             # tmpdir = 'debug_persistent'
             os.makedirs(tmpdir, exist_ok=True)
             all_pdb_path = []
