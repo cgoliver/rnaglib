@@ -75,8 +75,10 @@ class Task:
             print("no split found, splitting")
             self.split(self.dataset)
 
-        if self.save and not os.path.exists(self.root):
+        if self.save:
             self.write()
+            with open(Path(self.root) / "done.txt", "w") as f:
+                f.write("")
 
         # compute metadata
         self.describe()
