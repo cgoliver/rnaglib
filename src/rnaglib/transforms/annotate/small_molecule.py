@@ -116,7 +116,7 @@ def hariboss_filter(lig, cif_dict, mass_lower_limit=160, mass_upper_limit=1000):
         lig_name = lig.id[0][2:]
         if lig_name == "HOH":
             return None
-        
+
         if cif_dict["_chem_comp.type"][cif_dict["_chem_comp.id"].index(lig_name)] in ["RNA linking", "DNA linking"]:
             return None
 
@@ -227,9 +227,15 @@ def get_small_partners(cif, mmcif_dict=None, radius=6, mass_lower_limit=160, mas
 
 
 class SmallMoleculeBindingTransform(AnnotationTransform):
+    """Annotate RNAs with small molecule binding information.
 
-    def __init__(self, structures_dir: Union[os.PathLike, str]):
+    :param structures_dir: path to directory containing the mmCIFs to annotate
+    :param cutoff: distance threshold (Angstroms) to use for including small molecule ligands (default= 6).
+    """
+
+    def __init__(self, structures_dir: Union[os.PathLike, str], cutoffs=[4.0, 6.0, 8.0]):
         self.structures_dir = structures_dir
+        self.cutoffs = sorted(cutoffs)
         pass
 
     def forward(self, rna_dict: dict) -> dict:
@@ -244,30 +250,32 @@ class SmallMoleculeBindingTransform(AnnotationTransform):
         cif = str(Path(self.structures_dir) / f"{g.graph['pdbid'].lower()}.cif")
         mmcif_dict = MMCIF2Dict(cif)
 
-        # Fetch interactions with small molecules and ions
-        all_interactions = get_small_partners(cif, mmcif_dict=mmcif_dict)
-        g.graph.update(all_interactions)
+        lig_to_smiles = {}
+        for cutoff in self.cutoffs:
+            # Fetch interactions with small molecules and ions
+            all_interactions = get_small_partners(cif, mmcif_dict=mmcif_dict, radius=cutoff)
 
-        # First fill relevant nodes
-        for interaction_dict in all_interactions["ligands"]:
-            for rna_neigh in interaction_dict["rna_neighs"]:
-                if rna_neigh in g.nodes:
-                    g.nodes[rna_neigh]["binding_small-molecule"] = {
-                        "name": interaction_dict["name"],
-                        "id": interaction_dict["id"],
-                        "smiles": interaction_dict["smiles"],
-                    }
-        for interaction_dict in all_interactions["ions"]:
-            ion_id = interaction_dict["id"]
-            for rna_neigh in interaction_dict["rna_neighs"]:
-                # In some rare cases, dssr removes a residue from the cif, in which case it can be fou
-                # in the interaction dict but not in graph...
-                if rna_neigh in g.nodes:
-                    g.nodes[rna_neigh]["binding_ion"] = ion_id
-        # Then add a None field in all other nodes
-        for node, node_data in g.nodes(data=True):
-            if "binding_ion" not in node_data:
-                node_data["binding_ion"] = None
-            if "binding_small-molecule" not in node_data:
-                node_data["binding_small-molecule"] = None
+            # First fill relevant nodes
+            for interaction_dict in all_interactions["ligands"]:
+                for rna_neigh in interaction_dict["rna_neighs"]:
+                    if rna_neigh in g.nodes:
+                        g.nodes[rna_neigh][f"binding_small-molecule-{cutoff}A"] = {
+                            "name": interaction_dict["name"],
+                            "id": interaction_dict["id"],
+                        }
+                        lig_to_smiles[interaction_dict["id"]] = interaction_dict["smiles"]
+            for interaction_dict in all_interactions["ions"]:
+                ion_id = interaction_dict["id"]
+                for rna_neigh in interaction_dict["rna_neighs"]:
+                    # In some rare cases, dssr removes a residue from the cif, in which case it can be fou
+                    # in the interaction dict but not in graph...
+                    if rna_neigh in g.nodes:
+                        g.nodes[rna_neigh][f"binding_ion_{cutoff}A"] = ion_id
+            # Then add a None field in all other nodes
+            for node, node_data in g.nodes(data=True):
+                if f"binding_ion_{cutoff}A" not in node_data:
+                    node_data[f"binding_ion_{cutoff}A"] = None
+                if f"binding_small-molecule-{cutoff}A" not in node_data:
+                    node_data[f"binding_small-molecule-{cutoff}A"] = None
+            rna_dict["rna"].graph["ligand_to_smiles"] = lig_to_smiles
         return rna_dict
