@@ -128,10 +128,13 @@ def build_graph_from_cif(cif_path, dump_dir):
     """
     structures_dir = Path(cif_path).parent
     graph = fr3d_to_graph(cif_path)
+    if graph is None:
+        return None
+
     transforms = [
         CifMetadata(structures_dir=structures_dir),
         SmallMoleculeBindingTransform(structures_dir=structures_dir),
-        RBPTransform(structures_dir=structures_dir, protein_number_annotations=True, distances=[4., 6., 8.]),
+        RBPTransform(structures_dir=structures_dir, protein_number_annotations=True, distances=[4.0, 6.0, 8.0]),
         SecondaryStructureTransform(structures_dir=structures_dir),
     ]
 
@@ -178,7 +181,7 @@ def prepare_data_main(args):
     todo = [Path(args.structures_dir) / f"{pdbid}.cif" for pdbid in rna_list if pdbid not in done]
     if args.debug:
         print(">>> Using debug mode. Preparing only 10 structures.")
-        todo = todo[:int(args.n_debug)]
+        todo = todo[: int(args.n_debug)]
 
     # Build Graphs
     total = len(todo)
