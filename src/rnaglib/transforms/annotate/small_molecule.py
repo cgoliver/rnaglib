@@ -263,7 +263,7 @@ class SmallMoleculeBindingTransform(AnnotationTransform):
                             "name": interaction_dict["name"],
                             "id": interaction_dict["id"],
                         }
-                        lig_to_smiles[interaction_dict["id"]] = interaction_dict["smiles"]
+                        lig_to_smiles[interaction_dict["name"]] = interaction_dict["smiles"]
             for interaction_dict in all_interactions["ions"]:
                 ion_id = interaction_dict["id"]
                 for rna_neigh in interaction_dict["rna_neighs"]:
