@@ -75,7 +75,7 @@ class RNADataset:
         self,
         rnas: List[nx.Graph] = None,
         dataset_path: Union[str, os.PathLike] = None,
-        version="2.0.0",
+        version="2.0.2",
         redundancy="nr",
         rna_id_subset: List[str] = None,
         recompute_mapping: bool = True,
