@@ -55,7 +55,7 @@ class Task:
         self.metadata = self.init_metadata()
 
         # Load or create dataset
-        if not os.path.exists(self.dataset_path) or recompute:
+        if not os.path.exists(Path(self.dataset_path) / "done.txt") or recompute:
             os.makedirs(self.dataset_path, exist_ok=True)
             print(">>> Creating task dataset from scratch...")
             # instantiate the Size filter if required
