@@ -74,6 +74,9 @@ NODE_FEATURE_MAP = {
     "binding_protein": BoolEncoder(),
     "binding_ion": BoolEncoder(),
     "binding_small-molecule": BoolEncoder(),
+    "binding_small-molecule-4.0A": BoolEncoder(),
+    "binding_small-molecule-6.0A": BoolEncoder(),
+    "binding_small-molecule-8.0A": BoolEncoder(),
     # These stuff can be dicts, but I guess most of the time it will be a binary rather than a categorical prediction.
     # This is more advanced.
     # "binding_ion": None,  # TODO : ? onehot ?

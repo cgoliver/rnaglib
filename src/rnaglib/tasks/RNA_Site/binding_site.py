@@ -1,6 +1,6 @@
 import os
 import numpy as np
-
+from tqdm import tqdm
 from rnaglib.data_loading import RNADataset
 from rnaglib.transforms import FeaturesComputer
 from rnaglib.dataset_transforms import SPLITTING_VARS, default_splitter_tr60_tr18, RandomSplitter
@@ -68,7 +68,7 @@ class BenchmarkBindingSite(ResidueClassificationTask):
 
 
 class BindingSite(ResidueClassificationTask):
-    target_var = "binding_small-molecule_4.0A"
+    target_var = "binding_small-molecule-4.0A"
     input_var = "nt_code"
     name = "rna_site"
 
@@ -92,7 +92,7 @@ class BindingSite(ResidueClassificationTask):
         dataset = RNADataset(debug=self.debug, in_memory=self.in_memory, redundancy="all")
         all_rnas = []
         os.makedirs(self.dataset_path, exist_ok=True)
-        for rna in dataset:
+        for rna in tqdm(dataset, total=len(dataset), desc="Processing RNAs"):
             if rna_filter.forward(rna):
                 for rna_connected_component in connected_components_partition(rna):
                     if not connected_component_filters.forward(rna_connected_component):
