@@ -68,7 +68,7 @@ class BenchmarkBindingSite(ResidueClassificationTask):
 
 
 class BindingSite(ResidueClassificationTask):
-    target_var = "binding_small-molecule"
+    target_var = "binding_small-molecule_4.0A"
     input_var = "nt_code"
     name = "rna_site"
 
