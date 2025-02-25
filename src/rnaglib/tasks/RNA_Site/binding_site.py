@@ -68,11 +68,11 @@ class BenchmarkBindingSite(ResidueClassificationTask):
 
 
 class BindingSite(ResidueClassificationTask):
-    target_var = "binding_small-molecule-4.0A"
     input_var = "nt_code"
     name = "rna_site"
 
-    def __init__(self, root, size_thresholds=(15, 500), **kwargs):
+    def __init__(self, root, cutoff=6.0,size_thresholds=(15, 500), **kwargs):
+        self.target_var = f"binding_small-molecule-{cutoff}A"
         super().__init__(root=root, size_thresholds=size_thresholds, **kwargs)
 
     def process(self) -> RNADataset:
