@@ -88,6 +88,7 @@ They can also be obtained through the provided command line utility `$ rnaglib_d
 
 | Version | Date     | Total RNAs | Total Non-Redundant | Non-redundant version | `rnaglib` commit |
 ---------|----------|------------|---------------------|-----------------------|------------------|
+ 2.0.2   | 25-02-25 | 8441       | 2921                | 3.375                 | ac303c7          |
  2.0.0   | 12-01-25 | 8305       | 2877                | 3.369                 | 33a9e989         |
  1.0.0   | 15-02-23 | 5759       | 1176                | 3.269                 | 5446ae2c         |
  0.0.0   | 20-07-21 | 3739       | 899                 | 3.186                 | eb25dabd         |
