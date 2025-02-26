@@ -10,7 +10,7 @@ import numpy as np
 import os
 from typing import Union, Literal
 from pathlib import Path
-from sklearn.metrics import accuracy_score, f1_score, matthews_corrcoef, roc_auc_score, jaccard_score
+from sklearn.metrics import accuracy_score, f1_score, matthews_corrcoef, roc_auc_score, jaccard_score, balanced_accuracy_score
 import torch
 from torch.utils.data import DataLoader
 import tqdm
@@ -77,12 +77,14 @@ class Task:
                 self.size_filter = SizeFilter(size_thresholds[0], size_thresholds[1])
             self.dataset = self.process()
             self.post_process()
+            self.dataset.features_computer = self.get_task_vars()
             # compute metadata
             self.describe()
         else:
             self.load()
+            self.dataset.features_computer = self.get_task_vars()
 
-        self.dataset.features_computer = self.get_task_vars()
+        
 
         # Set splitter after dataset is available
         # Split dataset if it wasn't loaded from file
@@ -293,7 +295,7 @@ class Task:
         Returns:
             dict: Contains dataset information and model dimensions
         """
-        self.metadata["version"] = self.version
+        self.metadata["version"] = self.dataset.version
 
         if not recompute and "description" in self.metadata:
             info = self.metadata["description"]
@@ -476,6 +478,7 @@ class ClassificationTask(Task):
                 preds,
                 average="binary" if self.num_classes == 2 else "macro",
             ),
+            "balanced_accuracy": balanced_accuracy_score(labels, preds),
         }
         if not self.multi_label:
             one_metric["mcc"] = matthews_corrcoef(labels, preds)

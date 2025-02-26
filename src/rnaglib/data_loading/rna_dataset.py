@@ -83,6 +83,7 @@ class RNADataset:
         self.transforms = transforms
         self.pre_transforms = pre_transforms
         self.multigraph = multigraph
+        self.version = version
 
         if dataset_path is not None:
             self.dataset_path = dataset_path
