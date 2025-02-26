@@ -1,5 +1,7 @@
 """Abstract task classes"""
 
+import tarfile
+import shutil
 from collections.abc import Sequence
 from functools import cached_property
 import hashlib
@@ -15,9 +17,13 @@ import tqdm
 
 from rnaglib.data_loading import Collater, RNADataset
 from rnaglib.transforms import Transform, FeaturesComputer, SizeFilter
-from rnaglib.utils import DummyGraphModel, DummyResidueModel, dump_json, tonumpy
+from rnaglib.utils import DummyGraphModel, DummyResidueModel, dump_json, tonumpy, download
 from rnaglib.dataset_transforms import RandomSplitter, Splitter, RedundancyRemover
 from rnaglib.dataset_transforms import StructureDistanceComputer, CDHitComputer
+
+TASK_URLs = {
+    "rna_site": "https://sandbox.zenodo.org/records/174705/files/rna_site.tar.gz"
+}
 
 
 class Task:
@@ -43,10 +49,12 @@ class Task:
         in_memory: bool = False,
         size_thresholds: Sequence = None,
         multi_label=False,
+        precomputed=True
     ):
         self.root = root
         self.dataset_path = os.path.join(self.root, "dataset")
         self.recompute = recompute
+        self.precomputed = precomputed
         self.debug = debug
         self.save = save
         self.in_memory = in_memory
@@ -55,7 +63,13 @@ class Task:
         self.metadata = self.init_metadata()
 
         # Load or create dataset
-        if not os.path.exists(Path(self.dataset_path) / "done.txt") or recompute:
+        if self.precomputed and not os.path.exists(Path(self.root) / "done.txt"):
+            try:
+                self.from_zenodo()
+            except Exception as e:
+                print(f"Error downloading dataset from Zenodo: {e}. Check if the dataset is available at {TASK_URLs[self.name]}, otherwise use `precomputed=False` to build locally.")
+
+        elif not os.path.exists(Path(self.root) / "done.txt") or recompute:
             os.makedirs(self.dataset_path, exist_ok=True)
             print(">>> Creating task dataset from scratch...")
             # instantiate the Size filter if required
@@ -63,6 +77,8 @@ class Task:
                 self.size_filter = SizeFilter(size_thresholds[0], size_thresholds[1])
             self.dataset = self.process()
             self.post_process()
+            # compute metadata
+            self.describe()
         else:
             self.load()
 
@@ -80,8 +96,16 @@ class Task:
             with open(Path(self.root) / "done.txt", "w") as f:
                 f.write("")
 
-        # compute metadata
-        self.describe()
+
+    def from_zenodo(self):
+        """Downloads the task dataset from Zenodo and loads it."""
+
+        print(">>> Downloading task dataset from Zenodo...")
+        download(TASK_URLs[self.name])
+        with tarfile.open(f"{self.name}.tar.gz") as tar_file:
+            tar_file.extractall()
+            shutil.move(f"{self.name}", self.root)
+        self.load()
 
     def process(self) -> RNADataset:
         """Tasks must implement this method.
@@ -269,6 +293,8 @@ class Task:
         Returns:
             dict: Contains dataset information and model dimensions
         """
+        self.metadata["version"] = self.version
+
         if not recompute and "description" in self.metadata:
             info = self.metadata["description"]
         else:

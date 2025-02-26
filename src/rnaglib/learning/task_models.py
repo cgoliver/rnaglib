@@ -17,6 +17,7 @@ class PygModel(torch.nn.Module):
         hidden_channels=128,
         dropout_rate=0.5,
         multi_label=False,
+        final_activation="sigmoid"
     ):
         super().__init__()
         self.num_node_features = num_node_features
@@ -31,6 +32,13 @@ class PygModel(torch.nn.Module):
         self.convs = torch.nn.ModuleList()
         self.bns = torch.nn.ModuleList()
         self.dropouts = torch.nn.ModuleList()
+
+        if final_activation == "sigmoid":
+            self.final_activation = torch.nn.Sigmoid()
+        elif final_activation == "softmax":
+            self.final_activation = torch.nn.Softmax(dim=1)
+        else:
+            self.final_activation = torch.nn.Identity()
 
         # Input layer
 
@@ -74,6 +82,7 @@ class PygModel(torch.nn.Module):
         if self.graph_level:
             x = global_mean_pool(x, batch)  # Graph-level pooling
         x = self.final_linear(x)
+        x = self.final_activation(x)
         return x
 
     def configure_training(self, learning_rate=0.001, device="cuda" if torch.cuda.is_available() else "cpu"):
