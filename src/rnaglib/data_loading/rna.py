@@ -4,7 +4,7 @@ import tempfile
 from Bio.PDB.PDBList import PDBList
 
 from rnaglib.prepare_data import build_graph_from_cif
-from rnaglib.utils import get_default_download_dir, load_graph
+from rnaglib.utils import get_default_download_dir, load_graph, dump_json, load_graph
 
 
 def rna_from_pdbid(
@@ -51,3 +51,43 @@ pass a path to the  `graph_dir` argument. """
             print("Loading graph from local database...")
         graph = {"rna": load_graph(graph_path)}
     return graph
+
+class RNA:
+    def __init__(self, rna_dict: dict = None, pdbid: str = None, path: str = None, multigraph: bool = False):
+        # check that only one of the three is provided
+        self.multigraph = multigraph
+
+        if sum([rna_dict is not None, pdbid is not None, path is not None]) != 1:
+            raise ValueError("Only one of rna_dict, pdbid, or path must be provided")
+
+        if rna_dict is not None:
+            self.from_dict(rna_dict)
+        elif pdbid is not None:
+            self.from_pdbid(pdbid)
+        elif path is not None:
+            self.from_path(path)
+        else:
+            raise ValueError("No valid input provided")
+
+    def from_dict(self, rna_dict: dict):
+        for k, v in rna_dict.items():
+            if k == 'rna':
+                for attr, val in rna_dict['rna'].graph.items():
+                    setattr(self, k, v)
+            else:
+                setattr(self, k, v)
+
+    def from_pdbid(self, pdbid: str):
+        rna_dict = rna_from_pdbid(pdbid, multigraph=self.multigraph)
+        self.from_dict(rna_dict)
+
+    def to_dict(self):
+        return self.rna_dict
+
+    def save(self, path: str):
+        dump_json(path, self.rna_dict)
+        pass
+
+    def from_path(self, path: str):
+        self.rna_dict = load_graph(path, multigraph=self.multigraph)
+        self.from_dict(self.rna_dict)

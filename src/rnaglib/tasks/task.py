@@ -49,7 +49,7 @@ class Task:
         in_memory: bool = False,
         size_thresholds: Sequence = None,
         multi_label=False,
-        precomputed=True
+        precomputed=True,
     ):
         self.root = root
         self.dataset_path = os.path.join(self.root, "dataset")
@@ -221,7 +221,7 @@ class Task:
         """Task hash is a hash of all RNA ids and node IDs in the dataset"""
         h = hashlib.new("sha256")
         if not self.in_memory:
-            raise ValueError("task id is only available (and tractable) for small, in-memory datasets")
+            return ""
         for rna in self.dataset.rnas:
             h.update(rna.name.encode("utf-8"))
             for nt in sorted(rna.nodes()):
@@ -293,7 +293,7 @@ class Task:
         Returns:
             dict: Contains dataset information and model dimensions
         """
-        self.metadata["version"] = self.version
+        self.metadata["version"] = self.dataset.version
 
         if not recompute and "description" in self.metadata:
             info = self.metadata["description"]

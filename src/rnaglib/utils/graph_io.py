@@ -15,7 +15,7 @@ import pandas as pd
 import requests
 from Bio.PDB.PDBList import PDBList
 
-ZENODO_RECORD = "14930728"
+ZENODO_RECORD = "14923695"
 
 
 def multigraph_to_simple(g: nx.MultiDiGraph) -> nx.DiGraph:
