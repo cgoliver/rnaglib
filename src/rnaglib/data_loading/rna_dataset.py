@@ -94,6 +94,7 @@ class RNADataset:
         self.transforms = transforms
         self.pre_transforms = pre_transforms
         self.multigraph = multigraph
+        self.version = version
 
         if dataset_path is not None:
             self.dataset_path = dataset_path
@@ -109,7 +110,7 @@ class RNADataset:
                 # By default, use non redundant (nr), v1.0.0 dataset of rglib
                 dataset_path, structures_path = download_graphs(
                     redundancy=redundancy,
-                    version=version,
+                    version=self.version,
                     debug=debug,
                     get_pdbs=get_pdbs,
                     overwrite=overwrite,

@@ -7,6 +7,7 @@ from .rna_loader import DefaultBasePairLoader
 from .rna_loader import get_inference_loader
 from .rna_dataset import RNADataset
 from .rna import rna_from_pdbid
+from .rna import RNA
 
 __all__ = [
     "RNADataset",
@@ -16,6 +17,7 @@ __all__ = [
     "EdgeLoaderGenerator",
     "DefaultBasePairLoader",
     "get_inference_loader",
+    "RNA",
 ]
 
 
