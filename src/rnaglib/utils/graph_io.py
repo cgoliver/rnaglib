@@ -102,7 +102,7 @@ def load_graph(filename, multigraph=False):
 
     :return: networkx DiGraph object
     """
-    if filename.endswith("json"):
+    if str(filename).endswith("json"):
         graph = load_json(filename)
     elif filename.endswith("p"):
         pickled = pickle.load(open(filename, "rb"))
