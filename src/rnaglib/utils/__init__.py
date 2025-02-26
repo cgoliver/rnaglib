@@ -1,6 +1,7 @@
 # utils
 
 from .graph_io import download_graphs
+from .graph_io import download
 from .graph_io import available_pdbids
 from .graph_io import load_graph
 from .graph_io import dump_json
@@ -42,6 +43,7 @@ __all__ = [
     "US_align_wrapper",
     "DummyResidueModel",
     "DummyGraphModel",
+    "download",
 ]
 
 classes = __all__

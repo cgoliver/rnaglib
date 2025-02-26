@@ -18,8 +18,10 @@ class BenchmarkBindingSite(ResidueClassificationTask):
     target_var = "binding_site"
     input_var = "nt_code"
     name = "rna_site_bench"
+    version = "2.0.2"
 
-    def __init__(self, **kwargs):
+    def __init__(self, cutoff=6.0, **kwargs):
+        self.cutoff = cutoff
         super().__init__(**kwargs)
 
     @property
@@ -35,7 +37,7 @@ class BenchmarkBindingSite(ResidueClassificationTask):
         filters_list = [chain_filter]
         rna_filter = ComposeFilters(filters_list)
 
-        bs_annotator = BindingSiteAnnotator()
+        bs_annotator = BindingSiteAnnotator(cutoff=self.cutoff)
         namer = ChainNameTransform()
 
         dataset = RNADataset(
@@ -43,6 +45,7 @@ class BenchmarkBindingSite(ResidueClassificationTask):
             in_memory=self.in_memory,
             redundancy="all",
             rna_id_subset=SPLITTING_VARS["PDB_TO_CHAIN_TR60_TE18"].keys(),
+            version=self.version
         )
 
         # Run through database, applying our filters
@@ -70,6 +73,7 @@ class BenchmarkBindingSite(ResidueClassificationTask):
 class BindingSite(ResidueClassificationTask):
     input_var = "nt_code"
     name = "rna_site"
+    version = "2.0.2"
 
     def __init__(self, root, cutoff=6.0,size_thresholds=(15, 500), **kwargs):
         self.target_var = f"binding_small-molecule-{cutoff}A"
@@ -89,7 +93,7 @@ class BindingSite(ResidueClassificationTask):
         connected_component_filters = ComposeFilters(connected_component_filters_list)
 
         # Run through database, applying our filters
-        dataset = RNADataset(debug=self.debug, in_memory=self.in_memory, redundancy="all")
+        dataset = RNADataset(debug=self.debug, in_memory=self.in_memory, redundancy="all", version=self.version)
         all_rnas = []
         os.makedirs(self.dataset_path, exist_ok=True)
         for rna in tqdm(dataset, total=len(dataset), desc="Processing RNAs"):
