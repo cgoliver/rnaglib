@@ -1,6 +1,8 @@
+"""Demo script for running Inverse Folding on the gRNAde dataset."""
+
+from rnaglib.learning.task_models import PygModel
 from rnaglib.tasks import gRNAde
 from rnaglib.transforms import GraphRepresentation
-from rnaglib.learning.task_models import PygModel
 
 ta = gRNAde(root="gRNAde", recompute=True, in_memory=False, debug=True)
 
@@ -12,8 +14,8 @@ ta.get_split_loaders(recompute=False)
 # Train model
 model = PygModel(
     num_node_features=ta.metadata["description"]["num_node_features"],
-    num_classes=ta.metadata["description"]["num_classes"],
-    graph_level=False
+    num_classes=ta.metadata["description"]["num_classes"] + 1,
+    graph_level=False,
 )
 model.configure_training(learning_rate=0.001)
 model.train_model(ta, epochs=1)
