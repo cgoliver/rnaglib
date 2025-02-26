@@ -21,8 +21,13 @@ from rnaglib.utils import DummyGraphModel, DummyResidueModel, dump_json, tonumpy
 from rnaglib.dataset_transforms import RandomSplitter, Splitter, RedundancyRemover
 from rnaglib.dataset_transforms import StructureDistanceComputer, CDHitComputer
 
+ZENOD_RECORD = "174972"
+
 TASK_URLs = {
-    "rna_site": "https://sandbox.zenodo.org/records/174705/files/rna_site.tar.gz"
+    "rna_site": f"https://sandbox.zenodo.org/records/{ZENOD_RECORD}/files/rna_site.tar.gz",
+    "rna_site_bench": f"https://sandbox.zenodo.org/records/{ZENOD_RECORD}/files/rna_site_bench.tar.gz",
+    "rna_go": f"https://sandbox.zenodo.org/records/{ZENOD_RECORD}/files/rna_go.tar.gz",
+    "rna_cm": f"https://sandbox.zenodo.org/records/{ZENOD_RECORD}/files/rna_cm.tar.gz"
 }
 
 
