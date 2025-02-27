@@ -140,7 +140,7 @@ class RNADataset:
             rna_names = {rna.name for rna in rnas}
             assert "" not in rna_names, "Empty RNA name found"
             assert len(rna_names) == len(
-                rnas
+                rnas,
             ), "When creating a RNAdataset from rnas, please use uniquely named networkx graphs"
             self.all_rnas = bidict({rna.name: i for i, rna in enumerate(rnas)})
 
@@ -371,8 +371,8 @@ class RNADataset:
         # Subset the bidict of names and the rna if in_memory
         if self.in_memory:
             subset.rnas = [self.rnas[i] for i in list_of_ids]
-            subset_names = [self.all_rnas.inv[i] for i in list_of_ids]
-            subset.all_rnas = bidict({rna: i for i, rna in enumerate(subset_names)})
+        subset_names = [self.all_rnas.inv[i] for i in list_of_ids]
+        subset.all_rnas = bidict({rna: i for i, rna in enumerate(subset_names)})
 
         # Update the distance matrices
         if self.distances is not None:
