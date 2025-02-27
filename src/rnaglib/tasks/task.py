@@ -210,7 +210,7 @@ class Task:
         is_input: bool = True,
     ):
         """Shortcut to RNADataset.add_feature"""
-        self.dataset.add_feature(feature, feature_level, is_input)
+        self.dataset.add_feature(feature=feature, feature_level=feature_level, is_input=is_input)
         pass
 
     def get_split_loaders(self, recompute=True, **dataloader_kwargs):
