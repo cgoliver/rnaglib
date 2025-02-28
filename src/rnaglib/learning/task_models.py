@@ -3,6 +3,7 @@ import torch
 import torch.nn.functional as F
 from torch.nn import BatchNorm1d, Dropout
 from torch_geometric.nn import RGCNConv, global_mean_pool
+
 from rnaglib.utils.misc import tonumpy
 
 
@@ -17,7 +18,7 @@ class PygModel(torch.nn.Module):
         hidden_channels=128,
         dropout_rate=0.5,
         multi_label=False,
-        final_activation="sigmoid"
+        final_activation="sigmoid",
     ):
         super().__init__()
         self.num_node_features = num_node_features
@@ -58,13 +59,21 @@ class PygModel(torch.nn.Module):
         if self.multi_label:
             self.final_linear = torch.nn.Linear(self.hidden_channels, self.num_classes)
             self.criterion = torch.nn.BCEWithLogitsLoss()
+            self.final_activation = torch.nn.Identity()  # Use Identity for multi-label
+        elif num_classes == 2:
+            self.final_linear = torch.nn.Linear(self.hidden_channels, 1)
+            # Weight will be set in train_model based on actual class distribution
+            self.criterion = torch.nn.BCEWithLogitsLoss()
+            self.final_activation = torch.nn.Identity()  # Use Identity for binary
         else:
-            if num_classes == 2:
-                self.final_linear = torch.nn.Linear(self.hidden_channels, 1)
-                self.criterion = torch.nn.BCEWithLogitsLoss()
+            self.final_linear = torch.nn.Linear(self.hidden_channels, self.num_classes)
+            self.criterion = torch.nn.CrossEntropyLoss()
+            if final_activation == "sigmoid":
+                self.final_activation = torch.nn.Sigmoid()
+            elif final_activation == "softmax":
+                self.final_activation = torch.nn.Softmax(dim=1)
             else:
-                self.final_linear = torch.nn.Linear(self.hidden_channels, self.num_classes)
-                self.criterion = torch.nn.CrossEntropyLoss()
+                self.final_activation = torch.nn.Identity()
 
         self.optimizer = None
         self.device = None
@@ -79,8 +88,9 @@ class PygModel(torch.nn.Module):
             x = self.bns[i](x)
             x = F.relu(x)
             x = self.dropouts[i](x)
+
         if self.graph_level:
-            x = global_mean_pool(x, batch)  # Graph-level pooling
+            x = global_mean_pool(x, batch)
         x = self.final_linear(x)
         x = self.final_activation(x)
         return x
@@ -89,6 +99,7 @@ class PygModel(torch.nn.Module):
         """Configure training settings."""
         self.device = device
         self.to(device)
+        self.criterion = self.criterion.to(device)  # Move criterion to device for all cases
         self.optimizer = torch.optim.Adam(self.parameters(), lr=learning_rate)
 
     def compute_loss(self, out, target):
@@ -103,13 +114,21 @@ class PygModel(torch.nn.Module):
         return loss
 
     def train_model(self, task, epochs=500):
-        """Training loop with evaluation."""
         if self.optimizer is None:
             self.configure_training()
+
+        # Set class weights for binary classification based on actual distribution
+        if self.num_classes == 2:
+            neg_count = float(task.metadata["description"]["class_distribution"]["0"])
+            pos_count = float(task.metadata["description"]["class_distribution"]["1"])
+            pos_weight = torch.tensor(np.sqrt(neg_count / pos_count)).to(self.device)
+            self.criterion = torch.nn.BCEWithLogitsLoss(pos_weight=pos_weight)
 
         for epoch in range(epochs):
             # Training phase
             self.train()
+            epoch_loss = 0
+            num_batches = 0
             for batch in task.train_dataloader:
                 graph = batch["graph"].to(self.device)
                 self.optimizer.zero_grad()
@@ -117,26 +136,22 @@ class PygModel(torch.nn.Module):
                 loss = self.compute_loss(out, graph.y)
                 loss.backward()
                 self.optimizer.step()
+                epoch_loss += loss.item()
+                num_batches += 1
 
-            # Evaluation phase
-            train_metrics = self.evaluate(task, split="train")
-            val_metrics = self.evaluate(task, split="val")
-
-            print(
-                f"Epoch {epoch + 1}, "
-                f"Train Loss: {train_metrics['loss']:.4f}, Val Loss: {val_metrics['loss']:.4f}"
-                f"Train Acc: {train_metrics['accuracy']:.4f}, Val Acc: {val_metrics['accuracy']:.4f}"
-            )
-
-            if self.multi_label:
+            # Validation phase
+            if epoch % 10 == 0:
+                val_metrics = self.evaluate(task, split="val")
                 print(
-                    f"Train Jaccard: {train_metrics['jaccard']:.4f}, Val Jaccard: {val_metrics['jaccard']:.4f}"
+                    f"Epoch {epoch}: train_loss = {epoch_loss / num_batches:.4f}, val_loss = {val_metrics['loss']:.4f}",
                 )
 
     def inference(self, loader) -> tuple:
-        """
-        Evaluate model performance on a dataset
+        """Evaluate model performance on a dataset.
+
+        Args:
             loader: Data loader to use
+
         Returns:
             3 list containing predictions, probs, targets if residue level,
         else 3 np arrays
@@ -155,17 +170,10 @@ class PygModel(torch.nn.Module):
                 loss = self.compute_loss(out, labels)
                 total_loss += loss.item()
 
-                # get preds and probas + cast to numpy
-                if self.multi_label:
-                    probs = torch.sigmoid(out)
-                    preds = (probs > 0.5).float()
-                else:
-                    if self.num_classes == 2:
-                        probs = torch.sigmoid(out.flatten())
-                        preds = (probs > 0.5).float()
-                    else:
-                        probs = torch.softmax(out, dim=1)
-                        preds = probs.argmax(dim=1)
+                # For binary/multilabel, threshold the logits at 0 (equivalent to prob > 0.5 after sigmoid)
+                preds = (out > 0).float() if (self.multi_label or self.num_classes == 2) else out.argmax(dim=1)
+                probs = out
+
                 probs = tonumpy(probs)
                 preds = tonumpy(preds)
                 labels = tonumpy(labels)
@@ -173,9 +181,18 @@ class PygModel(torch.nn.Module):
                 # split predictions per RNA if residue level
                 if not self.graph_level:
                     cumulative_sizes = tuple(tonumpy(graph.ptr))
-                    probs = [probs[start:end] for start, end in zip(cumulative_sizes[:-1], cumulative_sizes[1:])]
-                    preds = [preds[start:end] for start, end in zip(cumulative_sizes[:-1], cumulative_sizes[1:])]
-                    labels = [labels[start:end] for start, end in zip(cumulative_sizes[:-1], cumulative_sizes[1:])]
+                    probs = [
+                        probs[start:end]
+                        for start, end in zip(cumulative_sizes[:-1], cumulative_sizes[1:], strict=False)
+                    ]
+                    preds = [
+                        preds[start:end]
+                        for start, end in zip(cumulative_sizes[:-1], cumulative_sizes[1:], strict=False)
+                    ]
+                    labels = [
+                        labels[start:end]
+                        for start, end in zip(cumulative_sizes[:-1], cumulative_sizes[1:], strict=False)
+                    ]
                 all_probs.extend(probs)
                 all_preds.extend(preds)
                 all_labels.extend(labels)
