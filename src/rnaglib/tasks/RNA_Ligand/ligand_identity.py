@@ -23,7 +23,9 @@ class LigandIdentification(RNAClassificationTask):
     target_var = "ligand"
     name = "rna_ligand"
 
-    def __init__(self, root, data_filename,
+    def __init__(self, 
+        root, 
+        data_filename = 'binding_pockets.csv',
         size_thresholds=(15, 500),
         admissible_ligands = ['PAR','LLL','8UZ'],
         use_balanced_sampler=False,
@@ -129,7 +131,6 @@ class LigandIdentification(RNAClassificationTask):
             self.train_dataloader = DataLoader(dataset=self.train_dataset, sampler=balanced_sampler,  **dataloader_kwargs)
         else:
             self.train_dataloader = DataLoader(dataset=self.train_dataset,  **dataloader_kwargs)
-        self.train_dataloader = DataLoader(dataset=self.train_dataset, **dataloader_kwargs)
         dataloader_kwargs["shuffle"] = False
         self.val_dataloader = DataLoader(dataset=self.val_dataset, **dataloader_kwargs)
         self.test_dataloader = DataLoader(dataset=self.test_dataset, **dataloader_kwargs)
