@@ -21,14 +21,8 @@ from rnaglib.utils import DummyGraphModel, DummyResidueModel, dump_json, tonumpy
 from rnaglib.dataset_transforms import RandomSplitter, Splitter, RedundancyRemover
 from rnaglib.dataset_transforms import StructureDistanceComputer, CDHitComputer
 
-ZENOD_RECORD = "174972"
-
-TASK_URLs = {
-    "rna_site": f"https://sandbox.zenodo.org/records/{ZENOD_RECORD}/files/rna_site.tar.gz",
-    "rna_site_bench": f"https://sandbox.zenodo.org/records/{ZENOD_RECORD}/files/rna_site_bench.tar.gz",
-    "rna_go": f"https://sandbox.zenodo.org/records/{ZENOD_RECORD}/files/rna_go.tar.gz",
-    "rna_cm": f"https://sandbox.zenodo.org/records/{ZENOD_RECORD}/files/rna_cm.tar.gz"
-}
+ZENOD_RECORD = "176405"
+ZENODO_URL = f"https://sandbox.zenodo.org/records/{ZENOD_RECORD}/files/"
 
 
 class Task:
@@ -54,7 +48,7 @@ class Task:
         in_memory: bool = False,
         size_thresholds: Sequence = None,
         multi_label=False,
-        precomputed=True,
+        precomputed=False,
     ):
         self.root = root
         self.dataset_path = os.path.join(self.root, "dataset")
@@ -72,7 +66,9 @@ class Task:
             try:
                 self.from_zenodo()
             except Exception as e:
-                print(f"Error downloading dataset from Zenodo: {e}. Check if the dataset is available at {TASK_URLs[self.name]}, otherwise use `precomputed=False` to build locally.")
+                print(f"Error downloading dataset from \
+                Zenodo: {e}. Check if the dataset is \
+                available at zenodo, otherwise use `precomputed=False` to build locally.")
 
         elif not os.path.exists(Path(self.root) / "done.txt") or recompute:
             os.makedirs(self.dataset_path, exist_ok=True)
@@ -108,7 +104,8 @@ class Task:
         """Downloads the task dataset from Zenodo and loads it."""
 
         print(">>> Downloading task dataset from Zenodo...")
-        download(TASK_URLs[self.name])
+        url = ZENODO_URL + f"{self.name}.tar.gz"
+        download(url)
         with tarfile.open(f"{self.name}.tar.gz") as tar_file:
             tar_file.extractall()
             shutil.move(f"{self.name}", self.root)
