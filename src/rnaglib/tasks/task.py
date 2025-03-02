@@ -48,7 +48,7 @@ class Task:
         in_memory: bool = False,
         size_thresholds: Sequence = None,
         multi_label=False,
-        precomputed=False,
+        precomputed=True,
     ):
         self.root = root
         self.dataset_path = os.path.join(self.root, "dataset")

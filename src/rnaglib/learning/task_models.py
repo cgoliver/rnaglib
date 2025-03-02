@@ -19,6 +19,7 @@ class PygModel(torch.nn.Module):
         dropout_rate=0.5,
         multi_label=False,
         final_activation="sigmoid",
+	device=None
     ):
         super().__init__()
         self.num_node_features = num_node_features
@@ -76,7 +77,12 @@ class PygModel(torch.nn.Module):
                 self.final_activation = torch.nn.Identity()
 
         self.optimizer = None
-        self.device = None
+        if torch.cuda.is_available():
+            self.device = "gpu"
+        elif torch.backends.mps.is_available():
+            self.device = "mps"
+        else:
+            self.devide = "cpu"
 
     def forward(self, data):
         x, edge_index, edge_type, batch = data.x, data.edge_index, data.edge_attr, data.batch
