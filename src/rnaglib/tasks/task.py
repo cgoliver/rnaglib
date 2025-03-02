@@ -484,6 +484,7 @@ class ClassificationTask(Task):
         }
         if not self.multi_label:
             one_metric["mcc"] = matthews_corrcoef(labels, preds)
+            one_metric["balanced_accuracy"] = balanced_accuracy_score(labels, preds)
         if self.multi_label:
             one_metric["jaccard"] = jaccard_score(labels, preds, average="macro")
         try:
