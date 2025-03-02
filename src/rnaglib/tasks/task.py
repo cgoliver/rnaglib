@@ -480,7 +480,6 @@ class ClassificationTask(Task):
                 preds,
                 average="binary" if self.num_classes == 2 else "macro",
             ),
-            "balanced_accuracy": balanced_accuracy_score(labels, preds),
         }
         if not self.multi_label:
             one_metric["mcc"] = matthews_corrcoef(labels, preds)
