@@ -88,13 +88,12 @@ class IntMappingEncoder:
         :param value: The value to encode. If missing, a default vector of full zeroes is produced.
         """
         try:
-            a = 1
-            return torch.tensor(self.mapping[value], dtype=torch.int)
+            return torch.tensor(self.mapping[value], dtype=torch.long)
         except KeyError:
             return self.encode_default()
 
     def encode_default(self):
-        return torch.tensor([self.default_value], dtype=torch.int)
+        return torch.tensor([self.default_value], dtype=torch.long)
 
     def decode(self, value):
         try:
