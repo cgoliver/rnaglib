@@ -9,6 +9,7 @@ from rnaglib.encoders import BoolEncoder
 from rnaglib.transforms import ResidueAttributeFilter
 from rnaglib.transforms import ChainNameTransform
 from rnaglib.transforms import BindingSiteAnnotator
+from rnaglib.transforms import SmallMoleculeBindingTransform
 from rnaglib.transforms import ChainFilter, ComposeFilters
 from rnaglib.transforms import ConnectedComponentPartition
 from rnaglib.dataset_transforms import ClusterSplitter
@@ -33,12 +34,6 @@ class BenchmarkBindingSite(ResidueClassificationTask):
 
     def process(self) -> RNADataset:
         # Define your transforms
-        chain_filter = ChainFilter(SPLITTING_VARS["PDB_TO_CHAIN_TR60_TE18"])
-        filters_list = [chain_filter]
-        rna_filter = ComposeFilters(filters_list)
-
-        bs_annotator = BindingSiteAnnotator(cutoff=self.cutoff)
-        namer = ChainNameTransform()
 
         dataset = RNADataset(
             debug=self.debug,
@@ -48,11 +43,23 @@ class BenchmarkBindingSite(ResidueClassificationTask):
             version=self.version
         )
 
+        chain_filter = ChainFilter(SPLITTING_VARS["PDB_TO_CHAIN_TR60_TE18"])
+        bs_finder = SmallMoleculeBindingTransform(
+                                      structures_dir=dataset.structures_path,
+                                      additional_atoms=["CO", "S", "P"],
+                                      mass_lower_limit=30,
+                                      mass_upper_limit=1400
+                                      )
+        bs_annotator = BindingSiteAnnotator(include_ions=True,
+                                            include_covalent=True)
+        namer = ChainNameTransform()
+
         # Run through database, applying our filters
         all_rnas = []
         os.makedirs(self.dataset_path, exist_ok=True)
         for rna in dataset:
-            if rna_filter.forward(rna):
+            if chain_filter.forward(rna):
+                rna = bs_finder(rna)
                 rna = bs_annotator(rna)
                 rna = namer(rna)["rna"]
                 self.add_rna_to_building_list(all_rnas=all_rnas, rna=rna)
