@@ -34,6 +34,7 @@ class BenchmarkBindingSite(ResidueClassificationTask):
 
     def process(self) -> RNADataset:
         # Define your transforms
+        self.metadata["description"]["graph_level"] = False
 
         dataset = RNADataset(
             debug=self.debug,
