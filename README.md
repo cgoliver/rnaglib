@@ -144,7 +144,8 @@ from rnaglib.tasks import ChemicalModification
 from rnaglib.transforms import GraphRepresentation
 from rnaglib.learning.task_models import PygModel
 
-# Load task, representation, and get loaders task = ChemicalModification(root="my_root")
+# Load task, representation, and get loaders
+task = ChemicalModification(root="my_root")
 model = PygModel.from_task(task)
 pyg_rep = GraphRepresentation(framework="pyg")
 
