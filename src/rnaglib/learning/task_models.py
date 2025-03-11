@@ -8,6 +8,31 @@ from rnaglib.utils.misc import tonumpy
 
 
 class PygModel(torch.nn.Module):
+    @classmethod
+    def from_task(cls, 
+                  task, 
+                  num_node_features=None, 
+                  num_classes=None,
+                  graph_level=None, 
+                  **model_args):
+        """ Try to create a model based on task metadata.
+        Will fail if number of node features is not the default.
+        """
+        if num_node_features is None:
+            num_node_features = task.metadata["description"]["num_nodes_features"]
+        if num_classes is None:
+            num_classes = task.metadata["description"]["num_classes"]
+        if graph_level is None:
+            graph_level = task.metadata["description"]["graph_level"]
+
+        return cls(
+                  num_node_features=num_node_features,
+                  num_classes=num_classes,
+                  graph_level=graph_level,
+                  **model_args
+                  )
+        pass
+
     def __init__(
         self,
         num_node_features,
@@ -87,6 +112,8 @@ class PygModel(torch.nn.Module):
         else:
             self.device = device
 
+        self.configure_training()
+
     def forward(self, data):
         x, edge_index, edge_type, batch = data.x, data.edge_index, data.edge_attr, data.batch
 
@@ -104,11 +131,10 @@ class PygModel(torch.nn.Module):
         x = self.final_activation(x)
         return x
 
-    def configure_training(self, learning_rate=0.001, device="cuda" if torch.cuda.is_available() else "cpu"):
+    def configure_training(self, learning_rate=0.001):
         """Configure training settings."""
-        self.device = device
-        self.to(device)
-        self.criterion = self.criterion.to(device)  # Move criterion to device for all cases
+        self.to(self.device)
+        self.criterion = self.criterion.to(self.device)  # Move criterion to device for all cases
         self.optimizer = torch.optim.Adam(self.parameters(), lr=learning_rate)
 
     def compute_loss(self, out, target):

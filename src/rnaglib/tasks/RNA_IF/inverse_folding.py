@@ -34,6 +34,7 @@ class InverseFolding(ResidueClassificationTask):
 
     def process(self) -> RNADataset:
         # Define your transforms
+        self.metadata["description"]["graph_level"] = False
         annotate_rna = DummyAnnotator()
         connected_components_partition = ConnectedComponentPartition()
 

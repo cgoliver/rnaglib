@@ -29,6 +29,7 @@ class ChemicalModification(ResidueClassificationTask):
         return FeaturesComputer(nt_targets=self.target_var, nt_features=self.input_var)
 
     def process(self):
+        self.metadata["description"]["graph_level"] = False
         # Define your transforms
         residue_attribute_filter = ResidueAttributeFilter(
             attribute=self.target_var, value_checker=lambda val: val == True

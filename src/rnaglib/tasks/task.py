@@ -122,7 +122,7 @@ class Task:
 
     def init_metadata(self) -> dict:
         """Optionally adds some key/value pairs to self.metadata."""
-        return {}
+        return {"description": {}}
 
     def get_task_vars(self) -> FeaturesComputer:
         """Define a FeaturesComputer object to set which input and output variables will be used in the task."""
@@ -199,6 +199,14 @@ class Task:
             self.set_datasets(recompute=recompute)
             print(">>> Done")
         return self.train_dataset, self.val_dataset, self.test_dataset
+
+    def add_representation(self, representation: Transform):
+        self.dataset.add_representation(representation)
+        pass
+
+    def remove_representation(self, representation_name: str):
+        self.dataset.remove_representation(representation_name)
+        pass
 
     def add_feature(
         self,
@@ -299,7 +307,7 @@ class Task:
         """
         self.metadata["version"] = self.dataset.version
 
-        if not recompute and "description" in self.metadata:
+        if not recompute:
             info = self.metadata["description"]
         else:
             print(">>> Computing description of task...")
@@ -528,8 +536,10 @@ class ClassificationTask(Task):
 class ResidueClassificationTask(ClassificationTask):
     def __init__(self, **kwargs):
         super().__init__(graph_level=False, **kwargs)
+        self.metadata["description"]["graph_level"] = False
 
 
 class RNAClassificationTask(ClassificationTask):
     def __init__(self, **kwargs):
         super().__init__(graph_level=True, **kwargs)
+        self.metadata["description"]["graph_level"] = True

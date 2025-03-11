@@ -32,6 +32,7 @@ class ProteinBindingSite(ResidueClassificationTask):
         return FeaturesComputer(nt_features=self.input_var, nt_targets=self.target_var)
 
     def process(self):
+        self.metadata["description"]["graph_level"] = False
         # Define your transforms
         filters = ResidueAttributeFilter(attribute=self.target_var,
             value_checker=lambda val: val is not None)
