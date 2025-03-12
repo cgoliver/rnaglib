@@ -6,7 +6,9 @@ from collections.abc import Sequence
 from functools import cached_property
 import hashlib
 import json
+
 import numpy as np
+import pandas as pd
 import os
 from typing import Union, Literal
 from pathlib import Path
@@ -267,7 +269,33 @@ class Task:
         if self.in_memory:
             with open(Path(self.root) / "task_id.txt", "w") as tid:
                 tid.write(self.task_id)
+        self.to_csv(Path(self.root) / "dataset.csv")
         print(">>> Done")
+
+    def to_csv(self, path: str):
+        """ Write a single CSV with all task data."""
+        rows = []
+        graph_level = self.metadata['description']['graph_level']
+        for i, rna in enumerate(self.dataset):
+            if i in self.train_ind:
+                split = "train"
+            elif i in self.val_ind:
+                split = "val"
+            elif i in self.test_ind:
+                split = "test"
+            else:
+                raise IndexError
+
+            if graph_level:
+                target = rna['rna'].graph[self.target_var]
+            for node in rna['rna']:
+                if not graph_level:
+                    target = rna['rna'].nodes[node][self.target_var]
+                rows.append({"residue": node, "split": split, "target":
+                             target})
+                pass
+
+        pd.DataFrame(rows).to_csv(path)
 
     def load(self):
         """Load dataset and splits from disk."""
