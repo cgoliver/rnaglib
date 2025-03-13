@@ -1,14 +1,16 @@
-from rnaglib.transforms import GraphRepresentation
-from rnaglib.tasks import ProteinBindingSite
-from rnaglib.learning.task_models import PygModel
+"""Demo script for running the RNA protein task."""
 
-ta = ProteinBindingSite("RNA_Prot", recompute=True, debug=True)
+from rnaglib.learning.task_models import PygModel
+from rnaglib.tasks import ProteinBindingSite
+from rnaglib.transforms import GraphRepresentation
+
+ta = ProteinBindingSite("RNA_RBP_struc", recompute=False, debug=False, precomputed=False)
 
 # Add representation
 ta.dataset.add_representation(GraphRepresentation(framework="pyg"))
 
 # Splitting dataset
-ta.get_split_loaders(recompute=True)
+ta.get_split_loaders(recompute=False)
 
 # Train model
 # Either by hand:
@@ -18,12 +20,15 @@ ta.get_split_loaders(recompute=True)
 #         ...
 
 # Or using a wrapper class
-model = PygModel(ta.metadata["description"]["num_node_features"], ta.metadata["description"]["num_classes"], graph_level=False)
+model = PygModel(
+    ta.metadata["description"]["num_node_features"],
+    ta.metadata["description"]["num_classes"],
+    graph_level=False,
+)
 model.configure_training(learning_rate=0.001)
-model.train_model(ta, epochs=1)
+model.train_model(ta, epochs=10)
 
 # Final evaluation
 test_metrics = model.evaluate(ta, split="test")
 for k, v in test_metrics.items():
     print(f"Test {k}: {v:.4f}")
-
