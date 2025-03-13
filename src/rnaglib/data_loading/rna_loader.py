@@ -41,7 +41,6 @@ def get_loader(dataset,
                split_train=0.7,
                split_valid=0.85,
                verbose=False,
-               framework='dgl',
                persistent_workers=True,
                ):
     """ Fetch a loader object for a given dataset.
@@ -52,8 +51,6 @@ def get_loader(dataset,
     :param float split_train: proportion of dataset to keep for training
     :param float split_valid: proportion of dataset to keep for validation
     :param bool verbose: print updates
-    :param str framework: learning framework to use ('dgl')
-
     :return: torch.utils.data.DataLoader
 
     """
