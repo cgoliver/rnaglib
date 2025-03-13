@@ -45,11 +45,12 @@ class LigandIdentification(RNAClassificationTask):
         }
         self.ligands_dict = {rna_ligand[0]: rna_ligand[1] for rna_ligand in binding_pockets[["nid", "ligand"]].values}
         self.nodes_keep = list(self.bp_dict.keys())
-        super().__init__(root=root, size_thresholds=size_thresholds, **kwargs)
+        meta = {"task_name": "rna_ligand", "multi_label": False}
+        super().__init__(root=root, additional_metadata=meta, size_thresholds=size_thresholds, **kwargs)
 
     def process(self):
         # Initialize dataset with in_memory=False to avoid loading everything at once
-        self.metadata["description"]["graph_level"] = True 
+        self.metadata["graph_level"] = True 
         dataset = RNADataset(debug=self.debug, in_memory=False, redundancy="all", rna_id_subset=self.nodes_keep)
 
         # Instantiate filters to apply
@@ -123,7 +124,7 @@ class LigandIdentification(RNAClassificationTask):
         targets = np.array([self.mapping[rna['rna'].graph["ligand"]] for rna in self.train_dataset])
 
 
-        samples_weight = np.array([1./self.metadata["description"]["class_distribution"][str(i)] for i in targets])
+        samples_weight = np.array([1./self.metadata["class_distribution"][str(i)] for i in targets])
         samples_weight = torch.from_numpy(samples_weight)
         balanced_sampler = WeightedRandomSampler(samples_weight, len(samples_weight))
 

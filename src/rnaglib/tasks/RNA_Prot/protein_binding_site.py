@@ -22,7 +22,8 @@ class ProteinBindingSite(ResidueClassificationTask):
     def __init__(self, root,
                  size_thresholds=(15, 500),
                  **kwargs):
-        super().__init__(root=root, size_thresholds=size_thresholds, **kwargs)
+        meta = {"task_name": "rna_prot", "multi_label": False}
+        super().__init__(root=root, additional_metadata=meta, size_thresholds=size_thresholds, **kwargs)
 
     @property
     def default_splitter(self):

@@ -19,7 +19,8 @@ class ChemicalModification(ResidueClassificationTask):
     name = "rna_cm"
 
     def __init__(self, root, size_thresholds=(15, 500), **kwargs):
-        super().__init__(root=root, size_thresholds=size_thresholds, **kwargs)
+        meta = {'multi_label': False, "task_name": "rna_cm"}
+        super().__init__(root=root, additional_metadata=meta, size_thresholds=size_thresholds, **kwargs)
 
     @property
     def default_splitter(self):
@@ -29,7 +30,6 @@ class ChemicalModification(ResidueClassificationTask):
         return FeaturesComputer(nt_targets=self.target_var, nt_features=self.input_var)
 
     def process(self):
-        self.metadata["description"]["graph_level"] = False
         # Define your transforms
         residue_attribute_filter = ResidueAttributeFilter(
             attribute=self.target_var, value_checker=lambda val: val == True
