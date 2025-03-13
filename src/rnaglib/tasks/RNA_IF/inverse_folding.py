@@ -2,19 +2,28 @@
 
 import os
 from collections import defaultdict
-import numpy as np
 from pathlib import Path
-from sklearn.metrics import matthews_corrcoef, f1_score, accuracy_score, roc_auc_score, confusion_matrix
+
+import numpy as np
+from sklearn.metrics import accuracy_score, confusion_matrix, f1_score, matthews_corrcoef, roc_auc_score
 from tqdm import tqdm
 
 from rnaglib.data_loading import RNADataset
-from rnaglib.transforms import FeaturesComputer, DummyAnnotator, ComposeFilters, RibosomalFilter
-from rnaglib.transforms import NameFilter, ChainFilter, ChainSplitTransform, ChainNameTransform, \
-    ConnectedComponentPartition
-from rnaglib.tasks import ResidueClassificationTask
+from rnaglib.dataset_transforms import (
+    CDHitComputer,
+    ClusterSplitter,
+    NameSplitter,
+    RedundancyRemover,
+    StructureDistanceComputer,
+)
 from rnaglib.encoders import BoolEncoder, NucleotideEncoder
-from rnaglib.dataset_transforms import NameSplitter
-from rnaglib.dataset_transforms import ClusterSplitter, StructureDistanceComputer, CDHitComputer, RedundancyRemover
+from rnaglib.tasks import ResidueClassificationTask
+from rnaglib.transforms import (
+    ChainFilter,
+    ConnectedComponentPartition,
+    DummyAnnotator,
+    FeaturesComputer,
+)
 
 
 class InverseFolding(ResidueClassificationTask):
@@ -23,9 +32,7 @@ class InverseFolding(ResidueClassificationTask):
     nucs = ["A", "C", "G", "U"]
     name = "rna_if"
 
-    def __init__(self, root,
-                 size_thresholds=(15, 300),
-                 **kwargs):
+    def __init__(self, root, size_thresholds=(15, 300), **kwargs):
         super().__init__(root=root, size_thresholds=size_thresholds, **kwargs)
 
     @property
@@ -43,9 +50,8 @@ class InverseFolding(ResidueClassificationTask):
         os.makedirs(self.dataset_path, exist_ok=True)
         for rna in tqdm(dataset):
             for rna_connected_component in connected_components_partition(rna):
-                if self.size_thresholds is not None:
-                    if not self.size_filter.forward(rna_connected_component):
-                        continue
+                if self.size_thresholds is not None and not self.size_filter.forward(rna_connected_component):
+                    continue
                 rna = annotate_rna(rna_connected_component)["rna"]
                 self.add_rna_to_building_list(all_rnas=all_rnas, rna=rna)
         dataset = self.create_dataset_from_list(all_rnas)
@@ -102,19 +108,18 @@ class InverseFolding(ResidueClassificationTask):
         return one_metric
 
     def compute_metrics(self, all_preds, all_probs, all_labels):
-        """
-        Evaluate model performance on nucleotide prediction task
+        """Evaluate model performance on nucleotide prediction task.
+
         Returns:
             dict: Dictionary containing metrics including loss if criterion provided
 
         Note: Label 0 represents non-standard/unknown nucleotides and is excluded
         from performance metrics to focus on ACGU prediction quality.
         """
-
         # Some metrics are computed only on standard nucleotides
         # Compute filtered versions of the predictions
         filtered_all_preds, filtered_all_probs, filtered_all_labels = [], [], []
-        for pred, prob, label in zip(all_preds, all_probs, all_labels):
+        for pred, prob, label in zip(all_preds, all_probs, all_labels, strict=False):
             valid_mask = label != 0
             if len(valid_mask) > 0:
                 filt_pred = pred[valid_mask]
@@ -129,7 +134,12 @@ class InverseFolding(ResidueClassificationTask):
         sorted_keys = []
         metrics = []
         for pred, filt_pred, prob, label, filt_label in zip(
-                all_preds, filtered_all_preds, all_probs, all_labels, filtered_all_labels
+            all_preds,
+            filtered_all_preds,
+            all_probs,
+            all_labels,
+            filtered_all_labels,
+            strict=False,
         ):
             # Can't compute metrics over just one class
             if len(np.unique(label)) == 1:
@@ -140,7 +150,7 @@ class InverseFolding(ResidueClassificationTask):
             sorted_keys = sorted(one_metric.keys())
         metrics = np.array(metrics)
         mean_metrics = np.nanmean(metrics, axis=0)
-        metrics = {k: v for k, v in zip(sorted_keys, mean_metrics)}
+        metrics = {k: v for k, v in zip(sorted_keys, mean_metrics, strict=False)}
 
         # Get the flattened result, renamed to include "global"
         filtered_all_preds = np.concatenate(filtered_all_preds)
@@ -149,7 +159,11 @@ class InverseFolding(ResidueClassificationTask):
         all_labels = np.concatenate(all_labels)
         filtered_all_labels = np.concatenate(filtered_all_labels)
         global_metrics = self.compute_one_metric(
-            filtered_all_preds, all_preds, filtered_all_probs, filtered_all_labels, all_labels
+            filtered_all_preds,
+            all_preds,
+            filtered_all_probs,
+            filtered_all_labels,
+            all_labels,
         )
         metrics_global = {f"global_{k}": v for k, v in global_metrics.items()}
         metrics.update(metrics_global)
@@ -179,7 +193,7 @@ class gRNAde(InverseFolding):
         data_dir = Path(os.path.dirname(os.path.abspath(__file__))) / "data"
         for split in ["train", "test", "val"]:
             file_path = data_dir / f"{split}_ids_das.txt"
-            with open(file_path, "r") as f:
+            with open(file_path) as f:
                 for i, line in enumerate(f):
                     if debug and i > 10:
                         break
@@ -218,22 +232,17 @@ class gRNAde(InverseFolding):
         return NameSplitter(train_names, val_names, test_names)
 
     def process(self) -> RNADataset:
-        """
-        Process the dataset in batches to avoid memory issues.
-        Returns a filtered and processed RNADataset.
-        """
-        pdb_to_single_chains = {pdb.lower():
-                                    [chain for chain in self.splits["pdb_to_chain_all_single"][pdb]]
-                                for pdb in self.splits["pdb_to_chain_all_single"]
-                                }
+        """Returns a filtered and processed RNADataset."""
+        pdb_to_single_chains = {
+            pdb.lower(): [chain for chain in self.splits["pdb_to_chain_all_single"][pdb]]
+            for pdb in self.splits["pdb_to_chain_all_single"]
+        }
 
         chain_filter = ChainFilter(pdb_to_single_chains)
         annote_dummy = DummyAnnotator()
 
         # Initialize dataset with in_memory=False to avoid loading everything at once
-        source_dataset = RNADataset(rna_id_subset=list(pdb_to_single_chains.keys()),
-            redundancy="all",
-            in_memory=False)
+        source_dataset = RNADataset(rna_id_subset=list(pdb_to_single_chains.keys()), redundancy="all", in_memory=False)
 
         all_rnas = []
         os.makedirs(self.dataset_path, exist_ok=True)
@@ -241,11 +250,11 @@ class gRNAde(InverseFolding):
         for rna in tqdm(source_dataset):
             if chain_filter.forward(rna):
                 rna = annote_dummy(rna)
-                base_graph = rna['rna']
+                base_graph = rna["rna"]
                 pdb = base_graph.name
                 for chain in self.splits["pdb_to_chain_all"][pdb]:
                     chain_components = set(chain.split("-"))
-                    selected_nodes = [node for node in base_graph.nodes() if node.split('.')[1] in chain_components]
+                    selected_nodes = [node for node in base_graph.nodes() if node.split(".")[1] in chain_components]
                     selected_chains = base_graph.copy().subgraph(selected_nodes)
                     selected_chains.name = f"{pdb.lower()}_{chain}"
                     self.add_rna_to_building_list(all_rnas=all_rnas, rna=selected_chains)

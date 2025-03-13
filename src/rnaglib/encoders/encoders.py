@@ -1,14 +1,11 @@
-"""
-Functions to build feature map for each feature type.
-"""
+"""Functions to build feature map for each feature type."""
 
 import torch
 
 
 class OneHotEncoder:
     def __init__(self, mapping, num_values=None):
-        """
-        To one-hot encode this feature.
+        """To one-hot encode this feature.
 
         :param mapping: This is a dictionnary that gives an index for each possible value.
         :param num_values: If the mapping can be many to one, you should specifiy it here.
@@ -22,9 +19,7 @@ class OneHotEncoder:
         self.num_values = num_values
 
     def add_value(self, value, x):
-        """
-        Useful for the multi-class case.
-        """
+        """Useful for the multi-class case."""
         try:
             ind = self.mapping[value]
             x[ind] = 1.0
@@ -33,8 +28,7 @@ class OneHotEncoder:
         return x
 
     def encode(self, value):
-        """
-        Assign encoding of `value` according to known possible values.
+        """Assign encoding of `value` according to known possible values.
 
         :param value: The value to encode. If missing a default vector of full zeroes is produced.
         """
@@ -71,8 +65,7 @@ class MultiLabelOneHotEncoder(OneHotEncoder):
 
 class IntMappingEncoder:
     def __init__(self, mapping, default_value=0):
-        """
-        To encode this feature as an int.
+        """To encode this feature as an int.
 
         :param mapping: This is a dictionnary that gives an index for each possible value.
         :param num_values: If the mapping can be many to one, you should specifiy it here.
@@ -82,8 +75,7 @@ class IntMappingEncoder:
         self.default_value = default_value
 
     def encode(self, value):
-        """
-        Assign encoding of `value` according to known possible values.
+        """Assign encoding of `value` according to known possible values.
 
         :param value: The value to encode. If missing, a default vector of full zeroes is produced.
         """
@@ -106,10 +98,8 @@ class IntMappingEncoder:
 
 
 class IntEncoder:
-
     def __init__(self, mapping, default_value=0):
-        """
-        Utility class to encode floats
+        """Utility class to encode floats
 
         :param default_value: The value to return in case of failure
         """
@@ -117,8 +107,7 @@ class IntEncoder:
         self.mapping = mapping
 
     def encode(self, value):
-        """
-        Assign encoding of `value` according to known possible values.
+        """Assign encoding of `value` according to known possible values.
 
         :param value: The value to encode. If missing a default value (by default zero) is produced.
         """
@@ -135,18 +124,15 @@ class IntEncoder:
 
 
 class FloatEncoder:
-
     def __init__(self, default_value=0):
-        """
-        Utility class to encode floats
+        """Utility class to encode floats
 
         :param default_value: The value to return in case of failure
         """
         self.default_value = default_value
 
     def encode(self, value):
-        """
-        Assign encoding of `value` according to known possible values.
+        """Assign encoding of `value` according to known possible values.
 
         :param value: The value to encode. If missing a default value (by default zero) is produced.
         """
@@ -163,29 +149,32 @@ class FloatEncoder:
 
 
 class BoolEncoder:
-
     def __init__(self, default_value=False):
-        """
-        To encode bools. A possible encoding is to have no value in which case it defaults to False.
+        """To encode bools. A possible encoding is to have no value in which case it defaults to False.
 
         :param default_value: To switch the default behavior. This is not recommended because not aligned with the data
         """
         self.default_value = default_value
 
     def encode(self, value):
-        """
-        Assign encoding of `value` according to known possible values.
+        """Assign encoding of `value` according to known possible values.
 
         :param value: The value to encode. If missing the default value (False by default) is produced.
         """
         if value is None:
             return self.encode_default()
-        # Sometimes we encode other stuff as booleans. Then if it's here return True, else False
+
+        # Sometimes we encode other stuff as booleans. Then if it's here and not 0 return True, else False
         if not isinstance(value, bool):
-            x = torch.tensor([True], dtype=torch.float)
-            return x
-        x = torch.tensor([value], dtype=torch.float)
-        return x
+            try:
+                # Convert to float and check if it's 0
+                numeric_value = float(value)
+                value = numeric_value != 0
+            except (ValueError, TypeError):
+                # If we can't convert to float, treat as True
+                value = True
+
+        return torch.tensor([value], dtype=torch.float)
 
     def encode_default(self):
         x = torch.tensor([self.default_value], dtype=torch.float)
@@ -197,8 +186,7 @@ class BoolEncoder:
 
 class ListEncoder:
     def __init__(self, list_length):
-        """
-        To encode lists, cast them as tensor if possible, otherwise just return zeroes.
+        """To encode lists, cast them as tensor if possible, otherwise just return zeroes.
 
         :param list_length: We need the lists to be fixed length
         """
@@ -206,18 +194,16 @@ class ListEncoder:
         self.default_value = torch.zeros(size=size, dtype=torch.float)
 
     def encode(self, value):
-        """
-        Assign encoding of `value` according to known possible values.
+        """Assign encoding of `value` according to known possible values.
 
         :param value: The value to encode. If missing the default value (A list of zeros) is produced.
         """
         if value is None or any([val is None for val in value]):
             return self.encode_default()
-        else:
-            try:
-                x = torch.tensor(value, dtype=torch.float)
-            except:
-                return self.encode_default()
+        try:
+            x = torch.tensor(value, dtype=torch.float)
+        except:
+            return self.encode_default()
         return x
 
     def encode_default(self):
@@ -229,8 +215,7 @@ class ListEncoder:
 
 class NucleotideEncoder:
     def __init__(self):
-        """
-        Fixed encoder for ACGU nucleotides.
+        """Fixed encoder for ACGU nucleotides.
         Maps: A->1, C->2, G->3, U->4, everything else->0
         """
         self.mapping = {"A": 1, "C": 2, "G": 3, "U": 4}
@@ -238,8 +223,7 @@ class NucleotideEncoder:
         self.num_classes = 5  # Including the default class
 
     def encode(self, value):
-        """
-        Convert nucleotide to its integer label.
+        """Convert nucleotide to its integer label.
         Returns 0 for any non-ACGU input.
 
         :param value: The nucleotide to encode
@@ -253,8 +237,7 @@ class NucleotideEncoder:
             return torch.tensor([0], dtype=torch.long)
 
     def decode(self, value):
-        """
-        Convert the integer label back to nucleotide
+        """Convert the integer label back to nucleotide
         Returns 'X' for 0 (unknown/non-standard nucleotide)
 
         :param value: Integer tensor to decode
