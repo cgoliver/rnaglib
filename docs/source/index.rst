@@ -20,7 +20,7 @@
 
    What is an RNA 2.5D graph? <what_is>
    A tour of RNA 2.5D graphs <tuto_2.5d>
-   ML Tasks API <tuto_custom_task>
+   Using Benchmark Tasks <tuto_tasks>
    RNA Transforms <tuto_transforms>
    How is the data built? <tuto_build>
 

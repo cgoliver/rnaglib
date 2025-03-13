@@ -42,7 +42,7 @@ class RNAFMTransform(Transform):
     encoder = ListEncoder(640)
 
     def __init__(
-        self, chunking_strategy: str = "simple", chunk_size: int = 512, cache_path=None, expand_mean=True, **kwargs
+        self, chunking_strategy: str = "simple", chunk_size: int = 512, cache_path=None, expand_mean=True, verbose=False, **kwargs
     ):
         # Load RNA-FM model
         self.model, self.alphabet = fm.pretrained.rna_fm_t12()
@@ -52,6 +52,7 @@ class RNAFMTransform(Transform):
         self.model.eval()
         self.cache_path = cache_path
         self.expand_mean = expand_mean
+        self.verbose = verbose
         super().__init__(**kwargs)
 
     def basic_chunking(self, seq):
@@ -71,11 +72,12 @@ class RNAFMTransform(Transform):
         return chunked
 
     def forward(self, rna_dict: Dict) -> Dict:
-        chain_seqs = get_sequences(rna_dict["rna"])
+        chain_seqs = get_sequences(rna_dict["rna"], verbose=self.verbose)
 
         # Try to load the embs if possible.
         if self.cache_path is not None:
-            print(f"Loading embeddings from {self.cache_path}.")
+            if not self.quiet:
+                print(f"Loading embeddings from {self.cache_path}.")
             chains = list(chain_seqs.keys())
             for chain in chains:
                 embs_path = Path(self.cache_path) / f"{chain}.npz"

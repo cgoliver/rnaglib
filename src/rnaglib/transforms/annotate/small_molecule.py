@@ -77,10 +77,6 @@ IONS = [
     "ZN",
 ]
 
-ALLOWED_ATOMS = ["C", "H", "N", "O", "Br", "Cl", "F", "P", "Si", "B", "Se"]
-ALLOWED_ATOMS += [atom_name.upper() for atom_name in ALLOWED_ATOMS]
-ALLOWED_ATOMS = set(ALLOWED_ATOMS)
-
 SMILES_CACHE = {}
 
 
@@ -101,7 +97,8 @@ def is_dna(res):
         return False
 
 
-def hariboss_filter(lig, cif_dict, mass_lower_limit=160, mass_upper_limit=1000):
+def hariboss_filter(lig, cif_dict, mass_lower_limit=160, mass_upper_limit=1000,
+                    verbose=False, additional_atoms=None, disallowed_atoms=None):
     """
     Sorts ligands into ion / ligand / None
      Returns ions for a specific list of ions, ligands if the hetatm has the right atoms and mass and None otherwise
@@ -112,25 +109,41 @@ def hariboss_filter(lig, cif_dict, mass_lower_limit=160, mass_upper_limit=1000):
     :param mass_upper_limit:
 
     """
+
+    allowed_atoms = ["C", "H", "N", "O", "Br", "Cl", "F", "P", "Si", "B", "Se"]
+    if not additional_atoms is None:
+        allowed_atoms += additional_atoms
+    if not disallowed_atoms is None:
+        allowed_atoms = [a for a in allowed_atoms if a not in
+                              disallowed_atoms]
+    allowed_atoms += [atom_name.upper() for atom_name in
+                           allowed_atoms]
+    allowed_atoms= set(allowed_atoms)
+
     try:
         lig_name = lig.id[0][2:]
         if lig_name == "HOH":
             return None
 
         if cif_dict["_chem_comp.type"][cif_dict["_chem_comp.id"].index(lig_name)] in ["RNA linking", "DNA linking"]:
+            if verbose: print(f"{lig_name} Covalent")
             return None
 
         if lig_name in IONS:
+            # if verbose: print("ION")
             return "ion"
 
         lig_mass = float(cif_dict["_chem_comp.formula_weight"][cif_dict["_chem_comp.id"].index(lig_name)])
 
         if lig_mass < mass_lower_limit or lig_mass > mass_upper_limit:
+            if verbose: print(f"mass {lig_name}: {lig_mass} fail.")
             return None
         ligand_atoms = set([atom.element for atom in lig.get_atoms()])
         if "C" not in ligand_atoms:
+            if verbose: print(f"{lig_name} no C atom")
             return None
-        if any([atom not in ALLOWED_ATOMS for atom in ligand_atoms]):
+        if any([atom not in allowed_atoms for atom in ligand_atoms]):
+            if verbose: print(f"{lig_name} Disallowed atoms {ligand_atoms}.")
             return None
         return "ligand"
     except ValueError:
@@ -167,7 +180,10 @@ def get_smiles_from_rcsb(ligand_code):
             return None
 
 
-def get_small_partners(cif, mmcif_dict=None, radius=6, mass_lower_limit=160, mass_upper_limit=1000):
+def get_small_partners(cif, mmcif_dict=None, radius=6, mass_lower_limit=160,
+                       mass_upper_limit=1000, verbose=False,
+                       additional_atoms=None,
+                       disallowed_atoms=None):
     """
     Returns all the relevant small partners in the form of a dict of list of dicts:
     {'ligands': [
@@ -185,6 +201,7 @@ def get_small_partners(cif, mmcif_dict=None, radius=6, mass_lower_limit=160, mas
     :param mmcif_dict: if it got computed already
     :return:
     """
+    if verbose: print("Searching neibhors at {radius} cutoff.")
     structure_id = cif[-8:-4]
     # print(f'Parsing structure {structure_id}...')
 
@@ -202,10 +219,18 @@ def get_small_partners(cif, mmcif_dict=None, radius=6, mass_lower_limit=160, mas
         # Only look around het_flag
         het_flag = res_1.id[0]
         if "H" in het_flag:
+            # if verbose:
+                # print(f"Processing {structure_id}: {het_flag}")
             # hariboss select the right heteroatoms and look around ions and ligands
             selected = hariboss_filter(
-                res_1, mmcif_dict, mass_lower_limit=mass_lower_limit, mass_upper_limit=mass_upper_limit
+                res_1, mmcif_dict, mass_lower_limit=mass_lower_limit,
+                mass_upper_limit=mass_upper_limit, verbose=verbose,
+                additional_atoms=additional_atoms,
+                disallowed_atoms=disallowed_atoms
             )
+            # if selected is None and verbose:
+                # print("Failed HARIBOSS filter.")
+
             if selected is not None:  # ion or ligand
                 name = res_1.id[0][2:]
                 smiles = get_smiles_from_rcsb(name)
@@ -233,10 +258,23 @@ class SmallMoleculeBindingTransform(AnnotationTransform):
     :param cutoff: distance threshold (Angstroms) to use for including small molecule ligands (default= 6).
     """
 
-    def __init__(self, structures_dir: Union[os.PathLike, str], cutoffs=[4.0, 6.0, 8.0]):
+    def __init__(self, structures_dir: Union[os.PathLike, str], cutoffs=[4.0,
+                                                                         6.0,
+                                                                         8.0], 
+                 mass_lower_limit=160,
+                 mass_upper_limit=1000,
+                 verbose=False,
+                 additional_atoms=None,
+                 disallowed_atoms=None
+                 ):
         self.structures_dir = structures_dir
         self.cutoffs = sorted(cutoffs)
-        pass
+        self.verbose = verbose
+        self.mass_lower_limit = mass_lower_limit
+        self.mass_upper_limit = mass_upper_limit
+        self.additional_atoms = additional_atoms
+        self.disallowed_atoms = disallowed_atoms
+
 
     def forward(self, rna_dict: dict) -> dict:
         """
@@ -253,7 +291,13 @@ class SmallMoleculeBindingTransform(AnnotationTransform):
         lig_to_smiles = {}
         for cutoff in self.cutoffs:
             # Fetch interactions with small molecules and ions
-            all_interactions = get_small_partners(cif, mmcif_dict=mmcif_dict, radius=cutoff)
+            all_interactions = get_small_partners(cif, mmcif_dict=mmcif_dict,
+                                                  radius=cutoff,
+                                                  verbose=self.verbose,
+                                                  mass_lower_limit=self.mass_lower_limit,
+                                                  mass_upper_limit=self.mass_upper_limit,
+                                                  additional_atoms=self.additional_atoms,
+                                                  disallowed_atoms=self.disallowed_atoms)
 
             # First fill relevant nodes
             for interaction_dict in all_interactions["ligands"]:
