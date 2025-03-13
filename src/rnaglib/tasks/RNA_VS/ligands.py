@@ -47,7 +47,7 @@ class MolGraphEncoder:
     Stateful encoder for using cashed computations
     """
 
-    def __init__(self, cache_path=None, ligand_framework="dgl"):
+    def __init__(self, cache_path=None, framework="dgl"):
         script_dir = os.path.dirname(__file__)
         with open(os.path.join(script_dir, 'data/edges_and_nodes_map.p'), "rb") as f:
             self.edge_map = pickle.load(f)
@@ -59,9 +59,9 @@ class MolGraphEncoder:
             self.cached_graphs = pickle.load(open(cache_path, 'rb'))
         else:
             self.cached_graphs = list()
-        if ligand_framework not in {"dgl", "pyg"}:
+        if framework not in {"dgl", "pyg"}:
             raise NotImplementedError("Ligand framework must be dgl or pyg")
-        self.ligand_framework = ligand_framework
+        self.framework = framework
 
     @staticmethod
     def set_as_one_hot_feat(graph_nx, edge_map, node_label, default_value=None):
@@ -142,7 +142,7 @@ class MolGraphEncoder:
             return self.cached_graphs[smiles]
         graph_nx = smiles_to_nx(smiles)
 
-        if self.ligand_framework == 'dgl':
+        if self.framework == 'dgl':
             return self.nx_mol_to_dgl(graph_nx)
         return self.nx_mol_to_pyg(graph_nx)
 
@@ -154,7 +154,7 @@ class MolGraphEncoder:
         return self.collate_fn(graphs)
 
     def collate_fn(self, graphs):
-        if self.ligand_framework == 'dgl':
+        if self.framework == 'dgl':
             import dgl
             batch = dgl.batch(graphs)
         else:
