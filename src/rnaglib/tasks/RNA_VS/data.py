@@ -94,12 +94,11 @@ class VSRNATestDataset(VSRNADataset):
         # Pick either active or inactive at random, then sample a ligand of the right group and encode it
         actives = self.groups[group_rep]['actives']
         inactives = self.groups[group_rep][f'{self.decoy_mode}_decoys']
-        active_ligands = self.ligand_embedder.smiles_to_graph_list(actives)
-        inactive_ligands = self.ligand_embedder.smiles_to_graph_list(inactives)
+        ligands = self.ligand_embedder.smiles_to_graph_list(actives + inactives)
         return {'group_rep': group_rep,
                 'pocket': pocket_representations,
-                'active_ligands': active_ligands,
-                'inactive_ligands': inactive_ligands}
+                'ligands': ligands,
+                'actives': [1 for _ in range(len(actives))] + [0 for _ in range(len(inactives))]}
 
 
 if __name__ == '__main__':

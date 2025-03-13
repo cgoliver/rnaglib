@@ -24,24 +24,15 @@ def run_virtual_screen(model, dataloader):
             print(f"Done {i}/{len(dataloader)}")
 
         pocket_name = data['group_rep']
-
-        if len(data['active_ligands']) == 0:
-            failed_set.add(pocket_name)
-            print(f"VS fail")
-            continue
-        actives = data['active_ligands'][0]
-
-        inactives = data['inactive_ligands'][0]
-        if inactives.batch_size < 10:
+        ligands = data['ligands'][0]
+        actives = data['actives'][0]
+        if ligands.batch_size < 10:
             print(f"Skipping pocket{i}, not enough decoys")
             continue
 
         pocket = data['pocket']
-        actives_scores = model.predict_ligands(pocket, actives)[:, 0].numpy()
-        inactives_scores = model.predict_ligands(pocket, inactives)[:, 0].numpy()
-        scores = np.concatenate((actives_scores, inactives_scores), axis=0)
-        is_active = [1 for _ in range(len(actives_scores))] + [0 for _ in range(len(inactives_scores))]
-        efs.append(mean_active_rank(scores, is_active))
+        scores = model.predict_ligands(pocket, ligands)[:, 0].numpy()
+        efs.append(mean_active_rank(scores, actives))
     if len(failed_set) > 0:
         print(f"VS failed on {failed_set}")
     print('Mean EF :', np.mean(efs))
@@ -50,7 +41,7 @@ def run_virtual_screen(model, dataloader):
 
 if __name__ == "__main__":
     from rnaglib.tasks.RNA_VS.task import VSTask
-    from rnaglib.tasks.RNA_VS.model import RNAEncoder, LigandGraphEncoder, Decoder, VSModel
+    from rnaglib.tasks.RNA_VS.model_dgl import RNAEncoder, LigandGraphEncoder, Decoder, VSModel
     from rnaglib.transforms import GraphRepresentation
 
     # Get a test loader
