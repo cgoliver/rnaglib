@@ -4,7 +4,7 @@ import numpy as np
 import json
 from torch.utils.data import DataLoader
 
-from rnaglib.tasks.RNA_VS.build_data import build_data
+from rnaglib.tasks.RNA_VS.build_data import dump_rna_jsons, precompute_ligand_graphs
 from rnaglib.tasks.RNA_VS.data import VSRNATestDataset, VSRNATrainDataset, VSCollater
 from rnaglib.tasks.RNA_VS.evaluate import run_virtual_screen
 from rnaglib.tasks.RNA_VS.ligands import MolGraphEncoder
@@ -20,6 +20,7 @@ class VirtualScreening:
     def __init__(self, root, ligand_framework='dgl', recompute=False):
         self.root = root
         self.recompute = recompute
+        self.ligand_framework = ligand_framework
 
         # If not present, dump RNA and molecules as graphs
         self.build_dataset()
@@ -29,13 +30,16 @@ class VirtualScreening:
         train_groups_keys = set(np.random.choice(list(self.trainval_groups.keys()), size=train_val_cut, replace=False))
         self.train_groups = {k: v for k, v in self.trainval_groups.items() if k in train_groups_keys}
         self.val_groups = {k: v for k, v in self.trainval_groups.items() if k not in train_groups_keys}
-        # TODO: add support for pyg ligand graphs
-        self.ligand_encoder = MolGraphEncoder(cache_path=os.path.join(self.root, 'ligands.p'))
+
+        self.ligand_encoder = MolGraphEncoder(framework=ligand_framework,
+                                              cache_path=os.path.join(self.root, f'ligands_{self.ligand_framework}.p'))
 
     def build_dataset(self):
         # check if dataset exists and load
         if not os.path.exists(os.path.join(self.root, 'graphs')) or self.recompute:
-            build_data(root=self.root, recompute=self.recompute)
+            dump_rna_jsons(root=self.root, recompute=self.recompute)
+        if not os.path.exists(os.path.join(self.root, f'ligands_{self.ligand_framework}.p')) or self.recompute:
+            precompute_ligand_graphs(root=self.root, recompute=self.recompute, framework=self.ligand_framework)
 
     def get_split_datasets(self, dataset_kwargs=None):
         train_dataset = VSRNATrainDataset(groups=self.train_groups,

@@ -42,18 +42,25 @@ class VSRNADataset(Dataset):
         # To load ligands
         self.ligand_embedder = ligand_embedder
 
-    def add_inpocket_flag(self, graph, rna):
-        # TODO also add for point representation and pyg graphs
-        import dgl
-        pocket_graph_dgl = dgl.from_networkx(nx_graph=rna, node_attrs=['in_pocket'])
-        graph.ndata['in_pocket'] = pocket_graph_dgl.ndata['in_pocket']
+    def add_inpocket_flag(self, graph, rna, framework):
+        if framework == 'dgl':
+            import dgl
+            pocket_graph_dgl = dgl.from_networkx(nx_graph=rna, node_attrs=['in_pocket'])
+            graph.ndata['in_pocket'] = pocket_graph_dgl.ndata['in_pocket']
+        else:
+            import torch
+            in_pocket = torch.tensor([node_data['in_pocket'] for node, node_data in sorted(rna.nodes(data=True))])
+            graph.in_pocket = in_pocket
 
     def __len__(self):
         return len(self.groups)
 
     def get_pocket_representations(self, group_rep):
         pocket_representations = self.rna_dataset.get_by_name(group_rep)
-        self.add_inpocket_flag(pocket_representations['graph'], pocket_representations['rna'])
+
+        # Catch framework dynamically by going through existing representations
+        framework = [rep for rep in self.rna_dataset.representations if rep.name == 'graph'][0].framework
+        self.add_inpocket_flag(pocket_representations['graph'], pocket_representations['rna'], framework=framework)
         return pocket_representations
 
     def __getitem__(self, idx):
@@ -87,12 +94,11 @@ class VSRNATestDataset(VSRNADataset):
         # Pick either active or inactive at random, then sample a ligand of the right group and encode it
         actives = self.groups[group_rep]['actives']
         inactives = self.groups[group_rep][f'{self.decoy_mode}_decoys']
-        active_ligands = self.ligand_embedder.smiles_to_graph_list(actives)
-        inactive_ligands = self.ligand_embedder.smiles_to_graph_list(inactives)
+        ligands = self.ligand_embedder.smiles_to_graph_list(actives + inactives)
         return {'group_rep': group_rep,
                 'pocket': pocket_representations,
-                'active_ligands': active_ligands,
-                'inactive_ligands': inactive_ligands}
+                'ligands': ligands,
+                'actives': [1 for _ in range(len(actives))] + [0 for _ in range(len(inactives))]}
 
 
 if __name__ == '__main__':
@@ -114,13 +120,13 @@ if __name__ == '__main__':
     representations = GraphRepresentation(framework='dgl')
     rna_dataset_args = {'representations': representations, 'features_computer': features_computer}
     train_dataset_debug = VSRNATrainDataset(groups=test_groups,
-        ligand_embedder=ligand_encoder,
-        dataset_path=os.path.join(root, 'graphs'),
-        **rna_dataset_args)
+                                            ligand_embedder=ligand_encoder,
+                                            dataset_path=os.path.join(root, 'graphs'),
+                                            **rna_dataset_args)
     test_dataset_debug = VSRNATrainDataset(groups=test_groups,
-        ligand_embedder=ligand_encoder,
-        dataset_path=os.path.join(root, 'graphs'),
-        **rna_dataset_args)
+                                           ligand_embedder=ligand_encoder,
+                                           dataset_path=os.path.join(root, 'graphs'),
+                                           **rna_dataset_args)
 
     for i, elt in enumerate(train_dataset_debug):
         a = 1

@@ -1,14 +1,16 @@
+"""Demo script for running the RNA protein task."""
+
 from rnaglib.learning.task_models import PygModel
 from rnaglib.tasks import ProteinBindingSite
 from rnaglib.transforms import GraphRepresentation
 
-ta = ProteinBindingSite("RNA_Prot", recompute=False, debug=False, precomputed=False)
+ta = ProteinBindingSite("RNA_RBP_struc", recompute=False, debug=False, precomputed=False)
 
 # Add representation
 ta.dataset.add_representation(GraphRepresentation(framework="pyg"))
 
 # Splitting dataset
-ta.get_split_loaders(recompute=False)  # set to false once it has run with true once
+ta.get_split_loaders(recompute=False)
 
 # Train model
 # Either by hand:
