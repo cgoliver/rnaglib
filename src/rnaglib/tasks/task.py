@@ -559,4 +559,4 @@ class ResidueClassificationTask(ClassificationTask):
 class RNAClassificationTask(ClassificationTask):
     def __init__(self, additional_metadata=None, **kwargs):
         meta = {'graph_level': True, **additional_metadata}
-        super().__init__(additional_metadata=meta, **kwargs)
+        super().__init__( additional_metadata=meta, **kwargs)

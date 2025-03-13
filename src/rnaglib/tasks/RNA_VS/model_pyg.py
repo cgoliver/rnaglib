@@ -1,25 +1,18 @@
-"""
-Script for RGCN model.
-This code is adapted from https://github.com/cgoliver/rnamigos2/blob/master/rnamigos_dock/learning/models.py
-"""
-
 import os
-import sys
-
-import dgl
-from dgl.nn.pytorch.glob import SumPooling, GlobalAttentionPooling
-from dgl.nn.pytorch.conv import RelGraphConv
 import json
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from torch_geometric.nn import RGCNConv, global_add_pool, GlobalAttention
+from torch_geometric.data import Batch, Data
+import torch_geometric.utils as pyg_utils
 
 
 class RGCN(nn.Module):
     """ RGCN encoder with num_hidden_layers + 2 RGCN layers, and sum pooling. """
 
-    def __init__(self, features_dim, h_dim, num_rels, num_layers, num_bases=-1, gcn_dropout=0, batch_norm=False,
-                 self_loop=False, jumping_knowledge=True):
+    def __init__(self, features_dim, h_dim, num_rels, num_layers, num_bases=None, gcn_dropout=0, batch_norm=False,
+                 self_loop=False):
         super(RGCN, self).__init__()
 
         self.features_dim, self.h_dim = features_dim, h_dim
@@ -35,36 +28,40 @@ class RGCN(nn.Module):
         self.batch_norm = batch_norm
         if self.batch_norm:
             self.batch_norm_layers = nn.ModuleList([nn.BatchNorm1d(h_dim) for _ in range(num_layers)])
-        self.pool = SumPooling()
+        self.pool = global_add_pool  # Equivalent to SumPooling in DGL
 
     def build_model(self):
         self.layers = nn.ModuleList()
         # input to hidden
-        i2h = RelGraphConv(self.features_dim, self.h_dim, self.num_rels, self_loop=self.self_loop,
-                           activation=nn.ReLU(), dropout=self.p)
+        i2h = RGCNConv(self.features_dim, self.h_dim, self.num_rels, num_bases=self.num_bases)
         self.layers.append(i2h)
         # hidden to hidden
         for _ in range(self.num_layers - 2):
-            h2h = RelGraphConv(self.h_dim, self.h_dim, self.num_rels,
-                               self_loop=self.self_loop, activation=nn.ReLU(), dropout=self.p)
+            h2h = RGCNConv(self.h_dim, self.h_dim, self.num_rels, num_bases=self.num_bases)
             self.layers.append(h2h)
         # hidden to output
-        h2o = RelGraphConv(self.h_dim, self.h_dim, self.num_rels,
-                           self_loop=self.self_loop, activation=nn.ReLU(), dropout=self.p)
+        h2o = RGCNConv(self.h_dim, self.h_dim, self.num_rels, num_bases=self.num_bases)
         self.layers.append(h2o)
 
-    def forward(self, g):
+    def forward(self, data):
         sequence = []
+        x, edge_index, edge_attr, batch = data.x, data.edge_index, data.edge_attr, data.batch
+
         for i, layer in enumerate(self.layers):
             # Node update
-            g.ndata['h'] = layer(g, g.ndata['h'], g.edata['edge_type'])
-            # Jumping knowledge connexion
-            sequence.append(g.ndata['h'])
+            x = layer(x, edge_index, edge_attr)
+            x = F.relu(x)
+            x = F.dropout(x, p=self.p, training=self.training)
+
+            # Jumping knowledge connection
+            sequence.append(x)
+
             if self.batch_norm:
-                g.ndata['h'] = self.batch_norm_layers[i](g.ndata['h'])
-        # Concatenation :
-        g.ndata['h'] = torch.cat(sequence, dim=1)  # Num_nodes * (h_dim*num_layers)
-        out = self.pool(g, g.ndata['h'])
+                x = self.batch_norm_layers[i](x)
+
+        # Concatenation
+        x = torch.cat(sequence, dim=1)  # Num_nodes * (h_dim*num_layers)
+        out = self.pool(x, batch)
         return out
 
 
@@ -138,34 +135,16 @@ class LigandGraphEncoder(nn.Module):
         # Bottleneck
         self.l_size = l_size
         # layers:
-        self.encoder = RGCN(self.features_dim, self.gcn_hdim, self.num_rels, self.gcn_layers, num_bases=-1,
-                            batch_norm=batch_norm)
+        self.encoder = RGCN(self.features_dim, self.gcn_hdim, self.num_rels, self.gcn_layers, batch_norm=batch_norm)
         self.encoder_mean = nn.Linear(self.gcn_hdim * self.gcn_layers, self.l_size)
         self.encoder_logv = nn.Linear(self.gcn_hdim * self.gcn_layers, self.l_size)
 
-    @classmethod
-    def from_pretrained(cls, trained_dir):
-        # Loads trained model weights, with or without the affinity predictor
-        params = json.load(open(os.path.join(trained_dir, 'params.json'), 'r'))
-        weight_path = os.path.join(trained_dir, 'weights.pth')
-        ligraph_encoder = cls(**params, cut_embeddings=True)
-        whole_state_dict = torch.load(weight_path)
-        filtered_state_dict = {}
-        for (k, v) in whole_state_dict.items():
-            if 'encoder' in k:
-                if k.startswith('encoder.layers'):
-                    filtered_state_dict[k.replace('weight', 'linear_r.W')] = v
-                else:
-                    filtered_state_dict[k] = v
-        ligraph_encoder.load_state_dict(filtered_state_dict)
-        return ligraph_encoder
-
-    def forward(self, g):
-        g.ndata['h'] = g.ndata['node_features']
-        # Weird optimol pretrained_model
+    def forward(self, data):
+        # Handle feature cutting if needed
         if self.cut_embeddings:
-            g.ndata['h'] = g.ndata['h'][:, :-6]
-        e_out = self.encoder(g)
+            data.x = data.x[:, :-6]
+
+        e_out = self.encoder(data)
         mu = self.encoder_mean(e_out)
         return mu
 
@@ -217,45 +196,59 @@ class RNAEncoder(nn.Module):
         return next(self.parameters()).device
 
     def build_hidden_layer(self, in_dim, out_dim):
-        return RelGraphConv(in_dim, out_dim, self.num_rels,
-                            regularizer='basis' if self.num_rels > 0 else None,
-                            num_bases=self.num_bases,
-                            activation=None)
+        return RGCNConv(in_dim, out_dim, self.num_rels, num_bases=self.num_bases)
 
     # No activation for the last layer
     def build_output_layer(self, in_dim, out_dim):
-        return RelGraphConv(in_dim, out_dim, self.num_rels, num_bases=self.num_bases,
-                            regularizer='basis' if self.num_rels > 0 else None,
-                            activation=None)
+        return RGCNConv(in_dim, out_dim, self.num_rels, num_bases=self.num_bases)
 
-    def forward(self, g):
-        h = g.ndata['nt_features']
+    def forward(self, data):
+        x, edge_index, edge_attr, batch = data.x, data.edge_index, data.edge_attr, data.batch
+
         for i, layer in enumerate(self.layers):
-            h = layer(g, h, g.edata['edge_type'])
+            x = layer(x, edge_index, edge_attr)
+
             if self.batch_norm:
-                h = self.batch_norms[i](h)
+                x = self.batch_norms[i](x)
 
             if i < self.num_hidden_layers:
-                h = F.dropout(h, self.dropout, training=self.training)
+                x = F.dropout(x, self.dropout, training=self.training)
             else:
-                h = F.dropout(F.relu(h), self.dropout, training=self.training)
+                x = F.dropout(F.relu(x), self.dropout, training=self.training)
 
-        g.ndata['h'] = h
+        # Store node embeddings in data
+        data.x = x
 
-        graphs, embeddings = g, h
         if self.subset_pocket_nodes:
-            # This tedious step is necessary, otherwise subgraphing looses track of the batch
-            graphs = dgl.unbatch(g)
+            # This part requires mapping from the DGL batch subgraphing to PyG equivalent
+            # We need to collect nodes that are in_pocket and create subgraphs
+
+            # Split the batch into individual graphs
+            graphs = Batch.to_data_list(data)
             all_subgraphs = []
             all_embs = []
+
             for graph in graphs:
-                subgraph = dgl.node_subgraph(graph, graph.ndata['in_pocket'])
-                embeddings = subgraph.ndata.pop('h')
+                # Get nodes that are in the pocket. Handle case with single node
+                pocket_mask = graph.in_pocket
+                if pocket_mask.dim() == 0:
+                    pocket_mask = pocket_mask.unsqueeze(0)
+
+                sub_x = graph.x[pocket_mask]
+                sub_edge_index, sub_edge_attr = pyg_utils.subgraph(pocket_mask, graph.edge_index, graph.edge_attr,
+                                                                   relabel_nodes=True)
+                subgraph = Data(x=sub_x, edge_index=sub_edge_index, edge_attr=sub_edge_attr)
+
                 all_subgraphs.append(subgraph)
-                all_embs.append(embeddings)
-            graphs = dgl.batch(all_subgraphs)
+                all_embs.append(sub_x)
+
+            # Combine all subgraphs into a new batch
+            batch_data = Batch.from_data_list(all_subgraphs)
             embeddings = torch.cat(all_embs, dim=0)
-        return graphs, embeddings
+
+            return batch_data, embeddings
+
+        return data, x
 
 
 class VSModel(nn.Module):
@@ -266,7 +259,6 @@ class VSModel(nn.Module):
                  pool_dim=64
                  ):
         """
-
         :param dims: the embeddings dimensions
         :param attributor_dims: the number of motifs to look for
         :param num_rels: the number of possible edge types
@@ -274,21 +266,20 @@ class VSModel(nn.Module):
         :param rec: the constant in front of reconstruction loss
         :param mot: the constant in front of motif detection loss
         :param orth: the constant in front of dictionnary orthogonality loss
-        :param attribute: Wether we want the network to use the attribution module
+        :param attribute: Whether we want the network to use the attribution module
         """
         super(VSModel, self).__init__()
         pooling_gate_nn = nn.Linear(pool_dim, 1)
-        self.pool = GlobalAttentionPooling(pooling_gate_nn)
+        self.pool = GlobalAttention(pooling_gate_nn)
         self.encoder = encoder
         self.decoder = decoder
         self.lig_encoder = lig_encoder
 
     def predict_ligands(self, pocket, ligands):
-        g = pocket['graph']
+        data = pocket['graph']
         with torch.no_grad():
-            g, embeddings = self.encoder(g)
-            graph_emb = self.pool(g, embeddings)
-            # Batch ligands together, encode them
+            data, embeddings = self.encoder(data)
+            graph_emb = self.pool(embeddings, data.batch)
             lig_embs = self.lig_encoder(ligands)
             graph_emb = graph_emb.expand(len(lig_embs), -1)
             pred = torch.cat((graph_emb, lig_embs), dim=1)
@@ -296,28 +287,15 @@ class VSModel(nn.Module):
             return pred
 
     def forward(self, pocket, ligand):
-        g = pocket['graph']
-        g, embeddings = self.encoder(g)
-        graph_emb = self.pool(g, embeddings)
+        data = pocket['graph']
+        data, embeddings = self.encoder(data)
+        graph_emb = self.pool(embeddings, data.batch)
         lig_emb = self.lig_encoder(ligand)
-        pred = torch.cat((graph_emb, lig_emb), dim=1)
-        pred = self.decoder(pred)
+        # # handle empty ligands as zero embs
+        # existing_ids = ligand.batch.unique()
+        # if len(existing_ids) != ligand.batch_size:
+        #     result = torch.zeros((ligand.batch_size, lig_emb.shape[-1]))
+        #     result[existing_ids] = lig_emb
+        joint = torch.cat((graph_emb, lig_emb), dim=1)
+        pred = self.decoder(joint)
         return pred
-
-
-if __name__ == '__main__':
-    import pickle
-
-    rna_encoder = RNAEncoder()
-    lig_encoder = LigandGraphEncoder()
-    decoder = Decoder()
-    model = VSModel(encoder=rna_encoder, lig_encoder=lig_encoder, decoder=decoder)
-    data = pickle.load(open('toto_data.p', 'rb'))
-    pocket_name = data['group_rep']
-    actives = data['active_ligands'][0]
-    inactives = data['inactive_ligands'][0]
-    pocket = data['pocket']
-    model.eval()
-    actives_scores = model.predict_ligands(pocket, actives)[:, 0].numpy()
-    inactives_scores = model.predict_ligands(pocket, inactives)[:, 0].numpy()
-    a = 1

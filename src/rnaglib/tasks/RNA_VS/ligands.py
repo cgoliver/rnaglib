@@ -1,7 +1,6 @@
 import os
 import pickle
 
-import dgl
 import networkx as nx
 import numpy as np
 import torch
@@ -48,9 +47,9 @@ class MolGraphEncoder:
     Stateful encoder for using cashed computations
     """
 
-    def __init__(self, cache_path=None):
+    def __init__(self, cache_path=None, framework="dgl"):
         script_dir = os.path.dirname(__file__)
-        with open(os.path.join(script_dir,  'data/edges_and_nodes_map.p'), "rb") as f:
+        with open(os.path.join(script_dir, 'data/edges_and_nodes_map.p'), "rb") as f:
             self.edge_map = pickle.load(f)
             self.at_map = pickle.load(f)
             self.chi_map = pickle.load(f)
@@ -60,6 +59,9 @@ class MolGraphEncoder:
             self.cached_graphs = pickle.load(open(cache_path, 'rb'))
         else:
             self.cached_graphs = list()
+        if framework not in {"dgl", "pyg"}:
+            raise NotImplementedError("Ligand framework must be dgl or pyg")
+        self.framework = framework
 
     @staticmethod
     def set_as_one_hot_feat(graph_nx, edge_map, node_label, default_value=None):
@@ -68,35 +70,17 @@ class MolGraphEncoder:
         nx.set_node_attributes(graph_nx, name=node_label, values=one_hot)
 
     def as_one_hot(self, graph_nx):
-        self.set_as_one_hot_feat(graph_nx, edge_map=self.at_map, node_label='atomic_num', default_value=6)
-        self.set_as_one_hot_feat(graph_nx, edge_map=self.charges_map, node_label='formal_charge', default_value=0)
-        self.set_as_one_hot_feat(graph_nx, edge_map=self.chi_map, node_label='num_explicit_hs', default_value=0)
-        self.set_as_one_hot_feat(graph_nx, edge_map=self.chi_map, node_label='is_aromatic', default_value=0)
-        self.set_as_one_hot_feat(graph_nx, edge_map=self.chi_map, node_label='chiral_tag', default_value=0)
-
-    def mol2_to_graph_one(self, mol2_path):
-        mol = Chem.MolFromMol2File(mol2_path, sanitize=False)
-
-        atom_names = []
-        in_section = False
-        with open(mol2_path) as mol2:
-            for row in mol2:
-                if row.startswith("@<TRIPOS>ATOM"):
-                    in_section = True
-                    continue
-                elif row.startswith("@<TRIPOS>BOND"):
-                    break
-                if in_section:
-                    atom_names.append(row.split()[1])
-                else:
-                    continue
-        graph_nx = mol_to_nx(mol)
-        for node, i in enumerate(graph_nx.nodes()):
-            graph_nx.nodes[node]['atom_name'] = atom_names[i]
-        graph_dgl = self.nx_mol_to_dgl(graph_nx)
-        return graph_dgl, graph_nx
+        graph_nx_oh = graph_nx.copy()
+        self.set_as_one_hot_feat(graph_nx_oh, edge_map=self.at_map, node_label='atomic_num', default_value=6)
+        self.set_as_one_hot_feat(graph_nx_oh, edge_map=self.charges_map, node_label='formal_charge', default_value=0)
+        self.set_as_one_hot_feat(graph_nx_oh, edge_map=self.chi_map, node_label='num_explicit_hs', default_value=0)
+        self.set_as_one_hot_feat(graph_nx_oh, edge_map=self.chi_map, node_label='is_aromatic', default_value=0)
+        self.set_as_one_hot_feat(graph_nx_oh, edge_map=self.chi_map, node_label='chiral_tag', default_value=0)
+        return graph_nx_oh
 
     def nx_mol_to_dgl(self, graph_nx):
+        import dgl
+
         try:
             assert graph_nx is not None
             # Get edges as one hot
@@ -105,7 +89,7 @@ class MolGraphEncoder:
             nx.set_edge_attributes(graph_nx, name='edge_type', values=edge_type)
 
             # Set node features as one_hot
-            self.as_one_hot(graph_nx)
+            graph_nx = self.as_one_hot(graph_nx)
 
             # to dgl
             node_features = ['atomic_num', 'formal_charge', 'num_explicit_hs', 'is_aromatic', 'chiral_tag']
@@ -121,21 +105,61 @@ class MolGraphEncoder:
             print(f"Failed with exception {e}")
             return dgl.graph(([], []))
 
+    def nx_mol_to_pyg(self, graph_nx):
+        from torch_geometric.data import Data
+
+        try:
+            assert graph_nx is not None
+
+            # Get edges as one hot
+            edge_type = {edge: torch.tensor(self.edge_map[label]) for edge, label in
+                         (nx.get_edge_attributes(graph_nx, 'bond_type')).items()}
+            nx.set_edge_attributes(graph_nx, name='edge_type', values=edge_type)
+
+            # Set node features as one_hot
+            graph_nx = self.as_one_hot(graph_nx)
+
+            # Extract edge indices and attr
+            graph_nx = graph_nx.to_directed()
+            edge_index = torch.tensor([[u, v] for u, v in graph_nx.edges()], dtype=torch.long).t().contiguous()
+            edge_attr = torch.stack([graph_nx[u][v]['edge_type'] for u, v in graph_nx.edges()])
+
+            # Extract node features and concatenate them
+            node_features = ['atomic_num', 'formal_charge', 'num_explicit_hs', 'is_aromatic', 'chiral_tag']
+            x = torch.cat([torch.stack([graph_nx.nodes[i][feat] for i in range(len(graph_nx.nodes))])
+                           for feat in node_features], dim=1)
+
+            data = Data(x=x, edge_index=edge_index, edge_attr=edge_attr)
+            return data
+
+        except Exception as e:
+            print(f"Failed with exception {e}")
+            # Return empty graph
+            return Data(x=torch.empty((0, 22)),
+                        edge_index=torch.empty((2, 0), dtype=torch.long),
+                        edge_attr=torch.empty((0), dtype=torch.long))
+
     def smiles_to_graph_one(self, smiles):
         if smiles in self.cached_graphs:
             return self.cached_graphs[smiles]
         graph_nx = smiles_to_nx(smiles)
-        return self.nx_mol_to_dgl(graph_nx)
+
+        if self.framework == 'dgl':
+            return self.nx_mol_to_dgl(graph_nx)
+        return self.nx_mol_to_pyg(graph_nx)
 
     def smiles_to_graph_list(self, smiles_list):
         graphs = []
         for i, sm in enumerate(smiles_list):
             graph = self.smiles_to_graph_one(sm)
             graphs.append(graph)
-        batch = dgl.batch(graphs)
-        return batch
+        return self.collate_fn(graphs)
 
-    def collate_fn(self, samples):
-        # TODO unDGL it
-        batched_graph = dgl.batch([sample for sample in samples])
-        return batched_graph
+    def collate_fn(self, graphs):
+        if self.framework == 'dgl':
+            import dgl
+            batch = dgl.batch(graphs)
+        else:
+            from torch_geometric.data import Batch
+            batch = Batch.from_data_list(graphs)
+        return batch

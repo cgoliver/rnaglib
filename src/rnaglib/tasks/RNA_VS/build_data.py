@@ -4,68 +4,9 @@ import networkx as nx
 import pickle
 from tqdm import tqdm
 
-
 from rnaglib.tasks.RNA_VS.ligands import MolGraphEncoder
 from rnaglib.utils import graph_io
 from rnaglib.data_loading import rna_from_pdbid
-
-
-
-def build_data(root, recompute=False):
-    script_dir = os.path.dirname(__file__)
-    json_dump = os.path.join(script_dir, "data/dataset_as_json.json")
-    if not os.path.exists(json_dump):
-        json_dump_compressed = os.path.join(script_dir, "data/dataset_compressed.json")
-        expand_compressed_data(in_path=json_dump_compressed, out_path=json_dump)
-    whole_data = json.load(open(json_dump, 'r'))
-    train_groups, test_groups = whole_data["trainval"], whole_data["test"]
-    all_groups = {**train_groups, **test_groups}
-
-    # Check data was properly downloaded by getting one graph
-    if rna_from_pdbid("1k73", redundancy='all') is None:
-        raise FileNotFoundError("We could not fetch graphs, please be sure that you have downloaded all rna graphs. "
-                                "If you didn't, you can run: rnaglib_download -r all")
-
-    pocket_dir = os.path.join(root, 'graphs')
-    os.makedirs(pocket_dir, exist_ok=True)
-
-    print("Processing graphs...")
-    failed_set = set()
-    for group in tqdm(all_groups):
-        pocket_path = os.path.join(pocket_dir, f"{group}.json")
-        if os.path.exists(pocket_path) and not recompute:
-            continue
-        pdb_id = group[:4].lower()
-        rglib_graph = rna_from_pdbid(pdb_id, redundancy='all', verbose=False)['rna']
-        if rglib_graph is None:
-            failed_set.add(group)
-            print(rglib_graph, 'not found')
-            continue
-        nodes = all_groups[group]['nodes']
-        new_pocket_graph = rglib_graph.subgraph(nodes)
-        new_pocket_graph.graph['pocket_name'] = group
-        nx.set_node_attributes(new_pocket_graph, values=nodes)
-        graph_io.dump_json(pocket_path, new_pocket_graph)
-    print(failed_set)
-    print(f"{len(failed_set)}/{len(all_groups)} failed systems")
-
-    # Go through all the ligands in the dataset, and dump a precomputed DGL representation
-    ligand_file = os.path.join(root, 'ligands.p')
-    if not os.path.exists(ligand_file) or recompute:
-        print("Processing ligands")
-        all_ligands = set()
-        for group_rep, group in all_groups.items():
-            actives = set(group['actives'])
-            pdb_decoys = set(group['pdb_decoys'])
-            chembl_decoys = set(group['chembl_decoys'])
-            all_ligands = all_ligands.union(actives).union(pdb_decoys).union(chembl_decoys)
-
-        mol_encoder = MolGraphEncoder(cache_path=None)
-        all_mol_graphs = {}
-        for sm in tqdm(list(all_ligands)):
-            graph = mol_encoder.smiles_to_graph_one(sm)
-            all_mol_graphs[sm] = graph
-        pickle.dump(all_mol_graphs, open(ligand_file, 'wb'))
 
 
 def compress_migos_data(in_path="data/dataset_as_json.json", out_path="data/dataset_compressed.json"):
@@ -127,8 +68,74 @@ def expand_compressed_data(in_path="data/dataset_compressed.json", out_path="dat
     json.dump(expanded_data, open(out_path, 'w'))
 
 
+def load_groups():
+    script_dir = os.path.dirname(__file__)
+    json_dump = os.path.join(script_dir, "data/dataset_as_json.json")
+    if not os.path.exists(json_dump):
+        json_dump_compressed = os.path.join(script_dir, "data/dataset_compressed.json")
+        expand_compressed_data(in_path=json_dump_compressed, out_path=json_dump)
+    whole_data = json.load(open(json_dump, 'r'))
+    train_groups, test_groups = whole_data["trainval"], whole_data["test"]
+    all_groups = {**train_groups, **test_groups}
+    return all_groups
+
+
+def dump_rna_jsons(root, recompute=False):
+    all_groups = load_groups()
+    # Check data was properly downloaded by getting one graph
+    if rna_from_pdbid("1k73", redundancy='all') is None:
+        raise FileNotFoundError("We could not fetch graphs, please be sure that you have downloaded all rna graphs. "
+                                "If you didn't, you can run: rnaglib_download -r all")
+
+    pocket_dir = os.path.join(root, 'graphs')
+    os.makedirs(pocket_dir, exist_ok=True)
+
+    print("Processing graphs...")
+    failed_set = set()
+    for group in tqdm(all_groups):
+        pocket_path = os.path.join(pocket_dir, f"{group}.json")
+        if os.path.exists(pocket_path) and not recompute:
+            continue
+        pdb_id = group[:4].lower()
+        rglib_graph = rna_from_pdbid(pdb_id, redundancy='all', verbose=False)['rna']
+        if rglib_graph is None:
+            failed_set.add(group)
+            print(rglib_graph, 'not found')
+            continue
+        nodes = all_groups[group]['nodes']
+        new_pocket_graph = rglib_graph.subgraph(nodes)
+        new_pocket_graph.graph['pocket_name'] = group
+        nx.set_node_attributes(new_pocket_graph, values=nodes)
+        graph_io.dump_json(pocket_path, new_pocket_graph)
+    print(failed_set)
+    print(f"{len(failed_set)}/{len(all_groups)} failed systems")
+
+
+def precompute_ligand_graphs(root, recompute=False, framework="dgl"):
+    all_groups = load_groups()
+    # Go through all the ligands in the dataset, and dump a precomputed DGL representation
+    ligand_file = os.path.join(root, f'ligands_{framework}.p')
+    if not os.path.exists(ligand_file) or recompute:
+        print("Processing ligands")
+        all_ligands = set()
+        for group_rep, group in all_groups.items():
+            actives = set(group['actives'])
+            pdb_decoys = set(group['pdb_decoys'])
+            chembl_decoys = set(group['chembl_decoys'])
+            all_ligands = all_ligands.union(actives).union(pdb_decoys).union(chembl_decoys)
+
+        mol_encoder = MolGraphEncoder(framework=framework, cache_path=None)
+        all_mol_graphs = {}
+        for sm in tqdm(list(all_ligands)):
+            graph = mol_encoder.smiles_to_graph_one(sm)
+            all_mol_graphs[sm] = graph
+        pickle.dump(all_mol_graphs, open(ligand_file, 'wb'))
+
+
 if __name__ == "__main__":
     default_dir = "data"
     # compress_migos_data()
     # expand_compressed_data()
-    build_data(root=default_dir, recompute=False)
+    dump_rna_jsons(root=default_dir, recompute=False)
+    precompute_ligand_graphs(root=default_dir, recompute=False, framework="dgl")
+    precompute_ligand_graphs(root=default_dir, recompute=False, framework="pyg")
