@@ -29,8 +29,10 @@ class VirtualScreening:
         train_groups_keys = set(np.random.choice(list(self.trainval_groups.keys()), size=train_val_cut, replace=False))
         self.train_groups = {k: v for k, v in self.trainval_groups.items() if k in train_groups_keys}
         self.val_groups = {k: v for k, v in self.trainval_groups.items() if k not in train_groups_keys}
-        # TODO: add support for pyg ligand graphs
-        self.ligand_encoder = MolGraphEncoder(cache_path=os.path.join(self.root, 'ligands.p'))
+
+        self.ligand_encoder = MolGraphEncoder(ligand_framework=ligand_framework,
+                                              cache_path=os.path.join(self.root, 'ligands.p'))
+                                              # cache_path=None)
 
     def build_dataset(self):
         # check if dataset exists and load
