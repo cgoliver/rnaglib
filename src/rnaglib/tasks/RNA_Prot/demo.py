@@ -25,10 +25,11 @@ model = PygModel(
     ta.metadata["description"]["num_classes"],
     graph_level=False,
 )
-model.configure_training(learning_rate=0.001)
+model.configure_training(learning_rate=0.01)
 model.train_model(ta, epochs=10)
 
 # Final evaluation
 test_metrics = model.evaluate(ta, split="test")
+# Print metrics
 for k, v in test_metrics.items():
     print(f"Test {k}: {v:.4f}")

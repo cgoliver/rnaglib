@@ -92,7 +92,7 @@ class GraphRepresentation(Representation):
             else:
                 y = torch.stack(list_y)
         if "rna_targets" in features_dict:
-            y = torch.tensor(features_dict["rna_targets"])
+            y = features_dict["rna_targets"].clone().detach()
 
         edge_index = [[node_map[u], node_map[v]] for u, v in sorted(graph.edges())]
         edge_index = torch.tensor(edge_index, dtype=torch.long).T

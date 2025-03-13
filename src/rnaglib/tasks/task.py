@@ -6,7 +6,9 @@ from collections.abc import Sequence
 from functools import cached_property
 import hashlib
 import json
+
 import numpy as np
+import pandas as pd
 import os
 from typing import Union, Literal
 from pathlib import Path
@@ -21,14 +23,8 @@ from rnaglib.utils import DummyGraphModel, DummyResidueModel, dump_json, tonumpy
 from rnaglib.dataset_transforms import RandomSplitter, Splitter, RedundancyRemover
 from rnaglib.dataset_transforms import StructureDistanceComputer, CDHitComputer
 
-ZENOD_RECORD = "174972"
-
-TASK_URLs = {
-    "rna_site": f"https://sandbox.zenodo.org/records/{ZENOD_RECORD}/files/rna_site.tar.gz",
-    "rna_site_bench": f"https://sandbox.zenodo.org/records/{ZENOD_RECORD}/files/rna_site_bench.tar.gz",
-    "rna_go": f"https://sandbox.zenodo.org/records/{ZENOD_RECORD}/files/rna_go.tar.gz",
-    "rna_cm": f"https://sandbox.zenodo.org/records/{ZENOD_RECORD}/files/rna_cm.tar.gz"
-}
+ZENOD_RECORD = "178718"
+ZENODO_URL = f"https://sandbox.zenodo.org/records/{ZENOD_RECORD}/files/"
 
 
 class Task:
@@ -72,7 +68,9 @@ class Task:
             try:
                 self.from_zenodo()
             except Exception as e:
-                print(f"Error downloading dataset from Zenodo: {e}. Check if the dataset is available at {TASK_URLs[self.name]}, otherwise use `precomputed=False` to build locally.")
+                print(f"Error downloading dataset from \
+                Zenodo: {e}. Check if the dataset is \
+                available at zenodo, otherwise use `precomputed=False` to build locally.")
 
         elif not os.path.exists(Path(self.root) / "done.txt") or recompute:
             os.makedirs(self.dataset_path, exist_ok=True)
@@ -108,7 +106,8 @@ class Task:
         """Downloads the task dataset from Zenodo and loads it."""
 
         print(">>> Downloading task dataset from Zenodo...")
-        download(TASK_URLs[self.name])
+        url = ZENODO_URL + f"{self.name}.tar.gz"
+        download(url)
         with tarfile.open(f"{self.name}.tar.gz") as tar_file:
             tar_file.extractall()
             shutil.move(f"{self.name}", self.root)
@@ -125,7 +124,7 @@ class Task:
 
     def init_metadata(self) -> dict:
         """Optionally adds some key/value pairs to self.metadata."""
-        return {}
+        return {"description": {}}
 
     def get_task_vars(self) -> FeaturesComputer:
         """Define a FeaturesComputer object to set which input and output variables will be used in the task."""
@@ -203,6 +202,14 @@ class Task:
             print(">>> Done")
         return self.train_dataset, self.val_dataset, self.test_dataset
 
+    def add_representation(self, representation: Transform):
+        self.dataset.add_representation(representation)
+        pass
+
+    def remove_representation(self, representation_name: str):
+        self.dataset.remove_representation(representation_name)
+        pass
+
     def add_feature(
         self,
         feature: Union[str, Transform],
@@ -262,7 +269,33 @@ class Task:
         if self.in_memory:
             with open(Path(self.root) / "task_id.txt", "w") as tid:
                 tid.write(self.task_id)
+        self.to_csv(Path(self.root) / "dataset.csv")
         print(">>> Done")
+
+    def to_csv(self, path: str):
+        """ Write a single CSV with all task data."""
+        rows = []
+        graph_level = self.metadata['description']['graph_level']
+        for i, rna in enumerate(self.dataset):
+            if i in self.train_ind:
+                split = "train"
+            elif i in self.val_ind:
+                split = "val"
+            elif i in self.test_ind:
+                split = "test"
+            else:
+                raise IndexError
+
+            if graph_level:
+                target = rna['rna'].graph[self.target_var]
+            for node in rna['rna']:
+                if not graph_level:
+                    target = rna['rna'].nodes[node][self.target_var]
+                rows.append({"residue": node, "split": split, "target":
+                             target})
+                pass
+
+        pd.DataFrame(rows).to_csv(path)
 
     def load(self):
         """Load dataset and splits from disk."""
@@ -302,7 +335,7 @@ class Task:
         """
         self.metadata["version"] = self.dataset.version
 
-        if not recompute and "description" in self.metadata:
+        if not recompute:
             info = self.metadata["description"]
         else:
             print(">>> Computing description of task...")
@@ -483,10 +516,10 @@ class ClassificationTask(Task):
                 preds,
                 average="binary" if self.num_classes == 2 else "macro",
             ),
-            "balanced_accuracy": balanced_accuracy_score(labels, preds),
         }
         if not self.multi_label:
             one_metric["mcc"] = matthews_corrcoef(labels, preds)
+            one_metric["balanced_accuracy"] = balanced_accuracy_score(labels, preds)
         if self.multi_label:
             one_metric["jaccard"] = jaccard_score(labels, preds, average="macro")
         try:
@@ -531,8 +564,10 @@ class ClassificationTask(Task):
 class ResidueClassificationTask(ClassificationTask):
     def __init__(self, **kwargs):
         super().__init__(graph_level=False, **kwargs)
+        self.metadata["description"]["graph_level"] = False
 
 
 class RNAClassificationTask(ClassificationTask):
     def __init__(self, **kwargs):
         super().__init__(graph_level=True, **kwargs)
+        self.metadata["description"]["graph_level"] = True

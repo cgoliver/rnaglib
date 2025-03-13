@@ -2,7 +2,7 @@ import logging
 from collections import Counter
 from dataclasses import dataclass
 
-from pulp import PULP_CBC_CMD, LpMinimize, LpProblem, LpStatus, LpVariable, lpSum, value
+from pulp import COIN_CMD,PULP_CBC_CMD, LpMinimize, LpProblem, LpStatus, LpVariable, lpSum, value
 
 logger = logging.getLogger(__name__)
 
@@ -179,6 +179,8 @@ def assign_clusters(
 
     # This allows the solver to accept non perfect solutions
     solver = PULP_CBC_CMD(msg=verbose, timeLimit=300, gapRel=0.05)
+    # solver = PULP_CBC_CMD(msg=verbose, timeLimit=300, gapRel=0.05, path="/opt/homebrew/bin/cbc") 
+    # solver = COIN_CMD(msg=verbose, timeLimit=300, gapRel=0.05, path="/opt/homebrew/bin/cbc") 
 
     status = prob.solve(solver)
     if status != 1:
