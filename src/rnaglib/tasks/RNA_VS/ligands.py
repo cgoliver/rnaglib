@@ -135,7 +135,9 @@ class MolGraphEncoder:
         except Exception as e:
             print(f"Failed with exception {e}")
             # Return empty graph
-            return Data()
+            return Data(x=torch.empty((0, 22)),
+                        edge_index=torch.empty((2, 0), dtype=torch.long),
+                        edge_attr=torch.empty((0), dtype=torch.long))
 
     def smiles_to_graph_one(self, smiles):
         if smiles in self.cached_graphs:
@@ -159,5 +161,5 @@ class MolGraphEncoder:
             batch = dgl.batch(graphs)
         else:
             from torch_geometric.data import Batch
-            batch = Batch(graphs)
+            batch = Batch.from_data_list(graphs)
         return batch
