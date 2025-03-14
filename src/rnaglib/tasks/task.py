@@ -38,17 +38,25 @@ class Task:
     :param recompute: whether to recompute the task info from scratch or use what is stored in root.
     :param splitter: rnaglib.dataset_transforms.Splitter object that handles splitting of data into train/val/test indices.
     If None uses task's default_splitter() attribute.
+    :param debug: if True, loads a smaller version of the data for fast
+    testing.
+    :param save: if True, saves the task data to root directory.
+    :param in_memory: if True, data is loaded from memory instead of on disk.
+    :param size_thresholds: 2 element list with lower and upper bound on RNA
+    size.
+    :param precomputed: if True, tries to download processed task from Zenodo.
+    :param additional_metadata: dictionary with metadata to include in task.
     """
 
     def __init__(
         self,
-        root: str | os.PathLike,
+        root: Union[str, os.PathLike],
         recompute: bool = False,
-        splitter: Splitter = None,
+        splitter: Optional[Splitter] = None,
         debug: bool = False,
         save: bool = True,
         in_memory: bool = False,
-        size_thresholds: Sequence = None,
+        size_thresholds: Optional[Sequence] = None,
         precomputed=True,
         additional_metadata=None
     ):
@@ -121,7 +129,7 @@ class Task:
         raise NotImplementedError
 
     def init_metadata(self, additional_metadata: Optional[dict]= None) -> None:
-        """Optionally adds some key/value pairs to self.metadata."""
+        """Initialize dictionary to hold key/value pairs to self.metadata."""
         self.metadata = {}
         if not additional_metadata is None:
             self.metadata.update(additional_metadata)
@@ -158,8 +166,11 @@ class Task:
 
         self.dataset.save_distances()
 
-    def split(self, dataset):
-        """Calls the splitter and returns train, val, test splits."""
+    def split(self, dataset: RNADataset):
+        """Calls the splitter and returns train, val, test splits.
+
+        :param dataset: 
+        """
         splits = self.splitter(dataset)
         self.train_ind, self.val_ind, self.test_ind = splits
         return splits

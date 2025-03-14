@@ -1,11 +1,11 @@
-``rnaglib.splitters``
+``rnaglib.dataset_transforms``
 =========================
 
 Splitter objects compute a train, validation, and test split for a given dataset.
 
 
 
-.. automodule:: rnaglib.splitters
+.. automodule:: rnaglib.dataset_transforms
 
 
 Abstract classes
