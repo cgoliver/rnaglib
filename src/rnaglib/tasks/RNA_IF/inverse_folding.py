@@ -34,8 +34,12 @@ class InverseFolding(ResidueClassificationTask):
 
     def __init__(self, root,
                  size_thresholds=(15, 300),
+                 additional_metadata=None,
                  **kwargs):
-        meta = {"multi_label": False, "task_name": "rna_if"}
+        if additional_metadata is None:
+            meta = {"multi_label": False, "task_name": "rna_if"}
+        else:
+            meta = additional_metadata
         super().__init__(root=root, additional_metadata=meta, size_thresholds=size_thresholds, **kwargs)
 
     @property
