@@ -86,7 +86,6 @@ class Task:
             self.metadata["data_version"] = self.dataset.version
         else:
             self.load()
-            self.dataset.features_computer = self.get_task_vars()
 
         # Set splitter after dataset is available
         # Split dataset if it wasn't loaded from file
@@ -221,7 +220,7 @@ class Task:
         self.dataset.add_feature(feature=feature, feature_level=feature_level, is_input=is_input)
         pass
 
-    def get_split_loaders(self, recompute=True, **dataloader_kwargs):
+    def get_split_loaders(self, recompute=False, **dataloader_kwargs):
         # If dataloaders were not already precomputed or if we want to recompute them to account
         # for changes in the global dataset
         if recompute or "train_dataloader" not in self.__dict__:
