@@ -12,10 +12,23 @@
 #
 import os
 import sys
+from unittest.mock import MagicMock
 
 import rnaglib
 
-print(sys.path)
+class Mock(MagicMock):
+    @classmethod
+    def __getattr__(cls, name):
+        return MagicMock()
+
+MOCK_MODULES = [
+    'torch',
+    'torch_geometric',
+    'dgl',
+    'networkx',
+    'seaborn',
+    'pandas'
+]
 
 
 # -- Project information -----------------------------------------------------

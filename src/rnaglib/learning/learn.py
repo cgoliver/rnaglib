@@ -8,7 +8,6 @@ from sklearn.metrics import roc_auc_score
 
 import torch
 import torch.nn.functional as F
-import dgl
 
 if __name__ == "__main__":
     script_dir = os.path.dirname(os.path.realpath(__file__))
