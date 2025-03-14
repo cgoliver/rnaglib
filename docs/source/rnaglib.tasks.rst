@@ -28,8 +28,9 @@ These tasks take as input an RNA and predict a property of the whole molecule.
 .. autosummary::
     :toctree: generated/
 
-    RNAFamily
-    BindingSiteDetection
+    RNAGo
+    BindingSite
+    BenchmarkBindingSite
 
 
 Residue-level Classification
@@ -42,7 +43,7 @@ These tasks take as input an RNA and predict a property of each residue of the m
     :toctree: generated/
 
     ChemicalModification
-    ProteinBindingSiteDetection
+    ProteinBindingSite
     InverseFolding
     gRNAde
 

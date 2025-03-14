@@ -18,14 +18,4 @@ Subclass these to create your own tasks.
 
     Splitter 
     ClusterSplitter
-    
-
-Splitters
-------------
-
-.. autosummary::
-    :toctree: generated/
-
     RandomSplitter
-    RNAalignSplitter
-    CDHitSplitter
