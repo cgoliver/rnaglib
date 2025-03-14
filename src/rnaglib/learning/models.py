@@ -2,8 +2,6 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from dgl.nn.pytorch.conv import RelGraphConv
-import dgl.function as fn
 
 
 class Embedder(nn.Module):

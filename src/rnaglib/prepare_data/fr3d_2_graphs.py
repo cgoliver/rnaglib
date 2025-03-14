@@ -18,7 +18,11 @@ import subprocess
 from subprocess import check_output
 from loguru import logger
 
-from fr3d.classifiers.NA_pairwise_interactions import generatePairwiseAnnotation_import
+try:
+    from fr3d.classifiers.NA_pairwise_interactions import generatePairwiseAnnotation_import
+except ImportError:
+    print("Missing fr3d installation, pip install\
+          git+https://github.com/cgoliver/fr3d-python.git")
 
 from rnaglib.utils import dump_json
 from rnaglib.config import GRAPH_KEYS
