@@ -10,7 +10,7 @@ import json
 import numpy as np
 import pandas as pd
 import os
-from typing import Union, Literal
+from typing import Union, Literal, Optional
 from pathlib import Path
 from sklearn.metrics import accuracy_score, f1_score, matthews_corrcoef, roc_auc_score, jaccard_score, balanced_accuracy_score
 import torch
@@ -23,7 +23,7 @@ from rnaglib.utils import DummyGraphModel, DummyResidueModel, dump_json, tonumpy
 from rnaglib.dataset_transforms import RandomSplitter, Splitter, RedundancyRemover
 from rnaglib.dataset_transforms import StructureDistanceComputer, CDHitComputer
 
-ZENOD_RECORD = "178718"
+ZENOD_RECORD = "182000"
 ZENODO_URL = f"https://sandbox.zenodo.org/records/{ZENOD_RECORD}/files/"
 
 
@@ -38,19 +38,27 @@ class Task:
     :param recompute: whether to recompute the task info from scratch or use what is stored in root.
     :param splitter: rnaglib.dataset_transforms.Splitter object that handles splitting of data into train/val/test indices.
     If None uses task's default_splitter() attribute.
+    :param debug: if True, loads a smaller version of the data for fast
+    testing.
+    :param save: if True, saves the task data to root directory.
+    :param in_memory: if True, data is loaded from memory instead of on disk.
+    :param size_thresholds: 2 element list with lower and upper bound on RNA
+    size.
+    :param precomputed: if True, tries to download processed task from Zenodo.
+    :param additional_metadata: dictionary with metadata to include in task.
     """
 
     def __init__(
         self,
-        root: str | os.PathLike,
+        root: Union[str, os.PathLike],
         recompute: bool = False,
-        splitter: Splitter = None,
+        splitter: Optional[Splitter] = None,
         debug: bool = False,
         save: bool = True,
         in_memory: bool = False,
-        size_thresholds: Sequence = None,
-        multi_label=False,
+        size_thresholds: Optional[Sequence] = None,
         precomputed=True,
+        additional_metadata=None
     ):
         self.root = root
         self.dataset_path = os.path.join(self.root, "dataset")
@@ -60,8 +68,8 @@ class Task:
         self.save = save
         self.in_memory = in_memory
         self.size_thresholds = size_thresholds
-        self.multi_label = multi_label
-        self.metadata = self.init_metadata()
+
+        self.init_metadata(additional_metadata=additional_metadata)
 
         # Load or create dataset
         if self.precomputed and not os.path.exists(Path(self.root) / "done.txt"):
@@ -79,15 +87,13 @@ class Task:
             if self.size_thresholds is not None:
                 self.size_filter = SizeFilter(size_thresholds[0], size_thresholds[1])
             self.dataset = self.process()
-            self.post_process()
-            self.dataset.features_computer = self.get_task_vars()
-            # compute metadata
-            self.describe()
-        else:
-            self.load()
             self.dataset.features_computer = self.get_task_vars()
 
-        
+            self.metadata.update(self.describe())
+            self.post_process()
+            self.metadata["data_version"] = self.dataset.version
+        else:
+            self.load()
 
         # Set splitter after dataset is available
         # Split dataset if it wasn't loaded from file
@@ -122,9 +128,11 @@ class Task:
         """
         raise NotImplementedError
 
-    def init_metadata(self) -> dict:
-        """Optionally adds some key/value pairs to self.metadata."""
-        return {"description": {}}
+    def init_metadata(self, additional_metadata: Optional[dict]= None) -> None:
+        """Initialize dictionary to hold key/value pairs to self.metadata."""
+        self.metadata = {}
+        if not additional_metadata is None:
+            self.metadata.update(additional_metadata)
 
     def get_task_vars(self) -> FeaturesComputer:
         """Define a FeaturesComputer object to set which input and output variables will be used in the task."""
@@ -158,8 +166,11 @@ class Task:
 
         self.dataset.save_distances()
 
-    def split(self, dataset):
-        """Calls the splitter and returns train, val, test splits."""
+    def split(self, dataset: RNADataset):
+        """Calls the splitter and returns train, val, test splits.
+
+        :param dataset: 
+        """
         splits = self.splitter(dataset)
         self.train_ind, self.val_ind, self.test_ind = splits
         return splits
@@ -220,7 +231,7 @@ class Task:
         self.dataset.add_feature(feature=feature, feature_level=feature_level, is_input=is_input)
         pass
 
-    def get_split_loaders(self, recompute=True, **dataloader_kwargs):
+    def get_split_loaders(self, recompute=False, **dataloader_kwargs):
         # If dataloaders were not already precomputed or if we want to recompute them to account
         # for changes in the global dataset
         if recompute or "train_dataloader" not in self.__dict__:
@@ -269,13 +280,12 @@ class Task:
         if self.in_memory:
             with open(Path(self.root) / "task_id.txt", "w") as tid:
                 tid.write(self.task_id)
-        self.to_csv(Path(self.root) / "dataset.csv")
         print(">>> Done")
 
     def to_csv(self, path: str):
         """ Write a single CSV with all task data."""
         rows = []
-        graph_level = self.metadata['description']['graph_level']
+        graph_level = self.metadata['graph_level']
         for i, rna in enumerate(self.dataset):
             if i in self.train_ind:
                 split = "train"
@@ -324,7 +334,7 @@ class Task:
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}()"
 
-    def describe(self, recompute=False):
+    def describe(self):
         """Get description of task dataset.
 
         Including dimensions needed for model initialization
@@ -333,18 +343,17 @@ class Task:
         Returns:
             dict: Contains dataset information and model dimensions
         """
-        self.metadata["version"] = self.dataset.version
 
-        if not recompute:
-            info = self.metadata["description"]
-        else:
+        try:
+            self.metadata["dataset_size"]
+        except KeyError:
             print(">>> Computing description of task...")
             # Get dimensions from first graph
             first_item = self.dataset[0]
-            compute_num_edge_attributes = "graph" in first_item
 
             first_node_map = {n: i for i, n in enumerate(sorted(first_item["rna"].nodes()))}
             first_features_dict = self.dataset.features_computer(first_item)
+            print(first_features_dict)
             first_features_array = first_features_dict["nt_features"][next(iter(first_node_map.keys()))]
             num_node_features = first_features_array.shape[0]
 
@@ -353,11 +362,10 @@ class Task:
             classes = set()
             unique_edge_attrs = set()  # only used with graphs
 
+
+            multi_label = self.metadata['multi_label']
             # Collect statistics from dataset
             for item in tqdm.tqdm(self.dataset):
-                if compute_num_edge_attributes:
-                    graph = item["graph"]
-                    unique_edge_attrs.update(graph.edge_attr.tolist())
                 node_map = {n: i for i, n in enumerate(sorted(item["rna"].nodes()))}
                 features_dict = self.dataset.features_computer(item)
                 if "nt_targets" in features_dict:
@@ -372,7 +380,7 @@ class Task:
                     y = features_dict["rna_targets"].clone().detach()
 
                 # In the multi_label case, a full binary matrix is better supported by both pytorch and sklearn
-                if not self.multi_label:
+                if not multi_label:
                     graph_classes = y.unique().tolist()
                 else:
                     graph_classes = torch.where(y > 0)[-1].unique().tolist()
@@ -383,7 +391,7 @@ class Task:
                     cls_int = int(cls)
                     if cls_int not in class_counts:
                         class_counts[cls_int] = 0
-                    if not self.multi_label:
+                    if not self.metadata['multi_label']:
                         class_counts[cls_int] += torch.sum(y == cls).item()
                     else:
                         class_counts[cls_int] += torch.sum(torch.where(y > 0)[-1] == cls).item()
@@ -394,12 +402,6 @@ class Task:
                 "dataset_size": len(self.dataset),
                 "class_distribution": class_counts,
             }
-            if compute_num_edge_attributes:
-                info["num_edge_attributes"] = len(unique_edge_attrs)
-            self.metadata["description"] = info
-            if self.save:
-                with open(Path(self.root) / "metadata.json", "w") as meta:
-                    json.dump(self.metadata, meta, indent=4)
 
         # Print description
         print("Dataset Description:")
@@ -410,7 +412,6 @@ class Task:
                 print("Class distribution:")
                 for cls in sorted(v.keys()):
                     print(f"\tClass {cls}: {v[cls]} {'nodes'}")
-        print()
         return info
 
     def create_dataset_from_list(self, rnas):
@@ -438,16 +439,14 @@ class Task:
 
 
 class ClassificationTask(Task):
-    def __init__(self, graph_level=False, num_classes=None, **kwargs):
+    def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.num_classes = self.metadata["description"]["num_classes"] if num_classes is None else num_classes
-        self.graph_level = graph_level
 
     @property
     def dummy_model(self) -> torch.nn:
-        if self.graph_level:
-            return DummyGraphModel(num_classes=self.num_classes)
-        return DummyResidueModel(num_classes=self.num_classes)
+        if self.metadata['graph_level']:
+            return DummyGraphModel(num_classes=self.metadata['num_classes'])
+        return DummyResidueModel(num_classes=self.metadata['num_classes'])
 
     def dummy_inference(self):
         all_probs = []
@@ -472,7 +471,7 @@ class ClassificationTask(Task):
                 labels = tonumpy(labels)
 
                 # split predictions per RNA if residue level
-                if not self.graph_level:
+                if not self.metadata['graph_level']:
                     cumulative_sizes = tuple(tonumpy(graph.ptr))
                     probs = [
                         probs[start:end]
@@ -502,7 +501,7 @@ class ClassificationTask(Task):
                 all_preds.extend(preds)
                 all_labels.extend(labels)
 
-        if self.graph_level:
+        if self.metadata['graph_level']:
             all_probs = np.stack(all_probs)
             all_preds = np.stack(all_preds)
             all_labels = np.stack(all_labels)
@@ -517,16 +516,16 @@ class ClassificationTask(Task):
                 average="binary" if self.num_classes == 2 else "macro",
             ),
         }
-        if not self.multi_label:
+        if not self.metadata['multi_label']:
             one_metric["mcc"] = matthews_corrcoef(labels, preds)
             one_metric["balanced_accuracy"] = balanced_accuracy_score(labels, preds)
-        if self.multi_label:
+        if self.metadata['multi_label']:
             one_metric["jaccard"] = jaccard_score(labels, preds, average="macro")
         try:
             one_metric["auc"] = roc_auc_score(
                 labels,
                 probs,
-                average=None if self.num_classes == 2 else "macro",
+                average=None if self.metadata['num_classes'] == 2 else "macro",
                 multi_class="ovo",
             )
         except:
@@ -534,7 +533,7 @@ class ClassificationTask(Task):
         return one_metric
 
     def compute_metrics(self, all_preds, all_probs, all_labels):
-        if self.graph_level:
+        if self.metadata['graph_level']:
             return self.compute_one_metric(all_preds, all_probs, all_labels)
         # Here we have a list of preds [(n1,), (n2,)...] for each residue in each RNA
         # Either compute the overall flattened results, or aggregate by system
@@ -562,12 +561,12 @@ class ClassificationTask(Task):
 
 
 class ResidueClassificationTask(ClassificationTask):
-    def __init__(self, **kwargs):
-        super().__init__(graph_level=False, **kwargs)
-        self.metadata["description"]["graph_level"] = False
+    def __init__(self, additional_metadata=None, **kwargs):
+        meta = {'graph_level': False, **additional_metadata}
+        super().__init__(additional_metadata=meta, **kwargs)
 
 
 class RNAClassificationTask(ClassificationTask):
-    def __init__(self, **kwargs):
-        super().__init__(graph_level=True, **kwargs)
-        self.metadata["description"]["graph_level"] = True
+    def __init__(self, additional_metadata=None, **kwargs):
+        meta = {'graph_level': True, **additional_metadata}
+        super().__init__( additional_metadata=meta, **kwargs)

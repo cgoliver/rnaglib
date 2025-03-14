@@ -32,8 +32,15 @@ class InverseFolding(ResidueClassificationTask):
     nucs = ["A", "C", "G", "U"]
     name = "rna_if"
 
-    def __init__(self, root, size_thresholds=(15, 300), **kwargs):
-        super().__init__(root=root, size_thresholds=size_thresholds, **kwargs)
+    def __init__(self, root,
+                 size_thresholds=(15, 300),
+                 additional_metadata=None,
+                 **kwargs):
+        if additional_metadata is None:
+            meta = {"multi_label": False, "task_name": "rna_if"}
+        else:
+            meta = additional_metadata
+        super().__init__(root=root, additional_metadata=meta, size_thresholds=size_thresholds, **kwargs)
 
     @property
     def default_splitter(self):
@@ -41,7 +48,6 @@ class InverseFolding(ResidueClassificationTask):
 
     def process(self) -> RNADataset:
         # Define your transforms
-        self.metadata["description"]["graph_level"] = False
         annotate_rna = DummyAnnotator()
         connected_components_partition = ConnectedComponentPartition()
 
@@ -208,7 +214,8 @@ class gRNAde(InverseFolding):
                     self.splits["pdb_to_chain_all"][pdb_id].add(chain)
                     self.splits["pdb_to_chain_all_single"][pdb_id].update(chain_components)
 
-        super().__init__(root=root, size_thresholds=size_thresholds, **kwargs)
+        meta = {"multi_label": False, "task_name": "rna_if_bench"}
+        super().__init__(root=root, additional_metadata=meta, size_thresholds=size_thresholds, **kwargs)
 
     @property
     def default_splitter(self):
