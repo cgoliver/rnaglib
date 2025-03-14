@@ -27,7 +27,8 @@ MOCK_MODULES = [
     'dgl',
     'networkx',
     'seaborn',
-    'pandas'
+    'pandas',
+    'fr3d'
 ]
 
 
