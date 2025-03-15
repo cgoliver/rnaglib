@@ -326,6 +326,7 @@ class Task:
             self.val_ind = [int(ind) for ind in open(os.path.join(self.root, "val_idx.txt")).readlines()]
             self.test_ind = [int(ind) for ind in open(os.path.join(self.root, "test_idx.txt")).readlines()]
 
+        self.dataset.features_computer = self.get_task_vars()
         return self.dataset, self.metadata, (self.train_ind, self.val_ind, self.test_ind)
 
     def __eq__(self, other):
