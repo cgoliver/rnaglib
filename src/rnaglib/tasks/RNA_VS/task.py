@@ -11,10 +11,7 @@ from rnaglib.tasks.RNA_VS.ligands import MolGraphEncoder
 
 
 class VirtualScreening:
-    script_dir = os.path.dirname(__file__)
-    json_dump = os.path.join(script_dir, "data/dataset_as_json.json")
-    whole_data = json.load(open(json_dump, 'r'))
-    trainval_groups, test_groups = whole_data["trainval"], whole_data["test"]
+
     name = "rna_vs"
 
     def __init__(self, root, ligand_framework='dgl', recompute=False):
@@ -24,6 +21,10 @@ class VirtualScreening:
 
         # If not present, dump RNA and molecules as graphs
         self.build_dataset()
+        script_dir = os.path.dirname(__file__)
+        json_dump = os.path.join(script_dir, "data/dataset_as_json.json")
+        whole_data = json.load(open(json_dump, 'r'))
+        self.trainval_groups, self.test_groups = whole_data["trainval"], whole_data["test"]
 
         # Get data splits
         train_val_cut = int(0.9 * len(self.trainval_groups))
@@ -40,6 +41,8 @@ class VirtualScreening:
             dump_rna_jsons(root=self.root, recompute=self.recompute)
         if not os.path.exists(os.path.join(self.root, f'ligands_{self.ligand_framework}.p')) or self.recompute:
             precompute_ligand_graphs(root=self.root, recompute=self.recompute, framework=self.ligand_framework)
+
+
 
     def get_split_datasets(self, dataset_kwargs=None):
         train_dataset = VSRNATrainDataset(groups=self.train_groups,
