@@ -1,5 +1,7 @@
 # ML tasks FAQ
 
+![](https://github.com/cgoliver/rnaglib/images/tasksfig.png)
+
 `rnaglib`'s task module provides you with readymade dataset splits for your model evaluation in just a few lines of code.
 
 ## What is the fastest way to get training?
