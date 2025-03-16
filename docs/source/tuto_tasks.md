@@ -1,6 +1,6 @@
 # ML tasks FAQ
 
-![](https://github.com/cgoliver/rnaglib/images/tasksfig.png)
+![](https://github.com/cgoliver/rnaglib/blob/2f00342a70f5b7476492cff0779cfae9376b7e99/images/tasksfig.png)
 
 `rnaglib`'s task module provides you with readymade dataset splits for your model evaluation in just a few lines of code.
 
