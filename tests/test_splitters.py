@@ -38,7 +38,8 @@ class SplitterTest(unittest.TestCase):
     def test_USalignSplitter(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             distance_computer = StructureDistanceComputer(name="USalign",structures_path=self.dataset.structures_path)
-            splitter = ClusterSplitter(similarity_threshold=0.7, distance_name="USalign")
+            splitter = ClusterSplitter(similarity_threshold=0.7,
+                                       distance_name="USalign", debug=True)
             dataset = self.dataset
             dataset.features_computer = FeaturesComputer(nt_targets="is_modified")
             dataset = distance_computer(dataset)
@@ -49,7 +50,8 @@ class SplitterTest(unittest.TestCase):
     def test_CDHitSplitter(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             distance_computer = CDHitComputer(similarity_threshold=0.7)
-            splitter = ClusterSplitter(similarity_threshold=0.7, distance_name="cd_hit")
+            splitter = ClusterSplitter(similarity_threshold=0.7,
+                                       distance_name="cd_hit", debug=True)
             dataset = self.dataset
             dataset.features_computer = FeaturesComputer(nt_targets="is_modified")
             dataset = distance_computer(dataset)

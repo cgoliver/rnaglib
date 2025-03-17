@@ -78,8 +78,9 @@ class ClusterSplitter(Splitter):
         # print(f"overall_counts:{overall_counts}")
 
         # print(f"balanced:{self.balanced}")
+        weight = self.balanced if not self.debug else 0
         train, val, test, metrics = assign_clusters(
-            clusters, labelcounts, split_ratios=fracs, label_weight=int(self.balanced), verbose=self.verbose
+            clusters, labelcounts, split_ratios=fracs, label_weight=int(weight), verbose=self.verbose
         )
         print("Done.")
 

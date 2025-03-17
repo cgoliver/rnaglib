@@ -468,7 +468,7 @@ class ClassificationTask(Task):
                 labels = graph.y
 
                 # get preds and probas + cast to numpy
-                if self.num_classes == 2:
+                if self.metadata['num_classes'] == 2:
                     probs = torch.sigmoid(out.flatten())
                     preds = (probs > 0.5).float()
                 else:

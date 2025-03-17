@@ -49,7 +49,7 @@ class LigandIdentification(RNAClassificationTask):
     def process(self):
         # Initialize dataset with in_memory=False to avoid loading everything at once
         self.metadata["graph_level"] = True 
-        dataset = RNADataset(debug=self.debug, in_memory=False, redundancy="all", rna_id_subset=self.nodes_keep)
+        dataset = RNADataset(in_memory=False, redundancy=self.redundancy, rna_id_subset=self.nodes_keep)
 
         # Instantiate filters to apply
         resolution_filter = ResolutionFilter(resolution_threshold=4.0)
