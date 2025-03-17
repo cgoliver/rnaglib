@@ -2,6 +2,7 @@ import unittest
 import tempfile
 
 from rnaglib.transforms import GraphRepresentation
+from rnaglib.dataset_transforms import RandomSplitter
 from rnaglib.tasks import Task
 
 from rnaglib.tasks import RNAGo
@@ -14,7 +15,11 @@ from rnaglib.tasks import BindingSite, BenchmarkBindingSite
 
 
 class TaskTest(unittest.TestCase):
-    default_dataset_params = {"debug": True, "in_memory": False}
+    default_dataset_params = {"debug": True, 
+                              "in_memory": False, 
+                              "precomputed": False,
+                              "splitter": RandomSplitter()
+                              }
 
     def check_task(self, task: Task):
         task.dataset.add_representation(GraphRepresentation(framework="pyg"))
@@ -28,7 +33,7 @@ class TaskTest(unittest.TestCase):
             ta = RNAGo(root=tmp, **self.default_dataset_params)
             self.check_task(ta)
 
-    def test_ProteinBindingSiteDetectionTask(self):
+    def test_ProteinBindingSite(self):
         with tempfile.TemporaryDirectory() as tmp:
             ta = ProteinBindingSite(root=tmp, **self.default_dataset_params)
             self.check_task(ta)

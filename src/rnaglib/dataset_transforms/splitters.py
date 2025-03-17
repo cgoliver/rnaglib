@@ -98,13 +98,15 @@ SPLITTING_VARS["PDB_TO_CHAIN_TR60_TE18"] = id_to_chains
 
 
 class Splitter:
-    def __init__(self, split_train=0.7, split_valid=0.15, split_test=0.15):
+    def __init__(self, split_train=0.7, split_valid=0.15, split_test=0.15,
+                 debug=False):
         assert (
             sum([split_train, split_valid, split_test]) == 1
         ), "Splits don't sum to 1."
         self.split_train = split_train
         self.split_valid = split_valid
         self.split_test = split_test
+        self.debug = debug
         pass
 
     def __call__(self, dataset):

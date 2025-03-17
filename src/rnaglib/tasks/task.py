@@ -23,7 +23,7 @@ from rnaglib.utils import DummyGraphModel, DummyResidueModel, dump_json, tonumpy
 from rnaglib.dataset_transforms import RandomSplitter, Splitter, RedundancyRemover
 from rnaglib.dataset_transforms import StructureDistanceComputer, CDHitComputer
 
-ZENOD_RECORD = "183478"
+ZENOD_RECORD = "183830"
 ZENODO_URL = f"https://sandbox.zenodo.org/records/{ZENOD_RECORD}/files/"
 
 
@@ -68,6 +68,7 @@ class Task:
         self.save = save
         self.in_memory = in_memory
         self.size_thresholds = size_thresholds
+        self.redundancy = 'all' if not self.debug else 'nr'
 
         self.init_metadata(additional_metadata=additional_metadata)
 
@@ -280,7 +281,7 @@ class Task:
         if self.in_memory:
             with open(Path(self.root) / "task_id.txt", "w") as tid:
                 tid.write(self.task_id)
-        self.to_csv(self.root)
+        self.to_csv(Path(self.root) / "task.csv")
         print(">>> Done")
 
     def to_csv(self, path: Union[str, os.PathLike]):
@@ -313,7 +314,7 @@ class Task:
         # load splits
         print(">>> Loading precomputed dataset...")
         self.dataset = RNADataset(
-            dataset_path=self.dataset_path, in_memory=self.in_memory, debug=self.debug, recompute_mapping=self.recompute
+            dataset_path=self.dataset_path, in_memory=self.in_memory, recompute_mapping=self.recompute
         )
 
         with Path.open(Path(self.root) / "metadata.json") as meta:

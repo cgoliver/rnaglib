@@ -29,7 +29,7 @@ class ProteinBindingSite(ResidueClassificationTask):
 
     @property
     def default_splitter(self):
-        return ClusterSplitter(distance_name="USalign")
+        return ClusterSplitter(distance_name="USalign", debug=self.debug)
 
     def get_task_vars(self):
         return FeaturesComputer(
