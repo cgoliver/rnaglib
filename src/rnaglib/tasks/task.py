@@ -348,7 +348,12 @@ class Task:
         """
 
         try:
-            self.metadata["dataset_size"]
+            info = {
+                "num_node_features": self.metadata['num_node_features'],
+                "num_classes": self.metadata['num_classes'],
+                "dataset_size": self.metadata['dataset_size'],
+                "class_distribution": self.metadata['class_distribution'],
+            }
         except KeyError:
             print(">>> Computing description of task...")
             # Get dimensions from first graph
@@ -516,7 +521,7 @@ class ClassificationTask(Task):
             "f1": f1_score(
                 labels,
                 preds,
-                average="binary" if self.num_classes == 2 else "macro",
+                average="binary" if self.metadata['num_classes'] == 2 else "macro",
             ),
         }
         if not self.metadata['multi_label']:
