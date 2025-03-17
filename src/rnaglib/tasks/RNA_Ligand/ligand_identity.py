@@ -1,4 +1,5 @@
 import os
+import json
 
 import numpy as np
 import pandas as pd
@@ -32,18 +33,15 @@ class LigandIdentification(RNAClassificationTask):
         **kwargs
     ):
         self.admissible_ligands = admissible_ligands
-        self.data_path = os.path.join(os.path.dirname(__file__), "data", data_filename)
+        bp_dict_path = os.path.join(os.path.dirname(__file__), "data", "bp_dict.json")
+        ligands_dict_path = os.path.join(os.path.dirname(__file__), "data", "ligands_dict.json")
         self.use_balanced_sampler = use_balanced_sampler
-        binding_pockets = pd.read_csv(self.data_path)
-        binding_pockets3 = binding_pockets[["RNA", "bp_id", "nid"]].groupby(["RNA", "bp_id"])["nid"].apply(
-            lambda x: x.to_list())
 
         # create a dict where key is RNA name and values are lists of lists [[residue 1 of binding pocket 1,...,residue N of BP 1],...,[residue 1 of BP k,...]]
-        self.bp_dict = {
-            rna: [binding_pockets3[rna, bp_idx] for bp_idx in binding_pockets3[rna].index]
-            for rna in binding_pockets3.index.droplevel(1)
-        }
-        self.ligands_dict = {rna_ligand[0]: rna_ligand[1] for rna_ligand in binding_pockets[["nid", "ligand"]].values}
+        with open(bp_dict_path, "r") as bp_dict_json:
+            self.bp_dict = json.load(bp_dict_json)
+        with open(ligands_dict_path, "r") as ligands_dict_json:
+            self.ligands_dict = json.load(ligands_dict_json)
         self.nodes_keep = list(self.bp_dict.keys())
         meta = {"task_name": "rna_ligand", "multi_label": False}
         super().__init__(root=root, additional_metadata=meta, size_thresholds=size_thresholds, **kwargs)
@@ -124,7 +122,7 @@ class LigandIdentification(RNAClassificationTask):
         targets = np.array([self.mapping[rna['rna'].graph["ligand"]] for rna in self.train_dataset])
 
 
-        samples_weight = np.array([1./self.metadata["class_distribution"][str(i)] for i in targets])
+        samples_weight = np.array([1./self.metadata["class_distribution"][i] for i in targets])
         samples_weight = torch.from_numpy(samples_weight)
         balanced_sampler = WeightedRandomSampler(samples_weight, len(samples_weight))
 
