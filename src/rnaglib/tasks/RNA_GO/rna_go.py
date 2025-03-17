@@ -28,17 +28,26 @@ class RNAGo(RNAClassificationTask):
         return ClusterSplitter(similarity_threshold=0.6, distance_name="cd_hit")
 
     def get_task_vars(self):
+        label_mapping = self.metadata["label_mapping"]
+        if self.debug:
+            label_mapping = {"0000353": 0,
+                             "0005682": 1,
+                             "0005686": 2,
+                             "0005688": 3,
+                             "0010468": 4
+                             }
         return FeaturesComputer(
             nt_features=self.input_var,
             rna_targets=self.target_var,
-            custom_encoders={self.target_var: MultiLabelOneHotEncoder(self.metadata["label_mapping"])}, )
+            custom_encoders={self.target_var:
+                             MultiLabelOneHotEncoder(label_mapping)}, )
 
     def process(self):
         # Get initial mapping files:
         df, rfam_go_mapping = get_frequent_go_pdbsel()
         if self.debug:
             df = df.sample(n=50, random_state=0)
-        dataset = RNADataset(redundancy='all', in_memory=self.in_memory, rna_id_subset=df['pdb_id'].unique())
+        dataset = RNADataset(redundancy=self.redundancy, in_memory=self.in_memory, rna_id_subset=df['pdb_id'].unique())
 
         # Create dataset
         # Run through database, applying our filters

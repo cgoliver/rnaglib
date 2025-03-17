@@ -21,10 +21,10 @@ class BenchmarkBindingSite(ResidueClassificationTask):
     name = "rna_site_bench"
     version = "2.0.2"
 
-    def __init__(self, cutoff=6.0, **kwargs):
+    def __init__(self, root, cutoff=6.0, **kwargs):
         self.cutoff = cutoff
         meta = {"task_name": "rna_site_bench", "multi_label":False}
-        super().__init__(additional_metadata=meta, **kwargs)
+        super().__init__(root=root, additional_metadata=meta, **kwargs)
 
     @property
     def default_splitter(self):
@@ -34,9 +34,6 @@ class BenchmarkBindingSite(ResidueClassificationTask):
             return default_splitter_tr60_tr18()
 
     def process(self) -> RNADataset:
-        # Define your transforms
-        self.metadata["graph_level"] = False
-
         dataset = RNADataset(
             debug=self.debug,
             in_memory=self.in_memory,
