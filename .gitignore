@@ -1,22 +1,55 @@
-**.swp**	
-**x3dna-dssr**
-**wandb**
+*.swp*	
+*x3dna-dssr*
+*wandb*
 src/rnaglib/data/*
 src/rnaglib/tasks/data/*
 chain_embs/*
 datasets/*
 doc/*
 fonts/*
-**junk**
-**.pdb
-**torsions.txt
-**.dbn
-**.ct
-**.bpseq
+*junk*
+*.pdb
+*torsions.txt
+*.dbn
+*.ct
+*.bpseq
+*.json
+
+# Jupyter Notebooks (for debugging)
+*.ipynb
+# Shell scripts (not transferable)
+*.sh
+# Pickle files are a security risk
+*.pkl
+*.p
+*.pickle
+pickling.py
+create_pickle.py
+
+# PyTorch model files
+*.pth
+
+# Hidden files
+.*
+!.gitignore
+!.gitkeep
+!.readthedocs.yaml
+
+# Compressed and archive files
+*.tar
+*.tar.gz
+*.tgz
+*.zip
+*.rar
+*.7z
+*.gz
+
+# Debug scripts do not need to be tracked
+*debug*
 
 ## Experiments results
 rnaglib/tasks/experiments/*/
-**.out
+*.out
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
