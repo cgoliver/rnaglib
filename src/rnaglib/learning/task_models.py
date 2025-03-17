@@ -108,7 +108,7 @@ class PygModel(torch.nn.Module):
             elif torch.backends.mps.is_available():
                 self.device = "mps"
             else:
-                self.devide = "cpu"
+                self.device = "cpu"
         else:
             self.device = device
 
