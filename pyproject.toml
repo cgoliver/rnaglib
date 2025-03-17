@@ -58,11 +58,12 @@ rnaglib_index = 'rnaglib.bin.rnaglib_index:main'
 rnaglib = ["data_loading/graph_index_NR.json", 
            "config/rna_smiles.txt", 
            "tasks/data/*", 
-           "tasks/RNA_Ligand/data/gmsm_dataset.csv",
            "tasks/RNA_IF/data/das_split.pt",
            "tasks/RNA_IF/data/gRNAde_metadata.csv",
            "config/cache/modifications_cache.json",
-           "tasks/RNA_Ligand/data/binding_pockets.csv"]
+           "tasks/RNA_Ligand/data/bp_dict.json",
+           "tasks/RNA_Ligand/data/ligands_dict.json"
+           ]
 
 [tool.pytest.ini_options]
 
