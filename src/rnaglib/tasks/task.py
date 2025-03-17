@@ -23,7 +23,7 @@ from rnaglib.utils import DummyGraphModel, DummyResidueModel, dump_json, tonumpy
 from rnaglib.dataset_transforms import RandomSplitter, Splitter, RedundancyRemover
 from rnaglib.dataset_transforms import StructureDistanceComputer, CDHitComputer
 
-ZENOD_RECORD = "182660"
+ZENOD_RECORD = "183478"
 ZENODO_URL = f"https://sandbox.zenodo.org/records/{ZENOD_RECORD}/files/"
 
 
@@ -280,9 +280,10 @@ class Task:
         if self.in_memory:
             with open(Path(self.root) / "task_id.txt", "w") as tid:
                 tid.write(self.task_id)
+        self.to_csv(self.root)
         print(">>> Done")
 
-    def to_csv(self, path: str):
+    def to_csv(self, path: Union[str, os.PathLike]):
         """ Write a single CSV with all task data."""
         rows = []
         graph_level = self.metadata['graph_level']

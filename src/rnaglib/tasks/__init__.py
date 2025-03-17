@@ -25,3 +25,13 @@ __all__ = [
 ]
 
 classes = __all__
+
+TASKS = ["ChemicalModification",
+         "RNAGo",
+         "InverseFolding",
+         "gRNAde",
+         "LigandIdentification",
+         "ProteinBindingSite",
+         "BindingSite"
+         "BenchmarkBindingSite" 
+         ]
