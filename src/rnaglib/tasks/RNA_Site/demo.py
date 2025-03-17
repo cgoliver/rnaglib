@@ -3,13 +3,15 @@ from rnaglib.transforms import GraphRepresentation
 from rnaglib.learning.task_models import PygModel
 
 # Creating task
-ta = BindingSite(root="RNA_Site", debug=True, recompute=True)
+ta = BindingSite(root="RNA_Site", debug=False, precomputed=True)
 
 # Add representation
 ta.dataset.add_representation(GraphRepresentation(framework="pyg"))
 
 # Splitting dataset
-ta.get_split_loaders(recompute=True)
+train, val, test = ta.get_split_loaders(recompute=False)
+
+print(len(train), len(val), len(test))
 
 info = ta.describe()
 
@@ -21,7 +23,8 @@ info = ta.describe()
 #         ...
 
 # Or using a wrapper class
-model = PygModel(ta.metadata["description"]["num_node_features"], ta.metadata["description"]["num_classes"], graph_level=False)
+model = PygModel(ta.metadata["num_node_features"], ta.metadata["num_classes"],
+                 graph_level=False, device='cpu')
 model.configure_training(learning_rate=0.001)
 model.train_model(ta, epochs=1)
 

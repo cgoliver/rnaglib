@@ -19,11 +19,11 @@ class PygModel(torch.nn.Module):
         Will fail if number of node features is not the default.
         """
         if num_node_features is None:
-            num_node_features = task.metadata["description"]["num_nodes_features"]
+            num_node_features = task.metadata["num_nodes_features"]
         if num_classes is None:
-            num_classes = task.metadata["description"]["num_classes"]
+            num_classes = task.metadata["num_classes"]
         if graph_level is None:
-            graph_level = task.metadata["description"]["graph_level"]
+            graph_level = task.metadata["graph_level"]
 
         return cls(
                   num_node_features=num_node_features,
@@ -154,8 +154,8 @@ class PygModel(torch.nn.Module):
 
         # Set class weights for binary classification based on actual distribution
         if self.num_classes == 2:
-            neg_count = float(task.metadata["description"]["class_distribution"]["0"])
-            pos_count = float(task.metadata["description"]["class_distribution"]["1"])
+            neg_count = float(task.metadata["class_distribution"]["0"])
+            pos_count = float(task.metadata["class_distribution"]["1"])
             pos_weight = torch.tensor(np.sqrt(neg_count / pos_count)).to(self.device)
             self.criterion = torch.nn.BCEWithLogitsLoss(pos_weight=pos_weight)
 
