@@ -10,9 +10,7 @@ class BindingSiteAnnotator(AnnotationTransform):
 
         self.bind_types = [f"binding_small-molecule-{cutoff}A"]
         if self.include_ions:
-            self.bind_types.append(f"binding_ion")
-        if self.include_covalent:
-            self.bind_types.append("is_modified")
+            self.bind_types.append(f"binding_ion_{cutoff}A")
 
 
     def forward(self, rna_dict: dict) -> dict:
