@@ -108,7 +108,7 @@ class PygModel(torch.nn.Module):
             elif torch.backends.mps.is_available():
                 self.device = "mps"
             else:
-                self.devide = "cpu"
+                self.device = "cpu"
         else:
             self.device = device
 
@@ -158,7 +158,6 @@ class PygModel(torch.nn.Module):
             pos_count = float(task.metadata["class_distribution"]["1"])
             pos_weight = torch.tensor(np.sqrt(neg_count / pos_count)).to(self.device)
             self.criterion = torch.nn.BCEWithLogitsLoss(pos_weight=pos_weight)
-
         for epoch in range(epochs):
             # Training phase
             self.train()

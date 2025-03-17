@@ -25,7 +25,7 @@ ta.set_loaders(batch_size=batch_size, recompute=False)
 #         ...
 
 # Or using a wrapper class
-model = PygModel(ta.metadata["description"]["num_node_features"], ta.metadata["description"]["num_classes"], graph_level=True, hidden_channels=128, num_layers=4)
+model = PygModel(ta.metadata["num_node_features"], ta.metadata["num_classes"], graph_level=True, hidden_channels=128, num_layers=4)
 model.configure_training(learning_rate=1e-5)
 model.train_model(ta, epochs=10)
 
