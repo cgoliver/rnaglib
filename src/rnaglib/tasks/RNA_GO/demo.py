@@ -15,7 +15,7 @@ ta.dataset.add_representation(GraphRepresentation(framework="pyg"))
 ta.get_split_loaders(batch_size=1)
 
 # Train model
-model = PygModel(ta.metadata["description"]["num_node_features"],
+model = PygModel(ta.metadata["num_node_features"],
     num_classes=len(ta.metadata["label_mapping"]),
     graph_level=True,
     multi_label=True)
