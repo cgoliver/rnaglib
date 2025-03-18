@@ -13,9 +13,7 @@
 [![codecov](https://codecov.io/gh/cgoliver/rnaglib/graph/badge.svg?token=AOQIF59SFT)](https://codecov.io/gh/cgoliver/rnaglib)
 </div>
 
-![](https://i.imgur.com/jYoRksN.gif)
-
-<blockquote class="imgur-embed-pub" lang="en" data-id="a/oCi6wY5" data-context="false" ><a href="//imgur.com/a/oCi6wY5"></a></blockquote><script async src="//s.imgur.com/min/embed.js" charset="utf-8"></script>
+![rnaglib](https://i.imgur.com/jYoRksN.gif)
 
 `RNAglib` is a Python package for studying RNA 2.5D and 3D structures. Functionality includes automated data loading,
 analysis,
