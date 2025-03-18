@@ -4,6 +4,10 @@
 
 # RNA Geometric Library (`rnaglib`)
 
+`RNAglib` is a Python package for studying RNA 2.5D and 3D structures. Functionality includes automated data loading,
+analysis,
+visualization, ML model building and benchmarking.
+
 
 <div align="center">
 
@@ -15,9 +19,7 @@
 
 ![](https://github.com/cgoliver/cgoliver.github.io/blob/b0d4d1122cf5ff1e880b9214e199741b4b8e7723/assets/tty_slow.gif)
 
-`RNAglib` is a Python package for studying RNA 2.5D and 3D structures. Functionality includes automated data loading,
-analysis,
-visualization, ML model building and benchmarking.
+
 
 We host RNAs annotated with molecule, base pair, and nucleotide level attributes. These include, but are not limited to:
 
@@ -27,6 +29,8 @@ We host RNAs annotated with molecule, base pair, and nucleotide level attributes
 * Small molecule binding
 * Chemical modifications
 * Leontis-westhof base pair geometry classification
+
+From this database of structures and annotations we enable rapid property prediction and RNA design model development.
 
 ![Example graph](https://raw.githubusercontent.com/cgoliver/rnaglib/master/images/rgl_fig.png)
 
