@@ -14,7 +14,7 @@
 </div>
 
 <p aligh="center">
-<img src="https://imgur.com/a/oCi6wY5">
+<img src="https://i.imgur.com/jYoRksN.gif">
 </p>
 
 `RNAglib` is a Python package for studying RNA 2.5D and 3D structures. Functionality includes automated data loading,
