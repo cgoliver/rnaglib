@@ -13,7 +13,7 @@
 [![codecov](https://codecov.io/gh/cgoliver/rnaglib/graph/badge.svg?token=AOQIF59SFT)](https://codecov.io/gh/cgoliver/rnaglib)
 </div>
 
-<p aligh="center">
+<p align="center">
 <img src="https://i.imgur.com/jYoRksN.gif">
 </p>
 
