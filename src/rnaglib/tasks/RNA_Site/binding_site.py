@@ -1,6 +1,8 @@
 import os
 import numpy as np
 from tqdm import tqdm
+import networkx as nx
+
 from rnaglib.data_loading import RNADataset
 from rnaglib.transforms import FeaturesComputer
 from rnaglib.dataset_transforms import SPLITTING_VARS, default_splitter_tr60_tr18, RandomSplitter
@@ -104,12 +106,16 @@ class BindingSite(ResidueClassificationTask):
         all_rnas = []
         os.makedirs(self.dataset_path, exist_ok=True)
         for rna in tqdm(dataset, total=len(dataset), desc="Processing RNAs"):
-            if rna_filter.forward(rna):
-                for rna_connected_component in connected_components_partition(rna):
-                    if not connected_component_filters.forward(rna_connected_component):
+            for rna_connected_component in connected_components_partition(rna):
+                if not connected_component_filters.forward(rna_connected_component):
                         continue
-                    rna = rna_connected_component["rna"]
-                    self.add_rna_to_building_list(all_rnas=all_rnas, rna=rna)
+                if rna_filter.forward(rna_connected_component):
+                    rna_g = rna_connected_component["rna"]
+                    bind = nx.get_node_attributes(rna_g,
+                                             self.target_var).values()
+
+                    assert not all([b is None for b in bind])
+                    self.add_rna_to_building_list(all_rnas=all_rnas, rna=rna_g)
         dataset = self.create_dataset_from_list(all_rnas)
         return dataset
 
