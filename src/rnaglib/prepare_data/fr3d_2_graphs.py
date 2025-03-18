@@ -30,8 +30,6 @@ from rnaglib.config import EDGE_MAP_RGLIB
 
 from rnaglib.config import get_modifications_cache
 
-from .annotations import add_graph_annotations
-
 logger.remove()
 logger.add(sys.stderr, level="INFO")
 

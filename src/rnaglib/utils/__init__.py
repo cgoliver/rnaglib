@@ -29,8 +29,6 @@ __all__ = [
     "dump_json",
     "load_json",
     "update_RNApdb",
-    "build_feature_parser",
-    "build_edge_feature_parser",
     "listdir_fullpath",
     "load_index",
     "print_statistics",
