@@ -65,7 +65,7 @@ class TaskTest(unittest.TestCase):
             ta = BindingSite(root=tmp, **self.default_dataset_params)
             self.check_task(ta)
 
-    def test_BenchmarkBindingSite(self):
+    def test_BenchmarkBindingSiteDetection(self):
         with tempfile.TemporaryDirectory() as tmp:
             ta = BenchmarkBindingSite(root=tmp, **self.default_dataset_params)
             self.check_task(ta)
