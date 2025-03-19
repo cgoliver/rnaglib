@@ -4,17 +4,14 @@ from tqdm import tqdm
 import networkx as nx
 
 from rnaglib.data_loading import RNADataset
-from rnaglib.transforms import FeaturesComputer
-from rnaglib.dataset_transforms import SPLITTING_VARS, default_splitter_tr60_tr18, RandomSplitter
 from rnaglib.tasks import ResidueClassificationTask
 from rnaglib.encoders import BoolEncoder
-from rnaglib.transforms import ResidueAttributeFilter
+from rnaglib.transforms import FeaturesComputer
 from rnaglib.transforms import ChainNameTransform
-from rnaglib.transforms import BindingSiteAnnotator
-from rnaglib.transforms import SmallMoleculeBindingTransform
-from rnaglib.transforms import ChainFilter, ComposeFilters
+from rnaglib.transforms import BindingSiteAnnotator, SmallMoleculeBindingTransform
+from rnaglib.transforms import ResidueAttributeFilter, ChainFilter, ComposeFilters
 from rnaglib.transforms import ConnectedComponentPartition
-from rnaglib.dataset_transforms import ClusterSplitter
+from rnaglib.dataset_transforms import SPLITTING_VARS, default_splitter_tr60_tr18, RandomSplitter, ClusterSplitter
 
 
 class BenchmarkBindingSite(ResidueClassificationTask):
@@ -46,11 +43,11 @@ class BenchmarkBindingSite(ResidueClassificationTask):
 
         chain_filter = ChainFilter(SPLITTING_VARS["PDB_TO_CHAIN_TR60_TE18"])
         bs_finder = SmallMoleculeBindingTransform(
-                                      structures_dir=dataset.structures_path,
-                                      additional_atoms=["CO", "S", "P"],
-                                      mass_lower_limit=30,
-                                      mass_upper_limit=1400
-                                      )
+            structures_dir=dataset.structures_path,
+            additional_atoms=["CO", "S", "P"],
+            mass_lower_limit=30,
+            mass_upper_limit=1400
+        )
         bs_annotator = BindingSiteAnnotator(include_ions=True,
                                             include_covalent=True)
         namer = ChainNameTransform()
@@ -83,9 +80,9 @@ class BindingSite(ResidueClassificationTask):
     name = "rna_site"
     version = "2.0.2"
 
-    def __init__(self, root, cutoff=6.0,size_thresholds=(15, 500), **kwargs):
+    def __init__(self, root, cutoff=6.0, size_thresholds=(15, 500), **kwargs):
         self.target_var = f"binding_small-molecule-{cutoff}A"
-        meta = {"task_name": "rna_site", "multi_label":False}
+        meta = {"task_name": "rna_site", "multi_label": False}
         super().__init__(root=root, additional_metadata=meta, size_thresholds=size_thresholds, **kwargs)
 
     def process(self) -> RNADataset:

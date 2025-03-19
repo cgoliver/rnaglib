@@ -9,45 +9,50 @@
    :hidden:
 
    Homepage <self>
-   Installation <install>
-   Quickstart <quickstart>
-   Citing <citation>
+   Installation <pages/install>
+   Quickstart <pages/quickstart>
+   Citing <pages/citation>
 
 .. toctree::
    :maxdepth: 2
    :caption: Tutorials
    :hidden:
 
-   A tour of RNA 2.5D graphs <tuto_2.5d>
-   Using Benchmark Tasks <tuto_tasks>
-
+   A tour of RNA 2.5D graphs <tutorials/tuto_2.5d>
+   Using Benchmark Tasks <tutorials/tuto_tasks>
 
 .. toctree::
    :maxdepth: 2
    :caption: Data Reference 
    :hidden:
 
-   What is an RNA 2.5D graph? <what_is>
-   Available Benchmark Tasks <available_tasks>
-   RNA Annotation Reference <rna_ref>
-   RNA Transforms <tuto_transforms>
-   How is the data built? <tuto_build>
+   What is an RNA 2.5D graph? <data_reference/what_is>
+   RNA Annotation Reference <data_reference/rna_ref>
+   How is the data built? <data_reference/tuto_build>
+   Available Benchmark Tasks <data_reference/available_tasks>
+
+.. toctree::
+   :maxdepth: 2
+   :caption: A peak under the hood
+   :hidden:
+
+   Overview <code_architecture/overview>
+   RNA Transforms <code_architecture/tuto_transforms>
 
 .. toctree::
    :maxdepth: 2
    :caption: Package Reference
    :hidden:
 
-   Algorithms <rnaglib.algorithms>
-   Databases <rnaglib.prepare_data>
-   Datasets <rnaglib.data_loading>
-   Transforms <rnaglib.transforms>
-   ML Tasks <rnaglib.tasks>
-   Dataset Splitters <rnaglib.splitters>
-   Visualization <rnaglib.drawing>
-   Model Training <rnaglib.learning>
-   Utils <rnaglib.utils>
-   Configurations <rnaglib.config>
+   Algorithms <code_index/rnaglib.algorithms>
+   Databases <code_index/rnaglib.prepare_data>
+   Datasets <code_index/rnaglib.data_loading>
+   Transforms <code_index/rnaglib.transforms>
+   ML Tasks <code_index/rnaglib.tasks>
+   Visualization <code_index/rnaglib.drawing>
+   Model Training <code_index/rnaglib.learning>
+   Utils <code_index/rnaglib.utils>
+   Configurations <code_index/rnaglib.config>
 
 RNAGlib Official Documentation
 ================================
@@ -70,28 +75,48 @@ Core Features
 Get started with RNAGlib
 ---------------------------
 
-* :doc:`Install<install>`
-* :doc:`Quickstart<quickstart>`
+* :doc:`Install<pages/install>`
+* :doc:`Quickstart<pages/quickstart>`
+
 
 Tutorials
 -----------
 
-* :doc:`Learn about RNA 2.5D Graphs<what_is>`
-* :doc:`Working with 2.5D graphs datasets <tuto_2.5d>`
-* :doc:`Training machine learning models <tuto_ml>`
-* :doc:`Using and building machine learning tasks <tuto_tasks>`
+Those tutorials are meant to give you on operational overview of the library
+
+* :doc:`Working with 2.5D graphs datasets <tutorials/tuto_2.5d>`
+* :doc:`Using Benchmark Tasks <tutorials/tuto_tasks>`
+
+Data reference
+-----------
+
+Pages to read to better understand what is our data and how we build it.
+
+* :doc:`A tour of RNA 2.5D graphs <data_reference/what_is>`
+* :doc:`RNA Annotation Reference <data_reference/rna_ref>`
+* :doc:`How is the data built? <data_reference/tuto_build>`
+* :doc:`Available Benchmark Tasks <data_reference/available_tasks>`
+
+A peak under the hood
+-----------
+
+Pages to give you an understanding of the main objects shipping with RNAglib
+
+* :doc:`Overview <code_architecture/tuto_transforms>`
+* :doc:`RNA Transforms <code_architecture/tuto_transforms>`
+* :doc:`RNADataset <code_architecture/tuto_transforms>`
 
 Package Structure
 -----------------
 
--  :doc:`rnaglib.data_loading`: custom PyTorch dataloader and dataset implementations
--  :doc:`rnaglib.tasks`: prediction tasks for ML benchmarking.
--  :doc:`rnaglib.transforms`: process and modify RNA data
--  :doc:`rnaglib.learning`: learning routines and pre-built GCN models for the easiest use of the
--  :doc:`rnaglib.prepare_data`: processes raw PDB structures and
+-  :doc:`code_index/rnaglib.data_loading`: custom PyTorch dataloader and dataset implementations
+-  :doc:`code_index/rnaglib.tasks`: prediction tasks for ML benchmarking.
+-  :doc:`code_index/rnaglib.transforms`: process and modify RNA data
+-  :doc:`code_index/rnaglib.learning`: learning routines and pre-built GCN models for the easiest use of the
+-  :doc:`code_index/rnaglib.prepare_data`: processes raw PDB structures and
    builds a database of 2.5D graphs with full structural annotation
    package.
--  :doc:`rnaglib.drawing`: utilities for visualizing 2.5D graphs
+-  :doc:`code_index/rnaglib.drawing`: utilities for visualizing 2.5D graphs
 
 Source Code and Contact
 --------------------------

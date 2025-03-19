@@ -1,15 +1,15 @@
 """Main class for collections of RNAs."""
 
+from collections.abc import Iterable
 import copy
 import json
 import os
-from collections.abc import Iterable
 from pathlib import Path
 from typing import Literal
 
+from bidict import bidict
 import networkx as nx
 import numpy as np
-from bidict import bidict
 
 from rnaglib.data_loading.create_dataset import database_to_dataset
 from rnaglib.transforms.featurize import FeaturesComputer
@@ -290,6 +290,14 @@ class RNADataset:
         print(f">>> Adding {to_print} to dataset representations.")
         self.representations.extend(representations)
 
+    def remove_representation(self, names):
+        """Removes specified representation."""
+        names = [names] if not isinstance(names, Iterable) else names
+        for name in names:
+            self.representations = [
+                representation for representation in self.representations if representation.name != name
+            ]
+
     def add_feature(
         self,
         feature: str | AnnotationTransform,
@@ -334,14 +342,6 @@ class RNADataset:
             input_feature=is_input,
             custom_encoders=custom_encoders,
         )
-
-    def remove_representation(self, names):
-        """Removes specified representation."""
-        names = [names] if not isinstance(names, Iterable) else names
-        for name in names:
-            self.representations = [
-                representation for representation in self.representations if representation.name != name
-            ]
 
     def subset(self, list_of_ids=None, list_of_names=None):
         """Create another dataset with only the specified graphs.
@@ -421,6 +421,8 @@ class RNADataset:
         """Make sure all RNAs actually present when in_memory is true."""
         if self.in_memory:
             assert list(self.all_rnas) == [rna.name for rna in self.rnas]
+        else:
+            print("Check consistency only works if in_memory is true.")
 
 
 if __name__ == "__main__":
