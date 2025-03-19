@@ -9,29 +9,36 @@
    :hidden:
 
    Homepage <self>
-   Installation <install>
-   Quickstart <quickstart>
-   Citing <citation>
+   Installation <pages/install>
+   Quickstart <pages/quickstart>
+   Citing <pages/citation>
 
 .. toctree::
    :maxdepth: 2
    :caption: Tutorials
    :hidden:
 
-   A tour of RNA 2.5D graphs <tuto_2.5d>
-   Using Benchmark Tasks <tuto_tasks>
-
+   A tour of RNA 2.5D graphs <tutorials/tuto_2.5d>
+   Using Benchmark Tasks <tutorials/tuto_tasks>
 
 .. toctree::
    :maxdepth: 2
    :caption: Data Reference 
    :hidden:
 
-   What is an RNA 2.5D graph? <what_is>
-   Available Benchmark Tasks <available_tasks>
-   RNA Annotation Reference <rna_ref>
-   RNA Transforms <tuto_transforms>
-   How is the data built? <tuto_build>
+   What is an RNA 2.5D graph? <data_reference/what_is>
+   RNA Annotation Reference <data_reference/rna_ref>
+   How is the data built? <data_reference/tuto_build>
+   Available Benchmark Tasks <data_reference/available_tasks>
+
+.. toctree::
+   :maxdepth: 2
+   :caption: A peak under the hood
+   :hidden:
+
+   Overview <tutorials/tuto_transforms>
+   RNA Transforms <tutorials/tuto_transforms>
+   RNADataset <tutorials/tuto_transforms>
 
 .. toctree::
    :maxdepth: 2
@@ -70,16 +77,36 @@ Core Features
 Get started with RNAGlib
 ---------------------------
 
-* :doc:`Install<install>`
-* :doc:`Quickstart<quickstart>`
+* :doc:`Install<pages/install>`
+* :doc:`Quickstart<pages/quickstart>`
+
 
 Tutorials
 -----------
 
-* :doc:`Learn about RNA 2.5D Graphs<what_is>`
-* :doc:`Working with 2.5D graphs datasets <tuto_2.5d>`
-* :doc:`Training machine learning models <tuto_ml>`
-* :doc:`Using and building machine learning tasks <tuto_tasks>`
+Those tutorials are meant to give you on operational overview of the library
+
+* :doc:`Working with 2.5D graphs datasets <tutorials/tuto_2.5d>`
+* :doc:`Using Benchmark Tasks <tutorials/tuto_tasks>`
+
+Data reference
+-----------
+
+Pages to read to better understand what is our data and how we build it.
+
+* :doc:`A tour of RNA 2.5D graphs <tutorials/what_is>`
+* :doc:`RNA Annotation Reference <data_reference/rna_ref>`
+* :doc:`How is the data built? <data_reference/tuto_build>`
+* :doc:`Available Benchmark Tasks <data_reference/available_tasks>`
+
+A peak under the hood
+-----------
+
+Pages to give you an understanding of the main objects shipping with RNAglib
+
+* :doc:`Overview <tutorials/tuto_transforms>`
+* :doc:`RNA Transforms <tutorials/tuto_transforms>`
+* :doc:`RNADataset <tutorials/tuto_transforms>`
 
 Package Structure
 -----------------

@@ -3,7 +3,10 @@
 ## Requirements
 
 * sphinx
-* spinx_rtd_theme
+* sphinx_autodoc_typehints
+* sphinx-prompt
+* sphinx_rtd_theme
+* sphinx_substitution_extensions
 * myst_parser
 
 ## Docstring format
