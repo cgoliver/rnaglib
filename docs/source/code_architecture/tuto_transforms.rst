@@ -1,6 +1,11 @@
 Manipulating RNAs: Transforms API
 ------------------------------------------
 
+.. raw:: html
+
+    <object data="../images/fig_task.svg" type="image/svg+xml"></object>
+
+
 The ``Transforms`` API handles any operations that modify RNA dictionaries.
 
 Reminder, an RNA dictionary is the item provided by an ``RNADataset()[i]`` and looks like::
