@@ -1,7 +1,7 @@
 Working with 2.5D graphs
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Now that we know :doc:`what is an RNA 2.5D graph<what_is>` we can inspect the graph using `rnaglib`.
+Now that we know :doc:`what is an RNA 2.5D graph<../data_reference/what_is>` we can inspect the graph using `rnaglib`.
 
 Fetching hosted graphs
 --------------------------
@@ -27,7 +27,7 @@ To see the list of available PDBs you downloaded, use:
 
 .. warning::
 
-        The list of available PDBs depends on which data build you want to use. See :doc:`preparing data<tuto_build>` for more info on versioning and data build arguments. You can pass these arguments to the `available_pdbids(redundancy='all', version='0.0.0', annotated=True)` for non-default builds.
+        The list of available PDBs depends on which data build you want to use. See :doc:`preparing data<../data_reference/tuto_build>` for more info on versioning and data build arguments. You can pass these arguments to the `available_pdbids(redundancy='all', version='0.0.0', annotated=True)` for non-default builds.
 
 
 Overview of the 2.5D Graphs
@@ -51,7 +51,7 @@ Using node IDs we can access node and edge attributes as dictionary keys.
      'binding_protein': None, 'binding_ion': None, 'binding_small-molecule': None}
 
 The RNA 2.5D graph contains a rich set of annotations.
-For a complete list of these annotations see :doc:`this page<rna_ref>`.
+For a complete list of these annotations see :doc:`this page<../data_reference/rna_ref>`.
 
 
 Visualization
@@ -68,7 +68,7 @@ the graphs will be plotted using the LaTex reduced features that ships with matp
     >>> rna_draw(G, show=True, layout="spring")
 
 
-.. image:: images/g.png
+.. image:: ../images/g.png
 
 
 
@@ -163,28 +163,28 @@ Finally we can draw some plots of the base pair type and secondary structure ele
 
 This is the distribution of secondary structures in binding pockets and in a random sample of residues:
 
-.. image:: images/sse.png 
+.. image:: ../images/sse.png
 
 
 And the same but for the different LW base pair geometries:
 
-.. image:: images/bp.png 
+.. image:: ../images/bp.png
 
 
 From this small experiment we confirm a `property <https://academic.oup.com/nar/article/38/18/5982/1065889>`_ of RNA binding sites which is that they tend to occur in looping regions with a slight tendency towards non-canonical (non-CWW) base pair geometries. 
 
 
 
-:download:`Download source code for this example. <code/cb.py>`
+:download:`Download source code for this example. <../code/cb.py>`
 
 
 Aligning two RNA graphs: Graph Edit Distance (GED)
 -------------------------------------------------------
 
 GED is the gold standard of graph comparisons. We have put our ged implementation as a part of networkx, and offer
-in :doc:`rnaglib.algorithms` the weighting scheme we propose to compare 2.5D graphs. One can call ``rnaglib.algorithms.ged()`` on two
-graphs to compare them. However, due to the exponential complexity of the comparison, the maximum size of the graphs
-should be around ten nodes, making it more suited for comparing graphlets or subgraphs.
+in :doc:`../code_index/rnaglib.algorithms` the weighting scheme we propose to compare 2.5D graphs.
+One can call ``rnaglib.algorithms.ged()`` on two graphs to compare them.
+However, due to the exponential complexity of the comparison, the maximum size of the graphs should be around ten nodes, making it more suited for comparing graphlets or subgraphs.
 
 .. code-block:: python
 
