@@ -36,25 +36,23 @@
    :caption: A peak under the hood
    :hidden:
 
-   Overview <tutorials/tuto_transforms>
-   RNA Transforms <tutorials/tuto_transforms>
-   RNADataset <tutorials/tuto_transforms>
+   Overview <code_architecture/overview>
+   RNA Transforms <code_architecture/tuto_transforms>
 
 .. toctree::
    :maxdepth: 2
    :caption: Package Reference
    :hidden:
 
-   Algorithms <rnaglib.algorithms>
-   Databases <rnaglib.prepare_data>
-   Datasets <rnaglib.data_loading>
-   Transforms <rnaglib.transforms>
-   ML Tasks <rnaglib.tasks>
-   Dataset Splitters <rnaglib.splitters>
-   Visualization <rnaglib.drawing>
-   Model Training <rnaglib.learning>
-   Utils <rnaglib.utils>
-   Configurations <rnaglib.config>
+   Algorithms <code_index/rnaglib.algorithms>
+   Databases <code_index/rnaglib.prepare_data>
+   Datasets <code_index/rnaglib.data_loading>
+   Transforms <code_index/rnaglib.transforms>
+   ML Tasks <code_index/rnaglib.tasks>
+   Visualization <code_index/rnaglib.drawing>
+   Model Training <code_index/rnaglib.learning>
+   Utils <code_index/rnaglib.utils>
+   Configurations <code_index/rnaglib.config>
 
 RNAGlib Official Documentation
 ================================
@@ -94,7 +92,7 @@ Data reference
 
 Pages to read to better understand what is our data and how we build it.
 
-* :doc:`A tour of RNA 2.5D graphs <tutorials/what_is>`
+* :doc:`A tour of RNA 2.5D graphs <data_reference/what_is>`
 * :doc:`RNA Annotation Reference <data_reference/rna_ref>`
 * :doc:`How is the data built? <data_reference/tuto_build>`
 * :doc:`Available Benchmark Tasks <data_reference/available_tasks>`
@@ -104,21 +102,21 @@ A peak under the hood
 
 Pages to give you an understanding of the main objects shipping with RNAglib
 
-* :doc:`Overview <tutorials/tuto_transforms>`
-* :doc:`RNA Transforms <tutorials/tuto_transforms>`
-* :doc:`RNADataset <tutorials/tuto_transforms>`
+* :doc:`Overview <code_architecture/tuto_transforms>`
+* :doc:`RNA Transforms <code_architecture/tuto_transforms>`
+* :doc:`RNADataset <code_architecture/tuto_transforms>`
 
 Package Structure
 -----------------
 
--  :doc:`rnaglib.data_loading`: custom PyTorch dataloader and dataset implementations
--  :doc:`rnaglib.tasks`: prediction tasks for ML benchmarking.
--  :doc:`rnaglib.transforms`: process and modify RNA data
--  :doc:`rnaglib.learning`: learning routines and pre-built GCN models for the easiest use of the
--  :doc:`rnaglib.prepare_data`: processes raw PDB structures and
+-  :doc:`code_index/rnaglib.data_loading`: custom PyTorch dataloader and dataset implementations
+-  :doc:`code_index/rnaglib.tasks`: prediction tasks for ML benchmarking.
+-  :doc:`code_index/rnaglib.transforms`: process and modify RNA data
+-  :doc:`code_index/rnaglib.learning`: learning routines and pre-built GCN models for the easiest use of the
+-  :doc:`code_index/rnaglib.prepare_data`: processes raw PDB structures and
    builds a database of 2.5D graphs with full structural annotation
    package.
--  :doc:`rnaglib.drawing`: utilities for visualizing 2.5D graphs
+-  :doc:`code_index/rnaglib.drawing`: utilities for visualizing 2.5D graphs
 
 Source Code and Contact
 --------------------------

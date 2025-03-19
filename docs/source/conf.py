@@ -58,7 +58,7 @@ extensions = [
     "myst_parser",
 ]
 
-html_favicon = "images/favicon.png"
+# html_favicon = "images/favicon.png"
 
 myst_enable_extensions = [
     "substitution",
