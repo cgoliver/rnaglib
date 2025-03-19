@@ -23,8 +23,7 @@ info = ta.describe()
 #         ...
 
 # Or using a wrapper class
-model = PygModel(ta.metadata["num_node_features"], ta.metadata["num_classes"],
-                 graph_level=False, device='cpu')
+model = PygModel.from_task(ta, device='cpu')
 model.configure_training(learning_rate=0.001)
 model.train_model(ta, epochs=1)
 

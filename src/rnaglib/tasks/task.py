@@ -1,21 +1,22 @@
 """Abstract task classes"""
 
-import tarfile
-import shutil
 from collections.abc import Sequence
 from functools import cached_property
 import hashlib
 import json
+import os
+from pathlib import Path
+import shutil
+import tarfile
+from typing import Union, Literal, Optional
+import tqdm
 
 import numpy as np
 import pandas as pd
-import os
-from typing import Union, Literal, Optional
-from pathlib import Path
-from sklearn.metrics import accuracy_score, f1_score, matthews_corrcoef, roc_auc_score, jaccard_score, balanced_accuracy_score
+from sklearn.metrics import accuracy_score, f1_score, matthews_corrcoef
+from sklearn.metrics import roc_auc_score, jaccard_score, balanced_accuracy_score
 import torch
 from torch.utils.data import DataLoader
-import tqdm
 
 from rnaglib.data_loading import Collater, RNADataset
 from rnaglib.transforms import Transform, FeaturesComputer, SizeFilter
@@ -187,25 +188,6 @@ class Task:
         self.val_dataset = self.dataset.subset(self.val_ind)
         self.test_dataset = self.dataset.subset(self.test_ind)
 
-    def set_loaders(self, recompute=True, **dataloader_kwargs):
-        """Sets the dataloader properties.
-        Call this each time you modify ``self.dataset``.
-        """
-        self.set_datasets(recompute=recompute)
-
-        # If no collater is provided we need one
-        if dataloader_kwargs is None:
-            dataloader_kwargs = {"collate_fn": Collater(self.train_dataset)}
-        if "collate_fn" not in dataloader_kwargs:
-            collater = Collater(self.train_dataset)
-            dataloader_kwargs["collate_fn"] = collater
-
-        # Now build the loaders
-        self.train_dataloader = DataLoader(dataset=self.train_dataset, **dataloader_kwargs)
-        dataloader_kwargs["shuffle"] = False
-        self.val_dataloader = DataLoader(dataset=self.val_dataset, **dataloader_kwargs)
-        self.test_dataloader = DataLoader(dataset=self.test_dataset, **dataloader_kwargs)
-
     def get_split_datasets(self, recompute=True):
         # If datasets were not already computed or if we want to recompute them to account
         # for changes in the global dataset
@@ -232,6 +214,25 @@ class Task:
         """Shortcut to RNADataset.add_feature"""
         self.dataset.add_feature(feature=feature, feature_level=feature_level, is_input=is_input)
         pass
+
+    def set_loaders(self, recompute=True, **dataloader_kwargs):
+        """Sets the dataloader properties.
+        Call this each time you modify ``self.dataset``.
+        """
+        self.set_datasets(recompute=recompute)
+
+        # If no collater is provided we need one
+        if dataloader_kwargs is None:
+            dataloader_kwargs = {"collate_fn": Collater(self.train_dataset)}
+        if "collate_fn" not in dataloader_kwargs:
+            collater = Collater(self.train_dataset)
+            dataloader_kwargs["collate_fn"] = collater
+
+        # Now build the loaders
+        self.train_dataloader = DataLoader(dataset=self.train_dataset, **dataloader_kwargs)
+        dataloader_kwargs["shuffle"] = False
+        self.val_dataloader = DataLoader(dataset=self.val_dataset, **dataloader_kwargs)
+        self.test_dataloader = DataLoader(dataset=self.test_dataset, **dataloader_kwargs)
 
     def get_split_loaders(self, recompute=False, **dataloader_kwargs):
         # If dataloaders were not already precomputed or if we want to recompute them to account
@@ -304,9 +305,7 @@ class Task:
             for node in rna['rna']:
                 if not graph_level:
                     target = rna['rna'].nodes[node][self.target_var]
-                rows.append({"residue": node, "split": split, "target":
-                             target})
-                pass
+                rows.append({"residue": node, "split": split, "target": target})
 
         pd.DataFrame(rows).to_csv(path)
 
