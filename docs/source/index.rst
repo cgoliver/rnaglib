@@ -33,7 +33,7 @@
 
 .. toctree::
    :maxdepth: 2
-   :caption: A peak under the hood
+   :caption: A peek under the hood
    :hidden:
 
    Overview <code_architecture/overview>
@@ -88,17 +88,16 @@ Those tutorials are meant to give you on operational overview of the library
 * :doc:`Using Benchmark Tasks <tutorials/tuto_tasks>`
 
 Data reference
------------
+-----------------
 
 Pages to read to better understand what is our data and how we build it.
 
 * :doc:`A tour of RNA 2.5D graphs <data_reference/what_is>`
 * :doc:`RNA Annotation Reference <data_reference/rna_ref>`
-* :doc:`How is the data built? <data_reference/tuto_build>`
-* :doc:`Available Benchmark Tasks <data_reference/available_tasks>`
+* :doc:`How is the data built? <data_reference/tuto_build>` * :doc:`Available Benchmark Tasks <data_reference/available_tasks>`
 
-A peak under the hood
------------
+A peek under the hood
+------------------------
 
 Pages to give you an understanding of the main objects shipping with RNAglib
 
