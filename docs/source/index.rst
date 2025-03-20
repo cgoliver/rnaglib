@@ -18,8 +18,8 @@
    :caption: Tutorials
    :hidden:
 
+   How to train a model <tutorials/tuto_tasks>
    A tour of RNA 2.5D graphs <tutorials/tuto_2.5d>
-   Using Benchmark Tasks <tutorials/tuto_tasks>
 
 .. toctree::
    :maxdepth: 2
@@ -33,7 +33,7 @@
 
 .. toctree::
    :maxdepth: 2
-   :caption: A peak under the hood
+   :caption: A peek under the hood
    :hidden:
 
    Overview <code_architecture/overview>
@@ -57,25 +57,30 @@
    Utils <code_index/rnaglib.utils>
    Configurations <code_index/rnaglib.config>
 
-RNAGlib Official Documentation
+rnaglib Official Documentation
 ================================
 
 ..
  This is a comment : contents:: Table of Contents
 
 
-``RNAGlib`` (RNA Geometric Library) is a Python package for studying models of RNA 3D structures.
+``rnaglib`` (RNA Geometric Library) is a Python package for studying models of RNA 3D structures.
+
+.. figure:: https://raw.githubusercontent.com/cgoliver/rnaglib/c092768f19d32d40329ca822e59db5507ec245ca/images/tasksfig.png
+   :alt: Tasks Figure
+   :width: 800px
+   :align: center
 
 Core Features
 -----------------
 
-* Quick access to all available RNA 3D structures with annotations
-* Rich functionality for 2.5D RNA graphs, point clouds, and voxels
+* Quick and detailed access to all available RNA 3D structures with annotations
+* Train and benchmark deep learning models for RNA 3D structure-function tasks
 * RNA graph visualization 
-* Machine Learning benchmarking tasks 
+* Create fully reproducible custom datasets and tasks
 
 
-Get started with RNAGlib
+Get started with rnaglib
 ---------------------------
 
 * :doc:`Install<pages/install>`
@@ -91,7 +96,7 @@ Those tutorials are meant to give you on operational overview of the library
 * :doc:`Using Benchmark Tasks <tutorials/tuto_tasks>`
 
 Data reference
------------
+-----------------
 
 Pages to read to better understand what is our data and how we build it.
 
@@ -100,8 +105,8 @@ Pages to read to better understand what is our data and how we build it.
 * :doc:`How is the data built? <data_reference/build_data>`
 * :doc:`Available Benchmark Tasks <data_reference/available_tasks>`
 
-A peak under the hood
------------
+A peek under the hood
+------------------------
 
 Pages to give you an understanding of the main objects shipping with RNAglib
 
