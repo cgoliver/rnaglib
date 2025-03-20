@@ -1,6 +1,11 @@
 
 
 TODO
+A set of RNA objects can be grouped into a RNADataset object, which inherits the Pytorch Dataset object.
+These RNAs can either live in the memory, or be found as files.
+Datasets can be loaded and saved, subset and looped. They can also hold distance matrices among the different points it holds.
+A more detailed description is provided :doc:`here<../code_architecture/dataset>`.
+
 
 .. raw:: html
     :file: ../images/fig_dataset_transform.svg
