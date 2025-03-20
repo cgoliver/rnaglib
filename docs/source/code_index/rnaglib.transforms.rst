@@ -7,7 +7,7 @@ to an individual RNA or to a collection (filters can only be applied to collecti
 In this example, we add a field ``'rfam'`` with the Rfam ID of an RNA.::
 
     >>> from rnaglib.transforms import RfamTransform
-    >>> from rnaglib.data_loading import RNADataset
+    >>> from rnaglib.dataset import RNADataset
     >>> dataset = RNADataset(debug=True)
     >>> t = RfamTransform()
     >>> t(dataset)

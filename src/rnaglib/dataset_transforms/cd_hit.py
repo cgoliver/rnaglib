@@ -4,7 +4,7 @@ import numpy as np
 from tqdm import tqdm
 
 from rnaglib.algorithms import get_sequences
-from .distance_computer import DistanceComputer
+from rnaglib.dataset_transforms import DistanceComputer
 from rnaglib.utils import cdhit_wrapper
 
 
@@ -36,11 +36,7 @@ class CDHitComputer(DistanceComputer):
             sequences.extend([seq for _, (seq, _) in seqs.items()])
 
         # For each chunk, get its cluster affectation
-        ids_to_cluster, cluster_to_ids = cdhit_wrapper(
-            ids,
-            sequences,
-            sim_thresh=self.similarity_threshold,
-        )
+        ids_to_cluster, cluster_to_ids = cdhit_wrapper(ids, sequences, sim_thresh=self.similarity_threshold)
 
         # Group together chunks coming from one RNA
         # TODO: this should be a Counter

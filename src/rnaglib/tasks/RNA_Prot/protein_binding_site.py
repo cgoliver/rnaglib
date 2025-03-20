@@ -2,7 +2,7 @@ import os
 
 from tqdm import tqdm
 
-from rnaglib.data_loading import RNADataset
+from rnaglib.dataset import RNADataset
 from rnaglib.dataset_transforms import ClusterSplitter
 from rnaglib.encoders import BoolEncoder
 from rnaglib.tasks import ResidueClassificationTask

@@ -2,7 +2,7 @@ import unittest
 import tempfile
 from pathlib import Path
 
-from rnaglib.data_loading import RNADataset
+from rnaglib.dataset import RNADataset
 from rnaglib.dataset_transforms import RandomSplitter
 from rnaglib.dataset_transforms import ClusterSplitter
 from rnaglib.dataset_transforms import CDHitComputer, StructureDistanceComputer

@@ -10,7 +10,7 @@ The ``Transforms`` API handles any operations that modify RNA dictionaries.
 
 Reminder, an RNA dictionary is the item provided by an ``RNADataset()[i]`` and looks like::
 
-    >>> from rnaglib.data_loading import RNADataset
+    >>> from rnaglib.dataset import RNADataset
     >>> dataset = RNADataset(debug=True)
     >>> rna = dataset[3]
     {'rna': <nx.DiGraph...>, ..., }

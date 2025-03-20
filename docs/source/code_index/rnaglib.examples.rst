@@ -12,7 +12,9 @@ To do so, we choose our data, create a data loader around it, build a RGCN model
 .. code-block:: python
 
     from rnaglib.learning import models, learn
-    from rnaglib.data_loading import RNADataset, FeaturesComputer, get_loader
+    from rnaglib.dataset import RNADataset
+    from rnaglib.transforms import FeaturesComputer
+    from rnaglib.dataset_transforms import get_loader
 
 
     # Choose the features and targets to use
@@ -41,7 +43,7 @@ We also add a pretraining phase based on the R_graphlets kernel
 .. code-block:: python
 
     from rnaglib.learning import models, learn
-    from rnaglib.data_loading import graphloader
+    from rnaglib.data_transforms import graphloader
     from rnaglib.benchmark import evaluate
     from rnaglib.kernels import node_sim
 
