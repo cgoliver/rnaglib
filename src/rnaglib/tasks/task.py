@@ -70,7 +70,6 @@ class Task:
         self.in_memory = in_memory
         self.size_thresholds = size_thresholds
         self.redundancy = 'all' if not self.debug else 'nr'
-        print(self.redundancy, self.debug)
 
         self.init_metadata(additional_metadata=additional_metadata)
 
