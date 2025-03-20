@@ -57,14 +57,14 @@
    Utils <code_index/rnaglib.utils>
    Configurations <code_index/rnaglib.config>
 
-RNAGlib Official Documentation
+rnaglib Official Documentation
 ================================
 
 ..
  This is a comment : contents:: Table of Contents
 
 
-``RNAGlib`` (RNA Geometric Library) is a Python package for studying models of RNA 3D structures.
+``rnaglib`` (RNA Geometric Library) is a Python package for studying models of RNA 3D structures.
 
 .. figure:: https://raw.githubusercontent.com/cgoliver/rnaglib/c092768f19d32d40329ca822e59db5507ec245ca/images/tasksfig.png
    :alt: Tasks Figure
@@ -80,7 +80,7 @@ Core Features
 * Create fully reproducible custom datasets and tasks
 
 
-Get started with RNAGlib
+Get started with rnaglib
 ---------------------------
 
 * :doc:`Install<pages/install>`
