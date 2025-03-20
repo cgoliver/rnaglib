@@ -17,7 +17,7 @@ visualization, ML model building and benchmarking.
 [![codecov](https://codecov.io/gh/cgoliver/rnaglib/graph/badge.svg?token=AOQIF59SFT)](https://codecov.io/gh/cgoliver/rnaglib)
 </div>
 
-![](https://github.com/cgoliver/cgoliver.github.io/blob/bd559bf4cd3698435152782aaeffa950648caf3e/assets/tty_slow.gif)
+![](https://github.com/cgoliver/cgoliver.github.io/blob/b0746409caf7d2d2f5de67cf6aef99ba5ff19cd2/assets/tty_slow.gif)
 
 
 
