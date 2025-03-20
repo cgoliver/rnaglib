@@ -27,7 +27,7 @@ To see the list of available PDBs you downloaded, use:
 
 .. warning::
 
-        The list of available PDBs depends on which data build you want to use. See :doc:`preparing data<../data_reference/tuto_build>` for more info on versioning and data build arguments. You can pass these arguments to the `available_pdbids(redundancy='all', version='0.0.0', annotated=True)` for non-default builds.
+        The list of available PDBs depends on which data build you want to use. See :doc:`preparing data<../data_reference/build_data>` for more info on versioning and data build arguments. You can pass these arguments to the `available_pdbids(redundancy='all', version='0.0.0', annotated=True)` for non-default builds.
 
 
 Overview of the 2.5D Graphs

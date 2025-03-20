@@ -1,6 +1,6 @@
 from typing import Iterator
 
-from rnaglib.transforms import Transform, PartitionTransform
+from rnaglib.transforms import PartitionTransform
 
 
 class ChainSplitTransform(PartitionTransform):
@@ -9,6 +9,7 @@ class ChainSplitTransform(PartitionTransform):
     """
 
     def forward(self, rna_dict: dict) -> Iterator[dict]:
+        rna_dict_copy = rna_dict.copy()
         g = rna_dict["rna"]
         chain_sort_nodes = sorted(list(g.nodes(data=True)), key=lambda ndata: ndata[0].split(".")[1])
         current_chain_name = chain_sort_nodes[0][0].split(".")[1]  # .upper()
@@ -17,8 +18,12 @@ class ChainSplitTransform(PartitionTransform):
             if node.split(".")[1] == current_chain_name:  # .upper()
                 current_chain_nodes.append(node)
             else:
-                yield {"rna": g.subgraph(current_chain_nodes).copy()}
+                return_dict = rna_dict_copy.copy()
+                return_dict["rna"] = g.subgraph(current_chain_nodes).copy()
+                yield return_dict
                 current_chain_nodes = [node]
                 current_chain_name = node.split(".")[1]  # .upper()
 
-        yield {"rna": g.subgraph(current_chain_nodes).copy()}
+        return_dict = rna_dict_copy.copy()
+        return_dict["rna"] = g.subgraph(current_chain_nodes).copy()
+        yield return_dict

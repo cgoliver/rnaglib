@@ -28,7 +28,7 @@
 
    What is an RNA 2.5D graph? <data_reference/what_is>
    RNA Annotation Reference <data_reference/rna_ref>
-   How is the data built? <data_reference/tuto_build>
+   How is the data built? <data_reference/build_data>
    Available Benchmark Tasks <data_reference/available_tasks>
 
 .. toctree::
@@ -37,7 +37,10 @@
    :hidden:
 
    Overview <code_architecture/overview>
-   RNA Transforms <code_architecture/tuto_transforms>
+   RNADataset <code_architecture/dataset>
+   RNA Transforms <code_architecture/rna_transforms>
+   RNADataset Transforms <code_architecture/dataset_transforms>
+   Task <code_architecture/task>
 
 .. toctree::
    :maxdepth: 2
@@ -94,16 +97,20 @@ Pages to read to better understand what is our data and how we build it.
 
 * :doc:`A tour of RNA 2.5D graphs <data_reference/what_is>`
 * :doc:`RNA Annotation Reference <data_reference/rna_ref>`
-* :doc:`How is the data built? <data_reference/tuto_build>` * :doc:`Available Benchmark Tasks <data_reference/available_tasks>`
+* :doc:`How is the data built? <data_reference/build_data>`
+* :doc:`Available Benchmark Tasks <data_reference/available_tasks>`
 
 A peek under the hood
 ------------------------
 
 Pages to give you an understanding of the main objects shipping with RNAglib
 
-* :doc:`Overview <code_architecture/tuto_transforms>`
-* :doc:`RNA Transforms <code_architecture/tuto_transforms>`
-* :doc:`RNADataset <code_architecture/tuto_transforms>`
+* :doc:`Overview <code_architecture/overview>`
+* :doc:`RNADataset <code_architecture/dataset>`
+* :doc:`RNA Transforms <code_architecture/rna_transforms>`
+* :doc:`RNADataset Transforms <code_architecture/dataset_transforms>`
+* :doc:`Task <code_architecture/task>`
+
 
 Package Structure
 -----------------

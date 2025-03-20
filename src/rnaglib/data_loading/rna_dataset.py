@@ -61,26 +61,26 @@ class RNADataset:
     """
 
     def __init__(
-        self,
-        rnas: list[nx.Graph] = None,
-        dataset_path: str | os.PathLike = None,
-        version="2.0.2",
-        redundancy="nr",
-        rna_id_subset: list[str] = None,
-        recompute_mapping: bool = True,
-        in_memory: bool = True,
-        features_computer: FeaturesComputer = None,
-        representations: list[Representation] | Representation = None,
-        debug: bool = False,
-        get_pdbs: bool = True,
-        overwrite: bool = False,
-        multigraph: bool = False,
-        pre_transforms: list[Transform] | Transform = None,
-        transforms: list[Transform] | Transform = None,
-        **kwargs,
+            self,
+            rnas: list[nx.Graph] = None,
+            dataset_path: str | os.PathLike = None,
+            version="2.0.2",
+            redundancy="nr",
+            rna_id_subset: list[str] = None,
+            recompute_mapping: bool = True,
+            in_memory: bool = True,
+            features_computer: FeaturesComputer = None,
+            representations: list[Representation] | Representation = None,
+            debug: bool = False,
+            get_pdbs: bool = True,
+            overwrite: bool = False,
+            multigraph: bool = False,
+            pre_transforms: list[Transform] | Transform = None,
+            transforms: list[Transform] | Transform = None,
+            **kwargs,
     ):
         self.in_memory = in_memory
-        self.transforms = transforms
+        self.transforms = [transforms] if transforms is not None and not isinstance(transforms, Iterable) else []
         self.pre_transforms = pre_transforms
         self.multigraph = multigraph
         self.version = version
@@ -197,12 +197,12 @@ class RNADataset:
 
     @classmethod
     def from_database(
-        cls,
-        representations=None,
-        features_computer=None,
-        *,  # enforce keyword only arguments
-        in_memory=True,
-        **dataset_build_params,
+            cls,
+            representations=None,
+            features_computer=None,
+            *,  # enforce keyword only arguments
+            in_memory=True,
+            **dataset_build_params,
     ):
         """Run the steps to build a dataset from scratch.
 
@@ -262,8 +262,9 @@ class RNADataset:
         # Compute features
         rna_dict = {"rna": rna_graph, "graph_path": nx_path, "cif_path": cif_path}
 
-        if self.transforms is not None:
-            self.transforms(rna_dict)
+        if len(self.transforms) > 0:
+            for transform in self.transforms:
+                transform(rna_dict)
 
         features_dict = self.features_computer(rna_dict)
         # apply representations to the res_dict
@@ -299,11 +300,11 @@ class RNADataset:
             ]
 
     def add_feature(
-        self,
-        feature: str | AnnotationTransform,
-        feature_level: Literal["residue", "rna"] = "residue",
-        *,  # enforce keyword only arguments
-        is_input: bool = True,
+            self,
+            feature: str | AnnotationTransform,
+            feature_level: Literal["residue", "rna"] = "residue",
+            *,  # enforce keyword only arguments
+            is_input: bool = True,
     ):
         """Add a feature to the dataset for model training.
 
