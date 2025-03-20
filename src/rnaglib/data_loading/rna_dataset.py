@@ -190,10 +190,11 @@ class RNADataset:
         else:
             self.distances_[name] = distance_mat
 
-    def save_distances(self):
+    def save_distances(self, dump_path=None):
         """Saves distances to distance path."""
         if self.distances is not None:
-            np.savez(self.distances_path, **self.distances)
+            dump_path = dump_path if dump_path is not None else self.distances_path
+            np.savez(dump_path, **self.distances)
 
     @classmethod
     def from_database(
@@ -388,20 +389,21 @@ class RNADataset:
         print(f"dumping {len(self.all_rnas)} rnas")
         Path(dump_path).mkdir(parents=True, exist_ok=True)
 
-        self.save_distances()
+        dump_dists = Path(dump_path) / "distances.npz"
+        dump_bidict = Path(dump_path) / "bidict.json"
+        self.save_distances(dump_path=dump_dists)
 
-        with self.bidict_path.open("w") as js:
+        with open(dump_bidict, "w") as js:
             json.dump(dict(self.all_rnas), js)
 
-        if Path(dump_path).exists() and os.listdir(dump_path) and not recompute:
+        # Check if all files are already there
+        existing_files = set(os.listdir(dump_path))
+        to_dump = set([x + '.json' for x in self.all_rnas.keys()])
+        if to_dump.issubset(existing_files) and not recompute:
             if verbose:
                 print('files already exist, set "recompute=True" to overwrite')
-            return
         for rna_name, i in self.all_rnas.items():
             if not self.in_memory:
-                # It's already saved !
-                if self.dataset_path == dump_path:
-                    break
                 rna_graph = load_graph(Path(self.dataset_path) / f"{rna_name}.json")
             else:
                 rna_graph = self.rnas[i]
