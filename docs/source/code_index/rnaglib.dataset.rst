@@ -1,9 +1,9 @@
-``rnaglib.data_loading``
+``rnaglib.dataset``
 =========================
 
 Tools for loading and creating collections of RNAs.
 
-.. automodule:: rnaglib.data_loading
+.. automodule:: rnaglib.dataset
 
 
 RNA Objects
@@ -29,18 +29,4 @@ This is the main object used for holding collections of RNAs. The ``RNAdataset``
 
 
 
-Loading
----------
 
-Tools for loading RNAs stored in an ``RNADataset`` batch-wise for deep learning models.
-
-
-
-.. autosummary::
-   :toctree: generated/
-
-    Collater
-    get_loader
-    get_inference_loader
-    EdgeLoaderGenerator 
-    DefaultBasePairLoader

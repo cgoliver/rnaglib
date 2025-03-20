@@ -4,7 +4,8 @@ import numpy as np
 import random
 from torch.utils.data import Dataset
 
-from rnaglib.data_loading import RNADataset, Collater
+from rnaglib.dataset import RNADataset
+from rnaglib.dataset_transforms import Collater
 
 
 class VSCollater:

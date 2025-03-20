@@ -11,7 +11,7 @@ from bidict import bidict
 import networkx as nx
 import numpy as np
 
-from rnaglib.data_loading.create_dataset import database_to_dataset
+from rnaglib.dataset.create_dataset import database_to_dataset
 from rnaglib.transforms.featurize import FeaturesComputer
 from rnaglib.transforms.represent import Representation
 from rnaglib.transforms.transform import AnnotationTransform, Transform
@@ -43,7 +43,7 @@ class RNADataset:
     Examples:
     ---------
     Create a default dataset::
-    >>> from rnaglib.data_loading import RNADataset
+    >>> from rnaglib.dataset import RNADataset
     >>> dataset = RNADataset()
 
     Access the first item in the dataset::
@@ -290,6 +290,13 @@ class RNADataset:
         representations = [representations] if not isinstance(representations, list) else representations
         to_print = [repre.name for repre in representations] if len(representations) > 1 else representations[0].name
         print(f">>> Adding {to_print} to dataset representations.")
+
+        # Remove old representations with the same name
+        new_representations = set([repre.name for repre in representations])
+        to_remove = {repr.name for repr in self.representations if repr.name in new_representations}
+        if len(to_remove) > 0:
+            print(f"Removing old representations of {to_remove} from existing representation to avoid clash")
+            self.representations = [repr for repr in self.representations if not repr.name in to_remove]
         self.representations.extend(representations)
 
     def remove_representation(self, names):

@@ -2,7 +2,7 @@
 # coding: utf-8
 from rnaglib.tasks import BenchmarkLigandBindingSiteDetection, BindingSite
 from rnaglib.representations import GraphRepresentation
-from rnaglib.data_loading import Collater
+from rnaglib.dataset_transforms import Collater
 import torch
 #from torch_geometric.loader import DataLoader
 from torch.utils.data import DataLoader

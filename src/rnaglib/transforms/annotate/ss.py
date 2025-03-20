@@ -13,7 +13,7 @@ class SecondaryStructureTransform(Transform):
     Secondary structure assignments computed by forgi
 
     >>> from rnaglib.transforms import SecondaryStructureTransform
-    >>> from rnaglib.data_loading import RNADataset
+    >>> from rnaglib.dataset import RNADataset
     >>> dset = RNADataset(debug=True)
     >>> T = SecondaryStructureTransform(dset.structures_path)
     >>> T(dset[0])

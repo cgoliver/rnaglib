@@ -1,8 +1,10 @@
 import numpy as np
 from scipy.sparse.csgraph import connected_components
 
+from rnaglib.dataset_transforms import DSTransform
 
-class RedundancyRemover:
+
+class RedundancyRemover(DSTransform):
     def __init__(
             self,
             distance_name: str = "USalign",

@@ -32,7 +32,7 @@ Now we pass ``MyTransform`` to the dataset construction in the ``pre_transform``
 
 .. code-block:: python
 
-   from rnaglib.data_loading import RNADataset
+   from rnaglib.dataset import RNADataset
    t = MyTransform()
    dataset = RNADataset(debug=True
                         pre_transforms=t,

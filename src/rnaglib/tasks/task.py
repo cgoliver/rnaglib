@@ -18,11 +18,12 @@ from sklearn.metrics import roc_auc_score, jaccard_score, balanced_accuracy_scor
 import torch
 from torch.utils.data import DataLoader
 
-from rnaglib.data_loading import Collater, RNADataset
+from rnaglib.dataset import RNADataset
 from rnaglib.transforms import Transform, FeaturesComputer, SizeFilter
 from rnaglib.utils import DummyGraphModel, DummyResidueModel, dump_json, tonumpy, download
-from rnaglib.dataset_transforms import RandomSplitter, Splitter, RedundancyRemover
 from rnaglib.dataset_transforms import StructureDistanceComputer, CDHitComputer
+from rnaglib.dataset_transforms import RandomSplitter, Splitter, RedundancyRemover
+from rnaglib.dataset_transforms import Collater
 
 ZENOD_RECORD = "184453"
 ZENODO_URL = f"https://sandbox.zenodo.org/records/{ZENOD_RECORD}/files/"
@@ -31,7 +32,7 @@ ZENODO_URL = f"https://sandbox.zenodo.org/records/{ZENOD_RECORD}/files/"
 class Task:
     """Abstract class for a benchmarking task using the rnaglib datasets.
     This class handles the logic for building the underlying dataset which is held in an
-    rnaglib.data_loading.RNADataset
+    rnaglib.dataset.RNADataset
     object. Once the dataset is created, the splitter is invoked to create the train/val/test indices.
     Tasks also define an evaluate() function to yield appropriate model performance metrics.
 

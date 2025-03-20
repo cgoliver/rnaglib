@@ -8,7 +8,7 @@ from rnaglib.utils import download_graphs, load_graph, dump_json
 from rnaglib.utils.graph_io import get_all_existing, get_name_extension
 
 if TYPE_CHECKING:
-    from rnaglib.data_loading.features import FeaturesComputer
+    from rnaglib.transforms import FeaturesComputer
 
 
 def database_to_dataset_loop(
