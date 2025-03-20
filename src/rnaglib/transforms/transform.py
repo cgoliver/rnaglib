@@ -2,8 +2,6 @@ import os
 from joblib import Parallel, delayed
 from typing import List, Union, Any, Iterable, Generator, TYPE_CHECKING
 
-import networkx as nx
-
 
 class Transform:
     """Transforms modify and add information to an RNA graph via
@@ -30,9 +28,9 @@ class Transform:
     """
 
     def __init__(
-        self,
-        parallel: bool = False,
-        num_workers: int = -1,
+            self,
+            parallel: bool = False,
+            num_workers: int = -1,
     ):
         self.parallel = parallel
         self.num_workers = num_workers
@@ -54,6 +52,14 @@ class Transform:
         return f"{self.__class__.__name__}()"
 
 
+class IdentityTransform(Transform):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+    def forward(self, data: Any) -> Any:
+        return data
+
+
 class AnnotationTransform(Transform):
     """A transform that computes an annotation for the RNA.
 
@@ -61,11 +67,11 @@ class AnnotationTransform(Transform):
     """
 
     def __init__(
-        self,
-        use_cache: bool = False,
-        cache_path: Union[str, os.PathLike] = None,
-        load_cache_path: Union[str, os.PathLike] = None,
-        **kwargs,
+            self,
+            use_cache: bool = False,
+            cache_path: Union[str, os.PathLike] = None,
+            load_cache_path: Union[str, os.PathLike] = None,
+            **kwargs,
     ):
         super().__init__(**kwargs)
 
@@ -81,7 +87,7 @@ class FilterTransform(Transform):
 
         RNADataset = __import__("rnaglib.data_loading").data_loading.RNADataset
         if not isinstance(data, (list, Generator, RNADataset)):
-            raise ValueError("Filter transforms only apply to collections of RNAs.")
+            return self.forward(data)
 
         if self.parallel:
             keeps = Parallel(n_jobs=self.num_workers)(delayed(self.forward)(d) for d in data)
@@ -114,8 +120,6 @@ class PartitionTransform(Transform):
     def new_name(self, rna_partition: dict):
         """Compute the name of the given partition of RNA"""
         raise NotImplementedError
-
-    pass
 
 
 class Compose(Transform):
