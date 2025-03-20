@@ -135,6 +135,7 @@ Source Code and Contact
 
 * `Source Code <https://github.com/cgoliver/rnaglib>`_.
 * Contact rnaglib@cs.mcgill.ca 
+* `X <https://x.com/rnaglib>`_.
 
 Associated Repositories
 -----------------------------------------------
