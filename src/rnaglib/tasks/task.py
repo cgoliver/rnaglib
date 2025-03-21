@@ -575,12 +575,15 @@ class ClassificationTask(Task):
 
 class ResidueClassificationTask(ClassificationTask):
     def __init__(self, additional_metadata=None, **kwargs):
-        meta = {'graph_level': False, **additional_metadata}
+        meta = {'graph_level': False}
+        if additional_metadata is not None:
+            meta.update(additional_metadata)
         super().__init__(additional_metadata=meta, **kwargs)
 
 
 class RNAClassificationTask(ClassificationTask):
     def __init__(self, additional_metadata=None, **kwargs):
-        additional_metadata = {} if additional_metadata is None else additional_metadata
-        meta = {'graph_level': True, **additional_metadata}
+        meta = {'graph_level': True}
+        if additional_metadata is not None:
+            meta.update(additional_metadata)
         super().__init__(additional_metadata=meta, **kwargs)
