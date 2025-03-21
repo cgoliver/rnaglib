@@ -20,10 +20,10 @@ class BenchmarkBindingSite(ResidueClassificationTask):
     name = "rna_site_bench"
     version = "2.0.2"
 
-    def __init__(self, root, cutoff=6.0, **kwargs):
+    def __init__(self, cutoff=6.0, **kwargs):
         self.cutoff = cutoff
-        meta = {"task_name": "rna_site_bench", "multi_label":False}
-        super().__init__(root=root, additional_metadata=meta, **kwargs)
+        meta = {"multi_label": False}
+        super().__init__(additional_metadata=meta, **kwargs)
 
     @property
     def default_splitter(self):
@@ -80,10 +80,10 @@ class BindingSite(ResidueClassificationTask):
     name = "rna_site"
     version = "2.0.2"
 
-    def __init__(self, root, cutoff=6.0, size_thresholds=(15, 500), **kwargs):
+    def __init__(self, cutoff=6.0, size_thresholds=(15, 500), **kwargs):
         self.target_var = f"binding_small-molecule-{cutoff}A"
-        meta = {"task_name": "rna_site", "multi_label": False}
-        super().__init__(root=root, additional_metadata=meta, size_thresholds=size_thresholds, **kwargs)
+        meta = {"multi_label": False}
+        super().__init__(additional_metadata=meta, size_thresholds=size_thresholds, **kwargs)
 
     def process(self) -> RNADataset:
         # Define your transforms
@@ -105,11 +105,11 @@ class BindingSite(ResidueClassificationTask):
         for rna in tqdm(dataset, total=len(dataset), desc="Processing RNAs"):
             for rna_connected_component in connected_components_partition(rna):
                 if not connected_component_filters.forward(rna_connected_component):
-                        continue
+                    continue
                 if rna_filter.forward(rna_connected_component):
                     rna_g = rna_connected_component["rna"]
                     bind = nx.get_node_attributes(rna_g,
-                                             self.target_var).values()
+                                                  self.target_var).values()
 
                     assert not all([b is None for b in bind])
                     self.add_rna_to_building_list(all_rnas=all_rnas, rna=rna_g)
