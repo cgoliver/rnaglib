@@ -10,9 +10,15 @@ from rnaglib.utils.rfam_utils import get_frequent_go_pdbsel
 
 class RNAGo(RNAClassificationTask):
     """
-    Predict the Rfam family of a given RNA chain. This is a multi-class classification task.
-     Of course, this task is solved by definition since families are constructed using covariance models.
-     However, it can still test the ability of a model to capture characteristic structural features from 3D.
+    Predict the GO terms associated with the Rfam family of a given RNA chain.
+    Of course, this task is solved by definition since families are constructed using covariance models.
+    However, it can still test the ability of a model to capture characteristic structural features from 3D.
+
+    Task type: multi-class classification
+    Task level: graph-level
+
+    :param Union[str, os.PathLike] root: Path to the folder where the task-related data should be loaded
+    :param tuple[float] size_thresholds: range of RNA sizes to keep in the task dataset(default (15., 500.))
     """
 
     input_var = "nt_code"  # node level attribute
@@ -43,6 +49,12 @@ class RNAGo(RNAClassificationTask):
                              MultiLabelOneHotEncoder(label_mapping)}, )
 
     def process(self):
+        """"
+        Creates the task-specific dataset.
+
+        :return: the task-specific dataset
+        :rtype: RNADataset
+        """
         # Get initial mapping files:
         df, rfam_go_mapping = get_frequent_go_pdbsel()
         if self.debug:
@@ -109,5 +121,6 @@ class RNAGo(RNAClassificationTask):
         return dataset
 
     def post_process(self):
+        "Computes sequence similarity between all atom pairs using CD-Hit"
         cd_hit_computer = CDHitComputer(similarity_threshold=0.9)
         self.dataset = cd_hit_computer(self.dataset)

@@ -26,7 +26,6 @@ class LigandIdentification(RNAClassificationTask):
 
     def __init__(self, 
         root, 
-        data_filename = 'binding_pockets.csv',
         size_thresholds=(15, 500),
         admissible_ligands = ['PAR','LLL','8UZ'],
         use_balanced_sampler=False,
