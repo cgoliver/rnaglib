@@ -15,6 +15,15 @@ from rnaglib.dataset_transforms import SPLITTING_VARS, default_splitter_tr60_tr1
 
 
 class BenchmarkBindingSite(ResidueClassificationTask):
+    """
+    Version of RNA-Site implemented using the data and splitting of the experiment by Su et al. (2021)
+
+    > Hong Su, Zhenling Peng, and Jianyi Yang. Recognition of small molecule–rna binding sites using
+    > rna sequence and structure. Bioinformatics, 37(1):36–42, 2021. <https://doi.org/10.1093/bioinformatics/btaa1092>
+
+    :param Union[str, os.PathLike] root: Path to the folder where the task-related data should be loaded
+    :param float cutoff: distance (in Angstroms) between an RNA atom and any small molecule atom below which the RNA residue is considered as part of a binding site
+    """
     target_var = "binding_site"
     input_var = "nt_code"
     name = "rna_site_bench"
@@ -27,12 +36,21 @@ class BenchmarkBindingSite(ResidueClassificationTask):
 
     @property
     def default_splitter(self):
+        "Returns the splitting stratefy to be used for this specific task. Canonical splitter is ClusterSplitter which is a "
+        "similarity-based splitting relying on clustering which could be refined into a sequencce- or structure-based clustering"
+        "using distance_name argument"
         if self.debug:
             return RandomSplitter()
         else:
             return default_splitter_tr60_tr18()
 
     def process(self) -> RNADataset:
+        """"
+        Creates the task-specific dataset.
+
+        :return: the task-specific dataset
+        :rtype: RNADataset
+        """
         dataset = RNADataset(
             debug=self.debug,
             in_memory=self.in_memory,
@@ -68,6 +86,8 @@ class BenchmarkBindingSite(ResidueClassificationTask):
         pass
 
     def get_task_vars(self) -> FeaturesComputer:
+        """Specifies the `FeaturesComputer` object of the tasks which defines the features which have to be added to the RNAs
+        (graphs) and nucleotides (graph nodes)"""
         return FeaturesComputer(
             nt_features=self.input_var,
             nt_targets=self.target_var,
@@ -76,6 +96,16 @@ class BenchmarkBindingSite(ResidueClassificationTask):
 
 
 class BindingSite(ResidueClassificationTask):
+    """
+    Predict the RNA residues which are the most likely to be part of binding sites for small molecule ligands
+
+    Task type: binary classification
+    Task level: residue-level
+
+    :param Union[str, os.PathLike] root: Path to the folder where the task-related data should be loaded
+    :param float cutoff: distance (in Angstroms) between an RNA atom and any small molecule atom below which the RNA residue is considered as part of a binding site
+    :param tuple[int] size_thresholds: range of RNA sizes to keep in the task dataset(default (15., 500.))
+    """
     input_var = "nt_code"
     name = "rna_site"
     version = "2.0.2"
@@ -86,6 +116,12 @@ class BindingSite(ResidueClassificationTask):
         super().__init__(root=root, additional_metadata=meta, size_thresholds=size_thresholds, **kwargs)
 
     def process(self) -> RNADataset:
+        """"
+        Creates the task-specific dataset.
+
+        :return: the task-specific dataset
+        :rtype: RNADataset
+        """
         # Define your transforms
         rna_filter = ResidueAttributeFilter(attribute=self.target_var, value_checker=lambda val: val is not None)
         connected_components_partition = ConnectedComponentPartition()
@@ -117,10 +153,16 @@ class BindingSite(ResidueClassificationTask):
         return dataset
 
     def get_task_vars(self) -> FeaturesComputer:
+        """Specifies the `FeaturesComputer` object of the tasks which defines the features which have to be added to the RNAs
+        (graphs) and nucleotides (graph nodes)"""
         return FeaturesComputer(nt_features=self.input_var, nt_targets=self.target_var)
 
     @property
     def default_splitter(self):
+        """Returns the splitting stratefy to be used for this specific task. Canonical splitter is ClusterSplitter which is a "
+        "similarity-based splitting relying on clustering which could be refined into a sequencce- or structure-based clustering"
+        "using distance_name argument
+        """
         if self.debug:
             return RandomSplitter()
         else:

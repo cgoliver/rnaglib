@@ -17,6 +17,13 @@ from .prepare_dataset import PrepareDataset
 class LigandIdentification(RNAClassificationTask):
     """Binding pocket-level task where the job is to predict the (small molecule) ligand which is the most likely
     to bind a binding pocket with a given structure
+
+    :param Union[str, os.PathLike] root: Path to the folder where the task-related data should be loaded
+    :param tuple[int] size_thresholds: range of RNA sizes to keep in the task dataset(default (15, 500))
+    :param list[str] admissible_ligands: list of the names of the ligands to include in the dataset. By default,
+    they are paromomycin (PAR), LLL and 8UZ since these are the four most frequent small molecules binding RNAs in
+    our database.
+
     """
     input_var = "nt_code"
     target_var = "ligand"
@@ -44,6 +51,12 @@ class LigandIdentification(RNAClassificationTask):
         super().__init__(root=root, additional_metadata=meta, size_thresholds=size_thresholds, **kwargs)
 
     def process(self):
+        """"
+        Creates the task-specific dataset.
+
+        :return: the task-specific dataset
+        :rtype: RNADataset
+        """
         # Initialize dataset with in_memory=False to avoid loading everything at once
         self.metadata["graph_level"] = True 
         dataset = RNADataset(in_memory=False, redundancy=self.redundancy, rna_id_subset=self.nodes_keep)
@@ -134,4 +147,7 @@ class LigandIdentification(RNAClassificationTask):
 
     @property
     def default_splitter(self):
+        "Returns the splitting stratefy to be used for this specific task. Canonical splitter is ClusterSplitter which is a "
+        "similarity-based splitting relying on clustering which could be refined into a sequencce- or structure-based clustering"
+        "using distance_name argument"
         return ClusterSplitter(distance_name="USalign")

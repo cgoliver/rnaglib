@@ -2,18 +2,15 @@
 
 In this directory you can find the implementation of the `RNA-Ligand` task.
 It provides a dataset of RNA pockets and their respective ligands and allows for ligand prediction.
-Here, we base our task on the Graph Matching Substitution Matrices introduced in:
-
-> Pellizzoni, P., Oliver, C., Borgwardt, K. (2024). Structure- and Function-Aware Substitution Matrices via Learnable
-> Graph Matching. In: Ma, J. (eds) Research in Computational Molecular Biology. RECOMB 2024. Lecture Notes in Computer
-> Science, vol 14758. Springer, Cham. <https://doi.org/10.1007/978-1-0716-3989-4_18>
 
 ## Project Structure
 
-This repository contains two files:
+This repository contains four files:
 
 1. `demo.py`
 2. `ligand_identity.py`
+3. `prepare_dataset.py`
+4. `prepare_data.py`
 
 ### demo.py
 
@@ -30,7 +27,14 @@ This is the task definition using `rnaglib`'s task API. It includes:
 - Adds relevant attributes to the classification tasks
 - Defines choice of splitting strategy and through inheritance the model evaluation methods.
 
+### prepare_dataset.py
+
+This file contains the definition of the PrepareDataset class which is being called in ligand_identity.py in the data post-processing. Indeed, the filtering of the RNAs aiming at removing redundancy is a bit different for this tasks than for other tasks.
+
+### prepare_data.py
+
+This file contains the instructions to build the 2 JSON files bp_dict.json and ligands_dict.json which respectively indicate the splitting of the RNA residues into binding pockets and the ligand associated with each RNA residue. bp_dict.json and ligands_dict.json are required to run ligand_identity.py. By default, the files bp_dict.json and ligands_dict.json contained in data folder will be used.
+
 ## Usage
 
-To train and evaluate the model, simply run: `python demo.py` or `python demo.py --frompickle` if you want to use a
-precomputed task, saving some execution time.
+To train and evaluate the model, simply run: `python demo.py` if you want to use a precomputed task, saving some execution time.
