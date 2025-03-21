@@ -8,7 +8,7 @@ import numpy as np
 from sklearn.metrics import accuracy_score, confusion_matrix, f1_score, matthews_corrcoef, roc_auc_score
 from tqdm import tqdm
 
-from rnaglib.data_loading import RNADataset
+from rnaglib.dataset import RNADataset
 from rnaglib.dataset_transforms import (
     CDHitComputer,
     ClusterSplitter,
@@ -190,7 +190,7 @@ class gRNAde(InverseFolding):
     # everything is inherited except for process and splitter.
     name = "rna_if_bench"
 
-    def __init__(self, root, size_thresholds=(15, 300), **kwargs):
+    def __init__(self, root, size_thresholds=(15, 300), debug=False, **kwargs):
         self.splits = {
             # Use sets instead of lists for chains since order doesn't matter
             "pdb_to_chain_train": defaultdict(set),
@@ -199,13 +199,14 @@ class gRNAde(InverseFolding):
             "pdb_to_chain_all": defaultdict(set),
             "pdb_to_chain_all_single": defaultdict(set),
         }
+        self.debug = debug
         # Populate the structure
         data_dir = Path(os.path.dirname(os.path.abspath(__file__))) / "data"
         for split in ["train", "test", "val"]:
             file_path = data_dir / f"{split}_ids_das.txt"
             with open(file_path) as f:
                 for i, line in enumerate(f):
-                    if kwargs['debug'] and i > 10:
+                    if self.debug and i > 10:
                         break
                     line = line.strip()
                     pdb_id = line.split("_")[0].lower()

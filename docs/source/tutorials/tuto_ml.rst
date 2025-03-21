@@ -10,17 +10,19 @@ RNAGlib provides access to collections of RNAs for machine learning with PyTorch
 It revolves around the usual Dataset and Dataloader objects, along with a Representation object :
 
 * `RNADatasets` objects are an iterable of RNA data, that returns representations of this data
-* The `Features_Computer` object can be thought of as Transforms class, selecting relevant node or graph features
-and transforming them into tensors ready to be used in deep learning.
-* The `Representation` object will return our data in a certain representation (e.g. graphs, voxels, point clouds) as
-well as cast to different data science and ML frameworks (DGL, pytorch-geometric, networkx).
+
+* The `Features_Computer` object can be thought of as Transforms class, selecting relevant node or graph features and transforming them into tensors ready to be used in deep learning.
+
+* The `Representation` object will return our data in a certain representation (e.g. graphs, voxels, point clouds) as well as cast to different data science and ML frameworks (DGL, pytorch-geometric, networkx).
+
 * The `get_loader` function encapsulates automatic data splitting and collating and returns appropriate PyTorch data loaders.
+
 
 
 Datasets
 ~~~~~~~~~~
 
-The `rnaglib.data_loading.RNADataset` object builds and provides access to collections of RNAs.
+The `rnaglib.dataset.RNADataset` object builds and provides access to collections of RNAs.
 When using the Dataset class, our standard data distribution should be downloaded automatically.
 Alternatively, you can choose to provide your own annotated RNAs by providing a `dataset_path`.
 
@@ -28,7 +30,7 @@ To create a dataset using our hosted data simply instantiate the `RNADataset` ob
 
 .. code-block:: python
 
-   from rnaglib.data_loading import RNADataset
+   from rnaglib.dataset import RNADataset
 
    dataset = RNADataset()
 
@@ -56,7 +58,7 @@ The returned object is a dictionnary with three entries :
 Representations
 ~~~~~~~~~~~~~~~~~
 
-The next important object for RNAGlib is the `FeaturesComputer`. This object can be thought as a Transforms function
+The next important object for RNAGlib is the `FeaturesComputer`. This object can be thought as a RNATransform function
 that acts on the raw data to select relevant features and turn them into torch Tensors.
 The user can ask for input nucleotide features and nucleotide targets.
 As an example, we use nucleotide identity ('nt_code') as input and the binding of an ion ('binding_ion') as output.
@@ -148,7 +150,7 @@ that are used. These two functionalities are implemented in a straightforward ma
 .. code-block:: python
 
     from torch.utils.data import DataLoader
-    from rnaglib.data_loading import Collater
+    from rnaglib.dataset_transforms import Collater
     from rnaglib.splitters import split_dataset
 
     train_set, valid_set, test_set = split_dataset(dataset, split_train=0.7, split_valid=0.85)
@@ -168,7 +170,7 @@ Additional inputs and outputs
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Adding more input features to the graphs is straightforward, as you simply have to specify more items in the features list.
-A full description of the input features that can be used is available in :doc:`rnaglib.data`.
+A full description of the input features that can be used is available in :doc:`../data_reference/rna_ref`.
 Similarly, you can seamlessly switch to a multi-task setting by adding more targets. However, doing this affects the splitting procedure.
 A side effect could be a slight deviation in the train/validation/test fractions.
 The tasks currently implemented are in the set : {'node_binding_small-molecule', 'node_binding_protein', 'node_binding_ion', "node_is_modified"}.
@@ -205,4 +207,6 @@ The loader will then return an additional field in the batch, with a 'ring' key 
     da.add_representation(ring_rep)
     train_loader, _, _ = graphloader.get_loader(dataset=unsupervised_dataset)
 
-The coordinated use of these functionalities is illustrated in the :doc:`rnaglib.examples`: section.
+
+
+The coordinated use of these functionalities is illustrated in the :doc:`../tutorials/tuto_tasks`: section.

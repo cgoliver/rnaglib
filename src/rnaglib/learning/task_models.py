@@ -19,7 +19,7 @@ class PygModel(torch.nn.Module):
         Will fail if number of node features is not the default.
         """
         if num_node_features is None:
-            num_node_features = task.metadata["num_nodes_features"]
+            num_node_features = task.metadata["num_node_features"]
         if num_classes is None:
             num_classes = task.metadata["num_classes"]
         if graph_level is None:

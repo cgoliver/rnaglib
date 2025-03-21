@@ -18,8 +18,8 @@
    :caption: Tutorials
    :hidden:
 
+   How to train a model <tutorials/tuto_tasks>
    A tour of RNA 2.5D graphs <tutorials/tuto_2.5d>
-   Using Benchmark Tasks <tutorials/tuto_tasks>
 
 .. toctree::
    :maxdepth: 2
@@ -28,16 +28,19 @@
 
    What is an RNA 2.5D graph? <data_reference/what_is>
    RNA Annotation Reference <data_reference/rna_ref>
-   How is the data built? <data_reference/tuto_build>
+   How is the data built? <data_reference/build_data>
    Available Benchmark Tasks <data_reference/available_tasks>
 
 .. toctree::
    :maxdepth: 2
-   :caption: A peak under the hood
+   :caption: A peek under the hood
    :hidden:
 
    Overview <code_architecture/overview>
-   RNA Transforms <code_architecture/tuto_transforms>
+   RNADataset <code_architecture/dataset>
+   RNA Transforms <code_architecture/rna_transforms>
+   RNADataset Transforms <code_architecture/dataset_transforms>
+   Task <code_architecture/task>
 
 .. toctree::
    :maxdepth: 2
@@ -46,7 +49,8 @@
 
    Algorithms <code_index/rnaglib.algorithms>
    Databases <code_index/rnaglib.prepare_data>
-   Datasets <code_index/rnaglib.data_loading>
+   Datasets <code_index/rnaglib.dataset>
+   Datasets <code_index/rnaglib.dataset_transforms>
    Transforms <code_index/rnaglib.transforms>
    ML Tasks <code_index/rnaglib.tasks>
    Visualization <code_index/rnaglib.drawing>
@@ -54,25 +58,30 @@
    Utils <code_index/rnaglib.utils>
    Configurations <code_index/rnaglib.config>
 
-RNAGlib Official Documentation
+rnaglib Official Documentation
 ================================
 
 ..
  This is a comment : contents:: Table of Contents
 
 
-``RNAGlib`` (RNA Geometric Library) is a Python package for studying models of RNA 3D structures.
+``rnaglib`` (RNA Geometric Library) is a Python package for studying models of RNA 3D structures.
+
+.. figure:: https://raw.githubusercontent.com/cgoliver/rnaglib/c092768f19d32d40329ca822e59db5507ec245ca/images/tasksfig.png
+   :alt: Tasks Figure
+   :width: 800px
+   :align: center
 
 Core Features
 -----------------
 
-* Quick access to all available RNA 3D structures with annotations
-* Rich functionality for 2.5D RNA graphs, point clouds, and voxels
+* Quick and detailed access to all available RNA 3D structures with annotations
+* Train and benchmark deep learning models for RNA 3D structure-function tasks
 * RNA graph visualization 
-* Machine Learning benchmarking tasks 
+* Create fully reproducible custom datasets and tasks
 
 
-Get started with RNAGlib
+Get started with rnaglib
 ---------------------------
 
 * :doc:`Install<pages/install>`
@@ -88,28 +97,31 @@ Those tutorials are meant to give you on operational overview of the library
 * :doc:`Using Benchmark Tasks <tutorials/tuto_tasks>`
 
 Data reference
------------
+-----------------
 
 Pages to read to better understand what is our data and how we build it.
 
 * :doc:`A tour of RNA 2.5D graphs <data_reference/what_is>`
 * :doc:`RNA Annotation Reference <data_reference/rna_ref>`
-* :doc:`How is the data built? <data_reference/tuto_build>`
+* :doc:`How is the data built? <data_reference/build_data>`
 * :doc:`Available Benchmark Tasks <data_reference/available_tasks>`
 
-A peak under the hood
------------
+A peek under the hood
+------------------------
 
 Pages to give you an understanding of the main objects shipping with RNAglib
 
-* :doc:`Overview <code_architecture/tuto_transforms>`
-* :doc:`RNA Transforms <code_architecture/tuto_transforms>`
-* :doc:`RNADataset <code_architecture/tuto_transforms>`
+* :doc:`Overview <code_architecture/overview>`
+* :doc:`RNADataset <code_architecture/dataset>`
+* :doc:`RNA Transforms <code_architecture/rna_transforms>`
+* :doc:`RNADataset Transforms <code_architecture/dataset_transforms>`
+* :doc:`Task <code_architecture/task>`
+
 
 Package Structure
 -----------------
 
--  :doc:`code_index/rnaglib.data_loading`: custom PyTorch dataloader and dataset implementations
+-  :doc:`code_index/rnaglib.dataset`: custom RNA PyTorch dataset implementations
 -  :doc:`code_index/rnaglib.tasks`: prediction tasks for ML benchmarking.
 -  :doc:`code_index/rnaglib.transforms`: process and modify RNA data
 -  :doc:`code_index/rnaglib.learning`: learning routines and pre-built GCN models for the easiest use of the
@@ -123,6 +135,7 @@ Source Code and Contact
 
 * `Source Code <https://github.com/cgoliver/rnaglib>`_.
 * Contact rnaglib@cs.mcgill.ca 
+* `X <https://x.com/rnaglib>`_.
 
 Associated Repositories
 -----------------------------------------------

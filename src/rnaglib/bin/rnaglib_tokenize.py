@@ -9,7 +9,9 @@ if __name__ == "__main__":
 
 import argparse
 
-from rnaglib.data_loading import RNADataset, FeaturesComputer
+from rnaglib.dataset import RNADataset
+from rnaglib.transforms.featurize import FeaturesComputer
+
 
 """
 A downloading script

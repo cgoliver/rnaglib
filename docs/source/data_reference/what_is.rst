@@ -31,5 +31,5 @@ These include, but are not limited to:
 -  Leontis-westhof base pair geometry classification 
 
 We provide a visualization of what the graphs in this database contain.
-A more detailed description of the data is presented in :doc:`rnaglib.data`.
+A more detailed description of the data is presented in :doc:`../data_reference/rna_ref`.
 

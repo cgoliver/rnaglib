@@ -9,7 +9,7 @@ if __name__ == "__main__":
     sys.path.append(os.path.join(script_dir, '..', '..'))
 
 import argparse
-from rnaglib.data_loading import get_graph_indexes
+from rnaglib.dataset import get_graph_indexes
 
 
 def cline():

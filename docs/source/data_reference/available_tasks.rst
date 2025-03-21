@@ -59,8 +59,7 @@ Code to reproduce the results included in the correspoding submission can be fou
 
 .. [Pellizzoni_et_al_2024] Paolo Pellizzoni, Carlos Oliver, and Karsten Borgwardt. Structure- and function-aware substitution matrices via learnable graph matching. In Research in Computational Molecular Biology, 2024.
 
-.. [Su_et_al_2021] Hong Su, Zhenling Peng, and Jianyi Yang. Recognition of small molecule–rna binding sites using
-RNA sequence and structure. Bioinformatics, 37(1):36–42, 2021.
+.. [Su_et_al_2021] Hong Su, Zhenling Peng, and Jianyi Yang. Recognition of small molecule–rna binding sites using RNA sequence and structure. Bioinformatics, 37(1):36–42, 2021.
 
 .. [Wang_et_al_2018] Kaili Wang, Yiren Jian, Huiwen Wang, Chen Zeng, and Yunjie Zhao. Rbind: computational network method to predict rna binding sites. Bioinformatics, 34(18):3131–3136, 2018.
 

@@ -5,7 +5,7 @@ Quickstart
 Get the data
 ______________
 
-Once you have :doc:`installed <install>` RNAglib, you can fetch a pre-built dataset of RNA structures using the command line::
+Once you have :doc:`installed <../pages/install>` RNAglib, you can fetch a pre-built dataset of RNA structures using the command line::
 
     rnaglib_download
 
@@ -32,7 +32,7 @@ You can load one RNA using ``rna_from_pdbid()``
     >>> rna.graph
     {'dbn': {'all_chains': {'num_nts': 143, 'num_chars': 144, 'bseq': 'GCCCGGAUAGCUCAGUCGGUAGAGCAGGGGAUUGAAAAUCCCCGUGUCCUUGGUUCGAUUCCGAGUCUGGGCAC&CGGAUAGCUCAGUCGGUAGAGCAGGGGAUUGAAAAUCCCCGUGUCCUUGGUUCGAUUCCGAGUCCGGGC', 'sstr': '(((((((..((((.....[..)))).(((((.......))))).....(((((..]....))))))))))))..&((((..((((.....[..)))).(((((.......))))).....(.(((..]....))).)))))...', 'form': 'AAAAAA...AA...A.......AAA.AAAA.......A.AAA......AAAAA..A....AAAAAAAAAAAA.-&.AA...AA...A.......AAA.AAAA.......A.AAA......AAAAA..A....A...AAAA.A.-'}...,
 
-See the data :doc:`tutorial <tuto_2.5d>` for more on the data.
+See the data :doc:`tutorial <../tutorials/tuto_2.5d>` for more on the data.
 
 Load an RNA Dataset
 ______________________
@@ -46,7 +46,7 @@ For that we have the ``RNADataset`` object.::
 
 
 This object holds the same objects as above but also supports ML functionalities such as converting the RNAs to different representations (graphs, point clouds, voxels) and to different frameworks (dgl, torch, pytorch geometric)
-See the ML :doc:`tutorial <tuto_ml>` for more on model training and tasks.
+See the ML :doc:`tutorial <../tutorials/tuto_tasks>` for more on model training and tasks.
 
 Train a model on an RNA Task
 ____________________________________

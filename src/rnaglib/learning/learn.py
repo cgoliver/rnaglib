@@ -113,7 +113,7 @@ def train_supervised(model,
 
     :param model: The model to train
     :param optimizer: the optimizer to use (eg SGD or Adam)
-    :param train_loader: The loader to use for training, as defined in data_loading/GraphLoader
+    :param train_loader: The loader to use for training, as defined in dataset/GraphLoader
     :param learning_routine: A LearningRoutine object, if we want to also use a validation phase and early stopping
 
     :return: The best loss obtained
@@ -189,8 +189,8 @@ def train_linkpred(model,
 
     :param model: The model to train
     :param optimizer: the optimizer to use (eg SGD or Adam)
-    :param train_loader_generator: The edge loader to use for training, as defined in data_loading/GraphLoader
-    :param validation_loader_generator: The edge loader to use for training, as defined in data_loading/GraphLoader
+    :param train_loader_generator: The edge loader to use for training, as defined in dataset/GraphLoader
+    :param validation_loader_generator: The edge loader to use for training, as defined in dataset/GraphLoader
 
     :return: The best loss obtained
     """
@@ -239,7 +239,8 @@ def train_linkpred(model,
 if __name__ == '__main__':
     pass
     from rnaglib.learning import models
-    from rnaglib.data_loading import rna_loader
+    from rnaglib.learning import models
+    from rnaglib.dataset_transforms import rna_loader
 
     test_unsupervised = False
     test_supervised = True
@@ -252,11 +253,11 @@ if __name__ == '__main__':
         node_sim_func = node_sim.SimFunctionNode(method='R_1', depth=2)
         data_path = os.path.join(script_dir, '..', 'data/annotated/NR_annot/')
         node_features = ['nt_code']
-        unsupervised_dataset = graphloader.GraphDataset(node_simfunc=node_sim_func,
+        unsupervised_dataset = rna_loader.GraphDataset(node_simfunc=node_sim_func,
                                                         node_features=node_features,
                                                         data_path=data_path,
                                                         chop=True)
-        train_loader = graphloader.get_loader(dataset=unsupervised_dataset, split=False,
+        train_loader = rna_loader.get_loader(dataset=unsupervised_dataset, split=False,
                                               num_workers=0, max_size_kernel=100)
 
         pretrain_unsupervised(model=embedder_model,
@@ -274,10 +275,10 @@ if __name__ == '__main__':
 
         # Define model
         # GET THE DATA GOING
-        supervised_dataset = graphloader.GraphDataset(data_path=annotated_path,
+        supervised_dataset = rna_loader.GraphDataset(data_path=annotated_path,
                                                       node_features=node_features,
                                                       node_target=node_target)
-        train_loader, validation_loader, test_loader = graphloader.get_loader(dataset=supervised_dataset, split=True,
+        train_loader, validation_loader, test_loader = rna_loader.get_loader(dataset=supervised_dataset, split=True,
                                                                               num_workers=0)
 
         embedder_model = models.Embedder([10, 10], infeatures_dim=1)

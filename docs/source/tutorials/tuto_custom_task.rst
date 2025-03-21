@@ -57,7 +57,7 @@ Once the task processing is complete, all task data is dumped into ``root`` whic
 Here is a minimal template for a custom task::
 
     from rnaglib.tasks import Task
-    from rnaglib.data_loading import RNADataset
+    from rnaglib.dataset import RNADataset
     from rnaglib.splitters import Splitter 
 
     class MyTask(Task):
@@ -121,7 +121,7 @@ Let's define a ``Task.process()`` method which builds a dataset with a single cr
 
 The ``Transforms`` library provides a filter which checks that an RNA's residues are of a desired value. ::
 
-    from rnaglib.data_loading import RNADataset
+    from rnaglib.dataset import RNADataset
     from rnaglib.tasks import ResidueClassificationTask
     from rnaglib.transforms import ResidueAttributeFilter
     from rnaglib.transforms import PDBIDNameTransform
@@ -155,7 +155,7 @@ That's it now you just return the new ``RNADataset`` object.
 
 Apart from the RNAs themselves, the task needs to know which variables are relevant. In particular we need to set the prediction target. Additionally we can set some default input features, which are always provided. The user can always add more input features if he/she desires by manipulating ``task.dataset.features_computer`` but at the minimum we need to define target variables.::
 
-    from rnaglib.data_loading import RNADataset
+    from rnaglib.dataset import RNADataset
     from rnaglib.tasks import ResidueClassificationTask
     from rnaglib.transforms import ResidueAttributeFilter
     from rnaglib.transforms import PDBIDNameTransform
@@ -184,7 +184,7 @@ You can select from the library of implemented splitters of implement your own.
 
 For this example, we will split the RNAs by structural similarity using RNA-align.::
 
-    from rnaglib.data_loading import RNADataset
+    from rnaglib.dataset import RNADataset
     from rnaglib.tasks import ResidueClassificationTask
 
     from rnaglib.transforms import ResidueAttributeFilter
@@ -217,7 +217,7 @@ That's it! Your task is now fully defined and can be used in model training and 
 Here is the ful task implementation::
 
 
-    from rnaglib.data_loading import RNADataset
+    from rnaglib.dataset import RNADataset
     from rnaglib.tasks import ResidueClassificationTask
     from rnaglib.transforms import FeaturesComputer
     from rnaglib.transforms import ResidueAttributeFilter
