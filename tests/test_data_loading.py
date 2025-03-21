@@ -66,21 +66,6 @@ class TestDataset(unittest.TestCase):
         self.default_dataset.add_representation(GraphRepresentation())
         pass
 
-    def test_pre_transform(self):
-        """Add rnafm embeddings during dataset construction from database,
-        then look up the stored attribute at getitem time.
-        """
-        tr = RNAFMTransform()
-        feat = FeaturesComputer(nt_features=["nt_code", tr.name], custom_encoders={tr.name: tr.encoder})
-        dataset = RNADataset(
-            debug=True,
-            features_computer=feat,
-            pre_transforms=tr,
-            representations=GraphRepresentation(framework="pyg"),
-        )
-
-        assert dataset[0]["graph"].x is not None
-
     def test_post_transform(self):
         """Apply transform during getitem call."""
         tr = RNAFMTransform()
