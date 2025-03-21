@@ -18,12 +18,13 @@ class RNAGo(RNAClassificationTask):
     Task level: graph-level
 
     :param Union[str, os.PathLike] root: Path to the folder where the task-related data should be loaded
-    :param tuple[float] size_thresholds: range of RNA sizes to keep in the task dataset(default (15., 500.))
+    :param tuple[int] size_thresholds: range of RNA sizes to keep in the task dataset(default (15, 500))
     """
 
     input_var = "nt_code"  # node level attribute
     target_var = "go_terms"  # graph level attribute
     name = "rna_go"
+    version = "2.0.2"
 
     def __init__(self, root, size_thresholds=(15, 500), **kwargs):
         meta = {"task_name": "rna_go", "multi_label":True}

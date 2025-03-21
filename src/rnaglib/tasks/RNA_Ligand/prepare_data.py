@@ -15,8 +15,6 @@ from rnaglib.algorithms import bfs
 dataset = RNADataset(debug=False, in_memory=False, redundancy="all")
 
 # Instantiate filters to apply
-
-
 protein_content_filter = ResidueAttributeFilter(attribute="protein_content_8.0", aggregation_mode="aggfunc", value_checker=lambda x: x < 10, aggfunc=np.mean)
 size_filter = SizeFilter(5, 500)
 binding_pocket_filters_list = [protein_content_filter, size_filter]
