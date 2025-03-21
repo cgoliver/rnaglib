@@ -11,7 +11,7 @@ from bidict import bidict
 import networkx as nx
 import numpy as np
 
-from rnaglib.data_loading.create_dataset import database_to_dataset
+from rnaglib.dataset.create_dataset import database_to_dataset
 from rnaglib.transforms.featurize import FeaturesComputer
 from rnaglib.transforms.represent import Representation
 from rnaglib.transforms.transform import AnnotationTransform, Transform
@@ -43,7 +43,7 @@ class RNADataset:
     Examples:
     ---------
     Create a default dataset::
-    >>> from rnaglib.data_loading import RNADataset
+    >>> from rnaglib.dataset import RNADataset
     >>> dataset = RNADataset()
 
     Access the first item in the dataset::
@@ -61,26 +61,26 @@ class RNADataset:
     """
 
     def __init__(
-        self,
-        rnas: list[nx.Graph] = None,
-        dataset_path: str | os.PathLike = None,
-        version="2.0.2",
-        redundancy="nr",
-        rna_id_subset: list[str] = None,
-        recompute_mapping: bool = True,
-        in_memory: bool = True,
-        features_computer: FeaturesComputer = None,
-        representations: list[Representation] | Representation = None,
-        debug: bool = False,
-        get_pdbs: bool = True,
-        overwrite: bool = False,
-        multigraph: bool = False,
-        pre_transforms: list[Transform] | Transform = None,
-        transforms: list[Transform] | Transform = None,
-        **kwargs,
+            self,
+            rnas: list[nx.Graph] = None,
+            dataset_path: str | os.PathLike = None,
+            version="2.0.2",
+            redundancy="nr",
+            rna_id_subset: list[str] = None,
+            recompute_mapping: bool = True,
+            in_memory: bool = True,
+            features_computer: FeaturesComputer = None,
+            representations: list[Representation] | Representation = None,
+            debug: bool = False,
+            get_pdbs: bool = True,
+            overwrite: bool = False,
+            multigraph: bool = False,
+            pre_transforms: list[Transform] | Transform = None,
+            transforms: list[Transform] | Transform = None,
+            **kwargs,
     ):
         self.in_memory = in_memory
-        self.transforms = transforms
+        self.transforms = [transforms] if transforms is not None and not isinstance(transforms, Iterable) else []
         self.pre_transforms = pre_transforms
         self.multigraph = multigraph
         self.version = version
@@ -190,19 +190,20 @@ class RNADataset:
         else:
             self.distances_[name] = distance_mat
 
-    def save_distances(self):
+    def save_distances(self, dump_path=None):
         """Saves distances to distance path."""
         if self.distances is not None:
-            np.savez(self.distances_path, **self.distances)
+            dump_path = dump_path if dump_path is not None else self.distances_path
+            np.savez(dump_path, **self.distances)
 
     @classmethod
     def from_database(
-        cls,
-        representations=None,
-        features_computer=None,
-        *,  # enforce keyword only arguments
-        in_memory=True,
-        **dataset_build_params,
+            cls,
+            representations=None,
+            features_computer=None,
+            *,  # enforce keyword only arguments
+            in_memory=True,
+            **dataset_build_params,
     ):
         """Run the steps to build a dataset from scratch.
 
@@ -262,8 +263,9 @@ class RNADataset:
         # Compute features
         rna_dict = {"rna": rna_graph, "graph_path": nx_path, "cif_path": cif_path}
 
-        if self.transforms is not None:
-            self.transforms(rna_dict)
+        if len(self.transforms) > 0:
+            for transform in self.transforms:
+                transform(rna_dict)
 
         features_dict = self.features_computer(rna_dict)
         # apply representations to the res_dict
@@ -288,6 +290,13 @@ class RNADataset:
         representations = [representations] if not isinstance(representations, list) else representations
         to_print = [repre.name for repre in representations] if len(representations) > 1 else representations[0].name
         print(f">>> Adding {to_print} to dataset representations.")
+
+        # Remove old representations with the same name
+        new_representations = set([repre.name for repre in representations])
+        to_remove = {repr.name for repr in self.representations if repr.name in new_representations}
+        if len(to_remove) > 0:
+            print(f"Removing old representations of {to_remove} from existing representation to avoid clash")
+            self.representations = [repr for repr in self.representations if not repr.name in to_remove]
         self.representations.extend(representations)
 
     def remove_representation(self, names):
@@ -299,11 +308,11 @@ class RNADataset:
             ]
 
     def add_feature(
-        self,
-        feature: str | AnnotationTransform,
-        feature_level: Literal["residue", "rna"] = "residue",
-        *,  # enforce keyword only arguments
-        is_input: bool = True,
+            self,
+            feature: str | AnnotationTransform,
+            feature_level: Literal["residue", "rna"] = "residue",
+            *,  # enforce keyword only arguments
+            is_input: bool = True,
     ):
         """Add a feature to the dataset for model training.
 
@@ -387,20 +396,21 @@ class RNADataset:
         print(f"dumping {len(self.all_rnas)} rnas")
         Path(dump_path).mkdir(parents=True, exist_ok=True)
 
-        self.save_distances()
+        dump_dists = Path(dump_path) / "distances.npz"
+        dump_bidict = Path(dump_path) / "bidict.json"
+        self.save_distances(dump_path=dump_dists)
 
-        with self.bidict_path.open("w") as js:
+        with open(dump_bidict, "w") as js:
             json.dump(dict(self.all_rnas), js)
 
-        if Path(dump_path).exists() and os.listdir(dump_path) and not recompute:
+        # Check if all files are already there
+        existing_files = set(os.listdir(dump_path))
+        to_dump = set([x + '.json' for x in self.all_rnas.keys()])
+        if to_dump.issubset(existing_files) and not recompute:
             if verbose:
                 print('files already exist, set "recompute=True" to overwrite')
-            return
         for rna_name, i in self.all_rnas.items():
             if not self.in_memory:
-                # It's already saved !
-                if self.dataset_path == dump_path:
-                    break
                 rna_graph = load_graph(Path(self.dataset_path) / f"{rna_name}.json")
             else:
                 rna_graph = self.rnas[i]

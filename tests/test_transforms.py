@@ -3,7 +3,7 @@ import tempfile
 
 import networkx as nx
 
-from rnaglib.data_loading import RNADataset
+from rnaglib.dataset import RNADataset
 from rnaglib.transforms import FeaturesComputer
 from rnaglib.transforms import GraphRepresentation
 from rnaglib.transforms import RNAFMTransform

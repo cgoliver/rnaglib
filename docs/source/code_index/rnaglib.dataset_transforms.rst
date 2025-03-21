@@ -1,5 +1,5 @@
 ``rnaglib.dataset_transforms``
-=========================
+==============================
 
 Splitter objects compute a train, validation, and test split for a given dataset.
 
@@ -9,9 +9,9 @@ Splitter objects compute a train, validation, and test split for a given dataset
 
 
 Abstract classes
-------------------
+----------------
 
-Subclass these to create your own tasks.
+Ways to split your data.
 
 .. autosummary::
    :toctree: generated/
@@ -19,3 +19,14 @@ Subclass these to create your own tasks.
     Splitter 
     ClusterSplitter
     RandomSplitter
+
+Loading
+-------
+
+Tools for loading RNAs stored in an ``RNADataset`` batch-wise for deep learning models.
+
+.. autosummary::
+   :toctree: generated/
+
+    Collater
+    get_loader

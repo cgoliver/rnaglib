@@ -6,7 +6,7 @@ from tqdm import tqdm
 
 from rnaglib.tasks.RNA_VS.ligands import MolGraphEncoder
 from rnaglib.utils import graph_io
-from rnaglib.data_loading import rna_from_pdbid
+from rnaglib.dataset import rna_from_pdbid
 
 
 def compress_migos_data(in_path="data/dataset_as_json.json", out_path="data/dataset_compressed.json"):

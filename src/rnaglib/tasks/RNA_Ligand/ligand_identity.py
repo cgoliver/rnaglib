@@ -2,17 +2,15 @@ import os
 import json
 
 import numpy as np
-import pandas as pd
 from tqdm import tqdm
 from torch.utils.data import DataLoader, WeightedRandomSampler
 import torch
 
-from rnaglib.dataset_transforms import RandomSplitter
 from rnaglib.tasks import RNAClassificationTask
-from rnaglib.data_loading import RNADataset, Collater
+from rnaglib.dataset import RNADataset
 from rnaglib.encoders import IntMappingEncoder
 from rnaglib.transforms import FeaturesComputer, AnnotatorFromDict, PartitionFromDict, ResolutionFilter
-from rnaglib.dataset_transforms import ClusterSplitter, CDHitComputer, StructureDistanceComputer
+from rnaglib.dataset_transforms import ClusterSplitter, CDHitComputer, StructureDistanceComputer, Collater
 from .prepare_dataset import PrepareDataset
 
 

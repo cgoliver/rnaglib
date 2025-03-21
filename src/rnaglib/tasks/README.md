@@ -25,7 +25,7 @@ When instantiating the task, custom splitters or other arguments can be passed i
  ```python
 from rnaglib.tasks import BindingSite
 from rnaglib.transforms import GraphRepresentation, FeaturesComputer
-from rnaglib.data_loading import RNADataset
+from rnaglib.dataset import RNADataset
 
 task = BindingSite(root='tutorial')  # You can pass arguments to use a custom splitter or dataset etc. if desired.
 ```
