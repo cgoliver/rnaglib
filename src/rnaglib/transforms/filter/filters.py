@@ -76,7 +76,7 @@ class ResidueAttributeFilter(FilterTransform):
 
     Keep RNAs with at least 1 chemically modified residue::
 
-        >>> from rnaglib.data_loading import RNADataset
+        >>> from rnaglib.dataset import RNADataset
         >>> from rnaglib.transforms import ResidueAttributeFilter
 
         >>> dset = RNADataset(debug=True)

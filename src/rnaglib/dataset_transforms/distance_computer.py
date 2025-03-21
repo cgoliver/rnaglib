@@ -1,4 +1,7 @@
-class DistanceComputer:
+from rnaglib.dataset_transforms import DSTransform
+
+
+class DistanceComputer(DSTransform):
     def __init__(self, name, recompute=True):
         self.name = name
         self.recompute = recompute

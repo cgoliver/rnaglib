@@ -5,7 +5,7 @@ The ``Transforms`` API handles any operations that modify RNA dictionaries.
 
 Reminder, an RNA dictionary is the item provided by an ``RNADataset()[i]`` and looks like::
 
-    >>> from rnaglib.data_loading import RNADataset
+    >>> from rnaglib.dataset import RNADataset
     >>> dataset = RNADataset(debug=True)
     >>> rna = dataset[10]
     {'rna': <nx.DiGraph...>, 'graph_path': .., 'cif_path': ... }
@@ -96,7 +96,7 @@ A special transform is used to convert raw RNA attibutes which have no constrain
 The feature encoder transforms can do this both for input features provided to the model at learning time, or as target features which are the variable the model is trying to predict.::
 
     >>> from rnaglib.transforms import FeaturesComputer
-    >>> from rnaglib.data_loading import RNADataset
+    >>> from rnaglib.dataset import RNADataset
     >>> ft = FeaturesComputer(nt_features=['nt_code'], nt_targets=['is_modified'])
     >>> features_dict = ft(rna)
     {'nt_features': {'1vfg.C.2': tensor([0., 0., 0., 1.]), ..., '1vfg.D.75': tensor([0., 0., 1., 0.])},
@@ -131,7 +131,8 @@ Transforms of the same kind can be stitched together to avoid repeated iteration
     >>> transformed['rna'].graph['rfam'], node_data['rnafm']
     ('RF00005', [0.25730735,  0.20865716, ...,  -0.32694867])
 
-Filter and Partition Transforms have their own compose object to deal with the slightly different behaviours (``ComposeFilters`` or ``ComposePartitions``).
+Filter Transforms have their own compose object to deal with their slightly different behaviours (``ComposeFilters``).
+Partitions cannot be composed.
 
 Applying transforms to RNA datasets:
 ************************************
@@ -168,7 +169,7 @@ Now instead of the dataset containing a list of RNAs that can each have multiple
 
 Annotations : ::
 
-    >>> from rnaglib.data_loading import RNADataset
+    >>> from rnaglib.dataset import RNADataset
     >>> dset = RNADataset(debug=True)
     >>> t = RfamTransform()
     >>> t(dset)
@@ -183,7 +184,7 @@ The other, better supported way to apply transforms to individual elements of a 
 As expected, this does not work for FilterTransform and PartitionTransform (that would dynamically affect the dataset length...).
 To do so, one can do : ::
 
-    >>> from rnaglib.data_loading import RNADataset
+    >>> from rnaglib.dataset import RNADataset
     >>> from rnaglib.transforms import PDBIDNameTransform
     >>> dset.transforms.append(PDBIDNameTransform())
     >>> dset[0]['rna'].name

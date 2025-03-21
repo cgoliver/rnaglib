@@ -14,7 +14,7 @@ class FeaturesComputer(Transform):
     This class takes as input an RNA in the networkX form
     and computes the ``features_dict`` which maps node IDs to a tensor of features.
     The ``features_dict`` contains keys: ``'nt_features'``for node features,
-    ``'nt_targets'`` for node-level prediction targets. In :class:`~rnaglib.data_loading.RNADataset` construction,
+    ``'nt_targets'`` for node-level prediction targets. In :class:`~rnaglib.dataset.RNADataset` construction,
     the ``FeaturesComputer.compute_features()`` method is called during the ``RNADataset`` ``__getitem__()`` call.
 
     :param nt_features: List of keys to use as node features, choose from the `dataset[i]['rna']` node attributes dictionary.

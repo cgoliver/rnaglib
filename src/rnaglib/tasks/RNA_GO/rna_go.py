@@ -1,6 +1,6 @@
 import os
 
-from rnaglib.data_loading import RNADataset
+from rnaglib.dataset import RNADataset
 from rnaglib.tasks import RNAClassificationTask
 from rnaglib.encoders import MultiLabelOneHotEncoder
 from rnaglib.transforms import FeaturesComputer

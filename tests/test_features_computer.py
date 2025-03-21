@@ -1,7 +1,7 @@
 import unittest
 import tempfile
 
-from rnaglib.data_loading import RNADataset
+from rnaglib.dataset import RNADataset
 from rnaglib.transforms import FeaturesComputer
 from rnaglib.transforms import RNAFMTransform
 

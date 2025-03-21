@@ -38,7 +38,7 @@ A detailed description of these transforms is provided :doc:`here<../code_archit
 RNADataset Transforms
 =====================
 
-Similar to RNATransforms, we also provide function that can alter a whole dataset.
+Similar to Transforms, we also provide function that can alter a whole dataset.
 The two main transformations are computing a distance between the points of the datasets, and filtering a dataset for redundancy.
 A more detailed description is provided :doc:`here<../code_architecture/dataset_transforms>`.
 
@@ -48,7 +48,7 @@ Task
 
 Finally, the Task object encapsulates a dataset for actionable learning.
 It serves as the base object used to establish the benchmark tasks we propose.
-It includes the definition of precise steps to build a dataset (with RNATransforms), postprocess it (with DatasetTransforms) and split it.
+It includes the definition of precise steps to build a dataset (with Transforms), postprocess it (with DatasetTransforms) and split it.
 It also includes routines to get dataloaders looping over this dataset and computing metrics in a principled way.
 A more detailed description is provided :doc:`here<../code_architecture/task>`.
 

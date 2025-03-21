@@ -211,10 +211,13 @@ available.
 
 ```python
 
->>> from rnaglib.data_loading import rna_from_pdbid
->>> rna_dict = graph_from_pdbid('1fmn') # fetch from local database or RCSB if not found
+>>> from rnaglib.dataset import rna_from_pdbid
+>>> rna_dict = graph_from_pdbid('1fmn')  # fetch from local database or RCSB if not found
 >>> rna_dict['rna'].graph
-{'name': '1fmn', 'pdbid': '1fmn', 'ligands': [{'id': ('H_FMN', 36, ' '), 'name': 'FMN', 'smiles': 'Cc1cc2c(cc1C)N(C3=NC(=O)NC(=O)C3=N2)CC(C(C(COP(=O)(O)O)O)O)O', 'rna_neighs': ['1fmn.A.10', '1fmn.A.11', '1fmn.A.12', '1fmn.A.13', '1fmn.A.24', '1fmn.A.25', '1fmn.A.26', '1fmn.A.27', '1fmn.A.28', '1fmn.A.7', '1fmn.A.8', '1fmn.A.9']}], 'ions': []}
+{'name': '1fmn', 'pdbid': '1fmn', 'ligands': [
+   {'id': ('H_FMN', 36, ' '), 'name': 'FMN', 'smiles': 'Cc1cc2c(cc1C)N(C3=NC(=O)NC(=O)C3=N2)CC(C(C(COP(=O)(O)O)O)O)O',
+    'rna_neighs': ['1fmn.A.10', '1fmn.A.11', '1fmn.A.12', '1fmn.A.13', '1fmn.A.24', '1fmn.A.25', '1fmn.A.26',
+                   '1fmn.A.27', '1fmn.A.28', '1fmn.A.7', '1fmn.A.8', '1fmn.A.9']}], 'ions': []}
 ```
 ## Annotate your own structures
 
