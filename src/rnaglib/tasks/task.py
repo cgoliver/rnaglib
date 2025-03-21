@@ -8,7 +8,7 @@ import os
 from pathlib import Path
 import shutil
 import tarfile
-from typing import Union, Literal, Optional
+from typing import Union, Literal, Optional, Mapping
 import tqdm
 
 import numpy as np
@@ -33,45 +33,38 @@ ZENODO_URL = f"https://sandbox.zenodo.org/records/{ZENOD_RECORD}/files/"
 class Task:
     """Abstract class for a benchmarking task using the rnaglib datasets.
     This class handles the logic for building the underlying dataset which is held in an
-    rnaglib.dataset.RNADataset
-    object. Once the dataset is created, the splitter is invoked to create the train/val/test indices.
-    Tasks also define an evaluate() function to yield appropriate model performance metrics.
+    rnaglib.dataset.RNADataset object.
+     Once the dataset is created, the splitter is invoked to create the train/val/test indices.
+     Tasks also define an evaluate() function to yield appropriate model performance metrics.
 
     :param root: path to a folder where the task information will be stored for fast loading.
+    :param debug: if True, only a fraction of the dataset is used.
+    :param in_memory: if True, dataset is loaded from disk in the memory once as a whole instead of on the fly.
     :param recompute: whether to recompute the task info from scratch or use what is stored in root.
-    :param splitter: rnaglib.dataset_transforms.Splitter object that handles splitting of data into train/val/test indices.
-    If None uses task's default_splitter() attribute.
-    :param debug: if True, loads a smaller version of the data for fast
-    testing.
-    :param save: if True, saves the task data to root directory.
-    :param in_memory: if True, data is loaded from memory instead of on disk.
-    :param size_thresholds: 2 element list with lower and upper bound on RNA
-    size.
     :param precomputed: if True, tries to download processed task from Zenodo.
     :param additional_metadata: dictionary with metadata to include in task.
+    :param size_thresholds: 2 element list with lower and upper bound on RNA size to consider.
+    :param splitter: rnaglib.dataset_transforms.Splitter object that handles splitting of data into
+    train/val/test indices. If None uses task's default_splitter() attribute.
     """
 
     def __init__(
             self,
             root: Union[str, os.PathLike],
-            recompute: bool = False,
-            splitter: Optional[Splitter] = None,
             debug: bool = False,
-            save: bool = True,
             in_memory: bool = False,
+            recompute: bool = False,
+            precomputed: bool = True,
+            additional_metadata: Optional[Mapping] =None,
             size_thresholds: Optional[Sequence] = None,
-            precomputed=True,
-            additional_metadata=None
+            splitter: Optional[Splitter] = None,
     ):
+        self.debug = debug
+
         self.root = root
         self.dataset_path = os.path.join(self.root, "dataset")
-        self.recompute = recompute
-        self.precomputed = precomputed
-        self.debug = debug
-        self.save = save
         self.in_memory = in_memory
-        self.size_thresholds = size_thresholds
-        self.redundancy = 'all' if not self.debug else 'nr'
+        self.recompute = recompute
 
         self.init_metadata(additional_metadata=additional_metadata)
 
@@ -82,7 +75,7 @@ class Task:
         else:
             # Try loading from zenodo if dataset exists
             zenodo_loaded = False
-            if self.precomputed and hasattr(self, "name") and self.name in TASKS:
+            if precomputed and hasattr(self, "name") and self.name in TASKS:
                 try:
                     self.from_zenodo()
                     zenodo_loaded = True
@@ -95,6 +88,7 @@ class Task:
                 os.makedirs(self.dataset_path, exist_ok=True)
                 print(">>> Creating task dataset from scratch...")
                 # instantiate the Size filter if required
+                self.size_thresholds = size_thresholds
                 if self.size_thresholds is not None:
                     self.size_filter = SizeFilter(size_thresholds[0], size_thresholds[1])
                 self.dataset = self.process()

@@ -60,7 +60,7 @@ class RNAGo(RNAClassificationTask):
         df, rfam_go_mapping = get_frequent_go_pdbsel()
         if self.debug:
             df = df.sample(n=50, random_state=0)
-        dataset = RNADataset(redundancy=self.redundancy, in_memory=self.in_memory, rna_id_subset=df['pdb_id'].unique())
+        dataset = RNADataset(redundancy='all', in_memory=self.in_memory, rna_id_subset=df['pdb_id'].unique())
 
         # Create dataset
         # Run through database, applying our filters
