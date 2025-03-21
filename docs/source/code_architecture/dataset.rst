@@ -12,7 +12,6 @@ In the latter case, an RNADataset can be seen as an ordered list of file in a gi
     :file: ../images/fig_dataset.svg
 
 
-
 Creating, subsetting and saving a dataset:
 ******************************************
 
