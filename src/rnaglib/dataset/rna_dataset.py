@@ -12,7 +12,6 @@ from bidict import bidict
 import networkx as nx
 import numpy as np
 
-from rnaglib.dataset.create_dataset import database_to_dataset
 from rnaglib.transforms.featurize import FeaturesComputer
 from rnaglib.transforms.represent import Representation
 from rnaglib.transforms.transform import AnnotationTransform, Transform
@@ -80,7 +79,7 @@ class RNADataset(Dataset):
             redundancy="nr",
             rna_id_subset: list[str] = None,
             recompute_mapping: bool = True,
-            in_memory: bool = True,
+            in_memory: bool = None,
             features_computer: FeaturesComputer = None,
             representations: list[Representation] | Representation = None,
             debug: bool = False,
@@ -88,7 +87,6 @@ class RNADataset(Dataset):
             multigraph: bool = False,
             transforms: list[Transform] | Transform = None,
     ):
-        self.in_memory = in_memory
         self.transforms = [transforms] if transforms is not None and not isinstance(transforms, Iterable) else []
         self.multigraph = multigraph
         self.version = version
@@ -130,20 +128,22 @@ class RNADataset(Dataset):
                     simple_dict = json.load(f)
                 self.all_rnas = bidict(simple_dict)
 
-            if in_memory:
+            if in_memory is not None and in_memory:
                 self.to_memory()
             else:
                 self.rnas = None
+                self.in_memory = False
         else:
-            self.structures_path = None
-            assert in_memory, (
+            # handle default choice
+            self.in_memory = in_memory if in_memory is not None else True
+            assert self.in_memory, (
                 "Conflicting arguments: if an RNADataset is instantiated with a list of graphs, "
                 "it must use 'in_memory=True'"
             )
             self.rnas = rnas
+            self.structures_path = None
 
-            # Here we assume that rna lists contain a relevant rna.name field, which is the case
-            # if it was constructed using build_dataset above
+            # Here we assume that rna lists contain a relevant rna.name field, which is the case for defaults
             rna_names = {rna.name for rna in rnas}
             assert "" not in rna_names, "Empty RNA name found"
             assert len(rna_names) == len(
@@ -161,73 +161,6 @@ class RNADataset(Dataset):
             self.representations = [representations]
         else:
             self.representations = representations
-
-    @property
-    def distances(self):
-        """Using a cached property is useful for loading precomputed data.
-
-        If this is the first call, try loading. Otherwise, return the loaded value
-        """
-        if self.distances_ is not None:
-            return self.distances_
-        if self.distances_path is not None and Path(self.distances_path).exists():
-            # Actually materialize memory (lightweight anyway) since npz loading is lazy
-            all_distances = dict(np.load(self.distances_path).items())
-            # Filter to keep only square matrices with dimensions matching our dataset length
-            self.distances_ = {k: v for k, v in all_distances.items() if v.shape[0] == v.shape[1] == len(self)}
-            return self.distances_
-        return None
-
-    def remove_distance(self, name):
-        """Removes a distance from the dataset."""
-        if self.distances is not None and name in self.distances:
-            del self.distances_[name]
-
-    def add_distance(self, name, distance_mat):
-        """Adds a distance matrix to the dataset."""
-        assert distance_mat.shape[0] == distance_mat.shape[1] == len(self)
-        if self.distances is None:
-            self.distances_ = {name: distance_mat}
-        else:
-            self.distances_[name] = distance_mat
-
-    def save_distances(self, dump_path=None):
-        """Saves distances to distance path."""
-        if self.distances is not None:
-            dump_path = dump_path if dump_path is not None else self.distances_path
-            np.savez(dump_path, **self.distances)
-
-    @classmethod
-    def from_database(
-            cls,
-            representations=None,
-            features_computer=None,
-            *,  # enforce keyword only arguments
-            in_memory=True,
-            **dataset_build_params,
-    ):
-        """Run the steps to build a dataset from scratch.
-
-        :param cls: the ``RNADataset`` class instance.
-        :param representations: which representations to apply.
-        :param in_memory: whetherb to store dataset in memory or on disk.
-        :param dataset_build_params: parameters for the ``database_to_dataset`` function.
-        """
-        # if user added annotation, try to update the encoders so it can be used
-        # as a feature
-        dataset_path, all_rnas_name, rnas = database_to_dataset(
-            features_computer=features_computer,
-            return_rnas=in_memory,
-            **dataset_build_params,
-        )
-        return cls(
-            rnas=rnas,
-            dataset_path=dataset_path,
-            all_rnas=all_rnas_name,
-            representations=representations,
-            features_computer=features_computer,
-            in_memory=in_memory,
-        )
 
     def __len__(self):
         """Return the length of the current dataset."""
@@ -276,9 +209,63 @@ class RNADataset(Dataset):
         return rna_dict
 
     def get_by_name(self, rna_name):
-        """Grab an RNA by its pdbid."""
+        """Grab an RNA by its name."""
         rna_idx = self.all_rnas[rna_name]
         return self.__getitem__(rna_idx)
+
+    def get_pdbid(self, pdbid):
+        """Grab an RNA by its pdbid. Just a shortcut that includes a lower() call"""
+        return self.get_by_name(pdbid.lower())
+
+    def to_memory(self):
+        """Make in_memory=True from a dataset not in memory."""
+        if not hasattr(self, "rnas"):
+            self.rnas = [load_graph(Path(self.dataset_path) / f"{g_name}{self.extension}") for g_name in self.all_rnas]
+            for rna, name in zip(self.rnas, self.all_rnas, strict=False):
+                rna.name = name
+            self.in_memory = True
+
+    def check_consistency(self):
+        """Make sure all RNAs actually present when in_memory is true."""
+        if self.in_memory:
+            assert list(self.all_rnas) == [rna.name for rna in self.rnas]
+        else:
+            print("Check consistency only works if in_memory is true.")
+
+    @property
+    def distances(self):
+        """Using a cached property is useful for loading precomputed data.
+
+        If this is the first call, try loading. Otherwise, return the loaded value
+        """
+        if self.distances_ is not None:
+            return self.distances_
+        if self.distances_path is not None and Path(self.distances_path).exists():
+            # Actually materialize memory (lightweight anyway) since npz loading is lazy
+            all_distances = dict(np.load(self.distances_path).items())
+            # Filter to keep only square matrices with dimensions matching our dataset length
+            self.distances_ = {k: v for k, v in all_distances.items() if v.shape[0] == v.shape[1] == len(self)}
+            return self.distances_
+        return None
+
+    def remove_distance(self, name):
+        """Removes a distance from the dataset."""
+        if self.distances is not None and name in self.distances:
+            del self.distances_[name]
+
+    def add_distance(self, name, distance_mat):
+        """Adds a distance matrix to the dataset."""
+        assert distance_mat.shape[0] == distance_mat.shape[1] == len(self)
+        if self.distances is None:
+            self.distances_ = {name: distance_mat}
+        else:
+            self.distances_[name] = distance_mat
+
+    def save_distances(self, dump_path=None):
+        """Saves distances to distance path."""
+        if self.distances is not None:
+            dump_path = dump_path if dump_path is not None else self.distances_path
+            np.savez(dump_path, **self.distances)
 
     def add_representation(self, representations: list[Representation] | Representation):
         """Add a representation object to dataset.
@@ -417,26 +404,6 @@ class RNADataset(Dataset):
                 rna_graph = self.rnas[i]
             dump_json(Path(dump_path) / f"{rna_name}.json", rna_graph)
 
-    def to_memory(self):
-        """Make in_memory=True from a dataset not in memory."""
-        if not self.in_memory:
-            self.rnas = [load_graph(Path(self.dataset_path) / f"{g_name}{self.extension}") for g_name in self.all_rnas]
-            for rna, name in zip(self.rnas, self.all_rnas, strict=False):
-                rna.name = name
-            self.in_memory = True
-
-    def get_pdbid(self, pdbid):
-        """Grab an RNA by its pdbid."""
-        rna_idx = self.all_rnas[pdbid.lower()]
-        return self.__getitem__(rna_idx)
-
-    def check_consistency(self):
-        """Make sure all RNAs actually present when in_memory is true."""
-        if self.in_memory:
-            assert list(self.all_rnas) == [rna.name for rna in self.rnas]
-        else:
-            print("Check consistency only works if in_memory is true.")
-
 
 if __name__ == "__main__":
     from rnaglib.transforms import GraphRepresentation
@@ -465,25 +432,6 @@ if __name__ == "__main__":
     #                                 representations=[graph_rep])
     # g1 = supervised_dataset[0]
     # a = list(g1['rna'].nodes(data=True))[0][1]
-
-    # This instead uses from_database, hence features_computer is called during dataset preparation, which saves spaces
-    # supervised_dataset = RNADataset.from_database(all_rnas_db=all_rnas,
-    #                                           features_computer=features_computer,
-    #                                           representations=[graph_rep])
-    # g2 = supervised_dataset[0]
-    # b = list(g2['rna'].nodes(data=True))[0][1]
-
-    # Test dumping/loading
-    # rnas = build_dataset(all_rnas_db=all_rnas,
-    #                      dataset_path=dataset_path,
-    #                      features_computer=features_computer,
-    #                      recompute=True)
-    # supervised_dataset = RNADataset(dataset_path=dataset_path, representations=graph_rep)
-    # g2 = supervised_dataset[0]
-    # b = list(g2['rna'].nodes(data=True))[0][1]
-
-    # supervised_dataset = RNADataset(rnas=rnas)
-    # g2 = supervised_dataset[0]
 
     # Test in_memory field
     # supervised_dataset = RNADataset(dataset_path=dataset_path, representations=graph_rep, in_memory=False)
