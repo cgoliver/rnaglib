@@ -91,8 +91,8 @@ class Task:
             self.dataset = self.process()
             self.dataset.features_computer = self.get_task_vars()
 
-            self.metadata.update(self.describe())
             self.post_process()
+            self.metadata.update(self.describe())
             self.metadata["data_version"] = self.dataset.version
         else:
             self.load()
