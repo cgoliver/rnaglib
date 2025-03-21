@@ -22,31 +22,30 @@ class LigandIdentification(RNAClassificationTask):
     target_var = "ligand"
     name = "rna_ligand"
 
-    def __init__(self, 
-        root, 
-        data_filename = 'binding_pockets.csv',
-        size_thresholds=(15, 500),
-        admissible_ligands = ['PAR','LLL','8UZ'],
-        use_balanced_sampler=False,
-        **kwargs
-    ):
+    def __init__(self,
+                 size_thresholds=(15, 500),
+                 admissible_ligands=('PAR', 'LLL', '8UZ'),
+                 use_balanced_sampler=False,
+                 **kwargs
+                 ):
         self.admissible_ligands = admissible_ligands
-        bp_dict_path = os.path.join(os.path.dirname(__file__), "data", "bp_dict.json")
-        ligands_dict_path = os.path.join(os.path.dirname(__file__), "data", "ligands_dict.json")
         self.use_balanced_sampler = use_balanced_sampler
+        meta = {"multi_label": False}
 
         # create a dict where key is RNA name and values are lists of lists [[residue 1 of binding pocket 1,...,residue N of BP 1],...,[residue 1 of BP k,...]]
+        bp_dict_path = os.path.join(os.path.dirname(__file__), "data", "bp_dict.json")
         with open(bp_dict_path, "r") as bp_dict_json:
             self.bp_dict = json.load(bp_dict_json)
+        self.nodes_keep = list(self.bp_dict.keys())
+
+        ligands_dict_path = os.path.join(os.path.dirname(__file__), "data", "ligands_dict.json")
         with open(ligands_dict_path, "r") as ligands_dict_json:
             self.ligands_dict = json.load(ligands_dict_json)
-        self.nodes_keep = list(self.bp_dict.keys())
-        meta = {"task_name": "rna_ligand", "multi_label": False}
-        super().__init__(root=root, additional_metadata=meta, size_thresholds=size_thresholds, **kwargs)
+        super().__init__(additional_metadata=meta, size_thresholds=size_thresholds, **kwargs)
 
     def process(self):
         # Initialize dataset with in_memory=False to avoid loading everything at once
-        self.metadata["graph_level"] = True 
+        self.metadata["graph_level"] = True
         dataset = RNADataset(in_memory=False, redundancy=self.redundancy, rna_id_subset=self.nodes_keep)
 
         # Instantiate filters to apply
@@ -119,16 +118,16 @@ class LigandIdentification(RNAClassificationTask):
 
         targets = np.array([self.mapping[rna['rna'].graph["ligand"]] for rna in self.train_dataset])
 
-
-        samples_weight = np.array([1./self.metadata["class_distribution"][i] for i in targets])
+        samples_weight = np.array([1. / self.metadata["class_distribution"][i] for i in targets])
         samples_weight = torch.from_numpy(samples_weight)
         balanced_sampler = WeightedRandomSampler(samples_weight, len(samples_weight))
 
         # Now build the loaders
         if self.use_balanced_sampler:
-            self.train_dataloader = DataLoader(dataset=self.train_dataset, sampler=balanced_sampler,  **dataloader_kwargs)
+            self.train_dataloader = DataLoader(dataset=self.train_dataset, sampler=balanced_sampler,
+                                               **dataloader_kwargs)
         else:
-            self.train_dataloader = DataLoader(dataset=self.train_dataset,  **dataloader_kwargs)
+            self.train_dataloader = DataLoader(dataset=self.train_dataset, **dataloader_kwargs)
         dataloader_kwargs["shuffle"] = False
         self.val_dataloader = DataLoader(dataset=self.val_dataset, **dataloader_kwargs)
         self.test_dataloader = DataLoader(dataset=self.test_dataset, **dataloader_kwargs)
