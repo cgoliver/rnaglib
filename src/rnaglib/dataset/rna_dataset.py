@@ -6,6 +6,7 @@ import json
 import os
 from pathlib import Path
 from typing import Literal
+from torch.utils.data import Dataset
 
 from bidict import bidict
 import networkx as nx
@@ -19,26 +20,37 @@ from rnaglib.utils import download_graphs, dump_json, load_graph
 from rnaglib.utils.graph_io import get_all_existing, get_name_extension
 
 
-class RNADataset:
-    """This class is the main object to hold the core RNA data annotations.
+class RNADataset(Dataset):
+    """This class is the main object to hold RNA data, and is compatible with Pytorch Dataset.
 
-    The ``RNAglibDataset.all_rnas`` object is a list of networkx objects that holds all the
-    annotations for each RNA in the dataset.
+    A key feature is a bidict that holds a mapping between RNA names and their index in the dataset.
+    This allows for constant time access to an RNA with a given name.
 
-    :param rnas: One can instantiate directly from a list of RNA files
-    :param dataset_path: The path to the folder containing the graphs.
-    :param rna_id_subset: In the given directory, ``'dataset_path'``, one can choose to provide a
-                         list of graphs filenames to keep instead of using all available.
+    The RNAs contained in an RNADataset can either live in the memory, or be specified as files.
+    In the latter case, an RNADataset can be seen as an ordered list of file in a given directory.
+    One can put a dataset in memory by calling to_memory()
+
+    Once a dataset is built, you can save it, subset it and access its elements by name or by index.
+
+    :param rnas: For use in memory, list of RNA objects represented as networkx graphs.
+    :param dataset_path: If using filenames, this is the path to the folder containing the graphs to load.
+    :param version: If using filenames, and no dataset_path is provided, this is the version of the RNA dataset
+     download that will be used, and set as dataset_path
+    :param redundancy: same as version, sets the redundancy mode to use if neither rnas nor dataset_path is provided.
+    :param rna_id_subset: List of graphs filenames to grab in the dataset_path to keep instead of using all available.
+    :param recompute_mapping: When loading a dataset, you can choose to use an existing bidict_mapping
+    (for instance if some graphs are irrelevant)
+    :param in_memory: When loading a dataset from files, you can choose to load the data in memory by setting
+    in memory to true
+    :param debug: if True, will only report 50 items
+    :param get_pdbs: if True, will also fetch the corresponding structures.
     :param multigraph: Whether to load RNAs as multi-graphs or simple graphs. Multigraphs can have
                       backbone and base pairs between the same two residues.
-    :param in_memory: Whether to load all RNA graphs in memory or to load them on the fly
+    :param transforms: An optional list of transforms to apply to rnas before calling the features computer and
+    the representations in get_item
     :param features_computer: A FeaturesComputer object, useful to transform raw RNA data into tensors.
     :param representations: List of :class:`~rnaglib.representations.Representation` objects to
                           apply to each item.
-
-    The dataset holds an attribute self.all_rnas = bidict({rna_name: i for i, rna_name in
-    enumerate(all_rna_names)}) Where rna_name is expected to match the file name the rna should
-    be saved in.
 
     Examples:
     ---------
@@ -73,15 +85,11 @@ class RNADataset:
             representations: list[Representation] | Representation = None,
             debug: bool = False,
             get_pdbs: bool = True,
-            overwrite: bool = False,
             multigraph: bool = False,
-            pre_transforms: list[Transform] | Transform = None,
             transforms: list[Transform] | Transform = None,
-            **kwargs,
     ):
         self.in_memory = in_memory
         self.transforms = [transforms] if transforms is not None and not isinstance(transforms, Iterable) else []
-        self.pre_transforms = pre_transforms
         self.multigraph = multigraph
         self.version = version
 
@@ -98,10 +106,9 @@ class RNADataset:
                 # By default, use non redundant (nr), v1.0.0 dataset of rglib
                 dataset_path, structures_path = download_graphs(
                     redundancy=redundancy,
-                    version=self.version,
+                    version=version,
                     debug=debug,
                     get_pdbs=get_pdbs,
-                    overwrite=overwrite,
                 )
                 self.dataset_path = dataset_path
                 self.structures_path = structures_path
@@ -146,12 +153,6 @@ class RNADataset:
 
         # Now that we have the raw data setup, let us set up the features we want to be using:
         self.features_computer = FeaturesComputer() if features_computer is None else features_computer
-
-        # pass transforms to the features computer to make the features available to the feat_dict
-        if pre_transforms is not None:
-            # tranforms work on the dict so have to get back the graph with the 'rna' key
-            # this is annoying
-            self.rnas = [pre_transforms({"rna": rna})["rna"] for rna in self.rnas]
 
         # Finally, let us set up the list of representations that we will be using
         if representations is None:
