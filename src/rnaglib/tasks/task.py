@@ -56,7 +56,6 @@ class Task:
         recompute: bool = False,
         splitter: Optional[Splitter] = None,
         debug: bool = False,
-        save: bool = True,
         in_memory: bool = False,
         size_thresholds: Optional[Sequence] = None,
         precomputed=True,
@@ -67,7 +66,6 @@ class Task:
         self.recompute = recompute
         self.precomputed = precomputed
         self.debug = debug
-        self.save = save
         self.in_memory = in_memory
         self.size_thresholds = size_thresholds
         self.redundancy = 'all' if not self.debug else 'nr'
@@ -75,6 +73,7 @@ class Task:
         self.init_metadata(additional_metadata=additional_metadata)
 
         # Load or create dataset
+        save = False
         if self.precomputed and not os.path.exists(Path(self.root) / "done.txt"):
             try:
                 self.from_zenodo()
@@ -95,6 +94,7 @@ class Task:
             self.post_process()
             self.metadata.update(self.describe())
             self.metadata["data_version"] = self.dataset.version
+            save = True
         else:
             self.load()
 
@@ -105,7 +105,7 @@ class Task:
             print("no split found, splitting")
             self.split(self.dataset)
 
-        if self.save:
+        if save:
             self.write()
             with open(Path(self.root) / "done.txt", "w") as f:
                 f.write("")
