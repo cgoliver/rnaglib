@@ -29,22 +29,12 @@ class LigandIdentification(RNAClassificationTask):
     target_var = "ligand"
     name = "rna_ligand"
 
-<<<<<<< HEAD
-    def __init__(self, 
-        root, 
-        size_thresholds=(15, 500),
-        admissible_ligands = ['PAR','LLL','8UZ'],
-        use_balanced_sampler=False,
-        **kwargs
-    ):
-=======
     def __init__(self,
                  size_thresholds=(15, 500),
                  admissible_ligands=('PAR', 'LLL', '8UZ'),
                  use_balanced_sampler=False,
                  **kwargs
                  ):
->>>>>>> beadf69991938037373b5c8d512b6179f698ac51
         self.admissible_ligands = admissible_ligands
         self.use_balanced_sampler = use_balanced_sampler
         meta = {"multi_label": False}
@@ -68,8 +58,7 @@ class LigandIdentification(RNAClassificationTask):
         :rtype: RNADataset
         """
         # Initialize dataset with in_memory=False to avoid loading everything at once
-        self.metadata["graph_level"] = True
-        dataset = RNADataset(in_memory=False, redundancy=self.redundancy, rna_id_subset=self.nodes_keep)
+        dataset = RNADataset(in_memory=False, redundancy='all',debug=self.debug, rna_id_subset=self.nodes_keep)
 
         # Instantiate filters to apply
         resolution_filter = ResolutionFilter(resolution_threshold=4.0)

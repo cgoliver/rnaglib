@@ -419,9 +419,11 @@ class RNADataset(Dataset):
 
     def to_memory(self):
         """Make in_memory=True from a dataset not in memory."""
-        self.rnas = [load_graph(Path(self.dataset_path) / f"{g_name}{self.extension}") for g_name in self.all_rnas]
-        for rna, name in zip(self.rnas, self.all_rnas, strict=False):
-            rna.name = name
+        if not self.in_memory:
+            self.rnas = [load_graph(Path(self.dataset_path) / f"{g_name}{self.extension}") for g_name in self.all_rnas]
+            for rna, name in zip(self.rnas, self.all_rnas, strict=False):
+                rna.name = name
+            self.in_memory = True
 
     def get_pdbid(self, pdbid):
         """Grab an RNA by its pdbid."""

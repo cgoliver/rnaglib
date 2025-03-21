@@ -9,21 +9,11 @@ from sklearn.metrics import accuracy_score, confusion_matrix, f1_score, matthews
 from tqdm import tqdm
 
 from rnaglib.dataset import RNADataset
-from rnaglib.dataset_transforms import (
-    CDHitComputer,
-    ClusterSplitter,
-    NameSplitter,
-    RedundancyRemover,
-    StructureDistanceComputer,
-)
+from rnaglib.dataset_transforms import CDHitComputer, StructureDistanceComputer, RedundancyRemover
+from rnaglib.dataset_transforms import ClusterSplitter, NameSplitter
 from rnaglib.encoders import BoolEncoder, NucleotideEncoder
 from rnaglib.tasks import ResidueClassificationTask
-from rnaglib.transforms import (
-    ChainFilter,
-    ConnectedComponentPartition,
-    DummyAnnotator,
-    FeaturesComputer,
-)
+from rnaglib.transforms import ChainFilter, ConnectedComponentPartition, DummyAnnotator, FeaturesComputer
 
 
 class InverseFolding(ResidueClassificationTask):
@@ -32,9 +22,7 @@ class InverseFolding(ResidueClassificationTask):
     nucs = ["A", "C", "G", "U"]
     name = "rna_if"
 
-    def __init__(self,
-                 size_thresholds=(15, 300),
-                 **kwargs):
+    def __init__(self, size_thresholds=(15, 300), **kwargs):
         meta = {"multi_label": False}
         super().__init__(additional_metadata=meta, size_thresholds=size_thresholds, **kwargs)
 
@@ -48,14 +36,12 @@ class InverseFolding(ResidueClassificationTask):
         connected_components_partition = ConnectedComponentPartition()
 
         # Run through database, applying our filters
-        dataset = RNADataset(in_memory=self.in_memory,
-                             redundancy=self.redundancy)
+        dataset = RNADataset(in_memory=self.in_memory, redundancy="all")
         all_rnas = []
         os.makedirs(self.dataset_path, exist_ok=True)
         for i, rna in tqdm(enumerate(dataset)):
-            if self.debug:
-                if i > 200:
-                    break
+            if self.debug and i > 200:
+                break
             for rna_connected_component in connected_components_partition(rna):
                 if self.size_thresholds is not None and not self.size_filter.forward(rna_connected_component):
                     continue
@@ -251,9 +237,7 @@ class gRNAde(InverseFolding):
         annote_dummy = DummyAnnotator()
 
         # Initialize dataset with in_memory=False to avoid loading everything at once
-        print(self.redundancy)
-        source_dataset = RNADataset(rna_id_subset=list(pdb_to_single_chains.keys()),
-                                    redundancy=self.redundancy, in_memory=False)
+        source_dataset = RNADataset(rna_id_subset=list(pdb_to_single_chains.keys()), redundancy="all", in_memory=False)
 
         all_rnas = []
         os.makedirs(self.dataset_path, exist_ok=True)
