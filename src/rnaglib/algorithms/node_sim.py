@@ -21,13 +21,13 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 class SimFunctionNode:
 
     def __init__(
-        self,
-        method,
-        depth,
-        decay=0.5,
-        idf=False,
-        normalization=None,
-        hash_init_path=os.path.join(script_dir, "..", "data", "hashing", "NR_chops_hash.p"),
+            self,
+            method,
+            depth,
+            decay=0.5,
+            idf=False,
+            normalization=None,
+            hash_init_path=os.path.join(script_dir, "..", "data", "hashing", "NR_chops_hash.p"),
     ):
         """
         Factory object to compute all node similarities.
@@ -40,21 +40,21 @@ class SimFunctionNode:
 
         Three of them compare the edges :
 
-        - R_1 compares the histograms of each ring, possibly with an idf weighting (to emphasize differences
-          in rare edges)
+        - R_1 compares the histograms of each ring, possibly with an idf weighting (to emphasize differences in rare edges)
+
         - R_iso compares each ring with the best matching based on the isostericity values
-        - hungarian compares the whole annotation, with the rings being
-        differentiated with an additional 'depth' field.
+
+        - hungarian compares the whole annotation, with the rings being differentiated with an additional 'depth' field.
 
         Then all the nodes are compared based on isostericity and this depth field.
 
-        Two of them compare the graphlets. The underlying idea is that just
-        comparing lists of edges does not
-        constraint the graph structure, while the assembling of graphlet does it more
-        (exceptions can be found but
-        for most graphs, knowing all graphlets at each depth enables recreating the graph) :
+        Two of them compare the graphlets.
+         The underlying idea is that just comparing lists of edges does not constraint the graph structure,
+          while the assembling of graphlet does it more (exceptions can be found but for most graphs,
+           knowing all graphlets at each depth enables recreating the graph) :
 
         - R_graphlets works like R_iso except that the isostericity is replaced by the GED
+
         - graphlet works like the hungarian except that the isostericity is replaced by the GED
 
         :param method: a string that identifies which of these method to use
@@ -145,7 +145,7 @@ class SimFunctionNode:
                     value = self.R_1(rings1[k], rings2[k])
                 else:
                     value = self.R_iso(rings1[k], rings2[k])
-                res += self.decay**k * value
+                res += self.decay ** k * value
         return res / self.norm_factor
 
     def normalize(self, unnormalized, max_score):

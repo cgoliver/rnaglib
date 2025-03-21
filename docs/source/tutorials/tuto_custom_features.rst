@@ -50,10 +50,14 @@ Now you can access the node attribute you defined over all the RNAs. If you pass
 Using existing and custom annotations as features for ML tasks
 -----------------------------------------------------------------
 
-The :class:`~rnaglib.data_loading.features.FeaturesComputer` class allows us to cast annotations present in the RNAs, such as any of the available ones in :doc:`the annotation reference <rna_ref>`, or those added by the user as above into tensors for machine learning.
+The :class:`~rnaglib.data_loading.features.FeaturesComputer` class allows us to cast annotations present in the RNAs,
+such as any of the available ones in :doc:`the annotation reference <../data_reference/rna_ref>`,
+or those added by the user as above into tensors for machine learning.
 
 
-To use existing annotations you can simply pass their name to the ``FeaturesComputer`` object and then to the ``RNADataset``. In this example we ask for the ``'nt_code'`` annotation at the nucleotide (``nt``) level which tells us the nucleotide identity for each residue in the RNA.
+To use existing annotations you can simply pass their name to the ``FeaturesComputer`` object and then to the ``RNADataset``.
+In this example we ask for the ``'nt_code'`` annotation at the nucleotide (``nt``) level which tells us the
+nucleotide identity for each residue in the RNA.
 
 .. code-block:: python
 
