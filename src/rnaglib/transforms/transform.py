@@ -66,7 +66,7 @@ class AnnotationTransform(Transform):
     Same logic as the base class but implements caching logic.
     """
 
-    def __init__(self, **kwargs, ):
+    def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
 
