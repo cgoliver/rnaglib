@@ -8,7 +8,7 @@ import numpy as np
 from sklearn.metrics import accuracy_score, confusion_matrix, f1_score, matthews_corrcoef, roc_auc_score
 from tqdm import tqdm
 
-from rnaglib.data_loading import RNADataset
+from rnaglib.dataset import RNADataset
 from rnaglib.dataset_transforms import (
     CDHitComputer,
     ClusterSplitter,

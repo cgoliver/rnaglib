@@ -3,7 +3,7 @@ import numpy as np
 from tqdm import tqdm
 import networkx as nx
 
-from rnaglib.data_loading import RNADataset
+from rnaglib.dataset import RNADataset
 from rnaglib.tasks import ResidueClassificationTask
 from rnaglib.encoders import BoolEncoder
 from rnaglib.transforms import FeaturesComputer

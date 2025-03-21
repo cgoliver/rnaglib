@@ -3,9 +3,9 @@
 import torch
 
 from rnaglib.learning import models, learn
-from rnaglib.data_loading import rna_dataset, rna_loader
-from rnaglib.transforms import FeaturesComputer
-from rnaglib.transforms import GraphRepresentation
+from rnaglib.dataset import rna_dataset
+from rnaglib.dataset_transforms import rna_loader
+from rnaglib.transforms import FeaturesComputer, GraphRepresentation
 
 """
 This script just shows a first very basic example : learn binding protein preferences 

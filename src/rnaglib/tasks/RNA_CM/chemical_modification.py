@@ -1,7 +1,7 @@
 import os
 from tqdm import tqdm
 
-from rnaglib.data_loading import RNADataset
+from rnaglib.dataset import RNADataset
 from rnaglib.tasks import ResidueClassificationTask
 from rnaglib.transforms import FeaturesComputer
 from rnaglib.transforms import ResidueAttributeFilter, DummyFilter

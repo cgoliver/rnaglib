@@ -45,7 +45,7 @@ def get_loader(dataset,
                ):
     """ Fetch a loader object for a given dataset.
 
-    :param rnaglib.data_loading.RNADataset dataset: Dataset for loading.
+    :param rnaglib.dataset.RNADataset dataset: Dataset for loading.
     :param int batch_size: number of items in batch
     :param bool split: whether to compute splits
     :param float split_train: proportion of dataset to keep for training
@@ -266,7 +266,7 @@ if __name__ == '__main__':
     torch.random.manual_seed(42)
 
     from rnaglib.representations import GraphRepresentation, RingRepresentation
-    from rnaglib.data_loading import RNADataset, FeaturesComputer
+    from rnaglib.dataset import RNADataset, FeaturesComputer
     from rnaglib.kernels import node_sim
 
     # GET THE DATA GOING

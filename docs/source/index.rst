@@ -49,7 +49,8 @@
 
    Algorithms <code_index/rnaglib.algorithms>
    Databases <code_index/rnaglib.prepare_data>
-   Datasets <code_index/rnaglib.data_loading>
+   Datasets <code_index/rnaglib.dataset>
+   Datasets <code_index/rnaglib.dataset_transforms>
    Transforms <code_index/rnaglib.transforms>
    ML Tasks <code_index/rnaglib.tasks>
    Visualization <code_index/rnaglib.drawing>
@@ -120,7 +121,7 @@ Pages to give you an understanding of the main objects shipping with RNAglib
 Package Structure
 -----------------
 
--  :doc:`code_index/rnaglib.data_loading`: custom PyTorch dataloader and dataset implementations
+-  :doc:`code_index/rnaglib.dataset`: custom RNA PyTorch dataset implementations
 -  :doc:`code_index/rnaglib.tasks`: prediction tasks for ML benchmarking.
 -  :doc:`code_index/rnaglib.transforms`: process and modify RNA data
 -  :doc:`code_index/rnaglib.learning`: learning routines and pre-built GCN models for the easiest use of the

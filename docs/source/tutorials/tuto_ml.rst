@@ -20,7 +20,7 @@ well as cast to different data science and ML frameworks (DGL, pytorch-geometric
 Datasets
 ~~~~~~~~~~
 
-The `rnaglib.data_loading.RNADataset` object builds and provides access to collections of RNAs.
+The `rnaglib.dataset.RNADataset` object builds and provides access to collections of RNAs.
 When using the Dataset class, our standard data distribution should be downloaded automatically.
 Alternatively, you can choose to provide your own annotated RNAs by providing a `dataset_path`.
 
@@ -28,7 +28,7 @@ To create a dataset using our hosted data simply instantiate the `RNADataset` ob
 
 .. code-block:: python
 
-   from rnaglib.data_loading import RNADataset
+   from rnaglib.dataset import RNADataset
 
    dataset = RNADataset()
 
@@ -56,7 +56,7 @@ The returned object is a dictionnary with three entries :
 Representations
 ~~~~~~~~~~~~~~~~~
 
-The next important object for RNAGlib is the `FeaturesComputer`. This object can be thought as a Transforms function
+The next important object for RNAGlib is the `FeaturesComputer`. This object can be thought as a RNATransform function
 that acts on the raw data to select relevant features and turn them into torch Tensors.
 The user can ask for input nucleotide features and nucleotide targets.
 As an example, we use nucleotide identity ('nt_code') as input and the binding of an ion ('binding_ion') as output.
@@ -148,7 +148,7 @@ that are used. These two functionalities are implemented in a straightforward ma
 .. code-block:: python
 
     from torch.utils.data import DataLoader
-    from rnaglib.data_loading import Collater
+    from rnaglib.dataset_transforms import Collater
     from rnaglib.splitters import split_dataset
 
     train_set, valid_set, test_set = split_dataset(dataset, split_train=0.7, split_valid=0.85)

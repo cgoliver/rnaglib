@@ -7,7 +7,7 @@ from tqdm import tqdm
 from pathlib import Path
 from Bio.PDB.MMCIF2Dict import MMCIF2Dict
 
-from rnaglib.data_loading import RNADataset
+from rnaglib.dataset import RNADataset
 from rnaglib.transforms import SizeFilter, ResidueAttributeFilter, ComposeFilters
 from rnaglib.algorithms import bfs
 

@@ -36,7 +36,7 @@ class Transform:
         self.num_workers = num_workers
 
     def __call__(self, data: Any) -> Any:
-        RNADataset = __import__("rnaglib.data_loading").data_loading.RNADataset
+        RNADataset = __import__("rnaglib.dataset").dataset.RNADataset
         if isinstance(data, (list, Generator, RNADataset)):
             if self.parallel:
                 return list(Parallel(n_jobs=self.num_workers)(delayed(self.forward)(d) for d in data))
@@ -66,13 +66,7 @@ class AnnotationTransform(Transform):
     Same logic as the base class but implements caching logic.
     """
 
-    def __init__(
-            self,
-            use_cache: bool = False,
-            cache_path: Union[str, os.PathLike] = None,
-            load_cache_path: Union[str, os.PathLike] = None,
-            **kwargs,
-    ):
+    def __init__(self, **kwargs, ):
         super().__init__(**kwargs)
 
 
@@ -85,7 +79,7 @@ class FilterTransform(Transform):
     def __call__(self, data: Any) -> Union[bool, Iterable[Any]]:
         """Apply the filter and return an iterator over the RNAs that pass."""
 
-        RNADataset = __import__("rnaglib.data_loading").data_loading.RNADataset
+        RNADataset = __import__("rnaglib.dataset").dataset.RNADataset
         if not isinstance(data, (list, Generator, RNADataset)):
             return self.forward(data)
 
@@ -108,7 +102,7 @@ class PartitionTransform(Transform):
     """
 
     def __call__(self, data: Any) -> Iterable[Any]:
-        RNADataset = __import__("rnaglib.data_loading").data_loading.RNADataset
+        RNADataset = __import__("rnaglib.dataset").dataset.RNADataset
         if isinstance(data, (list, Generator, RNADataset)):
             for rna in data:
                 yield from self.forward(rna)
@@ -155,7 +149,7 @@ class ComposeFilters:
         self.filters = filters
 
     def __call__(self, data: dict) -> bool:
-        RNADataset = __import__("rnaglib.data_loading").data_loading.RNADataset
+        RNADataset = __import__("rnaglib.dataset").dataset.RNADataset
         if not isinstance(data, (list, Generator, RNADataset)):
             raise ValueError("Filter compose only works on collections of RNAs")
         for filter_fn in self.filters:
@@ -175,8 +169,3 @@ class ComposeFilters:
         return "{}([\n{}\n])".format(self.__class__.__name__, ",\n".join(args))
 
 
-class ComposePartitions:
-    def __init__(self, partitions: List[PartitionTransform]):
-        pass
-
-    pass
