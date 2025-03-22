@@ -9,21 +9,11 @@ from sklearn.metrics import accuracy_score, confusion_matrix, f1_score, matthews
 from tqdm import tqdm
 
 from rnaglib.dataset import RNADataset
-from rnaglib.dataset_transforms import (
-    CDHitComputer,
-    ClusterSplitter,
-    NameSplitter,
-    RedundancyRemover,
-    StructureDistanceComputer,
-)
+from rnaglib.dataset_transforms import CDHitComputer, StructureDistanceComputer, RedundancyRemover
+from rnaglib.dataset_transforms import ClusterSplitter, NameSplitter
 from rnaglib.encoders import BoolEncoder, NucleotideEncoder
 from rnaglib.tasks import ResidueClassificationTask
-from rnaglib.transforms import (
-    ChainFilter,
-    ConnectedComponentPartition,
-    DummyAnnotator,
-    FeaturesComputer,
-)
+from rnaglib.transforms import ChainFilter, ConnectedComponentPartition, DummyAnnotator, FeaturesComputer
 
 
 class InverseFolding(ResidueClassificationTask):
@@ -32,15 +22,9 @@ class InverseFolding(ResidueClassificationTask):
     nucs = ["A", "C", "G", "U"]
     name = "rna_if"
 
-    def __init__(self, root,
-                 size_thresholds=(15, 300),
-                 additional_metadata=None,
-                 **kwargs):
-        if additional_metadata is None:
-            meta = {"multi_label": False, "task_name": "rna_if"}
-        else:
-            meta = additional_metadata
-        super().__init__(root=root, additional_metadata=meta, size_thresholds=size_thresholds, **kwargs)
+    def __init__(self, size_thresholds=(15, 300), **kwargs):
+        meta = {"multi_label": False}
+        super().__init__(additional_metadata=meta, size_thresholds=size_thresholds, **kwargs)
 
     @property
     def default_splitter(self):
@@ -52,13 +36,12 @@ class InverseFolding(ResidueClassificationTask):
         connected_components_partition = ConnectedComponentPartition()
 
         # Run through database, applying our filters
-        dataset = RNADataset(in_memory=self.in_memory,
-                             redundancy=self.redundancy)
+        dataset = RNADataset(in_memory=self.in_memory, redundancy="all")
         all_rnas = []
         os.makedirs(self.dataset_path, exist_ok=True)
         for i, rna in tqdm(enumerate(dataset)):
-            if self.debug:
-                if i > 200: break
+            if self.debug and i > 200:
+                break
             for rna_connected_component in connected_components_partition(rna):
                 if self.size_thresholds is not None and not self.size_filter.forward(rna_connected_component):
                     continue
@@ -144,12 +127,12 @@ class InverseFolding(ResidueClassificationTask):
         sorted_keys = []
         metrics = []
         for pred, filt_pred, prob, label, filt_label in zip(
-            all_preds,
-            filtered_all_preds,
-            all_probs,
-            all_labels,
-            filtered_all_labels,
-            strict=False,
+                all_preds,
+                filtered_all_preds,
+                all_probs,
+                all_labels,
+                filtered_all_labels,
+                strict=False,
         ):
             # Can't compute metrics over just one class
             if len(np.unique(label)) == 1:
@@ -190,7 +173,7 @@ class gRNAde(InverseFolding):
     # everything is inherited except for process and splitter.
     name = "rna_if_bench"
 
-    def __init__(self, root, size_thresholds=(15, 300), debug=False, **kwargs):
+    def __init__(self, size_thresholds=(15, 300), debug=False, **kwargs):
         self.splits = {
             # Use sets instead of lists for chains since order doesn't matter
             "pdb_to_chain_train": defaultdict(set),
@@ -218,8 +201,8 @@ class gRNAde(InverseFolding):
                     self.splits["pdb_to_chain_all"][pdb_id].add(chain)
                     self.splits["pdb_to_chain_all_single"][pdb_id].update(chain_components)
 
-        meta = {"multi_label": False, "task_name": "rna_if_bench"}
-        super().__init__(root=root, additional_metadata=meta, size_thresholds=size_thresholds, **kwargs)
+        meta = {"multi_label": False}
+        super().__init__(additional_metadata=meta, size_thresholds=size_thresholds, **kwargs)
 
     @property
     def default_splitter(self):
@@ -254,9 +237,7 @@ class gRNAde(InverseFolding):
         annote_dummy = DummyAnnotator()
 
         # Initialize dataset with in_memory=False to avoid loading everything at once
-        print(self.redundancy)
-        source_dataset = RNADataset(rna_id_subset=list(pdb_to_single_chains.keys()),
-                   redundancy=self.redundancy, in_memory=False)
+        source_dataset = RNADataset(rna_id_subset=list(pdb_to_single_chains.keys()), redundancy="all", in_memory=False)
 
         all_rnas = []
         os.makedirs(self.dataset_path, exist_ok=True)

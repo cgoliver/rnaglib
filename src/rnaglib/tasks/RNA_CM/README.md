@@ -22,9 +22,8 @@ in the `learning` directory of this repo.
 This is the task definition using `rnaglib`'s task API. It includes:
 
 - Loading and preprocessing of the entire `rnaglib` dataset.
-- Defines choice of splitting strategy and through inheritance the model evaluation methods.
+- Definition of the splitting strategy and - through inheritance - the model evaluation methods.
 
 ## Usage
 
-To train and evaluate the model, simply run: `python demo.py` or `python demo.py --frompickle` if you want to use a
-precomputed task, saving some execution time.
+To train and evaluate the model, simply run: `python demo.py`
