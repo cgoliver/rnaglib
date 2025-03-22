@@ -14,7 +14,7 @@ In the latter case, an RNADataset can be seen as an ordered list of file in a gi
 
 
 Creating, subsetting and saving a dataset:
-******************************
+******************************************
 
 If no ``dataset_path`` argument is provided, our object will use the data downloaded by rnaglib.
 One can specifiy a version number and a redundancy; the following line will instantiate a dataset with

@@ -24,6 +24,7 @@ from rnaglib.utils import DummyGraphModel, DummyResidueModel, dump_json, tonumpy
 from rnaglib.dataset_transforms import StructureDistanceComputer, CDHitComputer
 from rnaglib.dataset_transforms import RandomSplitter, Splitter, RedundancyRemover
 from rnaglib.dataset_transforms import Collater
+from rnaglib.tasks import TASKS
 
 ZENOD_RECORD = "184453"
 ZENODO_URL = f"https://sandbox.zenodo.org/records/{ZENOD_RECORD}/files/"
@@ -51,6 +52,7 @@ class Task:
     """
 
     def __init__(
+<<<<<<< HEAD
         self,
         root: Union[str, os.PathLike],
         recompute: bool = False,
@@ -60,6 +62,18 @@ class Task:
         size_thresholds: Optional[Sequence] = None,
         precomputed=True,
         additional_metadata=None
+=======
+            self,
+            root: Union[str, os.PathLike],
+            recompute: bool = False,
+            splitter: Optional[Splitter] = None,
+            debug: bool = False,
+            save: bool = True,
+            in_memory: bool = False,
+            size_thresholds: Optional[Sequence] = None,
+            precomputed=True,
+            additional_metadata=None
+>>>>>>> 6072147ddb52d0ad4445d2b64d6b7b4cc65a5620
     ):
         self.root = root
         self.dataset_path = os.path.join(self.root, "dataset")
@@ -72,6 +86,7 @@ class Task:
 
         self.init_metadata(additional_metadata=additional_metadata)
 
+<<<<<<< HEAD
         # Load or create dataset
         save = False
         if self.precomputed and not os.path.exists(Path(self.root) / "done.txt"):
@@ -96,7 +111,36 @@ class Task:
             self.metadata["data_version"] = self.dataset.version
             save = True
         else:
+=======
+        # Load dataset if existing
+        existing = os.path.exists(Path(self.root) / "done.txt")
+        if existing and not recompute:
+>>>>>>> 6072147ddb52d0ad4445d2b64d6b7b4cc65a5620
             self.load()
+        else:
+            # Try loading from zenodo if dataset exists
+            zenodo_loaded = False
+            if self.precomputed and hasattr(self, "name") and self.name in TASKS:
+                try:
+                    self.from_zenodo()
+                    zenodo_loaded = True
+                except Exception as e:
+                    print(f"Error downloading dataset from \
+                        Zenodo: {e}. Check if the dataset is \
+                        available at zenodo, otherwise use `precomputed=False` to build locally.")
+            # If dataset does not exist on zenodo, or downloading failed, recompute.
+            if not zenodo_loaded:
+                os.makedirs(self.dataset_path, exist_ok=True)
+                print(">>> Creating task dataset from scratch...")
+                # instantiate the Size filter if required
+                if self.size_thresholds is not None:
+                    self.size_filter = SizeFilter(size_thresholds[0], size_thresholds[1])
+                self.dataset = self.process()
+                self.dataset.features_computer = self.get_task_vars()
+
+                self.metadata.update(self.describe())
+                self.post_process()
+                self.metadata["data_version"] = self.dataset.version
 
         # Set splitter after dataset is available
         # Split dataset if it wasn't loaded from file
@@ -109,7 +153,6 @@ class Task:
             self.write()
             with open(Path(self.root) / "done.txt", "w") as f:
                 f.write("")
-
 
     def from_zenodo(self):
         """Downloads the task dataset from Zenodo and loads it."""
@@ -131,7 +174,7 @@ class Task:
         """
         raise NotImplementedError
 
-    def init_metadata(self, additional_metadata: Optional[dict]= None) -> None:
+    def init_metadata(self, additional_metadata: Optional[dict] = None) -> None:
         """Initialize dictionary to hold key/value pairs to self.metadata."""
         self.metadata = {}
         if not additional_metadata is None:
@@ -206,10 +249,10 @@ class Task:
         pass
 
     def add_feature(
-        self,
-        feature: Union[str, Transform],
-        feature_level: Literal["residue", "rna"] = "residue",
-        is_input: bool = True,
+            self,
+            feature: Union[str, Transform],
+            feature_level: Literal["residue", "rna"] = "residue",
+            is_input: bool = True,
     ):
         """Shortcut to RNADataset.add_feature"""
         self.dataset.add_feature(feature=feature, feature_level=feature_level, is_input=is_input)
@@ -312,7 +355,7 @@ class Task:
     def load(self):
         """Load dataset and splits from disk."""
         # load splits
-        print(">>> Loading precomputed dataset...")
+        print(">>> Loading precomputed task...")
         self.dataset = RNADataset(
             dataset_path=self.dataset_path, in_memory=self.in_memory, recompute_mapping=self.recompute
         )
@@ -320,9 +363,9 @@ class Task:
         with Path.open(Path(self.root) / "metadata.json") as meta:
             self.metadata = json.load(meta)
         if (
-            os.path.exists(os.path.join(self.root, "train_idx.txt"))
-            and os.path.exists(os.path.join(self.root, "val_idx.txt"))
-            and os.path.exists(os.path.join(self.root, "test_idx.txt"))
+                os.path.exists(os.path.join(self.root, "train_idx.txt"))
+                and os.path.exists(os.path.join(self.root, "val_idx.txt"))
+                and os.path.exists(os.path.join(self.root, "test_idx.txt"))
         ):
             self.train_ind = [int(ind) for ind in open(os.path.join(self.root, "train_idx.txt")).readlines()]
             self.val_ind = [int(ind) for ind in open(os.path.join(self.root, "val_idx.txt")).readlines()]
@@ -369,7 +412,6 @@ class Task:
             class_counts = {}
             classes = set()
             unique_edge_attrs = set()  # only used with graphs
-
 
             multi_label = self.metadata['multi_label']
             # Collect statistics from dataset
@@ -436,8 +478,9 @@ class Task:
         if self.in_memory:
             all_rnas.append(rna)
         else:
-            all_rnas.append(rna.name)
+            os.makedirs(self.dataset_path, exist_ok=True)
             dump_json(os.path.join(self.dataset_path, f"{rna.name}.json"), rna)
+            all_rnas.append(rna.name)
 
     def compute_distances(self):
         self.dataset = self.dataset.similarity_matrix_computer.compute_distances(self.dataset)
@@ -576,5 +619,6 @@ class ResidueClassificationTask(ClassificationTask):
 
 class RNAClassificationTask(ClassificationTask):
     def __init__(self, additional_metadata=None, **kwargs):
+        additional_metadata = {} if additional_metadata is None else additional_metadata
         meta = {'graph_level': True, **additional_metadata}
-        super().__init__( additional_metadata=meta, **kwargs)
+        super().__init__(additional_metadata=meta, **kwargs)
