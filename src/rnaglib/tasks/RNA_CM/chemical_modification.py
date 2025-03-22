@@ -18,9 +18,9 @@ class ChemicalModification(ResidueClassificationTask):
     input_var = "nt_code"
     name = "rna_cm"
 
-    def __init__(self, root, size_thresholds=(15, 500), **kwargs):
-        meta = {'multi_label': False, "task_name": "rna_cm"}
-        super().__init__(root=root, additional_metadata=meta, size_thresholds=size_thresholds, **kwargs)
+    def __init__(self, size_thresholds=(15, 500), **kwargs):
+        meta = {'multi_label': False}
+        super().__init__(additional_metadata=meta, size_thresholds=size_thresholds, **kwargs)
 
     @property
     def default_splitter(self):

@@ -16,7 +16,6 @@ This repository contains four files:
 1. `demo.py`
 2. `binding_site.py`
 3. `benchmark_demo.py`
-4. `benchmark_binding_site.py`
 
 ### demo.py
 
@@ -27,10 +26,14 @@ It uses an RGCN implemented in the `learning` directory of this repo.
 
 ### binding_site.py
 
-This is the task definition using `rnaglib`'s task API. It includes:
+This is the task definitions of the `BindingSite` task using `rnaglib`'s task API. It includes:
 
 - Loading and preprocessing of the part of `rnaglib` database that has known ligands
 - Defines choice of splitting strategy and through inheritance the model evaluation methods.
+
+A second task named `BenchmarkBindingSite` is being implemented. It has the same input and output variables as `BindingSite`
+and also uses the RGCN implemented in the `learning` directory of this repo but uses the data and splits from Su et al. (2021)
+to ensure fair benchmarking with their results.
 
 ### benchmark_demo.py
 
@@ -39,14 +42,6 @@ of `benchmark_binding_site.py`, using splits from Su et al. (2021) to train a si
 outputs some performance metrics. It can be easily expanded for further model development. It also uses an RGCN
 implemented in the `learning` directory of this repo.
 
-### benchmark_binding_site.py
-
-This is the task definition using `rnaglib`'s task API. It includes:
-
-- Loading and preprocessing of the subset of `rnaglib` dataset that is used in Su et al. (2021).
-- Defines the splitting strategy used in Su et al. (2021) and through inheritance defines the model evaluation methods.
-
 ## Usage
 
-To train and evaluate the model, simply run: `python demo.py` or `python benchmark_demo.py` and use the
-`--frompickle` from if you want to use a precomputed task, saving some execution time.
+To train and evaluate the model, simply run: `python demo.py`
