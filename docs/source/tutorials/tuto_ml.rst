@@ -10,11 +10,13 @@ RNAGlib provides access to collections of RNAs for machine learning with PyTorch
 It revolves around the usual Dataset and Dataloader objects, along with a Representation object :
 
 * `RNADatasets` objects are an iterable of RNA data, that returns representations of this data
-* The `Features_Computer` object can be thought of as Transforms class, selecting relevant node or graph features
-and transforming them into tensors ready to be used in deep learning.
-* The `Representation` object will return our data in a certain representation (e.g. graphs, voxels, point clouds) as
-well as cast to different data science and ML frameworks (DGL, pytorch-geometric, networkx).
+
+* The `Features_Computer` object can be thought of as Transforms class, selecting relevant node or graph features and transforming them into tensors ready to be used in deep learning.
+
+* The `Representation` object will return our data in a certain representation (e.g. graphs, voxels, point clouds) as well as cast to different data science and ML frameworks (DGL, pytorch-geometric, networkx).
+
 * The `get_loader` function encapsulates automatic data splitting and collating and returns appropriate PyTorch data loaders.
+
 
 
 Datasets
@@ -168,7 +170,7 @@ Additional inputs and outputs
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Adding more input features to the graphs is straightforward, as you simply have to specify more items in the features list.
-A full description of the input features that can be used is available in :doc:`rnaglib.data`.
+A full description of the input features that can be used is available in :doc:`../data_reference/rna_ref`.
 Similarly, you can seamlessly switch to a multi-task setting by adding more targets. However, doing this affects the splitting procedure.
 A side effect could be a slight deviation in the train/validation/test fractions.
 The tasks currently implemented are in the set : {'node_binding_small-molecule', 'node_binding_protein', 'node_binding_ion', "node_is_modified"}.
@@ -205,4 +207,6 @@ The loader will then return an additional field in the batch, with a 'ring' key 
     da.add_representation(ring_rep)
     train_loader, _, _ = graphloader.get_loader(dataset=unsupervised_dataset)
 
-The coordinated use of these functionalities is illustrated in the :doc:`rnaglib.examples`: section.
+
+
+The coordinated use of these functionalities is illustrated in the :doc:`../tutorials/tuto_tasks`: section.

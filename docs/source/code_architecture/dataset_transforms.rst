@@ -1,7 +1,7 @@
 RNADataset Transforms
 #####################
 
-``DSTransform`` are transformed that take a whole RNADataset (see :doc:`dataset<code_architecture/dataset>`) as input and return a whole dataset.
+``DSTransform`` are transformed that take a whole RNADataset (see :doc:`dataset<../code_architecture/dataset>`) as input and return a whole dataset.
 They mostly revolve around computing distances between RNAs in the dataset.
 Once distances are computed, they can be used to remove redundancy in the dataset, as well to split it in meaningful splits that avoid data leakage.
 
