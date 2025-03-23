@@ -26,7 +26,7 @@ from rnaglib.dataset_transforms import RandomSplitter, Splitter, RedundancyRemov
 from rnaglib.dataset_transforms import Collater
 from rnaglib.tasks import TASKS
 
-ZENOD_RECORD = "184453"
+ZENOD_RECORD = "187827"
 ZENODO_URL = f"https://sandbox.zenodo.org/records/{ZENOD_RECORD}/files/"
 
 
@@ -85,19 +85,8 @@ class Task:
                         available at zenodo, otherwise use `precomputed=False` to build locally.")
             # If dataset does not exist on zenodo, or downloading failed, recompute.
             if not zenodo_loaded:
-                os.makedirs(self.dataset_path, exist_ok=True)
-                print(">>> Creating task dataset from scratch...")
-                # instantiate the Size filter if required
-                self.size_thresholds = size_thresholds
-                if self.size_thresholds is not None:
-                    self.size_filter = SizeFilter(size_thresholds[0], size_thresholds[1])
-                self.dataset = self.process()
-                self.dataset.features_computer = self.get_task_vars()
-
-                self.metadata.update(self.describe())
-                self.post_process()
-                self.metadata["data_version"] = self.dataset.version
-
+                self.from_scratch(size_thresholds)
+    
         # Set splitter after dataset is available
         # Split dataset if it wasn't loaded from file
         self.splitter = self.default_splitter if splitter is None else splitter
@@ -109,11 +98,27 @@ class Task:
         with open(Path(self.root) / "done.txt", "w") as f:
             f.write("")
 
+    def from_scratch(self, size_thresholds):
+        os.makedirs(self.dataset_path, exist_ok=True)
+        print(">>> Creating task dataset from scratch...")
+        # instantiate the Size filter if required
+        self.size_thresholds = size_thresholds
+        if self.size_thresholds is not None:
+            self.size_filter = SizeFilter(size_thresholds[0], size_thresholds[1])
+        self.dataset = self.process()
+        self.dataset.features_computer = self.get_task_vars()
+
+        self.metadata.update(self.describe())
+        self.post_process()
+        self.metadata["data_version"] = self.dataset.version
+
+        pass
+
     def from_zenodo(self):
         """Downloads the task dataset from Zenodo and loads it."""
 
-        print(">>> Downloading task dataset from Zenodo...")
         url = ZENODO_URL + f"{self.name}.tar.gz"
+        print(f">>> Downloading task dataset from Zenodo {url}...")
         download(url)
         with tarfile.open(f"{self.name}.tar.gz") as tar_file:
             tar_file.extractall()
