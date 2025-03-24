@@ -1,5 +1,3 @@
-from rnaglib.dataset_transforms import RandomSplitter
-
 # `rnaglib`'s Task module
 
 The new tasks module allows the use and creation of a variety of machine learning tasks on RNA structure. 
