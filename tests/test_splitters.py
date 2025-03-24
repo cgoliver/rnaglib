@@ -14,7 +14,7 @@ class SplitterTest(unittest.TestCase):
 
     @classmethod
     def setUpClass(self):
-        self.dataset = RNADataset(debug=True, get_pdbs=True, overwrite=False)
+        self.dataset = RNADataset(debug=True, get_pdbs=True)
         pass
 
     def check_splits(self, train, val, test):
