@@ -154,10 +154,10 @@ rna_draw(G, show=True, layout="spring")
 When dealing with 3D structures as 2.5D graphs we support graph-level comparison through the graph edit distance.
 
 ```python
-from rnaglib.ged import graph_edit_distance
-from rnaglib.utils import graph_from_pdbid
+from rnaglib.algorithms import graph_edit_distance
+from rnaglib.dataset import rna_from_pdbid
 
-G = graph_from_pdbid("4nlf")
+G = rna_from_pdbid("4nlf")
 print(graph_edit_distance(G, G))  # 0.0
 ```
 
