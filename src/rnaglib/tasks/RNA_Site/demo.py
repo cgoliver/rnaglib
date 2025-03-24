@@ -9,7 +9,7 @@ ta = BindingSite(root="RNA_Site", debug=False, precomputed=True)
 ta.dataset.add_representation(GraphRepresentation(framework="pyg"))
 
 # Splitting dataset
-train, val, test = ta.get_split_loaders(recompute=False)
+train, val, test = ta.get_split_loaders(recompute=False, batch_size=8)
 
 print(len(train), len(val), len(test))
 
@@ -23,9 +23,9 @@ info = ta.describe()
 #         ...
 
 # Or using a wrapper class
-model = PygModel.from_task(ta, device='cpu')
+model = PygModel.from_task(ta, device='cpu', num_layers=4, hidden_channels=256)
 model.configure_training(learning_rate=0.001)
-model.train_model(ta, epochs=1)
+model.train_model(ta, epochs=100)
 
 # Final evaluation
 test_metrics = model.evaluate(ta)
