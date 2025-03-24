@@ -8,16 +8,19 @@ ta = ChemicalModification(
     debug=False,
 )
 
-# Add representation
+# Adding representation
 ta.dataset.add_representation(GraphRepresentation(framework="pyg"))
 
 # Splitting dataset
+print("Splitting Dataset")
 ta.get_split_loaders(recompute=False)
 
-# Train model
+info = ta.describe()
+
+# Training model
 # Either by hand:
 # for epoch in range(100):
-#     for batch in task.train_dataloader:
+#     for batch in ta.train_dataloader:
 #         graph = batch["graph"].to(self.device)
 #         ...
 
@@ -30,7 +33,7 @@ model = PygModel(
 model.configure_training(learning_rate=0.001)
 model.train_model(ta, epochs=10)
 
-# Final evaluation
+# Evaluating the model
 test_metrics = model.evaluate(ta, split="test")
 for k, v in test_metrics.items():
     print(f"Test {k}: {v:.4f}")

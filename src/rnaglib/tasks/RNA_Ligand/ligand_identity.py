@@ -18,23 +18,24 @@ class LigandIdentification(RNAClassificationTask):
     """Binding pocket-level task where the job is to predict the (small molecule) ligand which is the most likely
     to bind a binding pocket with a given structure
 
-    :param Union[str, os.PathLike] root: Path to the folder where the task-related data should be loaded
-    :param tuple[int] size_thresholds: range of RNA sizes to keep in the task dataset(default (15, 500))
-    :param list[str] admissible_ligands: list of the names of the ligands to include in the dataset. By default,
-    they are paromomycin (PAR), LLL and 8UZ since these are the four most frequent small molecules binding RNAs in
-    our database.
+    Task type: multi-class classification
+    Task level: graph-level
 
+    :param tuple[int] size_thresholds: range of RNA sizes to keep in the task dataset(default (15, 500))
+    :param tuple[str] admissible_ligands: list of the names of the ligands to include in the dataset (default ('PAR', 'LLL', '8UZ')). By default, they are paromomycin (PAR), LLL and 8UZ since these are the four most frequent small molecules binding RNAs in
+    our database.
+    :param bool use_balanced_sampler: whether to sample RNAs according to the distribution of their classes 
     """
     input_var = "nt_code"
     target_var = "ligand"
     name = "rna_ligand"
 
     def __init__(self,
-                 size_thresholds=(15, 500),
-                 admissible_ligands=('PAR', 'LLL', '8UZ'),
-                 use_balanced_sampler=False,
-                 **kwargs
-                 ):
+        size_thresholds=(15, 500),
+        admissible_ligands=('PAR', 'LLL', '8UZ'),
+        use_balanced_sampler=False,
+        **kwargs
+    ):
         self.admissible_ligands = admissible_ligands
         self.use_balanced_sampler = use_balanced_sampler
         meta = {"multi_label": False}
@@ -51,8 +52,7 @@ class LigandIdentification(RNAClassificationTask):
         super().__init__(additional_metadata=meta, size_thresholds=size_thresholds, **kwargs)
 
     def process(self):
-        """"
-        Creates the task-specific dataset.
+        """"Creates the task-specific dataset.
 
         :return: the task-specific dataset
         :rtype: RNADataset
@@ -92,6 +92,12 @@ class LigandIdentification(RNAClassificationTask):
         return dataset
 
     def get_task_vars(self) -> FeaturesComputer:
+        """Specifies the `FeaturesComputer` object of the tasks which defines the features which have to be added to the RNAs
+        (graphs) and nucleotides (graph nodes)
+        
+        :return: the features computer of the task
+        :rtype: FeaturesComputer
+        """
         represented_values = set()
         for rna in self.dataset:
             represented_values.add(rna['rna'].graph[self.target_var])
@@ -116,8 +122,12 @@ class LigandIdentification(RNAClassificationTask):
         self.dataset = us_align_computer(self.dataset)
 
     def set_loaders(self, recompute=True, **dataloader_kwargs):
-        """Sets the dataloader properties.
+        """Sets the dataloader properties. This is a reimplementation of the set_loaders method of Task class
+        specific to RNA_Ligand to enable the computation of the balanced sampler
         Call this each time you modify ``self.dataset``.
+
+        :param bool recompute: whether to recompute the dataset train/val/test splitting in case a splitting has
+        already been computed (default True)
         """
         self.set_datasets(recompute=recompute)
 
@@ -146,7 +156,11 @@ class LigandIdentification(RNAClassificationTask):
 
     @property
     def default_splitter(self):
-        "Returns the splitting stratefy to be used for this specific task. Canonical splitter is ClusterSplitter which is a "
-        "similarity-based splitting relying on clustering which could be refined into a sequencce- or structure-based clustering"
-        "using distance_name argument"
+        """Returns the splitting strategy to be used for this specific task. Canonical splitter is ClusterSplitter which is a
+        similarity-based splitting relying on clustering which could be refined into a sequencce- or structure-based clustering
+        using distance_name argument
+
+        :return: the default splitter to be used for the task
+        :rtype: Splitter
+        """
         return ClusterSplitter(distance_name="USalign")

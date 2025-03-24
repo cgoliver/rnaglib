@@ -31,6 +31,7 @@ class InverseFolding(ResidueClassificationTask):
         return ClusterSplitter(distance_name="USalign")
 
     def process(self) -> RNADataset:
+        print(">>> RNAIF process")
         # Define your transforms
         annotate_rna = DummyAnnotator()
         connected_components_partition = ConnectedComponentPartition()
@@ -51,6 +52,7 @@ class InverseFolding(ResidueClassificationTask):
         return dataset
 
     def post_process(self):
+        print(">>> RNAIF post")
         cd_hit_computer = CDHitComputer(similarity_threshold=0.99)
         cd_hit_rr = RedundancyRemover(distance_name="cd_hit", threshold=0.9)
         self.dataset = cd_hit_computer(self.dataset)
@@ -201,8 +203,7 @@ class gRNAde(InverseFolding):
                     self.splits["pdb_to_chain_all"][pdb_id].add(chain)
                     self.splits["pdb_to_chain_all_single"][pdb_id].update(chain_components)
 
-        meta = {"multi_label": False}
-        super().__init__(additional_metadata=meta, size_thresholds=size_thresholds, **kwargs)
+        super().__init__(size_thresholds=size_thresholds, **kwargs)
 
     @property
     def default_splitter(self):
@@ -237,7 +238,12 @@ class gRNAde(InverseFolding):
         annote_dummy = DummyAnnotator()
 
         # Initialize dataset with in_memory=False to avoid loading everything at once
-        source_dataset = RNADataset(rna_id_subset=list(pdb_to_single_chains.keys()), redundancy="all", in_memory=False)
+        rna_ids = list(pdb_to_single_chains.keys())
+        source_dataset = RNADataset(
+                                    rna_id_subset=rna_ids,
+                                    redundancy="all",
+                                    in_memory=False
+                                    )
 
         all_rnas = []
         os.makedirs(self.dataset_path, exist_ok=True)
@@ -257,4 +263,5 @@ class gRNAde(InverseFolding):
         return dataset
 
     def post_process(self):
+        print("grenade post process")
         pass
