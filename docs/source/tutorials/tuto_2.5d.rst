@@ -47,8 +47,9 @@ Using node IDs we can access node and edge attributes as dictionary keys.
    >>> from rnaglib.data_loading import rna_from_pdbid
    >>> rna = rna_from_pdbid("4nlf")
    >>> rna['rna'].nodes['4nlf.A.2647']
-    {'index': 1, 'index_chain': 1, 'chain_name': 'A', 'nt_resnum': 2647, 'nt_name': 'U', 'nt_code': 'U',
-     'binding_protein': None, 'binding_ion': None, 'binding_small-molecule': None}
+    {'nt': 'U', 'nt_full': 'U', 'nt_code': 'U', 'chain_id': 'A', 'is_modified': False, 'xyz_P': [18.92593002319336, 6.193000316619873, -6.555821895599365],
+    'binding_ion': None, 'binding_small-molecule': None, 'protein_binding': False, 'protein_content': [0, 0, 0], 'protein_content_4.0': 0, 
+    'protein_content_6.0': 0, 'protein_content_8.0': 0}
 
 The RNA 2.5D graph contains a rich set of annotations.
 For a complete list of these annotations see :doc:`this page<../data_reference/rna_ref>`.
@@ -190,7 +191,7 @@ However, due to the exponential complexity of the comparison, the maximum size o
 
     >>> from rnaglib.algorithms import ged
     >>> from rnaglib.data_loading import rna_from_pdbid
-    >>> G = rna_from_pdbid("4nlf")
+    >>> G = rna_from_pdbid("4nlf")["rna"]
     >>> ged(G, G)
     ... 0.0
 
@@ -207,10 +208,10 @@ The first option is to use the library from a python script, following the examp
 
 .. code-block:: python
 
-    >>> from rnaglib.prepare_data import cif_to_graph
+    >>> from rnaglib.prepare_data import build_graph_from_cif
 
     >>> pdb_path = '../data/1aju.cif'
-    >>> graph_nx = cif_to_graph(pdb_path)
+    >>> graph_nx = build_graph_from_cif(pdb_path)
 
 Another possibility is to use the shell function that ships with rnaglib.
 
