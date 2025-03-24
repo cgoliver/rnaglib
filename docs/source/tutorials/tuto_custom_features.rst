@@ -11,13 +11,15 @@ The first step is to add an annotation to the RNAs such that the necessary infor
 
 .. code-block:: python
 
+    import random
+    import networkx as nx
     from rnaglib.transforms import Transform
-    from rnaglib.utils import OneHotEncoder
+    from rnaglib.encoders import OneHotEncoder
 
     class MyTransform(Transform):
         name = 'MY_FEAT'
         encoder = OneHotEncoder({'A': 0, 'B': 1, 'C': 2})
-        def forward(data: dict):
+        def forward(self, data: dict):
             g = data['rna']
             feat = {n: random.choice(['A', 'B', 'C']) for n in g.nodes()}
             nx.set_node_attributes(g, feat, self.name)
@@ -32,11 +34,12 @@ Now we pass ``MyTransform`` to the dataset construction in the ``pre_transform``
 
 .. code-block:: python
 
-   from rnaglib.dataset import RNADataset
-   t = MyTransform()
-   dataset = RNADataset(debug=True
-                        pre_transforms=t,
-                        )
+    from rnaglib.dataset import RNADataset
+    t = MyTransform()
+    dataset = RNADataset(
+        debug=True,
+        transforms=t,
+    )
 
 
 Now you can access the node attribute you defined over all the RNAs. If you pass the transform instead to the ``transforms`` argument of the dataset constructor, the transform will be applied every time the dataset item is fetched by ``__getitem__()``.
@@ -61,16 +64,18 @@ nucleotide identity for each residue in the RNA.
 
 .. code-block:: python
 
-    from rnaglib.data_loading import FeaturesComputer
-    from rnaglib.representations import GraphRepresentation
+    from rnaglib.transforms import FeaturesComputer
+    from rnaglib.transforms import GraphRepresentation
 
 
     ft = FeaturesComputer(nt_features=['nt_code'])
     rep = GraphRepresentation(framework='pyg')
 
-    dataset = RNADataset.from_database(debug=True,
-                                       features_computer=ft,
-                                       representations=[rep])
+    dataset = RNADataset(
+        debug=True,
+        features_computer=ft,
+        representations=[rep]
+    )
 
 
 Now each data item will contain a `'graph'` key that holds a PyG graph with the 4-dimension feature representing nucleotide identity.
@@ -80,17 +85,19 @@ To additionally include a custom feature you simply add the transform you used t
 
 .. code-block:: python
 
-    from rnaglib.data_loading import FeaturesComputer
-    from rnaglib.representations import GraphRepresentation
+    from rnaglib.transforms import FeaturesComputer
+    from rnaglib.transforms import GraphRepresentation
 
 
     t = MyTransform()
-    ft = FeaturesComputer(nt_features=['nt_code', 'MY_FEAT'], transforms=t)
+    ft = FeaturesComputer(nt_features=['nt_code', 'MY_FEAT'], custom_encoders={'MY_FEAT':t.encoder})
     rep = GraphRepresentation(framework='pyg')
 
-    dataset = RNADataset(debug=True,
-                         features_computer=ft,
-                         pre_transforms=t,
-                         representations=[rep])
+    dataset = RNADataset(
+        debug=True,
+        features_computer=ft,
+        transforms=t,
+        representations=[rep]
+    )
 
 
