@@ -1,5 +1,5 @@
 """
-This script is used to find all possible annotations present in dssr and dump them in a dict.
+This script is used to find all possible annotations and dump them in a dict.
 
 This is useful to handcraft encoding functions and to design data splits
 """
@@ -149,7 +149,7 @@ def get_all_annots(graph_dir, counter=False, dump_name="all_annots.json"):
 
 def get_graph_indexes(graph_dir, possible_supervisions=None, dump_name="graph_index_NR.json"):
     """
-    This function is used to create data splits. For each graph, we want to report which fields it contains
+    This function is used to create data summaries. For each graph, we want to report which fields it contains
     in one object, to avoid having to load all graphs every time
 
     We want to return a dict of dict of dict. {graph_name : {fields : { values of the field :number of occurences }}}
