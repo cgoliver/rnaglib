@@ -31,7 +31,7 @@ class TestDataset(unittest.TestCase):
         d[0]
 
     def test_get_pdbds(self):
-        d = RNADataset(debug=True, get_pdbs=True, overwrite=True)
+        d = RNADataset(debug=True, get_pdbs=True)
         pdbids = [rna["rna"].graph["pdbid"] for rna in d]
         pdb_paths = (Path(d.structures_path) / f"{pdbid.lower()}.cif" for pdbid in pdbids)
         for path in pdb_paths:
