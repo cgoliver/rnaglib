@@ -6,7 +6,7 @@ Now that we know :doc:`what is an RNA 2.5D graph<../data_reference/what_is>` we 
 Fetching hosted graphs
 --------------------------
 
-The libray ships with some pre-built datasets which you can download with the following command line::
+The library ships with some pre-built datasets which you can download with the following command line::
 
         $ rnaglib_download
 
