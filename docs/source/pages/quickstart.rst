@@ -27,9 +27,7 @@ You can load one RNA using ``rna_from_pdbid()``
 
     >>> pdbids = available_pdbids()
     >>> rna = rna_from_pdbid(pdbids[0])
-    >>> rna
-    DiGraph with 69 nodes and 194 edges
-    >>> rna.graph
+    >>> rna['rna'].graph
     {'dbn': {'all_chains': {'num_nts': 143, 'num_chars': 144, 'bseq': 'GCCCGGAUAGCUCAGUCGGUAGAGCAGGGGAUUGAAAAUCCCCGUGUCCUUGGUUCGAUUCCGAGUCUGGGCAC&CGGAUAGCUCAGUCGGUAGAGCAGGGGAUUGAAAAUCCCCGUGUCCUUGGUUCGAUUCCGAGUCCGGGC', 'sstr': '(((((((..((((.....[..)))).(((((.......))))).....(((((..]....))))))))))))..&((((..((((.....[..)))).(((((.......))))).....(.(((..]....))).)))))...', 'form': 'AAAAAA...AA...A.......AAA.AAAA.......A.AAA......AAAAA..A....AAAAAAAAAAAA.-&.AA...AA...A.......AAA.AAAA.......A.AAA......AAAAA..A....A...AAAA.A.-'}...,
 
 See the data :doc:`tutorial <../tutorials/tuto_2.5d>` for more on the data.
@@ -40,7 +38,7 @@ ______________________
 For machine learning purposes, we often want a collection of data objects in one place.
 For that we have the ``RNADataset`` object.::
 
-   from rnaglib.data_loading import RNADataset
+   from rnaglib.dataset import RNADataset
 
    dataset = RNADataset()
 
@@ -55,11 +53,11 @@ The :mod:`rnaglib.tasks` library contains all utilities necessary for loading pr
 
 
     from torch.nn import BCELoss
-    from rnaglib.tasks import BindingSiteDetection
+    from rnaglib.tasks import BindingSite
     from rnaglib.transforms import GraphRepresentation
 
     # Load the task data and annotations
-    ta = BindingSiteDetection("my_root")
+    ta = BindingSite("my_root")
 
     # Select a data representation and framework (see docs for support of other data modalities and deep learning frameworks)
 
@@ -72,7 +70,7 @@ The :mod:`rnaglib.tasks` library contains all utilities necessary for loading pr
 
     # Access the predefined splits
     for batch in train_loader:
-        pred = ta.dummy_model(batch["graph"])
+        pred = ta.dummy_model(batch["graph"]).flatten()
         y = batch["graph"].y
         loss = BCELoss()(y, pred)
 
