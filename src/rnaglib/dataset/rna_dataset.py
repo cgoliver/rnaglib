@@ -105,7 +105,6 @@ class RNADataset(Dataset):
                 dataset_path, structures_path = download_graphs(
                     redundancy=redundancy,
                     version=version,
-                    debug=debug,
                     get_pdbs=get_pdbs,
                 )
                 self.dataset_path = dataset_path
@@ -115,10 +114,6 @@ class RNADataset(Dataset):
             existing_all_rnas, extension = get_all_existing(dataset_path=self.dataset_path, all_rnas=rna_id_subset)
             self.extension = extension
             if recompute_mapping or not self.bidict_path.exists():
-                # If debugging, only keep the first few
-                if debug:
-                    existing_all_rnas = existing_all_rnas[:50]
-
                 # Keep track of a list_id <=> system mapping. First remove extensions
                 existing_all_rna_names = [get_name_extension(rna, permissive=True)[0] for rna in existing_all_rnas]
                 self.all_rnas = bidict({rna: i for i, rna in enumerate(existing_all_rna_names)})
@@ -127,6 +122,11 @@ class RNADataset(Dataset):
                 with self.bidict_path.open() as f:
                     simple_dict = json.load(f)
                 self.all_rnas = bidict(simple_dict)
+
+            # If debugging, only keep the first few
+            if debug:
+                nb_items_to_keep = min(50, len(self.all_rnas))
+                self.all_rnas = bidict({rna: i for idx,(rna,i) in enumerate(self.all_rnas.items()) if idx<nb_items_to_keep})
 
             if in_memory is not None and in_memory:
                 self.to_memory()
