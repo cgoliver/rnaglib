@@ -12,8 +12,6 @@ ta.dataset.add_representation(GraphRepresentation(framework="pyg"))
 print("Splitting Dataset")
 train, val, test = ta.get_split_loaders(recompute=False, batch_size=8)
 
-print(len(train), len(val), len(test))
-
 info = ta.describe()
 
 # Training model
