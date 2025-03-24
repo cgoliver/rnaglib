@@ -1,5 +1,5 @@
 ``rnaglib.algorithms``
-========================
+======================
 
 
 .. automodule:: rnaglib.algorithms
@@ -16,7 +16,7 @@ Traversal
 
 
 Graph Comparison 
-------------------------------
+----------------
 
 .. autosummary::
    :toctree: generated/
@@ -26,7 +26,7 @@ Graph Comparison
 
 
 Hashing
----------
+-------
 
 
 .. autosummary::
@@ -36,7 +36,7 @@ Hashing
 
 
 Sampling
------------
+--------
 
   
 .. autosummary::
