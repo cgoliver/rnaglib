@@ -33,8 +33,6 @@ A quickstart and tutorials are available in our online documentation: [**rnaglib
 In this readme we briefly review the functionality of rnaglib:
 
 - [Benchmark ML models](#benchmark-ml-models-on-rna-3d-structures-new)
-    - [Fastest way to get training](#what-is-the-fastest-way-to-get-training)
-    - [Using custom features](#how-do-i-use-custom-features-for-training)
 - [Get annotated RNA 3D structures](#get-annotated-rna-3d-structures)
     - [Fetch and browse annotated RNA 3D structures](#fetch-and-browse-annotated-rna-3D-structures)
     - [Dowloading whole RNA structure databases](#Dowloading-whole-RNA-structure-databases)
