@@ -9,15 +9,13 @@ from rnaglib.utils.rfam_utils import get_frequent_go_pdbsel
 
 
 class RNAGo(RNAClassificationTask):
-    """
-    Predict the GO terms associated with the Rfam family of a given RNA chain.
+    """Predict the GO terms associated with the Rfam family of a given RNA chain.
     Of course, this task is solved by definition since families are constructed using covariance models.
     However, it can still test the ability of a model to capture characteristic structural features from 3D.
 
     Task type: multi-class classification
     Task level: graph-level
 
-    :param Union[str, os.PathLike] root: Path to the folder where the task-related data should be loaded
     :param tuple[int] size_thresholds: range of RNA sizes to keep in the task dataset(default (15, 500))
     """
 
@@ -32,9 +30,22 @@ class RNAGo(RNAClassificationTask):
 
     @property
     def default_splitter(self):
+        """Returns the splitting strategy to be used for this specific task. Canonical splitter is ClusterSplitter which is a
+        similarity-based splitting relying on clustering which could be refined into a sequencce- or structure-based clustering
+        using distance_name argument
+
+        :return: the default splitter to be used for the task
+        :rtype: Splitter
+        """
         return ClusterSplitter(similarity_threshold=0.6, distance_name="cd_hit")
 
     def get_task_vars(self):
+        """Specifies the `FeaturesComputer` object of the tasks which defines the features which have to be added to the RNAs
+        (graphs) and nucleotides (graph nodes)
+        
+        :return: the features computer of the task
+        :rtype: FeaturesComputer
+        """
         label_mapping = self.metadata["label_mapping"]
         if self.debug:
             label_mapping = {"0000353": 0,
@@ -50,8 +61,7 @@ class RNAGo(RNAClassificationTask):
                                  MultiLabelOneHotEncoder(label_mapping)}, )
 
     def process(self):
-        """"
-        Creates the task-specific dataset.
+        """"Creates the task-specific dataset.
 
         :return: the task-specific dataset
         :rtype: RNADataset

@@ -21,8 +21,11 @@ class BenchmarkBindingSite(ResidueClassificationTask):
     > Hong Su, Zhenling Peng, and Jianyi Yang. Recognition of small molecule–rna binding sites using
     > rna sequence and structure. Bioinformatics, 37(1):36–42, 2021. <https://doi.org/10.1093/bioinformatics/btaa1092>
 
-    :param Union[str, os.PathLike] root: Path to the folder where the task-related data should be loaded
-    :param float cutoff: distance (in Angstroms) between an RNA atom and any small molecule atom below which the RNA residue is considered as part of a binding site
+    Task type: binary classification
+    Task level: residue-level
+
+    :param float cutoff: distance (in Angstroms) between an RNA atom and any small molecule atom below which the RNA residue is
+    considered as part of a binding site (default 6.0)
     """
     target_var = "binding_site"
     input_var = "nt_code"
@@ -36,7 +39,7 @@ class BenchmarkBindingSite(ResidueClassificationTask):
 
     @property
     def default_splitter(self):
-        "Returns the splitting stratefy to be used for this specific task. Canonical splitter is ClusterSplitter which is a "
+        "Returns the splitting strategy to be used for this specific task. Canonical splitter is ClusterSplitter which is a "
         "similarity-based splitting relying on clustering which could be refined into a sequencce- or structure-based clustering"
         "using distance_name argument"
         if self.debug:
@@ -45,8 +48,7 @@ class BenchmarkBindingSite(ResidueClassificationTask):
             return default_splitter_tr60_tr18()
 
     def process(self) -> RNADataset:
-        """"
-        Creates the task-specific dataset.
+        """"Creates the task-specific dataset.
 
         :return: the task-specific dataset
         :rtype: RNADataset
@@ -87,7 +89,11 @@ class BenchmarkBindingSite(ResidueClassificationTask):
 
     def get_task_vars(self) -> FeaturesComputer:
         """Specifies the `FeaturesComputer` object of the tasks which defines the features which have to be added to the RNAs
-        (graphs) and nucleotides (graph nodes)"""
+        (graphs) and nucleotides (graph nodes)
+        
+        :return: the features computer of the task
+        :rtype: FeaturesComputer
+        """
         return FeaturesComputer(
             nt_features=self.input_var,
             nt_targets=self.target_var,
@@ -102,9 +108,9 @@ class BindingSite(ResidueClassificationTask):
     Task type: binary classification
     Task level: residue-level
 
-    :param Union[str, os.PathLike] root: Path to the folder where the task-related data should be loaded
-    :param float cutoff: distance (in Angstroms) between an RNA atom and any small molecule atom below which the RNA residue is considered as part of a binding site
-    :param tuple[int] size_thresholds: range of RNA sizes to keep in the task dataset(default (15., 500.))
+    :param float cutoff: distance (in Angstroms) between an RNA atom and any small molecule atom below which the RNA residue is considered 
+    as part of a binding site (default 6.0)
+    :param tuple[int] size_thresholds: range of RNA sizes to keep in the task dataset(default (15, 500))
     """
     input_var = "nt_code"
     name = "rna_site"
@@ -154,14 +160,21 @@ class BindingSite(ResidueClassificationTask):
 
     def get_task_vars(self) -> FeaturesComputer:
         """Specifies the `FeaturesComputer` object of the tasks which defines the features which have to be added to the RNAs
-        (graphs) and nucleotides (graph nodes)"""
+        (graphs) and nucleotides (graph nodes)
+        
+        :return: the features computer of the task
+        :rtype: FeaturesComputer
+        """
         return FeaturesComputer(nt_features=self.input_var, nt_targets=self.target_var)
 
     @property
     def default_splitter(self):
-        """Returns the splitting stratefy to be used for this specific task. Canonical splitter is ClusterSplitter which is a "
-        "similarity-based splitting relying on clustering which could be refined into a sequencce- or structure-based clustering"
-        "using distance_name argument
+        """Returns the splitting strategy to be used for this specific task. Canonical splitter is ClusterSplitter which is a
+        similarity-based splitting relying on clustering which could be refined into a sequencce- or structure-based clustering
+        using distance_name argument
+
+        :return: the default splitter to be used for the task
+        :rtype: Splitter
         """
         if self.debug:
             return RandomSplitter()
