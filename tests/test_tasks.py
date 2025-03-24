@@ -30,44 +30,42 @@ class TaskTest(unittest.TestCase):
 
     def test_RNAGO(self):
         with tempfile.TemporaryDirectory() as tmp:
-            ta = RNAGo(root=tmp, **self.default_dataset_params)
+            ta = RNAGo(root=tmp, recompute=True, **self.default_dataset_params)
             self.check_task(ta)
 
     def test_ProteinBindingSite(self):
         with tempfile.TemporaryDirectory() as tmp:
-            ta = ProteinBindingSite(root=tmp, **self.default_dataset_params)
+            ta = ProteinBindingSite(root=tmp, recompute=True, **self.default_dataset_params)
             self.check_task(ta)
 
     def test_ChemicalModification(self):
         with tempfile.TemporaryDirectory() as tmp:
-            ta = ChemicalModification(root=tmp, **self.default_dataset_params)
+            ta = ChemicalModification(root=tmp, recompute=True, **self.default_dataset_params)
             self.check_task(ta)
 
     def test_InverseFolding(self):
         with tempfile.TemporaryDirectory() as tmp:
-            ta = InverseFolding(root=tmp, **self.default_dataset_params)
+            ta = InverseFolding(root=tmp, recompute=True, **self.default_dataset_params)
             self.check_task(ta)
 
     def test_gRNAde(self):
         with tempfile.TemporaryDirectory() as tmp:
-            ta = gRNAde(root=tmp, **self.default_dataset_params)
+            ta = gRNAde(root=tmp, recompute=True, **self.default_dataset_params)
             self.check_task(ta)
 
     def test_LigandIdentification(self):
         with tempfile.TemporaryDirectory() as tmp:
-            data_filename = 'binding_pockets.csv'
-            ta = LigandIdentification(root=tmp, data_filename=data_filename,
-                **self.default_dataset_params)
+            ta = LigandIdentification(root=tmp, recompute=True, **self.default_dataset_params)
             self.check_task(ta)
 
     def test_BindingSite(self):
         with tempfile.TemporaryDirectory() as tmp:
-            ta = BindingSite(root=tmp, **self.default_dataset_params)
+            ta = BindingSite(root=tmp, recompute=True, **self.default_dataset_params)
             self.check_task(ta)
 
     def test_BenchmarkBindingSiteDetection(self):
         with tempfile.TemporaryDirectory() as tmp:
-            ta = BenchmarkBindingSite(root=tmp, **self.default_dataset_params)
+            ta = BenchmarkBindingSite(root=tmp, recompute=True, **self.default_dataset_params)
             self.check_task(ta)
 
     def test_eval(self):
