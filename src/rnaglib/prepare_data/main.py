@@ -118,7 +118,7 @@ def cline():
     return parser.parse_args()
 
 
-def build_graph_from_cif(cif_path, dump_dir):
+def build_graph_from_cif(cif_path, dump_dir=None):
     """Takes a cif file and builds the full RNAglib graph.
 
     :param cif_path: path to source mmCif file
@@ -158,7 +158,7 @@ def prepare_data_main(args):
     """
 
     if args.one_mmcif is not None:
-        cif_to_graph(cif=args.one_mmcif, output_dir=args.output_dir)
+        build_graph_from_cif(cif=args.one_mmcif, dump_dir=args.output_dir)
         return
     else:
         build_dir = dir_setup(args)
