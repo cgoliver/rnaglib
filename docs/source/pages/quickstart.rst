@@ -38,7 +38,7 @@ ______________________
 For machine learning purposes, we often want a collection of data objects in one place.
 For that we have the ``RNADataset`` object.::
 
-   from rnaglib.data_loading import RNADataset
+   from rnaglib.dataset import RNADataset
 
    dataset = RNADataset()
 
