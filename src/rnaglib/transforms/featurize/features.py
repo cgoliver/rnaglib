@@ -65,7 +65,7 @@ class FeaturesComputer(Transform):
         Update the input/output feature selector with either an extra available named feature or a custom encoder
         :param feature_names: Name of the input feature to add
         :param transforms: A Transform object to compute new features with
-        :param feature_level: If featureis RNA-level ('rna`) or residue-level (`residue`)
+        :param feature_level: If feature is RNA-level ('rna`) or residue-level (`residue`)
         :param input_feature: Set to true to modify the input feature encoder, false for the target one
         :return: None
         """
