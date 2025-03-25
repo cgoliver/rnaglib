@@ -70,11 +70,12 @@ class Task:
 
         # Load dataset if existing
         existing = os.path.exists(Path(self.root) / "done.txt")
+        zenodo_loaded = False
+
         if existing and not recompute:
             self.load()
         else:
             # Try loading from zenodo if dataset exists
-            zenodo_loaded = False
             if precomputed and hasattr(self, "name") and self.name in TASKS:
                 try:
                     self.from_zenodo()
@@ -84,7 +85,7 @@ class Task:
                         Zenodo: {e}. Check if the dataset is \
                         available at zenodo, otherwise use `precomputed=False` to build locally.")
             # If dataset does not exist on zenodo, or downloading failed, recompute.
-            if not zenodo_loaded:
+            if not zenodo_loaded or recompute:
                 self.from_scratch(size_thresholds)
     
         # Set splitter after dataset is available
@@ -94,9 +95,10 @@ class Task:
             print("no split found, splitting")
             self.split(self.dataset)
 
-        self.write()
-        with open(Path(self.root) / "done.txt", "w") as f:
-            f.write("")
+        if not zenodo_loaded and not existing:
+            self.write()
+            with open(Path(self.root) / "done.txt", "w") as f:
+                f.write("")
 
     def from_scratch(self, size_thresholds):
         os.makedirs(self.dataset_path, exist_ok=True)
