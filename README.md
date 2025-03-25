@@ -94,10 +94,7 @@ available.
 >>> from rnaglib.dataset import rna_from_pdbid
 >>> rna_dict = rna_from_pdbid('1fmn')  # fetch from local database or RCSB if not found
 >>> rna_dict['rna'].graph  # display graph-level features
-{'name': '1fmn', 'pdbid': '1fmn', 'ligands': [
-    {'id': ('H_FMN', 36, ' '), 'name': 'FMN', 'smiles': 'Cc1cc2c(cc1C)N(C3=NC(=O)NC(=O)C3=N2)CC(C(C(COP(=O)(O)O)O)O)O',
-     'rna_neighs': ['1fmn.A.10', '1fmn.A.11', '1fmn.A.12', '1fmn.A.13', '1fmn.A.24', '1fmn.A.25', '1fmn.A.26',
-                    '1fmn.A.27', '1fmn.A.28', '1fmn.A.7', '1fmn.A.8', '1fmn.A.9']}], 'ions': []}
+{'name': '1fmn', 'pdbid': '1fmn', 'ligand_to_smiles': {'FMN': 'Cc1cc2c(cc1C)N(C3=NC(=O)NC(=O)C3=N2)CC(C(C(COP(=O)(O)O)O)O)O'}, 'ss': {'A': '..(((((......(((....))).....)))))..'}, 'seq': {'A': 'GGCGUGUAGGAUAUGCUUCGGCAGAAGGACACGCC'}}
 ```
 
 ## Dowloading whole RNA structure databases
@@ -157,7 +154,7 @@ When dealing with 3D structures as 2.5D graphs we support graph-level comparison
 from rnaglib.algorithms import graph_edit_distance
 from rnaglib.dataset import rna_from_pdbid
 
-G = rna_from_pdbid("4nlf")
+G = rna_from_pdbid("4nlf")["rna"]
 print(graph_edit_distance(G, G))  # 0.0
 ```
 
