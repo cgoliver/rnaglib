@@ -1,45 +1,10 @@
-Using Tasks API
---------------------------
+Build your own prediction task
+-----------------------------------
 
 An ``rnaglib.Task`` object packages everything you need to train a model for a particular biological problem.
+This means you can also create your own tasks so that others can work on them
+and share their best models.
 
-The key components of a ``Task`` you will use are:
-
-* A dedicated dataset for the task
-* Train/validation/test dataloaders
-* Model evaluator
-
-When you instantiate the task, the task either calls the ``process()`` and ``split()`` methods to compute the necessary data or you have already run this before and the result was stored in the ``root`` directory and loading should be instantaneous. 
-
-Once loading is complete you only need to select a tensor representation (e.g. graph, voxel, point cloud) and encode the underlying dataset with it and then iterate through the train loader. Note that whenever you update the task's dataset you should call ``set_loaders()`` so that changes in the dataset are reflected in the data served by the loaders::
-
-
-
-    from rnaglib.tasks import ChemicalModification
-    from rnaglib.transforms import GraphRepresentation
-
-    ta = ChemicalModification(root='cm')
-    ta.dataset.add_representation(GraphRepresentation(framework='pyg'))
-    ta.set_loaders()
-
-    for batch in ta.train_loader:
-        pred = ta.dummy_model(batch['graph'])
-        ...
-
-
-     metrics = ta.evaluate(ta.dummy_model)
-
-
-Once you have completed training you can pass your model to the task's ``evaluate()`` method which will return a dictionary of metrics and performance values.
-
-.. note::
-
-    Each task provides a ``dummy_model`` variable which you can use for testing out the task. It simply returns a random prediction of the appropriate shape.
-
-
-
-Building Custom Tasks
--------------------------------------
 
 If you would like to propose a new prediction task for the machine learning community. You just have to implement a few methos in a subclass of the``Task`` class.
 
@@ -86,13 +51,13 @@ Here is a minimal template for a custom task::
             return {'task_name': 'my task'}
 
 
-In this tutorial we will walk through the steps to create a task with the aim of predicting for each residue, whether or not it will be chemically modified, and a more advanced example we will build the task of predicting the Rfam classification of an RNA.
+In this tutorial we will walk through the steps to create a task with the aim of predicting for each residue, whether or not it will be chemically modified.
 
 Types of tasks
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~   
 
 Tasks can operate at the residue, edge, and whole RNA level. 
-Biolerplate for evaluation and loading would be affected depending on the choice of level.
+Boilerplate code for model evaluation and loading would be affected depending on the choice of level.
 For that reason we create sub-classes of the ``Task`` clas which you can use to avoid re-coding such things.
 
 
@@ -109,9 +74,9 @@ Since chemical modifications are applied to residues, Let's build a residue-leve
 1. Create the task's dataset
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~   
 
-Each task needs to define which RNAs to use. Typically this involves filtering a whole dataset of available RNAs by certain attributes to retain only the ones that contain certain annotations or pass certain criteria (e.g. size, origin, resolution, etc.).
+Each task needs to define which RNAs among all RNAs in the PDB to use. Typically this involves filtering a whole dataset of available RNAs by certain attributes to retain only the ones that contain certain annotations or pass certain criteria (e.g. size, origin, resolution, etc.).
 
-You are free to do this in any way you like as long as after ``Task.process()`` is called, a list of ``.json`` graphs storing the RNA annotations the task needs is dumped into ``{root}/dataset``.
+You are free to do this in any way you like as long as after ``Task.process()`` is called, an ``RNADataset`` object with the relevant RNAs is returned.
 
 To make things easier you can take advantage of the ``rnaglib.Tranforms`` library which provides funcionality for manipulating datasets of RNAs.
 
@@ -153,7 +118,7 @@ That's it now you just return the new ``RNADataset`` object.
 2. Set the task's variables
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~   
 
-Apart from the RNAs themselves, the task needs to know which variables are relevant. In particular we need to set the prediction target. Additionally we can set some default input features, which are always provided. The user can always add more input features if he/she desires by manipulating ``task.dataset.features_computer`` but at the minimum we need to define target variables.::
+Apart from the RNAs themselves, the task needs to know which variables are relevant. In particular we need to set the prediction target. Additionally we can set some default input features, which are always provided. The user can always add more input features once a Task is intantiated if he/she desires by manipulating ``task.dataset.features_computer`` but at the minimum we need to define target variables.::
 
     from rnaglib.dataset import RNADataset
     from rnaglib.tasks import ResidueClassificationTask

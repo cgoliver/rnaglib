@@ -19,7 +19,8 @@
    :hidden:
 
    How to train a model <tutorials/tuto_tasks>
-   A tour of RNA 2.5D graphs <tutorials/tuto_2.5d>
+   How to build your own task <tutorials/tuto_custom_task>
+   Using 2.5D RNA graphs <tutorials/tuto_2.5d>
 
 .. toctree::
    :maxdepth: 2

@@ -3,19 +3,34 @@ Available Benchmarking Tasks
 
 The new tasks module allows the use and creation of a variety of machine learning tasks on RNA structure. The list and description of the task is found below, followed by tutorials on using existing tasks, as well as on developing new tasks.
 
+You can load any task using its Task ID as such::
+
+    >>> from rnaglib.tasks import get_task
+    >>> task = get_task(root="myroot", task_id="RNA_CM")
+
+To get a list of all available task IDs::
+
+    >>> from rnaglib.tasks import TASKS
+    >>> TASKS
+    ["RNA_CM",
+     "RNA_IF",
+     ...
+     ]
+
+
 .. list-table::
    :header-rows: 1
    :widths: 20 40 20 20
 
-   * - Task Name
+   * - Task ID 
      - Description
      - Class
      - Source
-   * - RNA_CM
+   * - ``RNA_CM``
      - Prediction of chemical modifications at the residue level.
      - ``ChemicalModification``
      - No published instance
-   * - RNA_IF
+   * - ``RNA_IF``
      - Prediction of nucleotide identity (sequence) at each residue.
      - ``InverseFolding``
      - 
@@ -23,11 +38,11 @@ The new tasks module allows the use and creation of a variety of machine learnin
      - Prediction of nucleotide identiy at each residue using data and splits from ``gRNAde``.
      - ``gRNAde``
      - [Joshi_et_al_2024]_
-   * - RNA_VS
+   * - ``RNA_VS``
      - Scoring of candidates in virtual screening scenario based on ``RNAmigos 2.0``.
      - ``VSTask``
      - [Carvajal-Patino_2023]_
-   * - RNA_Site
+   * - ``RNA_Site``
      - Prediction of whether a residue is part of a binding site.
      - ``BindingSiteDetection``
      - 
@@ -35,15 +50,11 @@ The new tasks module allows the use and creation of a variety of machine learnin
      - Prediction of whether a residue is part of a binding site using data and splits from ``RNASite``
      - ``BenchmarkLigandBindingSiteDetection``
      - [Su_et_al_2021]_
-   * - RNA_Ligand
+   * - ``RNA_Ligand``
      - Prediction of ligand identity given a binding pocket (RNA structure subgraph) using data and splits from ``GMSM``.
      - ``GMSM``
      - [Pellizzoni_et_al_2024]_
-   * - RBP_Graph
-     - Prediction of protein binding at the RNA level.
-     - ``ProteinBindingDetection``
-     - No published instance
-   * - RBP_Node
+   * - ``RNA_Prot``
      - Prediction of whether a residue is part of a protein binding site.
      - ``ProteinBindingSiteDetection``
      - [Wang_et_al_2018]_
