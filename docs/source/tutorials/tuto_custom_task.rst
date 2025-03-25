@@ -23,7 +23,8 @@ Here is a minimal template for a custom task::
 
     from rnaglib.tasks import Task
     from rnaglib.dataset import RNADataset
-    from rnaglib.splitters import Splitter 
+    from rnaglib.dataset_transforms import Splitter 
+    from rnaglib.transforms import FeaturesComputer
 
     class MyTask(Task):
 
@@ -91,7 +92,7 @@ The ``Transforms`` library provides a filter which checks that an RNA's residues
     from rnaglib.transforms import ResidueAttributeFilter
     from rnaglib.transforms import PDBIDNameTransform
 
-    class ChemicalModification(ResidueClasificationTask):
+    class ChemicalModification(ResidueClassificationTask):
         def process(self) -> RNADataset:
             # grab a full set of available RNAs
             rnas = RNADataset()
@@ -126,7 +127,7 @@ Apart from the RNAs themselves, the task needs to know which variables are relev
     from rnaglib.transforms import PDBIDNameTransform
     from rnaglib.transforms import FeaturesComputer
 
-    class ChemicalModification(ResidueClasificationTask):
+    class ChemicalModification(ResidueClassificationTask):
         def process(self) -> RNADataset:
             ...
             pass
@@ -147,7 +148,7 @@ To set the splits, you implement the ``default_splitter()`` method which returns
 
 You can select from the library of implemented splitters of implement your own.
 
-For this example, we will split the RNAs by structural similarity using RNA-align.::
+For this example, we will split the RNAs by structural similarity using US-align.::
 
     from rnaglib.dataset import RNADataset
     from rnaglib.tasks import ResidueClassificationTask
@@ -156,9 +157,9 @@ For this example, we will split the RNAs by structural similarity using RNA-alig
     from rnaglib.transforms import PDBIDNameTransform
     from rnaglib.transforms import FeaturesComputer
 
-    from rnaglib.splitters import Splitter, RNAalignSplitter
+    from rnaglib.dataset_transforms import Splitter, ClusterSplitter, StructureDistanceComputer
 
-    class ChemicalModification(ResidueClasificationTask):
+    class ChemicalModification(ResidueClassificationTask):
         def process(self) -> RNADataset:
             ...
             pass
@@ -167,11 +168,11 @@ For this example, we will split the RNAs by structural similarity using RNA-alig
             return FeaturesComputer(nt_features=['nt_code'], nt_targets=['is_modified'])
 
         @property
-        def default_splitter(self) -> Splitter
-            return RNAalignSplitter(similarity_threshold=0.6)
+        def default_splitter(self) -> Splitter:
+            return ClusterSplitter(distance_name="USalign", similarity_threshold=0.6)
 
 
-Now our splits will guarantee a maximum structural similarity of 0.6 between them.
+Now our splits will guarantee a maximum structural similarity of 0.6 between them according to USAlign metrics.
 
 Check out the Splitter class for a quick guide on how to create your own splitters.
 
@@ -187,7 +188,7 @@ Here is the ful task implementation::
     from rnaglib.transforms import FeaturesComputer
     from rnaglib.transforms import ResidueAttributeFilter
     from rnaglib.transforms import PDBIDNameTransform
-    from rnaglib.splitters import Splitter, RNAalignSplitter
+    from rnaglib.dataset_transforms import Splitter, ClusterSplitter
 
 
     class ChemicalModification(ResidueClassificationTask):
@@ -212,7 +213,7 @@ Here is the ful task implementation::
             return dataset
 
         def default_splitter(self) -> Splitter:
-            return RNAalignSplitter(similarity_threshold=0.6)
+            return ClusterSplitter(distance_name="USalign", similarity_threshold=0.6)
 
 
 Metadata
