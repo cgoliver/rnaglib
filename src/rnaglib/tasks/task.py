@@ -26,7 +26,7 @@ from rnaglib.dataset_transforms import RandomSplitter, Splitter, RedundancyRemov
 from rnaglib.dataset_transforms import Collater
 from rnaglib.tasks import TASKS
 
-ZENOD_RECORD = "187827"
+ZENOD_RECORD = "189027"
 ZENODO_URL = f"https://sandbox.zenodo.org/records/{ZENOD_RECORD}/files/"
 
 
