@@ -12,8 +12,8 @@ To get a list of all available task IDs::
 
     >>> from rnaglib.tasks import TASKS
     >>> TASKS
-    ["RNA_CM",
-     "RNA_IF",
+    ["rna_cm",
+     "rna_if",
      ...
      ]
 
@@ -26,42 +26,39 @@ To get a list of all available task IDs::
      - Description
      - Class
      - Source
-   * - ``RNA_CM``
+   * - ``rna_cm``
      - Prediction of chemical modifications at the residue level.
      - ``ChemicalModification``
      - No published instance
-   * - ``RNA_IF``
+   * - ``rna_if``
      - Prediction of nucleotide identity (sequence) at each residue.
      - ``InverseFolding``
      - 
-   * - 
+   * - ``rna_if_bench``
      - Prediction of nucleotide identiy at each residue using data and splits from ``gRNAde``.
      - ``gRNAde``
      - [Joshi_et_al_2024]_
-   * - ``RNA_VS``
+   * - ``rna_vs``
      - Scoring of candidates in virtual screening scenario based on ``RNAmigos 2.0``.
      - ``VSTask``
      - [Carvajal-Patino_2023]_
-   * - ``RNA_Site``
+   * - ``rna_site``
      - Prediction of whether a residue is part of a binding site.
      - ``BindingSiteDetection``
      - 
-   * - 
+   * - ``rna_site_bench``
      - Prediction of whether a residue is part of a binding site using data and splits from ``RNASite``
      - ``BenchmarkLigandBindingSiteDetection``
      - [Su_et_al_2021]_
-   * - ``RNA_Ligand``
+   * - ``rna_ligand``
      - Prediction of ligand identity given a binding pocket (RNA structure subgraph) using data and splits from ``GMSM``.
      - ``GMSM``
      - [Pellizzoni_et_al_2024]_
-   * - ``RNA_Prot``
+   * - ``rna_prot``
      - Prediction of whether a residue is part of a protein binding site.
      - ``ProteinBindingSiteDetection``
      - [Wang_et_al_2018]_
 
-We provide a short tutorial on (1) using an existing tasks to assess model perfomance and (2) building custom tasks using modular `rnaglib` functionality.
-
-Code to reproduce the results included in the correspoding submission can be found in the `experiments/` directory.
 
 
 .. [Carvajal-Patino_2023] Semi-supervised learning and large-scale docking data accelerate rna virtual screening. bioRxiv, pages 2023–11, 2023.

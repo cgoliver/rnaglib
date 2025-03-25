@@ -243,7 +243,7 @@ The task folder contains 3 ``.txt`` files with the indices for each split. The `
 
 
 Customize Splitting
-------------------------
+~~~~~~~~~~~~~~~~~~~~~~
 
 We provide some pre-defined splitters for sequence and structure-based splitting. If you have other criteria for splitting you can subclass the ``Splitter`` class. All you have to do is implement the ``__call__()`` method which takes a dataset and returns three lists of indices::
 
