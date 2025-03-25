@@ -5,7 +5,7 @@ Quickstart
 Get the data
 ______________
 
-Once you have :doc:`installed <../pages/install>` RNAglib, you can fetch a pre-built dataset of RNA structures using the command line::
+Once you have :doc:`installed <../pages/install>` RNAglib, you can fetch a pre-built database of RNA structures using the command line::
 
     rnaglib_download
 
@@ -22,13 +22,17 @@ You can load one RNA using ``rna_from_pdbid()``
 
 .. code-block:: python
 
-    >>> from rnaglib.utils import available_pdbids
-    >>> from rnaglib.data_loading import rna_from_pdbid
+    >>> from rnaglib.dataset import rna_from_pdbid
 
-    >>> pdbids = available_pdbids()
-    >>> rna = rna_from_pdbid(pdbids[0])
+    >>> rna = rna_from_pdbid("1fmn")
     >>> rna['rna'].graph
-    {'dbn': {'all_chains': {'num_nts': 143, 'num_chars': 144, 'bseq': 'GCCCGGAUAGCUCAGUCGGUAGAGCAGGGGAUUGAAAAUCCCCGUGUCCUUGGUUCGAUUCCGAGUCUGGGCAC&CGGAUAGCUCAGUCGGUAGAGCAGGGGAUUGAAAAUCCCCGUGUCCUUGGUUCGAUUCCGAGUCCGGGC', 'sstr': '(((((((..((((.....[..)))).(((((.......))))).....(((((..]....))))))))))))..&((((..((((.....[..)))).(((((.......))))).....(.(((..]....))).)))))...', 'form': 'AAAAAA...AA...A.......AAA.AAAA.......A.AAA......AAAAA..A....AAAAAAAAAAAA.-&.AA...AA...A.......AAA.AAAA.......A.AAA......AAAAA..A....A...AAAA.A.-'}...,
+    {'name': '1fmn',
+    'pdbid': '1fmn',
+    'ligand_to_smiles': {'FMN': 'Cc1cc2c(cc1C)N(C3=NC(=O)NC(=O)C3=N2)CC(C(C(COP(=O)(O)O)O)O)O'},
+    'ss': {'A': '..(((((......(((....))).....)))))..'},
+    'seq': {'A': 'GGCGUGUAGGAUAUGCUUCGGCAGAAGGACACGCC'}
+    }
+
 
 See the data :doc:`tutorial <../tutorials/tuto_2.5d>` for more on the data.
 
@@ -51,29 +55,21 @@ ____________________________________
 
 The :mod:`rnaglib.tasks` library contains all utilities necessary for loading predefined tasks with splits and evaluation functions.::
 
-
-    from torch.nn import BCELoss
-    from rnaglib.tasks import BindingSite
+    from rnaglib.tasks import get_task
     from rnaglib.transforms import GraphRepresentation
+    from rnaglib.learning.task_models import PygModel
 
-    # Load the task data and annotations
-    ta = BindingSite("my_root")
+    # Load task, representation, and get loaders task = get_task(root="my_root",
+    task_id="rna_cm")
+    model = PygModel.from_task(task)
+    pyg_rep = GraphRepresentation(framework="pyg")
 
-    # Select a data representation and framework (see docs for support of other data modalities and deep learning frameworks)
+    task.add_representation(pyg_rep)
+    train_loader, val_loader, test_loader = task.get_split_loaders(batch_size=8)
 
-    ta.dataset.add_representation(GraphRepresentation(framework="pyg"))
-
-    train_loader, val_loader, test_loader = ta.get_split_loaders()
-
-    # most tasks ship with a dummy model for debugging, gives random outputs of the right shape
-    model = ta.dummy_model
-
-    # Access the predefined splits
     for batch in train_loader:
-        pred = ta.dummy_model(batch["graph"]).flatten()
-        y = batch["graph"].y
-        loss = BCELoss()(y, pred)
+        batch = batch['graph'].to(model.device)
+        output = model(batch)
 
-
-
+    test_metrics = model.evaluate(task, split='test')
 
