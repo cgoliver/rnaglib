@@ -3,7 +3,8 @@ import pandas as pd
 from rnaglib.transforms import AnnotationTransform
 
 class AnnotatorFromDict(AnnotationTransform):
-    """Generic annotator which enables to add node-level features to a dataset by only using a dictionary mapping the node names to the desired node features. Enables to store information to build annotations in a JSON dictionary for instance.
+    """Generic annotator which enables to add node-level features to a dataset by only using a dictionary mapping the node names to the desired node features.
+    Enables to store information to build annotations in a JSON dictionary for instance.
 
     :param dict annotation_dict: dictionary of type {node_id:node_feature}
     :param str name: name to give to the feature resulting from this annotation
