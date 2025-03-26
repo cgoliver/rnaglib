@@ -21,6 +21,7 @@ class InverseFolding(ResidueClassificationTask):
     input_var = "dummy"  # should be dummy variable
     nucs = ["A", "C", "G", "U"]
     name = "rna_if"
+    default_metric = "accuracy"
 
     def __init__(self, size_thresholds=(15, 300), **kwargs):
         meta = {"multi_label": False}

@@ -29,6 +29,7 @@ class LigandIdentification(RNAClassificationTask):
     input_var = "nt_code"
     target_var = "ligand"
     name = "rna_ligand"
+    default_metric = "auc"
 
     def __init__(self,
         size_thresholds=(15, 500),
@@ -58,7 +59,7 @@ class LigandIdentification(RNAClassificationTask):
         :rtype: RNADataset
         """
         # Initialize dataset with in_memory=False to avoid loading everything at once
-        dataset = RNADataset(in_memory=False, redundancy='all',debug=self.debug, rna_id_subset=self.nodes_keep)
+        dataset = RNADataset(in_memory=False, redundancy='all', debug=self.debug, rna_id_subset=self.nodes_keep)
 
         # Instantiate filters to apply
         resolution_filter = ResolutionFilter(resolution_threshold=4.0)

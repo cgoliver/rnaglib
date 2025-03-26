@@ -13,6 +13,7 @@ from rnaglib.tasks.RNA_VS.ligands import MolGraphEncoder
 class VirtualScreening:
 
     name = "rna_vs"
+    default_metric = "auc"
 
     def __init__(self, root, ligand_framework='dgl', recompute=False):
         self.root = root

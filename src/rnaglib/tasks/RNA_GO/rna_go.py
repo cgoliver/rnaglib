@@ -23,6 +23,7 @@ class RNAGo(RNAClassificationTask):
     target_var = "go_terms"  # graph level attribute
     name = "rna_go"
     version = "2.0.2"
+    default_metric = "jaccard"
 
     def __init__(self, size_thresholds=(15, 500), **kwargs):
         meta = {"multi_label": True}

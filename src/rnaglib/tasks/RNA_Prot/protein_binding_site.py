@@ -20,6 +20,7 @@ class ProteinBindingSite(ResidueClassificationTask):
     target_var = "protein_content_8.0"  # "protein_binding"
     input_var = "nt_code"
     name = "rna_prot"
+    default_metric = "balanced_accuracy"
 
     def __init__(self, size_thresholds=(15, 500), **kwargs):
         meta = {"multi_label": False}
