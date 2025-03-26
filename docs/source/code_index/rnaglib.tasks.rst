@@ -16,6 +16,7 @@ Subclass these to create your own tasks.
    :toctree: generated/
 
     Task
+    ClassificationTask
     ResidueClassificationTask
     RNAClassificationTask
     
@@ -29,8 +30,6 @@ These tasks take as input an RNA and predict a property of the whole molecule.
     :toctree: generated/
 
     RNAGo
-    BindingSite
-    BenchmarkBindingSite
 
 
 Residue-level Classification
@@ -42,6 +41,8 @@ These tasks take as input an RNA and predict a property of each residue of the m
 .. autosummary::
     :toctree: generated/
 
+    BindingSite
+    BenchmarkBindingSite
     ChemicalModification
     ProteinBindingSite
     InverseFolding
@@ -51,7 +52,7 @@ These tasks take as input an RNA and predict a property of each residue of the m
 Substructure-level Classification
 -------------------------------------
 
-Predict properties of substructures of a whole molecule (e.g. binding sites)
+Classification to predict properties of substructures of a whole molecule (e.g. binding pockets)
 
 .. autosummary::
    :toctree: generated/
@@ -59,4 +60,13 @@ Predict properties of substructures of a whole molecule (e.g. binding sites)
     LigandIdentification
 
 
+Substructure-level Regression
+-------------------------------------
+
+Regression to predict properties of substructures of a whole molecule (e.g. binding pockets)
+
+.. autosummary::
+   :toctree: generated/
+
+    VirtualScreening
 
