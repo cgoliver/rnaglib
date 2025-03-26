@@ -24,7 +24,7 @@ class TransformsTest(unittest.TestCase):
         pass
 
     def test_add_custom_feature(self):
-        t = RNAFMTransform()
+        t = RNAFMTransform(debug=True)
         ft = FeaturesComputer()
         ft.add_feature(t.name, custom_encoders={t.name: t.encoder})
         feat_dict = ft(t(self.dataset[0]))

@@ -11,7 +11,7 @@ from pathlib import Path
 
 import numpy as np
 from collections import defaultdict
-from Bio.PDB import *
+from Bio.PDB import MMCIF2Dict, MMCIFParser
 import json
 import networkx as nx
 import subprocess

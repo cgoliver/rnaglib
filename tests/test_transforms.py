@@ -34,7 +34,7 @@ class TransformsTest(unittest.TestCase):
         tr(self.dataset)
 
     def test_RNAFMTransform(self):
-        tr = RNAFMTransform()
+        tr = RNAFMTransform(debug=True)
         tr(self.dataset[0])
         list(tr(self.dataset))
 
@@ -73,7 +73,7 @@ class TransformsTest(unittest.TestCase):
 
     def test_simple_compose(self):
         g = self.dataset[0]
-        tr_1 = RNAFMTransform()
+        tr_1 = RNAFMTransform(debug=True)
         tr_2 = RfamTransform()
         t = Compose([tr_1, tr_2])
         t(self.dataset[0])

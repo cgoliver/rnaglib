@@ -66,7 +66,7 @@ class TestDataset(unittest.TestCase):
 
     def test_post_transform(self):
         """Apply transform during getitem call."""
-        tr = RNAFMTransform()
+        tr = RNAFMTransform(debug=True)
         feat = FeaturesComputer(nt_features=["nt_code", tr.name], custom_encoders={tr.name: tr.encoder})
         dataset = RNADataset(
             debug=True,
