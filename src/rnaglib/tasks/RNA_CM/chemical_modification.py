@@ -22,6 +22,7 @@ class ChemicalModification(ResidueClassificationTask):
     input_var = "nt_code"
     name = "rna_cm"
     default_metric = "balanced_accuracy"
+    version = "2.0.2"
 
     def __init__(self, size_thresholds=(15, 500), **kwargs):
         meta = {'multi_label': False}
@@ -62,7 +63,7 @@ class ChemicalModification(ResidueClassificationTask):
         connected_components_partition = ConnectedComponentPartition()
 
         # Run through database, applying our filters
-        dataset = RNADataset(debug=self.debug, in_memory=self.in_memory)
+        dataset = RNADataset(debug=self.debug, in_memory=self.in_memory, version=self.version)
         all_rnas = []
         for rna in tqdm(dataset):
             for rna_connected_component in connected_components_partition(rna):

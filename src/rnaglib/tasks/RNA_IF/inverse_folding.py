@@ -29,6 +29,7 @@ class InverseFolding(ResidueClassificationTask):
     nucs = ["A", "C", "G", "U"]
     name = "rna_if"
     default_metric = "accuracy"
+    version = "2.0.2"
 
     def __init__(self, size_thresholds=(15, 300), **kwargs):
         meta = {"multi_label": False}
@@ -58,7 +59,7 @@ class InverseFolding(ResidueClassificationTask):
         connected_components_partition = ConnectedComponentPartition()
 
         # Run through database, applying our filters
-        dataset = RNADataset(in_memory=self.in_memory, redundancy="all", debug=self.debug)
+        dataset = RNADataset(in_memory=self.in_memory, redundancy="all", debug=self.debug, version=self.version)
         all_rnas = []
         os.makedirs(self.dataset_path, exist_ok=True)
         for i, rna in tqdm(enumerate(dataset), total=len(dataset)):
@@ -282,7 +283,7 @@ class gRNAde(InverseFolding):
 
         # Initialize dataset with in_memory=False to avoid loading everything at once
         rna_ids = list(pdb_to_single_chains.keys())
-        source_dataset = RNADataset(rna_id_subset=rna_ids, redundancy="all", in_memory=False, debug=self.debug)
+        source_dataset = RNADataset(rna_id_subset=rna_ids, redundancy="all", in_memory=False, debug=self.debug, version=self.version)
 
         all_rnas = []
         os.makedirs(self.dataset_path, exist_ok=True)

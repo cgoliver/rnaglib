@@ -23,6 +23,7 @@ class VirtualScreening:
 
     name = "rna_vs"
     default_metric = "auc"
+    version = "2.0.2"
 
     def __init__(self, root, ligand_framework='dgl', recompute=False):
         self.root = root
@@ -48,7 +49,7 @@ class VirtualScreening:
     def build_dataset(self):
         # check if dataset exists and load
         if not os.path.exists(os.path.join(self.root, 'graphs')) or self.recompute:
-            dump_rna_jsons(root=self.root, recompute=self.recompute)
+            dump_rna_jsons(root=self.root, recompute=self.recompute, version=self.version)
         if not os.path.exists(os.path.join(self.root, f'ligands_{self.ligand_framework}.p')) or self.recompute:
             precompute_ligand_graphs(root=self.root, recompute=self.recompute, framework=self.ligand_framework)
 
