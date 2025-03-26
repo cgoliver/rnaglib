@@ -15,6 +15,8 @@
 `RNAglib` is a Python package for studying RNA 2.5D and 3D structures. Functionality includes automated data loading,
 analysis, visualization, ML model building and benchmarking.
 
+![](https://github.com/cgoliver/cgoliver.github.io/blob/b0746409caf7d2d2f5de67cf6aef99ba5ff19cd2/assets/tty_slow.gif)
+
 A web-based documentation is available at [**rnaglib.org**](https://rnaglib.org).
 
 We host RNAs annotated with molecule, base pair, and nucleotide level attributes. These include, but are not limited to:
