@@ -3,11 +3,10 @@ from networkx import set_node_attributes
 
 
 class BindingSiteAnnotator(AnnotationTransform):
-    def __init__(self, include_ions=False, include_covalent=False, cutoff=6.0):
+    def __init__(self, include_ions=False, cutoff=6.0):
         super().__init__()
         self.cutoff = cutoff
         self.include_ions = include_ions
-        self.include_covalent = include_covalent
 
         self.bind_types = [f"binding_small-molecule-{cutoff}A"]
         if self.include_ions:
