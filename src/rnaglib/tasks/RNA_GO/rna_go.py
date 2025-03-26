@@ -14,7 +14,7 @@ class RNAGo(RNAClassificationTask):
     However, it can still test the ability of a model to capture characteristic structural features from 3D.
 
     Task type: multi-class classification
-    Task level: graph-level
+    Task level: RNA-level
 
     :param tuple[int] size_thresholds: range of RNA sizes to keep in the task dataset(default (15, 500))
     """

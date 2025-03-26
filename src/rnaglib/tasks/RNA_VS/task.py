@@ -11,6 +11,15 @@ from rnaglib.tasks.RNA_VS.ligands import MolGraphEncoder
 
 
 class VirtualScreening:
+    """RNA binding pocket-small molecule binding affinity prediction
+
+    Task type: binary classification
+    Task level: substructure-level
+
+    :param str root: path to a folder where the task information will be stored for fast loading.
+    :param str ligand_framework: the package to use to do geometric deep learning on the ligand graph (either "dgl" or "pyg", default "dgl")
+    :param bool recompute: whether to recompute the task info from scratch or use what is stored in root.
+    """
 
     name = "rna_vs"
     default_metric = "auc"
@@ -46,6 +55,9 @@ class VirtualScreening:
 
 
     def get_split_datasets(self, dataset_kwargs=None):
+        """Sets the train, val and test datasets
+        Call this each time you modify ``self.dataset``.
+        """
         train_dataset = VSRNATrainDataset(groups=self.train_groups,
                                           ligand_embedder=self.ligand_encoder,
                                           dataset_path=os.path.join(self.root, 'graphs'),

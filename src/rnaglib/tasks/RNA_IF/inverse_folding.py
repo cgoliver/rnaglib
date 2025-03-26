@@ -17,6 +17,13 @@ from rnaglib.transforms import ChainFilter, ConnectedComponentPartition, DummyAn
 
 
 class InverseFolding(ResidueClassificationTask):
+    """RNA design task, taking as input the structures with the identity of the residues masked and trying to find it back
+
+    Task type: multi-class classification
+    Task level: residue-level
+
+    :param tuple[int] size_thresholds: range of RNA sizes to keep in the task dataset(default (15, 500))
+    """
     target_var = "nt_code"  # in rna graph
     input_var = "dummy"  # should be dummy variable
     nucs = ["A", "C", "G", "U"]
@@ -29,9 +36,22 @@ class InverseFolding(ResidueClassificationTask):
 
     @property
     def default_splitter(self):
+        """Returns the splitting strategy to be used for this specific task. Canonical splitter is ClusterSplitter which is a
+        similarity-based splitting relying on clustering which could be refined into a sequencce- or structure-based clustering
+        using distance_name argument
+
+        :return: the default splitter to be used for the task
+        :rtype: Splitter
+        """
         return ClusterSplitter(distance_name="USalign")
 
     def process(self) -> RNADataset:
+        """"
+        Creates the task-specific dataset.
+
+        :return: the task-specific dataset
+        :rtype: RNADataset
+        """
         print(">>> RNAIF process")
         # Define your transforms
         annotate_rna = DummyAnnotator()
@@ -53,6 +73,8 @@ class InverseFolding(ResidueClassificationTask):
         return dataset
 
     def post_process(self):
+        """The task-specific post processing steps to remove redundancy and compute distances which will be used by the splitters.
+        """
         print(">>> RNAIF post")
         cd_hit_computer = CDHitComputer(similarity_threshold=0.99)
         cd_hit_rr = RedundancyRemover(distance_name="cd_hit", threshold=0.9)
@@ -64,6 +86,12 @@ class InverseFolding(ResidueClassificationTask):
         self.dataset.save_distances()
 
     def get_task_vars(self) -> FeaturesComputer:
+        """Specifies the `FeaturesComputer` object of the tasks which defines the features which have to be added to the RNAs
+        (graphs) and nucleotides (graph nodes)
+        
+        :return: the features computer of the task
+        :rtype: FeaturesComputer
+        """
         return FeaturesComputer(
             nt_features=self.input_var,
             nt_targets=self.target_var,
@@ -171,7 +199,13 @@ class InverseFolding(ResidueClassificationTask):
 
 
 class gRNAde(InverseFolding):
-    """This class is a subclass of InverseFolding and is used to train a model on the gRNAde dataset."""
+    """This class is a subclass of InverseFolding and is used to train a model on the gRNAde dataset.
+    
+    Task type: multi-class classification
+    Task level: residue-level
+
+    :param tuple[int] size_thresholds: range of RNA sizes to keep in the task dataset(default (15, 500))
+    """
 
     # everything is inherited except for process and splitter.
     name = "rna_if_bench"
@@ -208,6 +242,11 @@ class gRNAde(InverseFolding):
 
     @property
     def default_splitter(self):
+        """Returns the splitting strategy to be used for this specific task. In this case, an ad hoc splitter is being applied to match the train, val and test splits used in gRNAde.
+
+        :return: the default splitter to be used for the task
+        :rtype: Splitter
+        """
         train_names = [
             f"{pdb.lower()}_{chain}"
             for pdb in self.splits["pdb_to_chain_train"]
@@ -229,7 +268,12 @@ class gRNAde(InverseFolding):
         return NameSplitter(train_names, val_names, test_names)
 
     def process(self) -> RNADataset:
-        """Returns a filtered and processed RNADataset."""
+        """"
+        Creates the task-specific dataset.
+
+        :return: the task-specific dataset
+        :rtype: RNADataset
+        """
         pdb_to_single_chains = {
             pdb.lower(): [chain for chain in self.splits["pdb_to_chain_all_single"][pdb]]
             for pdb in self.splits["pdb_to_chain_all_single"]
