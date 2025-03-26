@@ -45,5 +45,3 @@ class SecondaryStructureTransform(Transform):
         rna_dict["rna"].graph["ss"] = ss_dict
         rna_dict["rna"].graph["seq"] = seq_dict
         return rna_dict
-
-    pass

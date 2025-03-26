@@ -102,11 +102,10 @@ class RNADataset(Dataset):
         if rnas is None:
             if dataset_path is None:
                 # By default, use non redundant (nr), v1.0.0 dataset of rglib
-                dataset_path, structures_path = download_graphs(
-                    redundancy=redundancy,
-                    version=version,
-                    get_pdbs=get_pdbs,
-                )
+                dataset_path, structures_path = download_graphs(redundancy=redundancy,
+                                                                version=version,
+                                                                debug=debug,
+                                                                get_pdbs=get_pdbs)
                 self.dataset_path = dataset_path
                 self.structures_path = structures_path
 
@@ -126,7 +125,8 @@ class RNADataset(Dataset):
             # If debugging, only keep the first few
             if debug:
                 nb_items_to_keep = min(50, len(self.all_rnas))
-                self.all_rnas = bidict({rna: i for idx,(rna,i) in enumerate(self.all_rnas.items()) if idx<nb_items_to_keep})
+                self.all_rnas = bidict(
+                    {rna: i for idx, (rna, i) in enumerate(self.all_rnas.items()) if idx < nb_items_to_keep})
 
             if in_memory is not None and in_memory:
                 self.to_memory()
@@ -347,8 +347,6 @@ class RNADataset(Dataset):
         :param list_of_ids: a list of rna ids
         :return: An RNADataset with only the specified graphs/ids
         """
-        print("Subsetting started...")
-
         # You can't subset on both simultaneously
         assert list_of_ids is None or list_of_names is None
 
@@ -375,8 +373,6 @@ class RNADataset(Dataset):
         if self.distances is not None:
             for distance_name in self.distances:
                 subset.add_distance(distance_name, self.distances[distance_name][np.ix_(list_of_ids, list_of_ids)])
-
-        print("Subsetting completed successfully.")
         return subset
 
     def save(self, dump_path, *, recompute=False, verbose=True):

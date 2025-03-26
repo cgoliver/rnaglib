@@ -135,6 +135,8 @@ class RNAGo(RNAClassificationTask):
         return dataset
 
     def post_process(self):
-        "Computes sequence similarity between all atom pairs using CD-Hit"
+        """
+        Computes sequence similarity between all atom pairs using CD-Hit
+        """
         cd_hit_computer = CDHitComputer(similarity_threshold=0.9)
         self.dataset = cd_hit_computer(self.dataset)

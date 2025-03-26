@@ -52,18 +52,16 @@ class InverseFolding(ResidueClassificationTask):
         :return: the task-specific dataset
         :rtype: RNADataset
         """
-        print(">>> RNAIF process")
+        print(">>> RNA_IF process")
         # Define your transforms
         annotate_rna = DummyAnnotator()
         connected_components_partition = ConnectedComponentPartition()
 
         # Run through database, applying our filters
-        dataset = RNADataset(in_memory=self.in_memory, redundancy="all")
+        dataset = RNADataset(in_memory=self.in_memory, redundancy="all", debug=self.debug)
         all_rnas = []
         os.makedirs(self.dataset_path, exist_ok=True)
-        for i, rna in tqdm(enumerate(dataset)):
-            if self.debug and i > 200:
-                break
+        for i, rna in tqdm(enumerate(dataset), total=len(dataset)):
             for rna_connected_component in connected_components_partition(rna):
                 if self.size_thresholds is not None and not self.size_filter.forward(rna_connected_component):
                     continue
@@ -75,7 +73,7 @@ class InverseFolding(ResidueClassificationTask):
     def post_process(self):
         """The task-specific post processing steps to remove redundancy and compute distances which will be used by the splitters.
         """
-        print(">>> RNAIF post")
+        print(">>> RNA_IF post")
         cd_hit_computer = CDHitComputer(similarity_threshold=0.99)
         cd_hit_rr = RedundancyRemover(distance_name="cd_hit", threshold=0.9)
         self.dataset = cd_hit_computer(self.dataset)
@@ -284,11 +282,7 @@ class gRNAde(InverseFolding):
 
         # Initialize dataset with in_memory=False to avoid loading everything at once
         rna_ids = list(pdb_to_single_chains.keys())
-        source_dataset = RNADataset(
-                                    rna_id_subset=rna_ids,
-                                    redundancy="all",
-                                    in_memory=False
-                                    )
+        source_dataset = RNADataset(rna_id_subset=rna_ids, redundancy="all", in_memory=False, debug=self.debug)
 
         all_rnas = []
         os.makedirs(self.dataset_path, exist_ok=True)
@@ -308,5 +302,4 @@ class gRNAde(InverseFolding):
         return dataset
 
     def post_process(self):
-        print("grenade post process")
-        pass
+        print("gRNAde post process")
