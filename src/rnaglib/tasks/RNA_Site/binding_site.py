@@ -31,6 +31,7 @@ class BenchmarkBindingSite(ResidueClassificationTask):
     input_var = "nt_code"
     name = "rna_site_bench"
     version = "2.0.2"
+    default_metric = "balanced_accuracy"
 
     def __init__(self, cutoff=6.0, **kwargs):
         self.cutoff = cutoff
@@ -115,6 +116,7 @@ class BindingSite(ResidueClassificationTask):
     input_var = "nt_code"
     name = "rna_site"
     version = "2.0.2"
+    default_metric = "balanced_accuracy"
 
     def __init__(self, cutoff=6.0, size_thresholds=(15, 500), **kwargs):
         self.target_var = f"binding_small-molecule-{cutoff}A"
