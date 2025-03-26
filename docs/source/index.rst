@@ -49,9 +49,9 @@
    :hidden:
 
    Algorithms <code_index/rnaglib.algorithms>
-   Databases <code_index/rnaglib.prepare_data>
+   Data preparation <code_index/rnaglib.prepare_data>
    Datasets <code_index/rnaglib.dataset>
-   Datasets <code_index/rnaglib.dataset_transforms>
+   Dataset transforms <code_index/rnaglib.dataset_transforms>
    Transforms <code_index/rnaglib.transforms>
    ML Tasks <code_index/rnaglib.tasks>
    Visualization <code_index/rnaglib.drawing>

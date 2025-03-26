@@ -10,8 +10,8 @@ In this example, we add a field ``'rfam'`` with the Rfam ID of an RNA.::
     >>> from rnaglib.dataset import RNADataset
     >>> dataset = RNADataset(debug=True)
     >>> t = RfamTransform()
-    >>> t(dataset)
-    >>> dataset[1]['rna'].graph['rfam']
+    >>> dataset = t(dataset)
+    >>> dataset[2]['rna'].graph['rfam']
     'RF00005'
 
 
@@ -22,7 +22,18 @@ In this example, we add a field ``'rfam'`` with the Rfam ID of an RNA.::
 
 .. automodule:: rnaglib.transforms
 
-Simple Transforms
+Generic transforms
+--------------------
+
+This is the general formulation of the transform, from which specific Transforms described below are derived.
+
+.. autosummary::
+    :toctree: generated/
+
+    Transform
+
+
+Annotation Transforms
 --------------------
 
 These transforms update the information stored in an RNA dictionary.
@@ -30,12 +41,19 @@ These transforms update the information stored in an RNA dictionary.
 .. autosummary::
     :toctree: generated/
 
-    Transform
+    AnnotationTransform
     RfamTransform
     RNAFMTransform
     PDBIDNameTransform
     ChainNameTransform
     SecondaryStructureTransform
+    SmallMoleculeBindingTransform
+    RBPTransform
+    ProteinContentAnnotator
+    AnnotatorFromDict
+    DummyAnnotator
+    CifMetadata
+    BindingSiteAnnotator
 
 
 Filters
@@ -51,8 +69,11 @@ criteria.
     SizeFilter
     RNAAttributeFilter
     ResidueAttributeFilter
+    ResidueNameFilter
     RibosomalFilter
-
+    NameFilter
+    ChainFilter
+    ResolutionFilter
 
 
 Partitions
@@ -66,6 +87,8 @@ for splitting the RNA into substructures (e.g. by chain ID, binding pockets, etc
 
     PartitionTransform
     ChainSplitTransform
+    ConnectedComponentPartition
+    PartitionFromDict
 
 
 Representations
@@ -81,6 +104,7 @@ These transforms convert a raw RNA into a geometric representation such as graph
     GraphRepresentation
     PointCloudRepresentation
     VoxelRepresentation 
+    RingRepresentation
 
 Featurizers
 -------------
