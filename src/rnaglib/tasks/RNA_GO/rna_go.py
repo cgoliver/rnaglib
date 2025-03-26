@@ -70,9 +70,8 @@ class RNAGo(RNAClassificationTask):
         """
         # Get initial mapping files:
         df, rfam_go_mapping = get_frequent_go_pdbsel()
-        if self.debug:
-            df = df.sample(n=50, random_state=0)
-        dataset = RNADataset(redundancy='all', in_memory=self.in_memory, rna_id_subset=df['pdb_id'].unique(), version=self.version)
+        
+        dataset = RNADataset(redundancy='all', debug=self.debug, in_memory=self.in_memory, rna_id_subset=df['pdb_id'].unique(), version=self.version)
 
         # Create dataset
         # Run through database, applying our filters
