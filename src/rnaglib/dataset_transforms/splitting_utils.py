@@ -65,8 +65,9 @@ def split_list_in_fractions(
     The remainder of the dataset is used for the test set.
 
     :param list_to_split: list you want to split.
-    :param split_train: fraction of dataet to use for train set
-    :param split_valid: fraction of dataset to use for validation
+    :param float split_train: fraction of dataet to use for train set (default 0.7)
+    :param float split_valid: fraction of dataset to use for validation (default 0.15)
+    :param int seed: seed for shuffling (default 0)
     """
     copy_list = list_to_split.copy()
     random.Random(seed).shuffle(copy_list)
@@ -86,10 +87,12 @@ def split_list_in_fractions(
 
 def random_split(dataset, split_train=0.7, split_valid=0.15, seed=0):
     """Just randomly split a dataset
-    :param dataset:
-    :param split_train:
-    :param split_valid:
-    :return:
+
+    :param RNADataset dataset: dataset to split
+    :param float split_train: proportion of the dataset to include in the train set
+    :param float split_valid: proportion of the dataset to include in the validation set
+    :param int seed: seed for shuffling (default 0)
+    :return: train set indices, validation set indices, test set indices
     """
     indices = list(range(len(dataset)))
     train_indices, valid_indices, test_indices = split_list_in_fractions(
