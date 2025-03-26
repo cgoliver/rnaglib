@@ -26,15 +26,13 @@ class SplitterTest(unittest.TestCase):
     def test_USalignSplitter(self):
         distance_computer = StructureDistanceComputer(name="USalign", structures_path=self.dataset.structures_path)
         splitter = ClusterSplitter(similarity_threshold=0.7, distance_name="USalign", debug=True)
-        dataset = self.dataset
-        dataset = distance_computer(dataset)
-        train, val, test = splitter(dataset)
+        self.dataset = distance_computer(self.dataset)
+        train, val, test = splitter(self.dataset)
         self.check_splits(train, val, test)
 
     def test_CDHitSplitter(self):
         distance_computer = CDHitComputer(similarity_threshold=0.7)
         splitter = ClusterSplitter(similarity_threshold=0.7, distance_name="cd_hit", debug=True)
-        dataset = self.dataset
-        dataset = distance_computer(dataset)
-        train, val, test = splitter(dataset)
+        self.dataset = distance_computer(self.dataset)
+        train, val, test = splitter(self.dataset)
         self.check_splits(train, val, test)
