@@ -27,13 +27,9 @@ class TestPrepareData(unittest.TestCase):
 
     def test_fr3d_to_graph(self):
         fr3d_to_graph("./src/rnaglib/data/1evv.cif")
-        pass
 
     def test_database_build(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             self.args.structures_dir = Path(tmpdir) / "structures"
             self.args.output_dir = Path(tmpdir) / "build"
             prepare_data_main(self.args)
-        pass
-
-    pass
