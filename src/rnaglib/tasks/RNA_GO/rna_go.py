@@ -61,8 +61,9 @@ class RNAGo(RNAClassificationTask):
             custom_encoders={self.target_var:
                                  MultiLabelOneHotEncoder(label_mapping)}, )
 
-    def process(self):
-        """"Creates the task-specific dataset.
+    def process(self) -> RNADataset:
+        """
+        Creates the task-specific dataset.
 
         :return: the task-specific dataset
         :rtype: RNADataset

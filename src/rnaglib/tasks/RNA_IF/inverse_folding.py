@@ -209,7 +209,7 @@ class gRNAde(InverseFolding):
     # everything is inherited except for process and splitter.
     name = "rna_if_bench"
 
-    def __init__(self, size_thresholds=(15, 300), debug=False, **kwargs):
+    def __init__(self, size_thresholds=(15, 300), **kwargs):
         self.splits = {
             # Use sets instead of lists for chains since order doesn't matter
             "pdb_to_chain_train": defaultdict(set),
@@ -218,15 +218,12 @@ class gRNAde(InverseFolding):
             "pdb_to_chain_all": defaultdict(set),
             "pdb_to_chain_all_single": defaultdict(set),
         }
-        self.debug = debug
         # Populate the structure
         data_dir = Path(os.path.dirname(os.path.abspath(__file__))) / "data"
         for split in ["train", "test", "val"]:
             file_path = data_dir / f"{split}_ids_das.txt"
             with open(file_path) as f:
                 for i, line in enumerate(f):
-                    if self.debug and i > 10:
-                        break
                     line = line.strip()
                     pdb_id = line.split("_")[0].lower()
                     chain = line.split("_")[-1]
@@ -236,7 +233,6 @@ class gRNAde(InverseFolding):
                     self.splits[f"pdb_to_chain_{split}"][pdb_id].add(chain)
                     self.splits["pdb_to_chain_all"][pdb_id].add(chain)
                     self.splits["pdb_to_chain_all_single"][pdb_id].update(chain_components)
-
         super().__init__(size_thresholds=size_thresholds, **kwargs)
 
     @property

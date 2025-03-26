@@ -54,7 +54,7 @@ class ProteinBindingSite(ResidueClassificationTask):
             custom_encoders={self.target_var: BoolEncoder()},
         )
 
-    def process(self):
+    def process(self) -> RNADataset:
         """"
         Creates the task-specific dataset.
 
