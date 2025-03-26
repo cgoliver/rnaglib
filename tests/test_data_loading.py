@@ -15,7 +15,6 @@ class TestDataset(unittest.TestCase):
     @classmethod
     def setUpClass(self):
         self.default_dataset = RNADataset(debug=True)
-        pass
 
     def test_rna_from_pdbid(self):
         rna_from_pdbid("1fmn", redundancy="debug")  # fetch from RCSB
@@ -24,7 +23,6 @@ class TestDataset(unittest.TestCase):
     def test_in_memory(self):
         d = RNADataset(debug=True, in_memory=True)
         d[0]
-        pass
 
     def test_on_disk(self):
         d = RNADataset(debug=True, in_memory=False)
@@ -77,7 +75,6 @@ class TestDataset(unittest.TestCase):
             representations=GraphRepresentation(framework="pyg"),
         )
         assert dataset[0]["graph"].x is not None
-        pass
 
 
 if __name__ == "__main__":
