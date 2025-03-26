@@ -3,12 +3,16 @@ from typing import Iterator
 from rnaglib.transforms import PartitionTransform
 
 class PartitionFromDict(PartitionTransform):
+    """Partitions an RNA according to a partition defined in a dictionary.
+
+    :param dict partition_dict: dictionary of the form {RNA_name:[[residue_name_1,...,residue_name_6],...,[residue_name_i,...,residue_name_N]]} where we want the RNA to be broken down into several sub-RNAs among which one sub-RNA containing residue_name_1,...,residue_name_6, another one with residue_name_i,...,residue_name_N etc.
+    """
 
     def __init__(
-            self, 
-            partition_dict,
-            **kwargs
-            ):
+        self, 
+        partition_dict,
+        **kwargs
+    ):
         
         self.partition_dict = partition_dict
         super().__init__(**kwargs)

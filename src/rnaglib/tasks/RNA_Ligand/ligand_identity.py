@@ -19,11 +19,10 @@ class LigandIdentification(RNAClassificationTask):
     to bind a binding pocket with a given structure
 
     Task type: multi-class classification
-    Task level: graph-level
+    Task level: substructure-level
 
     :param tuple[int] size_thresholds: range of RNA sizes to keep in the task dataset(default (15, 500))
-    :param tuple[str] admissible_ligands: list of the names of the ligands to include in the dataset (default ('PAR', 'LLL', '8UZ')). By default, they are paromomycin (PAR), LLL and 8UZ since these are the four most frequent small molecules binding RNAs in
-    our database.
+    :param tuple[str] admissible_ligands: list of the names of the ligands to include in the dataset (default ('PAR', 'LLL', '8UZ')). By default, they are paromomycin (PAR), LLL and 8UZ since these are the four most frequent small molecules binding RNAs in our database.
     :param bool use_balanced_sampler: whether to sample RNAs according to the distribution of their classes 
     """
     input_var = "nt_code"
@@ -104,10 +103,7 @@ class LigandIdentification(RNAClassificationTask):
         )
 
     def post_process(self):
-        """
-        The most common post_processing steps to remove redundancy.
-
-        Other tasks should implement their own if this is not the desired default behavior
+        """The task-specific post processing steps to remove redundancy and compute distances which will be used by the splitters.
         """
         cd_hit_computer = CDHitComputer(similarity_threshold=0.9)
         prepare_dataset = PrepareDataset(distance_name="cd_hit", threshold=0.9)
@@ -121,8 +117,7 @@ class LigandIdentification(RNAClassificationTask):
         specific to RNA_Ligand to enable the computation of the balanced sampler
         Call this each time you modify ``self.dataset``.
 
-        :param bool recompute: whether to recompute the dataset train/val/test splitting in case a splitting has
-        already been computed (default True)
+        :param bool recompute: whether to recompute the dataset train/val/test splitting in case a splitting has already been computed (default True)
         """
         self.set_datasets(recompute=recompute)
 
