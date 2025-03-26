@@ -21,6 +21,7 @@ class ChemicalModification(ResidueClassificationTask):
     target_var = "is_modified"
     input_var = "nt_code"
     name = "rna_cm"
+    default_metric = "balanced_accuracy"
 
     def __init__(self, size_thresholds=(15, 500), **kwargs):
         meta = {'multi_label': False}
