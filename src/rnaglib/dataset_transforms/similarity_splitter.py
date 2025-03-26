@@ -12,18 +12,25 @@ from rnaglib.dataset_transforms.splitting_utils import label_counter
 
 
 class ClusterSplitter(Splitter):
-    """Abstract class for splitting by clustering with a similarity function."""
-
+    """Abstract class for splitting by clustering with a similarity function.
+    
+    :param float similarity_threshold: similarity threshold (using similarity defined as 1-distance) above which two RNAs will be clustered in the same cluster (default 0.5)
+    :param int n_jobs: number of jobs (for parallelization) (if set to -1, use the maximum number of cores)(default -1)
+    :param int seed: seed for shuffling (default 0)
+    :param bool balanced: whether to used balanced clusters (default True)
+    :param str distance_name: name of the distance metric to use to perform clustering (must have been computed for this dataset, see DistanceComputer if it hasn't) (default "USalign")
+    :param bool verbose: whether to display messages (default False)
+    """
     def __init__(
-            self,
-            similarity_threshold: float = 0.5,
-            n_jobs: int = -1,
-            seed: int = 0,
-            balanced: bool = True,
-            distance_name: str = "USalign",
-            verbose=False,
-            *args,
-            **kwargs,
+        self,
+        similarity_threshold: float = 0.5,
+        n_jobs: int = -1,
+        seed: int = 0,
+        balanced: bool = True,
+        distance_name: str = "USalign",
+        verbose=False,
+        *args,
+        **kwargs,
     ):
         self.similarity_threshold = similarity_threshold
         self.n_jobs = n_jobs
