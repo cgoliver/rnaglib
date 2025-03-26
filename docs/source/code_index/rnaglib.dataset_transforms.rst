@@ -1,24 +1,48 @@
 ``rnaglib.dataset_transforms``
 ==============================
 
-Splitter objects compute a train, validation, and test split for a given dataset.
+Dataset transforms are trraansforms which process a whole dataset. They take as input a dataset and return the same dataset with some features being added or modified or some elements removed or added.
 
 
 
 .. automodule:: rnaglib.dataset_transforms
 
-
 Abstract classes
-----------------
+--------------------
 
-Ways to split your data.
+Subclass these to create your own dataset transforms.
+
+.. autosummary::
+    :toctree: generated/
+
+    DSTransform
+    Splitter
+    DistanceComputer
+    RedundancyRemover
+
+Splitters
+---------
+
+Ways to split your data (all of these are subclasses of `Splitter` abstract class).
 
 .. autosummary::
    :toctree: generated/
 
-    Splitter 
     ClusterSplitter
     RandomSplitter
+    NameSplitter
+
+Distance computers
+-------------------
+
+Ways to add to the dataset a distance matrix indicating distance between the samples of the dataset (all of these are subclasses of `DistanceComputer` abstract class)
+
+.. autosummary::
+   :toctree: generated/
+
+    CDHitComputer
+    StructureDistanceComputer
+
 
 Loading
 -------
@@ -30,3 +54,5 @@ Tools for loading RNAs stored in an ``RNADataset`` batch-wise for deep learning 
 
     Collater
     get_loader
+    EdgeLoaderGenerator
+    DefaultBasePairLoader
