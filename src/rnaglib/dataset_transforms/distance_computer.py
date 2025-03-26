@@ -1,4 +1,12 @@
-class DistanceComputer:
+from rnaglib.dataset_transforms import DSTransform
+
+
+class DistanceComputer(DSTransform):
+    """Dataset transform adding to the dataset attributes a distance matrix encoding the pairwise distances between all RNAs of the dataset
+
+    :param str name: the name identifying the distance metric
+    :param bool recompute: a boolean indicating whether the distance has to be recomputed in case it had already been computed for this dataset (it can be set to True if the dataset may have been subject to modifications since the latest distance computation)
+    """
     def __init__(self, name, recompute=True):
         self.name = name
         self.recompute = recompute

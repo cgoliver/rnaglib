@@ -18,8 +18,7 @@ rna_loader_args = {'batch_size': 16, 'shuffle': True, 'num_workers': 0}
 train_dataloader, val_dataloader, test_dataloader = ef_task.get_split_loaders(dataset_kwargs=rna_dataset_args,
                                                                               dataloader_kwargs=rna_loader_args)
 
-# Create an encoding model.
-# This model must implement a predict_ligands(pocket, ligands) method
+# Create an encoding model. This model must implement a predict_ligands(pocket, ligands) method
 if framework == 'pyg':
     from rnaglib.tasks.RNA_VS.model_pyg import RNAEncoder, LigandGraphEncoder, Decoder, VSModel
 else:

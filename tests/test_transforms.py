@@ -1,11 +1,6 @@
 import unittest
-import tempfile
 
-import networkx as nx
-
-from rnaglib.data_loading import RNADataset
-from rnaglib.transforms import FeaturesComputer
-from rnaglib.transforms import GraphRepresentation
+from rnaglib.dataset import RNADataset
 from rnaglib.transforms import RNAFMTransform
 from rnaglib.transforms import RfamTransform
 from rnaglib.transforms import SecondaryStructureTransform
@@ -39,10 +34,9 @@ class TransformsTest(unittest.TestCase):
         tr(self.dataset)
 
     def test_RNAFMTransform(self):
-        tr = RNAFMTransform()
+        tr = RNAFMTransform(debug=True)
         tr(self.dataset[0])
         list(tr(self.dataset))
-        pass
 
     def test_SecondaryStructureTransform(self):
         tr = SecondaryStructureTransform(self.dataset.structures_path)
@@ -79,11 +73,9 @@ class TransformsTest(unittest.TestCase):
 
     def test_simple_compose(self):
         g = self.dataset[0]
-        tr_1 = RNAFMTransform()
+        tr_1 = RNAFMTransform(debug=True)
         tr_2 = RfamTransform()
         t = Compose([tr_1, tr_2])
         t(self.dataset[0])
         self.check_gdata(g["rna"], "rfam")
         self.check_ndata(g["rna"], "rnafm")
-
-    pass

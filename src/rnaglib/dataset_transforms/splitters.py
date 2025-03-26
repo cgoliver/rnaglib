@@ -98,10 +98,17 @@ SPLITTING_VARS["PDB_TO_CHAIN_TR60_TE18"] = id_to_chains
 
 
 class Splitter:
+    """Objects enabling the splitting of an RNADataset into train, validation and test sets
+
+    :param float split_train: proportion of the dataset to include in the train set (default 0.7)
+    :param float split_valid: proportion of the dataset to include in the validation set (default 0.15)
+    :param float split_test: proportion of the dataset to include in the test set (default 0.15)
+    :param bool debug: whether to run the splitting in debug mode (default False)
+    """
     def __init__(self, split_train=0.7, split_valid=0.15, split_test=0.15,
                  debug=False):
         assert (
-            sum([split_train, split_valid, split_test]) == 1
+                sum([split_train, split_valid, split_test]) == 1
         ), "Splits don't sum to 1."
         self.split_train = split_train
         self.split_valid = split_valid
@@ -110,6 +117,11 @@ class Splitter:
         pass
 
     def __call__(self, dataset):
+        """Takes a dataset as input and returns the lists of the train, validation and test set indices
+        
+        :param RNADataset dataset: the dataset to split 
+        :return: train set indices, validation set indices, test set indices
+        """
         train, val, test = self.forward(dataset)
         if sum(map(len, [train, val, test])) != len(dataset):
             print(
@@ -127,9 +139,9 @@ class Splitter:
 
 
 class RandomSplitter(Splitter):
-    """ " Just split a dataset randomly. Reproducible through the ``seed`` argument.
+    """Just split a dataset randomly. Reproducible through the ``seed`` argument.
 
-    :param seed: Seed for shuffling.
+    :param int seed: Seed for shuffling (default 0)
     """
 
     def __init__(self, seed=0, **kwargs):
@@ -137,6 +149,11 @@ class RandomSplitter(Splitter):
         self.seed = seed
 
     def forward(self, dataset):
+        """Apply the splitting to a dataset
+
+        :param RNADataset dataset: the dataset to split 
+        :return: train set indices, validation set indices, test set indices
+        """
         return random_split(
             dataset,
             split_train=self.split_train,
@@ -146,6 +163,12 @@ class RandomSplitter(Splitter):
 
 
 class NameSplitter(Splitter):
+    """Splits a dataset based on hard-coded lists of RNA names to be included in train, val and test sets
+
+    :param list[str] train_names: list of RNAs to include in the train set
+    :param list[str] val_names: list of RNAs to include in the val set
+    :param list[str] test_names: list of RNAs to include in the test set
+    """
     def __init__(self, train_names, val_names, test_names, **kwargs):
         super().__init__(**kwargs)
         self.train_names = train_names
@@ -153,23 +176,22 @@ class NameSplitter(Splitter):
         self.test_names = test_names
 
     def forward(self, dataset):
+        """Apply the splitting to a dataset
+
+        :param RNADataset dataset: the dataset to split 
+        :return: train set indices, validation set indices, test set indices
+        """
         dataset_map = dataset.all_rnas
-        train_ind = [
-            dataset_map[name] for name in self.train_names if name in dataset_map
-        ]
+        train_ind = [dataset_map[name] for name in self.train_names if name in dataset_map]
         val_ind = [dataset_map[name] for name in self.val_names if name in dataset_map]
-        test_ind = [
-            dataset_map[name] for name in self.test_names if name in dataset_map
-        ]
+        test_ind = [dataset_map[name] for name in self.test_names if name in dataset_map]
         return train_ind, val_ind, test_ind
 
 
 def default_splitter_tr60_tr18():
     train_names = [f"{name[:-1]}_{name[-1]}" for name in SPLITTING_VARS["TR60"][:-6]]
     val_names = [f"{name[:-1]}_{name[-1]}" for name in SPLITTING_VARS["TR60"][-6:]]
-    test_names = [
-        f"{name[:-1]}_{name[-1]}" for name in SPLITTING_VARS["TE18"] if name != "1f1tA"
-    ]
+    test_names = [f"{name[:-1]}_{name[-1]}" for name in SPLITTING_VARS["TE18"] if name != "1f1tA"]
     return NameSplitter(train_names, val_names, test_names)
 
 

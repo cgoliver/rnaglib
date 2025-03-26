@@ -60,7 +60,7 @@ def get_frequent_go_pdbsel(min_count=50, cache=True):
     # print(sum([len(x) for x in pdb_dict.values()]))
     # df holds 14709 lines, present in 3121 PDB files
 
-    # from rnaglib.data_loading import RNADataset
+    # from rnaglib.dataset import RNADataset
     # data = RNADataset(redundancy='all', in_memory=False)
     # list_systems = data.all_rnas.keys()
     # existing_keys = set(pdb_dict.keys()).intersection(set(list_systems))

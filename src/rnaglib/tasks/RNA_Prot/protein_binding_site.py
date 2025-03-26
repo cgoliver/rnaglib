@@ -2,7 +2,7 @@ import os
 
 from tqdm import tqdm
 
-from rnaglib.data_loading import RNADataset
+from rnaglib.dataset import RNADataset
 from rnaglib.dataset_transforms import ClusterSplitter
 from rnaglib.encoders import BoolEncoder
 from rnaglib.tasks import ResidueClassificationTask
@@ -10,35 +10,57 @@ from rnaglib.transforms import ConnectedComponentPartition, DummyFilter, Feature
 
 
 class ProteinBindingSite(ResidueClassificationTask):
-    """Residue-level task.
-
-    The job is to predict a binary variable
+    """The job is to predict a binary variable
     at each residue representing the probability that a residue belongs to
     a protein-binding interface
+
+    Task type: binary classification
+    Task level: residue-level
+
+    :param tuple[int] size_thresholds: range of RNA sizes to keep in the task dataset(default (15, 500))
     """
 
     target_var = "protein_content_8.0"  # "protein_binding"
     input_var = "nt_code"
     name = "rna_prot"
+    default_metric = "balanced_accuracy"
+    version = "2.0.2"
 
-    def __init__(self, root,
-                 size_thresholds=(15, 500),
-                 **kwargs):
-        meta = {"task_name": "rna_prot", "multi_label": False}
-        super().__init__(root=root, additional_metadata=meta, size_thresholds=size_thresholds, **kwargs)
+    def __init__(self, size_thresholds=(15, 500), **kwargs):
+        meta = {"multi_label": False}
+        super().__init__(additional_metadata=meta, size_thresholds=size_thresholds, **kwargs)
 
     @property
     def default_splitter(self):
+        """Returns the splitting strategy to be used for this specific task. Canonical splitter is ClusterSplitter which is a
+        similarity-based splitting relying on clustering which could be refined into a sequencce- or structure-based clustering
+        using distance_name argument
+
+        :return: the default splitter to be used for the task
+        :rtype: Splitter
+        """
         return ClusterSplitter(distance_name="USalign", debug=self.debug)
 
     def get_task_vars(self):
+        """Specifies the `FeaturesComputer` object of the tasks which defines the features which have to be added to the RNAs
+        (graphs) and nucleotides (graph nodes)
+        
+        :return: the features computer of the task
+        :rtype: FeaturesComputer
+        """
         return FeaturesComputer(
             nt_features=self.input_var,
             nt_targets=self.target_var,
             custom_encoders={self.target_var: BoolEncoder()},
         )
 
-    def process(self):
+    def process(self) -> RNADataset:
+        """"
+        Creates the task-specific dataset.
+
+        :return: the task-specific dataset
+        :rtype: RNADataset
+        """
         # Define your transforms
         filters = ResidueAttributeFilter(attribute=self.target_var, value_checker=lambda val: val is not None)
         if self.debug:
@@ -46,7 +68,7 @@ class ProteinBindingSite(ResidueClassificationTask):
         connected_components_partition = ConnectedComponentPartition()
 
         # Run through database, applying our filters
-        dataset = RNADataset(debug=self.debug, in_memory=False)
+        dataset = RNADataset(debug=self.debug, in_memory=False, version=self.version)
         all_rnas = []
         os.makedirs(self.dataset_path, exist_ok=True)
         for rna in tqdm(dataset, total=len(dataset)):

@@ -6,7 +6,6 @@ import os
 
 from collections import defaultdict, Counter
 import itertools
-import matplotlib.pyplot as plt
 import numpy as np
 import pickle
 from scipy.optimize import linear_sum_assignment
@@ -21,13 +20,13 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 class SimFunctionNode:
 
     def __init__(
-        self,
-        method,
-        depth,
-        decay=0.5,
-        idf=False,
-        normalization=None,
-        hash_init_path=os.path.join(script_dir, "..", "data", "hashing", "NR_chops_hash.p"),
+            self,
+            method,
+            depth,
+            decay=0.5,
+            idf=False,
+            normalization=None,
+            hash_init_path=os.path.join(script_dir, "..", "data", "hashing", "NR_chops_hash.p"),
     ):
         """
         Factory object to compute all node similarities.
@@ -40,21 +39,21 @@ class SimFunctionNode:
 
         Three of them compare the edges :
 
-        - R_1 compares the histograms of each ring, possibly with an idf weighting (to emphasize differences
-          in rare edges)
+        - R_1 compares the histograms of each ring, possibly with an idf weighting (to emphasize differences in rare edges)
+
         - R_iso compares each ring with the best matching based on the isostericity values
-        - hungarian compares the whole annotation, with the rings being
-        differentiated with an additional 'depth' field.
+
+        - hungarian compares the whole annotation, with the rings being differentiated with an additional 'depth' field.
 
         Then all the nodes are compared based on isostericity and this depth field.
 
-        Two of them compare the graphlets. The underlying idea is that just
-        comparing lists of edges does not
-        constraint the graph structure, while the assembling of graphlet does it more
-        (exceptions can be found but
-        for most graphs, knowing all graphlets at each depth enables recreating the graph) :
+        Two of them compare the graphlets.
+         The underlying idea is that just comparing lists of edges does not constraint the graph structure,
+          while the assembling of graphlet does it more (exceptions can be found but for most graphs,
+           knowing all graphlets at each depth enables recreating the graph) :
 
         - R_graphlets works like R_iso except that the isostericity is replaced by the GED
+
         - graphlet works like the hungarian except that the isostericity is replaced by the GED
 
         :param method: a string that identifies which of these method to use
@@ -145,7 +144,7 @@ class SimFunctionNode:
                     value = self.R_1(rings1[k], rings2[k])
                 else:
                     value = self.R_iso(rings1[k], rings2[k])
-                res += self.decay**k * value
+                res += self.decay ** k * value
         return res / self.norm_factor
 
     def normalize(self, unnormalized, max_score):
@@ -620,84 +619,6 @@ def k_block_list(rings, node_sim):
     block += np.eye(len(node_rings))
     return block
 
-
-def simfunc_time(simfuncs, graph_path, batches=1, batch_size=5, names=None):
-    """
-    Do time benchmark on a list of simfunc.
-
-    :param simfuncs:
-    :param graph_path:
-    :param batches:
-    :param batch_size:
-    :param names:
-    :return:
-    """
-    from random import shuffle
-    from time import perf_counter
-
-    import pandas as pd
-
-    rows = []
-    graphlist = os.listdir(graph_path)
-    for ind, simfunc in enumerate(simfuncs):
-        print(f">>> DOING KERNEL {simfunc.method}")
-        level = "graphlet" if simfunc.method == "graphlet" else "edge"
-        batch_times = []
-        for b in range(batches):
-            shuffle(graphlist)
-            loading_times = []
-            ringlist = []
-            print(f">>> batch {b}")
-            for i in range(batch_size):
-                start = perf_counter()
-                G = pickle.load(open(os.path.join(graph_path, graphlist[i]), "rb"))
-                loading_times.append(perf_counter() - start)
-                graph = G["graph"]
-                for node in graph.nodes():
-                    ringlist.append(G["rings"][level][node])
-
-            print(f">>> tot batch loading, {sum(loading_times)}")
-            print(f">>> avg time per loading, {np.mean(loading_times)}")
-            print(f">>> max loading, {max(loading_times)}")
-            print(f">>> min loading, {min(loading_times)}")
-
-            times = []
-            for i, r1 in enumerate(ringlist):
-                for j, r2 in enumerate(ringlist[i:]):
-                    start = perf_counter()
-                    k = simfunc.compare(r1, r2)
-                    t = perf_counter() - start
-                    times.append(t)
-            print(f">>> batch size {batch_size}")
-            print(f">>> total batch time {sum(times)}")
-            print(f">>> avg time per comparison, {np.mean(times)}")
-            print(f">>> max comparison, {max(times)}")
-            print(f">>> min comparison, {min(times)}")
-            # batch_times.append((sum(times) + sum(loading_times)) / len(times))
-            batch_time = sum(times) + sum(loading_times)
-            rows.append(
-                {
-                    "batch_time": batch_time,
-                    "kernel": simfunc.method,
-                    "comparisons": len(times),
-                    "batch_num": b,
-                }
-            )
-            batch_times.append(batch_time)
-        if not names is None:
-            label = names[ind]
-        else:
-            label = simfunc.method
-        plt.plot(batch_times, label=label)
-        plt.xlabel("Batch")
-        plt.ylabel("Time (s)")
-    plt.legend()
-    plt.savefig("../figs/time_2.pdf", format="pdf")
-    # plt.show()
-
-    df = pd.DataFrame.from_dict(rows)
-    df.to_csv("kernel_times_2.csv")
-    pass
 
 
 if __name__ == "__main__":

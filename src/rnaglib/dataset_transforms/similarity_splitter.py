@@ -12,8 +12,15 @@ from rnaglib.dataset_transforms.splitting_utils import label_counter
 
 
 class ClusterSplitter(Splitter):
-    """Abstract class for splitting by clustering with a similarity function."""
-
+    """Abstract class for splitting by clustering with a similarity function.
+    
+    :param float similarity_threshold: similarity threshold (using similarity defined as 1-distance) above which two RNAs will be clustered in the same cluster (default 0.5)
+    :param int n_jobs: number of jobs (for parallelization) (if set to -1, use the maximum number of cores)(default -1)
+    :param int seed: seed for shuffling (default 0)
+    :param bool balanced: whether to used balanced clusters (default True)
+    :param str distance_name: name of the distance metric to use to perform clustering (must have been computed for this dataset, see DistanceComputer if it hasn't) (default "USalign")
+    :param bool verbose: whether to display messages (default False)
+    """
     def __init__(
         self,
         similarity_threshold: float = 0.5,
@@ -36,7 +43,10 @@ class ClusterSplitter(Splitter):
     def forward(self, dataset):
         print(f"pre cluster len: {len(dataset)}")
         clusters = self.cluster_split(dataset, frac=0, split=False)
-        _, label_counts = label_counter(dataset)
+        if self.balanced and not self.debug:
+            _, label_counts = label_counter(dataset)
+        else:
+            label_counts = None
         # print(f"dataset:{dataset}")
         # print(f"label_counts:{label_counts}")
         named_clusters = []
@@ -59,28 +69,29 @@ class ClusterSplitter(Splitter):
         Dataset needs to be passed since the cluster indices apply to keep_dataset,
         not necessarily the original one.
         """
-        print("Computing balanced clusters...")
-        # Here we need to choose from clusters keeping labels in account.
-        # Like Plinder, we should (potentially) make sure that singleton
-        # clusters don't go into test in a second step.
+        balanced = self.balanced if not self.debug else 0
+        if balanced:
+            print("Computing balanced clusters...")
+            # Here we need to choose from clusters keeping labels in account.
+            # Like Plinder, we should (potentially) make sure that singleton
+            # clusters don't go into test in a second step.
+            # First, we need to know what the label balance is
+            labelcounts = []
+            for cluster in clusters:
+                # Summing all the label counts from each element of the cluster
+                # print(f"cluster:{cluster}")
 
-        # First, we need to know what the label balance is
-        labelcounts = []
-        for cluster in clusters:
-            # Summing all the label counts from each element of the cluster
-            # print(f"cluster:{cluster}")
+                labelcount = sum([label_counts[i] for i in cluster], Counter())
+                # print(f"labelcount:{labelcount}")
+                labelcounts.append(labelcount)
 
-            labelcount = sum([label_counts[i] for i in cluster], Counter())
-            # print(f"labelcount:{labelcount}")
-            labelcounts.append(labelcount)
-
-        # overall_counts = reduce(lambda x, y: x + y, labelcounts)
-        # print(f"overall_counts:{overall_counts}")
-
-        # print(f"balanced:{self.balanced}")
-        weight = self.balanced if not self.debug else 0
+            # overall_counts = reduce(lambda x, y: x + y, labelcounts)
+            # print(f"overall_counts:{overall_counts}")
+            # print(f"balanced:{self.balanced}")
+        else:
+            labelcounts = [Counter({0: len(c)}) for c in clusters]
         train, val, test, metrics = assign_clusters(
-            clusters, labelcounts, split_ratios=fracs, label_weight=int(weight), verbose=self.verbose
+            clusters, labelcounts, split_ratios=fracs, label_weight=int(balanced), verbose=self.verbose
         )
         print("Done.")
 
@@ -92,11 +103,11 @@ class ClusterSplitter(Splitter):
         )
 
     def cluster_split(
-        self,
-        dataset: Iterable,
-        frac: float,
-        n: float = 0.05,
-        split: bool = True,
+            self,
+            dataset: Iterable,
+            frac: float,
+            n: float = 0.05,
+            split: bool = True,
     ):
         """Fast cluster-based splitting adapted from ProteinShake.
 

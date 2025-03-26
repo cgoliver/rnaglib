@@ -13,7 +13,7 @@ class SecondaryStructureTransform(Transform):
     Secondary structure assignments computed by forgi
 
     >>> from rnaglib.transforms import SecondaryStructureTransform
-    >>> from rnaglib.data_loading import RNADataset
+    >>> from rnaglib.dataset import RNADataset
     >>> dset = RNADataset(debug=True)
     >>> T = SecondaryStructureTransform(dset.structures_path)
     >>> T(dset[0])
@@ -45,5 +45,3 @@ class SecondaryStructureTransform(Transform):
         rna_dict["rna"].graph["ss"] = ss_dict
         rna_dict["rna"].graph["seq"] = seq_dict
         return rna_dict
-
-    pass

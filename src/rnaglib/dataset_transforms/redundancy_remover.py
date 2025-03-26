@@ -1,17 +1,29 @@
 import numpy as np
 from scipy.sparse.csgraph import connected_components
 
+from rnaglib.dataset_transforms import DSTransform
 
-class RedundancyRemover:
+
+class RedundancyRemover(DSTransform):
+    """Dataset transform removing redundancy in a dataset by performing clustering on the dataset then keeping only the RNA with the highest resolution within each cluster
+
+    :param str distance_name: the name of the distance metric which has to be used to perform clustering. The distance must have been computed on the dataset (see DistanceComputer)
+    :param float threshold: the similarity threshold (considering similarity as 1-distance) to use to perform clustering
+    """
     def __init__(
-            self,
-            distance_name: str = "USalign",
-            threshold: float = 0.95,
+        self,
+        distance_name: str = "USalign",
+        threshold: float = 0.95,
     ):
         self.distance_name = distance_name
         self.threshold = threshold
 
     def __call__(self, dataset):
+        """"Removes redundancy to a specific dataset following the parameters specified in the RedundancyRemover object
+
+        :return: the dataset with redundancy removed according to specified criteria
+        :rtype: RNADataset
+        """
         if dataset.distances is None or not self.distance_name in dataset.distances:
             raise ValueError(f"The distance matrix using distances {self.distance_name} has not been computed")
 

@@ -18,6 +18,13 @@ from rnaglib.utils.graph_io import get_default_download_dir
 
 
 class StructureDistanceComputer(DistanceComputer):
+    """Distance computer computing a structure-based pairwise distance between RNAs from a dataset
+
+    :param str name: the name identifying the distance metric
+    :param bool use_substructures: whether to filter cif files of RNAs to remove the residues which are not present in the dataset (default True)
+    :param structures_path: path to the directory where the structures are stored (as cif files)
+    :param int n_jobs: number of jobs (for parallelization) (if set to -1, use the maximum number of cores)(default -1)
+    """
     def __init__(
         self,
         name: str = "USalign",

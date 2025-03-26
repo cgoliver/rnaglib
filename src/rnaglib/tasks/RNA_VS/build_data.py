@@ -6,7 +6,7 @@ from tqdm import tqdm
 
 from rnaglib.tasks.RNA_VS.ligands import MolGraphEncoder
 from rnaglib.utils import graph_io
-from rnaglib.data_loading import rna_from_pdbid
+from rnaglib.dataset import rna_from_pdbid
 
 
 def compress_migos_data(in_path="data/dataset_as_json.json", out_path="data/dataset_compressed.json"):
@@ -80,7 +80,7 @@ def load_groups():
     return all_groups
 
 
-def dump_rna_jsons(root, recompute=False):
+def dump_rna_jsons(root, recompute=False, version="2.0.2"):
     all_groups = load_groups()
     # Check data was properly downloaded by getting one graph
     if rna_from_pdbid("1k73", redundancy='all') is None:
@@ -97,7 +97,7 @@ def dump_rna_jsons(root, recompute=False):
         if os.path.exists(pocket_path) and not recompute:
             continue
         pdb_id = group[:4].lower()
-        rglib_graph = rna_from_pdbid(pdb_id, redundancy='all', verbose=False)['rna']
+        rglib_graph = rna_from_pdbid(pdb_id, redundancy='all', verbose=False, version=version)['rna']
         if rglib_graph is None:
             failed_set.add(group)
             print(rglib_graph, 'not found')

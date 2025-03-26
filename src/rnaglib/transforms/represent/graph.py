@@ -16,8 +16,8 @@ class GraphRepresentation(Representation):
 
     def __init__(
             self,
-            clean_edges=True,
             framework="nx",
+            clean_edges=True,
             edge_map=GRAPH_KEYS["edge_map"][TOOL],
             etype_key="LW",
             **kwargs,

@@ -1,6 +1,6 @@
 name: build
 
-on: [push]
+on: [ push ]
 
 jobs:
   build:
@@ -8,7 +8,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.10"]
+        python-version: [ "3.10" ]
 
     steps:
       - uses: actions/checkout@v3
@@ -16,7 +16,7 @@ jobs:
         uses: actions/setup-python@v3
         with:
           python-version: ${{ matrix.python-version }}
-      - name: Install CD-Hit 
+      - name: Install CD-Hit
         run: |
           wget https://github.com/weizhongli/cdhit/releases/download/V4.8.1/cd-hit-v4.8.1-2019-0228.tar.gz
           tar -xzvf cd-hit-v4.8.1-2019-0228.tar.gz
@@ -27,7 +27,7 @@ jobs:
       - name: Export cd-hit path
         run: |
           echo /home/runner/work/rnaglib/rnaglib/cd-hit-v4.8.1-2019-0228 >> $GITHUB_PATH
-      - name: Install US-align 
+      - name: Install US-align
         run: |
           wget https://zhanggroup.org/US-align/bin/module/USalign.cpp
           g++ -static -O3 -ffast-math -o USalign USalign.cpp
@@ -35,7 +35,7 @@ jobs:
       - name: Export USalign path
         run: |
           echo /home/runner/work/rnaglib/rnaglib/ >> $GITHUB_PATH
-      - name: Install rna-align 
+      - name: Install rna-align
         run: |
           wget https://zhanggroup.org/RNA-align/bin/RNAalign.tar.bz2
           tar -xvjf RNAalign.tar.bz2
@@ -51,7 +51,9 @@ jobs:
           echo $PATH
           which RNAalign
           which cd-hit
-          pip install -r requirements_test.txt
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
+          pip install torch_geometric
+          pip install -r requirements.txt
           pip install coverage
           coverage run --source src/rnaglib -m pytest
           coverage report -m
@@ -62,6 +64,6 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: coverage.xml
           flags: pytest
-          name: rnaglib 
+          name: rnaglib
           fail_ci_if_error: true
           verbose: true 

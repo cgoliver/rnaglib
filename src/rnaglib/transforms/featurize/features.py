@@ -14,17 +14,17 @@ class FeaturesComputer(Transform):
     This class takes as input an RNA in the networkX form
     and computes the ``features_dict`` which maps node IDs to a tensor of features.
     The ``features_dict`` contains keys: ``'nt_features'``for node features,
-    ``'nt_targets'`` for node-level prediction targets. In :class:`~rnaglib.data_loading.RNADataset` construction,
+    ``'nt_targets'`` for node-level prediction targets. In :class:`~rnaglib.dataset.RNADataset` construction,
     the ``FeaturesComputer.compute_features()`` method is called during the ``RNADataset`` ``__getitem__()`` call.
 
-    :param nt_features: List of keys to use as node features, choose from the `dataset[i]['rna']` node attributes dictionary.
-    :param nt_targets: List of keys to use as node features, choose from the `dataset[i]['rna']` node attributes dictionary.
-    :param rna_features:
-    :param rna_targets:
-    :param bp_features:
-    :param bp_targets:
-    :param post_transform:
-    :param extra_useful_keys:
+    :param nt_features: List of keys to use as node (nucleotide) features and are meant to be inputs of the ML task, choose from the `dataset[i]['rna']` node attributes dictionary.
+    :param nt_targets: List of keys to use as node (nucleotide) features and are meant to be outputs of the ML task, choose from the `dataset[i]['rna']` node attributes dictionary.
+    :param rna_features: List of keys to use as graph features of graphs representing the whole RNA and are meant to be inputs of the ML task
+    :param rna_targets: List of keys to use as graph features of graphs representing the whole RNA and are meant to be outputs of the ML task
+    :param bp_features: List of keys to use as graph features of graphs representing an RNA binding pocket and are meant to be inputs of the ML task
+    :param bp_targets: List of keys to use as graph features of graphs representing an RNA binding pocket and are meant to be outputs of the ML task
+    :param extra_useful_keys: List of keys that are not RNA, nucleotide or binding pocket features ir targets but must be preserved when applying the FeaturesComputer to the dataset
+    :param dict custom_encoders: Dictionary of the form {feature_name : encoder}
     """
 
     def __init__(
@@ -63,10 +63,11 @@ class FeaturesComputer(Transform):
     ):
         """
         Update the input/output feature selector with either an extra available named feature or a custom encoder
+
         :param feature_names: Name of the input feature to add
-        :param transforms: A Transform object to compute new features with
-        :param feature_level: If featureis RNA-level ('rna`) or residue-level (`residue`)
+        :param dict custom_encoders: Dictionary of the form {feature_name : encoder}
         :param input_feature: Set to true to modify the input feature encoder, false for the target one
+        :param feature_level: If featureis RNA-level ('rna`) or residue-level (`residue`)
         :return: None
         """
         # Select the right node_parser and update it
@@ -84,6 +85,7 @@ class FeaturesComputer(Transform):
     def remove_feature(self, feature_name=None, input_feature=True):
         """
         Update the input/output feature selector with either an extra available named feature or a custom encoder
+
         :param feature_name: Name of the input feature to remove
         :param input_feature: Set to true to modify the input feature encoder, false for the target one
         :return: None
@@ -104,6 +106,7 @@ class FeaturesComputer(Transform):
         """
         Based on the encoding scheme, we can compute the shapes of the in and out tensors
 
+        :param node_parser: dictionary of the form {feature_name : encoder}
         :return:
 
         """
@@ -127,8 +130,9 @@ class FeaturesComputer(Transform):
     def remove_useless_keys(self, rna_graph):
         """
         Copy the original graph to only retain keys relevant to this FeaturesComputer
+
         :param rna_graph:
-        :return:
+        :return: The graph with only keys which are either features, targets or extra useless keys according to the arguments of FeaturesComputer object
         """
         useful_keys = set(self.node_features_parser.keys()).union(set(self.node_target_parser.keys()))
         if self.extra_useful_keys is not None:
@@ -147,7 +151,7 @@ class FeaturesComputer(Transform):
         Then use torch.cat over the result to get a tensor for each node in the graph.
 
         :param g: a nx graph
-        :param node_parser: {feature_name : encoder}
+        :param node_parser: dictionary of the form {feature_name : encoder}
         :return: A dict that maps nodes to encodings
 
         """
@@ -172,9 +176,8 @@ class FeaturesComputer(Transform):
         Then use torch.cat over the result to get a tensor for each node in the graph.
 
         :param g: a nx graph
-        :param node_parser: {feature_name : encoder}
+        :param node_parser: dictionary of the form {feature_name : encoder}
         :return: A dict that maps nodes to encodings
-
         """
 
         node_encodings = {}
@@ -206,8 +209,9 @@ class FeaturesComputer(Transform):
 
         If some keys don't exist, will raise an Error. However if some keys are present but problematic,
         this will just cause a printing of the problematic keys
+
         :param asked_features: A list of string keys that are present in the encoder
-        :param transforms: Transform objects to compute extra features
+        :param custom_encoders: Dictionary of the form {feature_name : encoder}
         :param feature_map: Dictionary mapping feature key to an Encoder() object.
         :return: A dict {asked_feature : EncoderObject}
         """

@@ -76,7 +76,7 @@ class ResidueAttributeFilter(FilterTransform):
 
     Keep RNAs with at least 1 chemically modified residue::
 
-        >>> from rnaglib.data_loading import RNADataset
+        >>> from rnaglib.dataset import RNADataset
         >>> from rnaglib.transforms import ResidueAttributeFilter
 
         >>> dset = RNADataset(debug=True)
@@ -131,11 +131,19 @@ class ResidueAttributeFilter(FilterTransform):
 
 
 class ResidueNameFilter(FilterTransform):
+    """
+    Filter RNAs based on their residuess' names.
+
+    This filter keeps only the RNAs such that a minimal number of their residues' names match a specific criterion.
+
+    :param Callable value_checker: a method taking as input an RNA residue name and returning a boolean defining the filter's criterion on the residues' names (default None)
+    :param int min_valid: the minimal number of residues within an RNA which have to match the above defined criterion so that the RNA is kept by the filter
+    """
     def __init__(
-            self,
-            value_checker: Callable = None,
-            min_valid: int = 1,
-            **kwargs,
+        self,
+        value_checker: Callable = None,
+        min_valid: int = 1,
+        **kwargs,
     ):
         self.min_valid = min_valid
         self.value_checker = value_checker
@@ -143,6 +151,12 @@ class ResidueNameFilter(FilterTransform):
         pass
 
     def forward(self, data: dict):
+        """
+        Check if the RNA's name is in the list of allowed names.
+
+        :param data: Dictionary containing RNA data.
+        :return: True if the RNA's name is in the allowed list, False otherwise.
+        """
         n_valid = 0
         g = data["rna"]
         for node, ndata in g.nodes(data=True):
@@ -252,6 +266,10 @@ class ChainFilter(FilterTransform):
 
 
 class ResolutionFilter(RNAAttributeFilter):
+    """Filters RNA based on their resolution. Only keeps RNAs which resolution is less than a certain threshold.
+
+    :param float resolution_threshold: resolution (in Angstroms) below which the RNA will be kept and above which it will be discarded
+    """
     def __init__(self, resolution_threshold: float, **kwargs):
         def value_checker(val):
             try:

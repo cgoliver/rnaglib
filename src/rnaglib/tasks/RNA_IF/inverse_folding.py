@@ -8,57 +8,61 @@ import numpy as np
 from sklearn.metrics import accuracy_score, confusion_matrix, f1_score, matthews_corrcoef, roc_auc_score
 from tqdm import tqdm
 
-from rnaglib.data_loading import RNADataset
-from rnaglib.dataset_transforms import (
-    CDHitComputer,
-    ClusterSplitter,
-    NameSplitter,
-    RedundancyRemover,
-    StructureDistanceComputer,
-)
+from rnaglib.dataset import RNADataset
+from rnaglib.dataset_transforms import CDHitComputer, StructureDistanceComputer, RedundancyRemover
+from rnaglib.dataset_transforms import ClusterSplitter, NameSplitter
 from rnaglib.encoders import BoolEncoder, NucleotideEncoder
 from rnaglib.tasks import ResidueClassificationTask
-from rnaglib.transforms import (
-    ChainFilter,
-    ConnectedComponentPartition,
-    DummyAnnotator,
-    FeaturesComputer,
-)
+from rnaglib.transforms import ChainFilter, ConnectedComponentPartition, DummyAnnotator, FeaturesComputer
 
 
 class InverseFolding(ResidueClassificationTask):
+    """RNA design task, taking as input the structures with the identity of the residues masked and trying to find it back
+
+    Task type: multi-class classification
+    Task level: residue-level
+
+    :param tuple[int] size_thresholds: range of RNA sizes to keep in the task dataset(default (15, 500))
+    """
     target_var = "nt_code"  # in rna graph
     input_var = "dummy"  # should be dummy variable
     nucs = ["A", "C", "G", "U"]
     name = "rna_if"
+    default_metric = "accuracy"
+    version = "2.0.2"
 
-    def __init__(self, root,
-                 size_thresholds=(15, 300),
-                 additional_metadata=None,
-                 **kwargs):
-        if additional_metadata is None:
-            meta = {"multi_label": False, "task_name": "rna_if"}
-        else:
-            meta = additional_metadata
-        super().__init__(root=root, additional_metadata=meta, size_thresholds=size_thresholds, **kwargs)
+    def __init__(self, size_thresholds=(15, 300), **kwargs):
+        meta = {"multi_label": False}
+        super().__init__(additional_metadata=meta, size_thresholds=size_thresholds, **kwargs)
 
     @property
     def default_splitter(self):
+        """Returns the splitting strategy to be used for this specific task. Canonical splitter is ClusterSplitter which is a
+        similarity-based splitting relying on clustering which could be refined into a sequencce- or structure-based clustering
+        using distance_name argument
+
+        :return: the default splitter to be used for the task
+        :rtype: Splitter
+        """
         return ClusterSplitter(distance_name="USalign")
 
     def process(self) -> RNADataset:
+        """"
+        Creates the task-specific dataset.
+
+        :return: the task-specific dataset
+        :rtype: RNADataset
+        """
+        print(">>> RNA_IF process")
         # Define your transforms
         annotate_rna = DummyAnnotator()
         connected_components_partition = ConnectedComponentPartition()
 
         # Run through database, applying our filters
-        dataset = RNADataset(in_memory=self.in_memory,
-                             redundancy=self.redundancy)
+        dataset = RNADataset(in_memory=self.in_memory, redundancy="all", debug=self.debug, version=self.version)
         all_rnas = []
         os.makedirs(self.dataset_path, exist_ok=True)
-        for i, rna in tqdm(enumerate(dataset)):
-            if self.debug:
-                if i > 200: break
+        for i, rna in tqdm(enumerate(dataset), total=len(dataset)):
             for rna_connected_component in connected_components_partition(rna):
                 if self.size_thresholds is not None and not self.size_filter.forward(rna_connected_component):
                     continue
@@ -68,6 +72,9 @@ class InverseFolding(ResidueClassificationTask):
         return dataset
 
     def post_process(self):
+        """The task-specific post processing steps to remove redundancy and compute distances which will be used by the splitters.
+        """
+        print(">>> RNA_IF post")
         cd_hit_computer = CDHitComputer(similarity_threshold=0.99)
         cd_hit_rr = RedundancyRemover(distance_name="cd_hit", threshold=0.9)
         self.dataset = cd_hit_computer(self.dataset)
@@ -78,6 +85,12 @@ class InverseFolding(ResidueClassificationTask):
         self.dataset.save_distances()
 
     def get_task_vars(self) -> FeaturesComputer:
+        """Specifies the `FeaturesComputer` object of the tasks which defines the features which have to be added to the RNAs
+        (graphs) and nucleotides (graph nodes)
+        
+        :return: the features computer of the task
+        :rtype: FeaturesComputer
+        """
         return FeaturesComputer(
             nt_features=self.input_var,
             nt_targets=self.target_var,
@@ -144,12 +157,12 @@ class InverseFolding(ResidueClassificationTask):
         sorted_keys = []
         metrics = []
         for pred, filt_pred, prob, label, filt_label in zip(
-            all_preds,
-            filtered_all_preds,
-            all_probs,
-            all_labels,
-            filtered_all_labels,
-            strict=False,
+                all_preds,
+                filtered_all_preds,
+                all_probs,
+                all_labels,
+                filtered_all_labels,
+                strict=False,
         ):
             # Can't compute metrics over just one class
             if len(np.unique(label)) == 1:
@@ -185,12 +198,18 @@ class InverseFolding(ResidueClassificationTask):
 
 
 class gRNAde(InverseFolding):
-    """This class is a subclass of InverseFolding and is used to train a model on the gRNAde dataset."""
+    """This class is a subclass of InverseFolding and is used to train a model on the gRNAde dataset.
+    
+    Task type: multi-class classification
+    Task level: residue-level
+
+    :param tuple[int] size_thresholds: range of RNA sizes to keep in the task dataset(default (15, 500))
+    """
 
     # everything is inherited except for process and splitter.
     name = "rna_if_bench"
 
-    def __init__(self, root, size_thresholds=(15, 300), **kwargs):
+    def __init__(self, size_thresholds=(15, 300), **kwargs):
         self.splits = {
             # Use sets instead of lists for chains since order doesn't matter
             "pdb_to_chain_train": defaultdict(set),
@@ -205,8 +224,6 @@ class gRNAde(InverseFolding):
             file_path = data_dir / f"{split}_ids_das.txt"
             with open(file_path) as f:
                 for i, line in enumerate(f):
-                    if kwargs['debug'] and i > 10:
-                        break
                     line = line.strip()
                     pdb_id = line.split("_")[0].lower()
                     chain = line.split("_")[-1]
@@ -216,12 +233,15 @@ class gRNAde(InverseFolding):
                     self.splits[f"pdb_to_chain_{split}"][pdb_id].add(chain)
                     self.splits["pdb_to_chain_all"][pdb_id].add(chain)
                     self.splits["pdb_to_chain_all_single"][pdb_id].update(chain_components)
-
-        meta = {"multi_label": False, "task_name": "rna_if_bench"}
-        super().__init__(root=root, additional_metadata=meta, size_thresholds=size_thresholds, **kwargs)
+        super().__init__(size_thresholds=size_thresholds, **kwargs)
 
     @property
     def default_splitter(self):
+        """Returns the splitting strategy to be used for this specific task. In this case, an ad hoc splitter is being applied to match the train, val and test splits used in gRNAde.
+
+        :return: the default splitter to be used for the task
+        :rtype: Splitter
+        """
         train_names = [
             f"{pdb.lower()}_{chain}"
             for pdb in self.splits["pdb_to_chain_train"]
@@ -243,7 +263,12 @@ class gRNAde(InverseFolding):
         return NameSplitter(train_names, val_names, test_names)
 
     def process(self) -> RNADataset:
-        """Returns a filtered and processed RNADataset."""
+        """"
+        Creates the task-specific dataset.
+
+        :return: the task-specific dataset
+        :rtype: RNADataset
+        """
         pdb_to_single_chains = {
             pdb.lower(): [chain for chain in self.splits["pdb_to_chain_all_single"][pdb]]
             for pdb in self.splits["pdb_to_chain_all_single"]
@@ -253,9 +278,8 @@ class gRNAde(InverseFolding):
         annote_dummy = DummyAnnotator()
 
         # Initialize dataset with in_memory=False to avoid loading everything at once
-        print(self.redundancy)
-        source_dataset = RNADataset(rna_id_subset=list(pdb_to_single_chains.keys()),
-                   redundancy=self.redundancy, in_memory=False)
+        rna_ids = list(pdb_to_single_chains.keys())
+        source_dataset = RNADataset(rna_id_subset=rna_ids, redundancy="all", in_memory=False, debug=self.debug, version=self.version)
 
         all_rnas = []
         os.makedirs(self.dataset_path, exist_ok=True)
@@ -275,4 +299,4 @@ class gRNAde(InverseFolding):
         return dataset
 
     def post_process(self):
-        pass
+        print("gRNAde post process")

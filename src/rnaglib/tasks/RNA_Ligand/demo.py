@@ -4,23 +4,22 @@ from rnaglib.tasks import LigandIdentification
 from rnaglib.transforms import GraphRepresentation
 from rnaglib.learning.task_models import PygModel
 
-# Hyperparameters to tune
-batch_size = 8
-
 # Creating task 
 ta = LigandIdentification('RNA_Ligand', recompute=True, use_balanced_sampler=True)
 
-# Splitting dataset
-print("Splitting Dataset")
+# Adding representation
 ta.dataset.add_representation(GraphRepresentation(framework="pyg"))
 
 # Splitting dataset
-ta.set_loaders(batch_size=batch_size, recompute=False)
+print("Splitting Dataset")
+ta.set_loaders(batch_size=8, recompute=False)
 
-# Train model
+info = ta.describe()
+
+# Training model
 # Either by hand:
 # for epoch in range(100):
-#     for batch in task.train_dataloader:
+#     for batch in ta.train_dataloader:
 #         graph = batch["graph"].to(self.device)
 #         ...
 
@@ -29,7 +28,7 @@ model = PygModel(ta.metadata["num_node_features"], ta.metadata["num_classes"], g
 model.configure_training(learning_rate=1e-5)
 model.train_model(ta, epochs=10)
 
-# Final evaluation
+# Evaluating model
 test_metrics = model.evaluate(ta)
 for k, v in test_metrics.items():
     print(f"Test {k}: {v:.4f}")
