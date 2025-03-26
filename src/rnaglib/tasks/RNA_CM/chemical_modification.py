@@ -47,8 +47,9 @@ class ChemicalModification(ResidueClassificationTask):
         """
         return FeaturesComputer(nt_targets=self.target_var, nt_features=self.input_var)
 
-    def process(self):
-        """"Creates the task-specific dataset.
+    def process(self) -> RNADataset:
+        """
+        Creates the task-specific dataset.
 
         :return: the task-specific dataset
         :rtype: RNADataset

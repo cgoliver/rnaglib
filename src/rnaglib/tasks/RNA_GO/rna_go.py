@@ -61,17 +61,19 @@ class RNAGo(RNAClassificationTask):
             custom_encoders={self.target_var:
                                  MultiLabelOneHotEncoder(label_mapping)}, )
 
-    def process(self):
-        """"Creates the task-specific dataset.
+    def process(self) -> RNADataset:
+        """
+        Creates the task-specific dataset.
 
         :return: the task-specific dataset
         :rtype: RNADataset
         """
         # Get initial mapping files:
         df, rfam_go_mapping = get_frequent_go_pdbsel()
-        if self.debug:
-            df = df.sample(n=50, random_state=0)
-        dataset = RNADataset(redundancy='all', in_memory=self.in_memory, rna_id_subset=df['pdb_id'].unique())
+        dataset = RNADataset(redundancy='all',
+                             debug=self.debug,
+                             in_memory=self.in_memory,
+                             rna_id_subset=df['pdb_id'].unique())
 
         # Create dataset
         # Run through database, applying our filters

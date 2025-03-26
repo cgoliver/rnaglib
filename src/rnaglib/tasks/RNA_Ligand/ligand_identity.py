@@ -52,8 +52,9 @@ class LigandIdentification(RNAClassificationTask):
             self.ligands_dict = json.load(ligands_dict_json)
         super().__init__(additional_metadata=meta, size_thresholds=size_thresholds, **kwargs)
 
-    def process(self):
-        """"Creates the task-specific dataset.
+    def process(self) -> RNADataset:
+        """
+        Creates the task-specific dataset.
 
         :return: the task-specific dataset
         :rtype: RNADataset

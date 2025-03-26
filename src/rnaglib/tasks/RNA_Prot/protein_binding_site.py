@@ -37,7 +37,7 @@ class ProteinBindingSite(ResidueClassificationTask):
             custom_encoders={self.target_var: BoolEncoder()},
         )
 
-    def process(self):
+    def process(self) -> RNADataset:
         # Define your transforms
         filters = ResidueAttributeFilter(attribute=self.target_var, value_checker=lambda val: val is not None)
         if self.debug:
