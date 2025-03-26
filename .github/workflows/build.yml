@@ -51,7 +51,7 @@ jobs:
           echo $PATH
           which RNAalign
           which cd-hit
-          pip install -r requirements_test.txt
+          pip install -r <(grep -v "torch_geometric" requirements.txt)
           pip install coverage
           coverage run --source src/rnaglib -m pytest
           coverage report -m
