@@ -24,6 +24,7 @@ class ProteinBindingSite(ResidueClassificationTask):
     input_var = "nt_code"
     name = "rna_prot"
     default_metric = "balanced_accuracy"
+    version = "2.0.2"
 
     def __init__(self, size_thresholds=(15, 500), **kwargs):
         meta = {"multi_label": False}
@@ -67,7 +68,7 @@ class ProteinBindingSite(ResidueClassificationTask):
         connected_components_partition = ConnectedComponentPartition()
 
         # Run through database, applying our filters
-        dataset = RNADataset(debug=self.debug, in_memory=False)
+        dataset = RNADataset(debug=self.debug, in_memory=False, version=self.version)
         all_rnas = []
         os.makedirs(self.dataset_path, exist_ok=True)
         for rna in tqdm(dataset, total=len(dataset)):

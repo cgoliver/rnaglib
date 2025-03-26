@@ -80,7 +80,7 @@ def load_groups():
     return all_groups
 
 
-def dump_rna_jsons(root, recompute=False):
+def dump_rna_jsons(root, recompute=False, version=version):
     all_groups = load_groups()
     # Check data was properly downloaded by getting one graph
     if rna_from_pdbid("1k73", redundancy='all') is None:
@@ -97,7 +97,7 @@ def dump_rna_jsons(root, recompute=False):
         if os.path.exists(pocket_path) and not recompute:
             continue
         pdb_id = group[:4].lower()
-        rglib_graph = rna_from_pdbid(pdb_id, redundancy='all', verbose=False)['rna']
+        rglib_graph = rna_from_pdbid(pdb_id, redundancy='all', verbose=False, version=version)['rna']
         if rglib_graph is None:
             failed_set.add(group)
             print(rglib_graph, 'not found')
