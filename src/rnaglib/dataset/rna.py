@@ -4,7 +4,7 @@ import tempfile
 from Bio.PDB.PDBList import PDBList
 
 from rnaglib.prepare_data import build_graph_from_cif
-from rnaglib.utils import get_default_download_dir, load_graph, dump_json, load_graph
+from rnaglib.utils import get_default_download_dir, dump_json, load_graph
 
 
 def rna_from_pdbid(
