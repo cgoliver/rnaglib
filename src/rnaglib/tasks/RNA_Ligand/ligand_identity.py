@@ -11,7 +11,7 @@ from rnaglib.dataset import RNADataset
 from rnaglib.encoders import IntMappingEncoder
 from rnaglib.transforms import FeaturesComputer, AnnotatorFromDict, PartitionFromDict, ResolutionFilter
 from rnaglib.dataset_transforms import ClusterSplitter, CDHitComputer, StructureDistanceComputer, Collater
-from .prepare_dataset import PrepareDataset
+from rnaglib.tasks.RNA_Ligand.prepare_dataset import PrepareDataset
 
 
 class LigandIdentification(RNAClassificationTask):
@@ -32,11 +32,11 @@ class LigandIdentification(RNAClassificationTask):
     default_metric = "auc"
 
     def __init__(self,
-        size_thresholds=(15, 500),
-        admissible_ligands=('PAR', 'LLL', '8UZ'),
-        use_balanced_sampler=False,
-        **kwargs
-    ):
+                 size_thresholds=(15, 500),
+                 admissible_ligands=('PAR', 'LLL', '8UZ'),
+                 use_balanced_sampler=False,
+                 **kwargs
+                 ):
         self.admissible_ligands = admissible_ligands
         self.use_balanced_sampler = use_balanced_sampler
         meta = {"multi_label": False}
@@ -71,8 +71,6 @@ class LigandIdentification(RNAClassificationTask):
 
         # Run through database, applying our filters
         all_binding_pockets = []
-        ligands_dict = {}
-        idx = 0
         os.makedirs(self.dataset_path, exist_ok=True)
         for rna in tqdm(dataset):
             if resolution_filter.forward(rna):
@@ -82,13 +80,8 @@ class LigandIdentification(RNAClassificationTask):
                             continue
                     annotated_binding_pocket = annotator(binding_pocket_dict)
                     current_ligand = binding_pocket_dict["rna"].graph["ligand"]
-                    if current_ligand in self.admissible_ligands:
+                    if current_ligand in self.admissible_ligands or self.debug:
                         self.add_rna_to_building_list(all_rnas=all_binding_pockets, rna=annotated_binding_pocket["rna"])
-                        try:
-                            ligands_dict[current_ligand].append(idx)
-                        except:
-                            ligands_dict[current_ligand] = [idx]
-                        idx += 1
         dataset = self.create_dataset_from_list(all_binding_pockets)
         return dataset
 

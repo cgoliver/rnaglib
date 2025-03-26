@@ -12,8 +12,7 @@ import torch
 try:
     import fm
 except ModuleNotFoundError:
-    print("Please make sure rna-fm is installed with pip install rna-fm")
-    sys.exit()
+    raise ModuleNotFoundError("Please make sure rna-fm is installed with pip install rna-fm")
 
 from rnaglib.transforms import Transform
 from rnaglib.encoders import ListEncoder
