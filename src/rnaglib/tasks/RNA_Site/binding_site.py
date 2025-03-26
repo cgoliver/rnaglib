@@ -72,8 +72,7 @@ class BenchmarkBindingSite(ResidueClassificationTask):
             mass_lower_limit=30,
             mass_upper_limit=1400
         )
-        bs_annotator = BindingSiteAnnotator(include_ions=True,
-                                            include_covalent=True)
+        bs_annotator = BindingSiteAnnotator(include_ions=True)
         namer = ChainNameTransform()
 
         # Run through database, applying our filters

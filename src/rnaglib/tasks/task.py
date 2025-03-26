@@ -55,7 +55,7 @@ class Task:
             in_memory: bool = False,
             recompute: bool = False,
             precomputed: bool = True,
-            additional_metadata: Optional[Mapping] =None,
+            additional_metadata: Optional[Mapping] = None,
             size_thresholds: Optional[Sequence] = None,
             splitter: Optional[Splitter] = None,
     ):
@@ -87,7 +87,7 @@ class Task:
             # If dataset does not exist on zenodo, or downloading failed, recompute.
             if not zenodo_loaded or recompute:
                 self.from_scratch(size_thresholds)
-    
+
         # Set splitter after dataset is available
         # Split dataset if it wasn't loaded from file
         self.splitter = self.default_splitter if splitter is None else splitter
@@ -113,8 +113,6 @@ class Task:
         self.metadata.update(self.describe())
         self.post_process()
         self.metadata["data_version"] = self.dataset.version
-
-        pass
 
     def from_zenodo(self):
         """Downloads the task dataset from Zenodo and loads it."""
@@ -366,7 +364,7 @@ class Task:
 
             first_node_map = {n: i for i, n in enumerate(sorted(first_item["rna"].nodes()))}
             first_features_dict = self.dataset.features_computer(first_item)
-            print(first_features_dict)
+            # print(first_features_dict)
             first_features_array = first_features_dict["nt_features"][next(iter(first_node_map.keys()))]
             num_node_features = first_features_array.shape[0]
 
@@ -426,16 +424,6 @@ class Task:
                     print(f"\tClass {cls}: {v[cls]} {'nodes'}")
         return info
 
-    def create_dataset_from_list(self, rnas):
-        """Computes an RNADataset object from the"""
-        if self.in_memory:
-            print("in memory from list")
-            dataset = RNADataset(rnas=rnas)
-        else:
-            print("disk from list")
-            dataset = RNADataset(dataset_path=self.dataset_path, rna_id_subset=rnas)
-        return dataset
-
     def add_rna_to_building_list(self, all_rnas, rna):
         if self.in_memory:
             all_rnas.append(rna)
@@ -443,6 +431,16 @@ class Task:
             os.makedirs(self.dataset_path, exist_ok=True)
             dump_json(os.path.join(self.dataset_path, f"{rna.name}.json"), rna)
             all_rnas.append(rna.name)
+
+    def create_dataset_from_list(self, rnas):
+        """Computes an RNADataset object from the lists touched in add_rna_to_building_list"""
+        if self.in_memory:
+            print("in memory from list")
+            dataset = RNADataset(rnas=rnas)
+        else:
+            print("disk from list")
+            dataset = RNADataset(dataset_path=self.dataset_path, rna_id_subset=rnas)
+        return dataset
 
     def compute_distances(self):
         self.dataset = self.dataset.similarity_matrix_computer.compute_distances(self.dataset)

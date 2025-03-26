@@ -1,10 +1,11 @@
+import os
 import unittest
-import tempfile
 
 from rnaglib.utils import load_graph
 
 
 class TestUtils(unittest.TestCase):
     def test_load_graph(self):
-        g = load_graph("examples/1fmn.json", multigraph=False)
-        pass
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        data_path = os.path.join(current_dir, 'data', "1fmn.json")
+        g = load_graph(data_path, multigraph=False)

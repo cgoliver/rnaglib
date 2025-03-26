@@ -5,7 +5,8 @@ The package can be cloned and the source code used directly. We also deploy it a
 install in conda environments.
 
 If one wants to use GPU support, one should install [Pytorch](https://pytorch.org/get-started/locally/)
-and [DGL](https://www.dgl.ai/pages/start.html) with the appropriate options.
+and [DGL](https://www.dgl.ai/pages/start.html) or [Torch-Geometric](https://pytorch-geometric.readthedocs.io/en/latest/install/installation.html)
+with the appropriate options.
 Otherwise, you can just skip this step and the pip installs of Pytorch and DGL will be used.
 
 Then, one just needs to run :
