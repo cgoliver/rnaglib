@@ -80,7 +80,7 @@ def load_groups():
     return all_groups
 
 
-def dump_rna_jsons(root, recompute=False, version=version):
+def dump_rna_jsons(root, recompute=False, version="2.0.2"):
     all_groups = load_groups()
     # Check data was properly downloaded by getting one graph
     if rna_from_pdbid("1k73", redundancy='all') is None:
