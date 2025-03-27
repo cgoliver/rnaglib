@@ -51,7 +51,7 @@ We now provide datasets of RNA 3D structures ready-to-use for machine learning m
 biologically relevant tasks.
 Moreover, we provide many tools to create your own new tasks.
 A more detailed description is provided in the [Tasks' README ](src/rnaglib/tasks/README.md) and in the
-[documentation](https://rnaglib.org/en/latest/tasks.html). 
+[documentation](https://rnaglib.org/en/latest/tutorials/tuto_tasks.html). 
 
 Everything you need to train and evaluate a model is built on 3 basic ingredients:
 
