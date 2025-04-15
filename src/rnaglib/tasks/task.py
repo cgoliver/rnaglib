@@ -186,6 +186,7 @@ class Task:
         Call this each time you modify ``self.dataset``.
         """
         if not hasattr(self, "train_ind") or recompute:
+            print("Splitting..")
             self.train_ind, self.val_ind, self.test_ind = self.split(self.dataset)
         self.train_dataset = self.dataset.subset(self.train_ind)
         self.val_dataset = self.dataset.subset(self.val_ind)
@@ -539,7 +540,8 @@ class ClassificationTask(Task):
                 average=None if self.metadata['num_classes'] == 2 else "macro",
                 multi_class="ovo",
             )
-        except:
+        except Exception as e:
+            print(e)
             return one_metric
         return one_metric
 

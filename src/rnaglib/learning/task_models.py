@@ -14,6 +14,7 @@ class PygModel(torch.nn.Module):
                   num_node_features=None, 
                   num_classes=None,
                   graph_level=None, 
+                  multi_label=None,
                   **model_args):
         """ Try to create a model based on task metadata.
         Will fail if number of node features is not the default.
@@ -24,11 +25,17 @@ class PygModel(torch.nn.Module):
             num_classes = task.metadata["num_classes"]
         if graph_level is None:
             graph_level = task.metadata["graph_level"]
+        if multi_label is None:
+            multi_label = task.metadata["multi_label"]
+
+        activation = 'softmax' if num_classes > 2 else 'sigmoid'
 
         return cls(
                   num_node_features=num_node_features,
                   num_classes=num_classes,
                   graph_level=graph_level,
+                  multi_label=multi_label,
+                  final_activation=activation,
                   **model_args
                   )
         pass
@@ -140,11 +147,12 @@ class PygModel(torch.nn.Module):
     def compute_loss(self, out, target):
         # If just two classes, flatten outputs since BCE behavior expects equal dimensions and CE (N,k):(N)
         # Otherwise CE expects long as outputs
-        if not self.multi_label:
+        if self.multi_label:
+            target = target.float()
+            pass
+        else:
             if self.num_classes == 2:
                 out = out.flatten()
-            else:
-                target = target.long()
         loss = self.criterion(out, target)
         return loss
 
