@@ -5,7 +5,7 @@ import copy
 import json
 import os
 from pathlib import Path
-from typing import Literal
+from typing import Literal, Union
 from torch.utils.data import Dataset
 
 from bidict import bidict
@@ -74,18 +74,18 @@ class RNADataset(Dataset):
     def __init__(
             self,
             rnas: list[nx.Graph] = None,
-            dataset_path: str | os.PathLike = None,
+            dataset_path: Union[str, os.PathLike] = None,
             version="2.0.2",
             redundancy="nr",
             rna_id_subset: list[str] = None,
             recompute_mapping: bool = True,
             in_memory: bool = None,
             features_computer: FeaturesComputer = None,
-            representations: list[Representation] | Representation = None,
+            representations: Union[list[Representation] , Representation] = None,
             debug: bool = False,
             get_pdbs: bool = True,
             multigraph: bool = False,
-            transforms: list[Transform] | Transform = None,
+            transforms: Union[list[Transform], Transform] = None,
     ):
         self.transforms = [transforms] if transforms is not None and not isinstance(transforms, Iterable) else []
         self.multigraph = multigraph
@@ -267,7 +267,8 @@ class RNADataset(Dataset):
             dump_path = dump_path if dump_path is not None else self.distances_path
             np.savez(dump_path, **self.distances)
 
-    def add_representation(self, representations: list[Representation] | Representation):
+    def add_representation(self, representations: Union[list[Representation],
+                                                         Representation]):
         """Add a representation object to dataset.
 
         Provided representations are added on the fly to the dataset.
@@ -297,7 +298,7 @@ class RNADataset(Dataset):
 
     def add_feature(
             self,
-            feature: str | AnnotationTransform,
+            feature: Union[str, AnnotationTransform],
             feature_level: Literal["residue", "rna"] = "residue",
             *,  # enforce keyword only arguments
             is_input: bool = True,

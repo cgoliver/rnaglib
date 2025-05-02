@@ -7,6 +7,7 @@ import tarfile
 import traceback
 import urllib
 import warnings
+from typing import Optional
 from collections import defaultdict
 from pathlib import Path
 
@@ -141,7 +142,7 @@ def get_name_extension(filename, permissive=False):
     return fname, extension
 
 
-def get_all_existing(dataset_path: os.PathLike, all_rnas: list[str] | None = None) -> tuple[list[str], str]:
+def get_all_existing(dataset_path: os.PathLike, all_rnas: Optional[list[str]] = None) -> tuple[list[str], str]:
     """Return list of graph IDs in a given dataset directory in sorted() order. If you pass ``all_rnas``
     as a list of, returns the graph IDs in ``all_rnas`` that have a matching file in the dataset folder.
 

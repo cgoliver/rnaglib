@@ -1,6 +1,7 @@
 import logging
 from collections import Counter
 from dataclasses import dataclass
+from typing import Union
 
 from pulp import COIN_CMD,PULP_CBC_CMD, LpMinimize, LpProblem, LpStatus, LpVariable, lpSum, value
 
@@ -97,10 +98,10 @@ def assign_clusters(
     label_weight: float = 1.0,
     verbose=False
 ) -> tuple[
-    list[list[str]] | None,
-    list[list[str]] | None,
-    list[list[str]] | None,
-    SplitMetrics | None,
+    Union[list[list[str]], None],
+    Union[list[list[str]], None],
+    Union[list[list[str]], None],
+    Union[SplitMetrics, None],
 ]:
     """Split clusters into train/val/test sets optimizing for balance."""
     try:

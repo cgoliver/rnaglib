@@ -1,6 +1,7 @@
 import json
 import os
 from pathlib import Path
+from typing import Optional, Union
 
 import gemmi
 from torch.utils.data import Subset
@@ -46,9 +47,9 @@ def load_index(redundancy="nr", version="1.0.0", glib_path=f"{os.path.expanduser
 
 
 def cif_remove_residues(
-    cif_path: str | os.PathLike,
-    keep_residues: list | None,
-    out_path: str | os.PathLike,
+    cif_path: Union[str, os.PathLike],
+    keep_residues: Union[list, None],
+    out_path: Union[str, os.PathLike],
     file_type: str = "cif",
 ):
     """Remove all residues from a cif file except for those in `keep_residues` list.
@@ -117,8 +118,8 @@ def filter_cif_with_res(cif_path, keep_residues, out_path, file_type="cif"):
 
 
 def clean_mmcif(
-    cif_path: str | os.PathLike,
-    output_path: str | os.PathLike = ".",
+    cif_path: Union[str, os.PathLike],
+    output_path: Union[str, os.PathLike] = ".",
     file_type: str = "cif",
 ):
     """Remove non-RNA entities.
@@ -173,8 +174,8 @@ def subset_mmcif_biopython(input_cif, allowed_residues, output_cif):
 
 
 def split_mmcif_by_chain(
-    cif_path: str | os.PathLike,
-    output_dir: str | os.PathLike = ".",
+    cif_path: Union[str, os.PathLike],
+    output_dir: Union[str, os.PathLike] = ".",
     prefix=None,
     min_length=0,
     max_length=1000,

@@ -6,16 +6,17 @@ import subprocess
 import tempfile
 from collections import defaultdict
 from pathlib import Path
+from typing import Union
 
 from rnaglib.utils import cif_remove_residues
 
 
 def US_align_wrapper(
-    cif_path_1: str | os.PathLike,
-    cif_path_2: str | os.PathLike,
+    cif_path_1: Union[str, os.PathLike],
+    cif_path_2: Union[str, os.PathLike],
     flags: tuple = ("-mm", "1", "-ter", "1"),
-    reslist_1: list | None = None,
-    reslist_2: list | None = None,
+    reslist_1: Union[list, None] = None,
+    reslist_2: Union[list, None] = None,
     file_type: str = "cif",
 ):
     """Calls USalign on two mmCIF files and returns the output.
@@ -58,17 +59,17 @@ def US_align_wrapper(
 
 
 def rna_align_wrapper(
-    cif_path_1: str | os.PathLike,
-    cif_path_2: str | os.PathLike,
+    cif_path_1: Union[str, os.PathLike],
+    cif_path_2: Union[str, os.PathLike],
     flags: tuple = ("-a", "T"),
-    reslist_1: list | None = None,
-    reslist_2: list | None = None,
+    reslist_1: Union[list, None] = None,
+    reslist_2: Union[list, None] = None,
 ):
     """Calls RNAalign on two mmCIF files and returns the output.
 
     Must have RNAalign (https://zhanggroup.org/RNA-align/download.html) in your executable path.
     """
-    # assert shutil.which('RNAalign') is not None,\
+    # assert shutil.which('RNAaign') is not None,\
     # "RNAalign installation not found. Go here https://zhanggroup.org/RNA-align/"
 
     assert Path(cif_path_1).exists(), f"{cif_path_1} missing"
