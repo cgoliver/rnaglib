@@ -183,3 +183,111 @@ class BindingSite(ResidueClassificationTask):
             return RandomSplitter()
         else:
             return ClusterSplitter(distance_name="USalign")
+
+
+class BindingSiteRedundant(ResidueClassificationTask):
+    """
+    Predict the RNA residues which are the most likely to be part of binding sites for small molecule ligands
+
+    Task type: binary classification
+    Task level: residue-level
+
+    :param float cutoff: distance (in Angstroms) between an RNA atom and any small molecule atom below which the RNA residue is considered as part of a binding site (default 6.0)
+    :param tuple[int] size_thresholds: range of RNA sizes to keep in the task dataset(default (15, 500))
+    """
+    input_var = "nt_code"
+    name = "rna_site_redundant"
+    version = "2.0.2"
+    default_metric = "balanced_accuracy"
+
+    def __init__(self, cutoff=6.0, size_thresholds=(15, 500), structures_path=None, RNADataset_path=None, **kwargs):
+        self.target_var = f"binding_small-molecule-{cutoff}A"
+        self.structures_path = structures_path
+        self.RNADataset_path = RNADataset_path
+        meta = {"multi_label": False}
+        super().__init__(additional_metadata=meta, size_thresholds=size_thresholds, **kwargs)
+
+    def process(self) -> RNADataset:
+        """"
+        Creates the task-specific dataset.
+
+        :return: the task-specific dataset
+        :rtype: RNADataset
+        """
+        # Define your transforms
+        rna_filter = ResidueAttributeFilter(attribute=self.target_var, value_checker=lambda val: val is not None)
+        connected_components_partition = ConnectedComponentPartition()
+
+        protein_content_filter = ResidueAttributeFilter(
+            attribute="protein_content_8.0", aggregation_mode="aggfunc", value_checker=lambda x: x < 10, aggfunc=np.mean
+        )
+        connected_component_filters_list = [protein_content_filter]
+        if self.size_thresholds is not None:
+            connected_component_filters_list.append(self.size_filter)
+        connected_component_filters = ComposeFilters(connected_component_filters_list)
+
+        # Run through database, applying our filters
+        if self.RNADataset_path is not None:
+            dataset = RNADataset(debug=self.debug, in_memory=self.in_memory, redundancy="all", version=self.version, dataset_path=self.RNADataset_path)
+        else:
+            dataset = RNADataset(debug=self.debug, in_memory=self.in_memory, redundancy="all", version=self.version)
+        all_rnas = []
+        os.makedirs(self.dataset_path, exist_ok=True)
+        for rna in tqdm(dataset, total=len(dataset), desc="Processing RNAs"):
+            for rna_connected_component in connected_components_partition(rna):
+                if not connected_component_filters.forward(rna_connected_component):
+                    continue
+                if rna_filter.forward(rna_connected_component):
+                    rna_g = rna_connected_component["rna"]
+                    bind = nx.get_node_attributes(rna_g,
+                                                  self.target_var).values()
+
+                    assert not all([b is None for b in bind])
+                    self.add_rna_to_building_list(all_rnas=all_rnas, rna=rna_g)
+        dataset = self.create_dataset_from_list(all_rnas)
+        return dataset
+
+    def get_task_vars(self) -> FeaturesComputer:
+        """Specifies the `FeaturesComputer` object of the tasks which defines the features which have to be added to the RNAs
+        (graphs) and nucleotides (graph nodes)
+        
+        :return: the features computer of the task
+        :rtype: FeaturesComputer
+        """
+        return FeaturesComputer(nt_features=self.input_var, nt_targets=self.target_var)
+
+    @property
+    def default_splitter(self):
+        """Returns the splitting strategy to be used for this specific task. Canonical splitter is ClusterSplitter which is a
+        similarity-based splitting relying on clustering which could be refined into a sequencce- or structure-based clustering
+        using distance_name argument
+
+        :return: the default splitter to be used for the task
+        :rtype: Splitter
+        """
+        if self.debug:
+            return RandomSplitter()
+        else:
+            return ClusterSplitter(distance_name="USalign")
+
+    def post_process(self):
+        """
+        We compute distance metrices but without removing redundancy.
+        That way, we can still use the distance metrices for splitting.
+        """
+        from rnaglib.dataset_transforms import StructureDistanceComputer, CDHitComputer
+
+        cd_hit_computer = CDHitComputer(similarity_threshold=0.9)
+        self.dataset = cd_hit_computer(self.dataset)
+
+        
+        # Create the computer with or without structures_path
+        if self.structures_path is not None:
+            us_align_computer = StructureDistanceComputer(name="USalign", structures_path=self.structures_path)
+        else:
+            us_align_computer = StructureDistanceComputer(name="USalign")
+
+        self.dataset = us_align_computer(self.dataset)
+
+        self.dataset.save_distances()
+        
