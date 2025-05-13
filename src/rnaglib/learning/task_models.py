@@ -2,7 +2,7 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 from torch.nn import BatchNorm1d, Dropout
-from torch_geometric.nn import RGCNConv, global_mean_pool
+from torch_geometric.nn import RGCNConv, GCNConv, global_mean_pool
 
 from rnaglib.utils.misc import tonumpy
 
@@ -44,6 +44,7 @@ class PygModel(torch.nn.Module):
         dropout_rate=0.5,
         multi_label=False,
         final_activation="sigmoid",
+        structure_level="2.5D",
         device=None
     ):
         super().__init__()
@@ -55,6 +56,7 @@ class PygModel(torch.nn.Module):
         self.hidden_channels = hidden_channels
         self.dropout_rate = dropout_rate
         self.multi_label = multi_label
+        self.structure_level = structure_level
 
         self.convs = torch.nn.ModuleList()
         self.bns = torch.nn.ModuleList()
@@ -76,7 +78,10 @@ class PygModel(torch.nn.Module):
         )
 
         for i in range(self.num_layers):
-            self.convs.append(RGCNConv(self.hidden_channels, self.hidden_channels, self.num_unique_edge_attrs))
+            if self.structure_level=="2D":
+                self.convs.append(GCNConv(self.hidden_channels, self.hidden_channels))
+            else:
+                self.convs.append(RGCNConv(self.hidden_channels, self.hidden_channels, self.num_unique_edge_attrs))
             self.bns.append(BatchNorm1d(self.hidden_channels))
             self.dropouts.append(Dropout(self.dropout_rate))
 
@@ -120,7 +125,10 @@ class PygModel(torch.nn.Module):
         x = self.input_non_linear_layer(x)
 
         for i in range(self.num_layers):
-            x = self.convs[i](x, edge_index, edge_type)
+            if self.structure_level=="2D":
+                x = self.convs[i](x, edge_index)
+            else:
+                x = self.convs[i](x, edge_index, edge_type)
             x = self.bns[i](x)
             x = F.relu(x)
             x = self.dropouts[i](x)
