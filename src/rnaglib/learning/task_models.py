@@ -137,7 +137,7 @@ class PygModel(torch.nn.Module):
         self.criterion = self.criterion.to(self.device)  # Move criterion to device for all cases
         self.optimizer = torch.optim.Adam(self.parameters(), lr=learning_rate)
 
-    def compute_loss(self, out, target):
+    def compute_loss(self, out, target, weighted=False, metadata=None):
         # If just two classes, flatten outputs since BCE behavior expects equal dimensions and CE (N,k):(N)
         # Otherwise CE expects long as outputs
         if not self.multi_label:
@@ -146,6 +146,14 @@ class PygModel(torch.nn.Module):
             else:
                 target = target.long()
         loss = self.criterion(out, target)
+        if weighted:
+            batch_class_distribution = {i: (target==i).sum().item() for i in range(metadata['num_classes'])}
+            batch_weight = 0
+            num_classes = metadata['num_classes']
+            for i in range(num_classes):
+                batch_weight += 1/metadata["class_distribution"][str(i)]*batch_class_distribution[i]/len(target)
+            batch_weight = batch_weight*metadata["dataset_size"]/num_classes
+            loss = loss*batch_weight
         return loss
 
     def train_model(self, task, epochs=500):
