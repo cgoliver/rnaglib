@@ -131,7 +131,7 @@ class LigandIdentification(RNAClassificationTask):
 
         targets = np.array([self.mapping[rna['rna'].graph["ligand"]] for rna in self.train_dataset])
 
-        samples_weight = np.array([1. / self.metadata["class_distribution"][i] for i in targets])
+        samples_weight = np.array([1. / self.metadata["class_distribution"][str(i)] for i in targets])
         samples_weight = torch.from_numpy(samples_weight)
         balanced_sampler = WeightedRandomSampler(samples_weight, len(samples_weight))
 
