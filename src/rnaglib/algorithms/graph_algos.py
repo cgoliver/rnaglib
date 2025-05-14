@@ -465,6 +465,22 @@ def stack_trim(graph):
             cur_graph = cur_graph.copy()
     return cur_graph
 
+def remove_noncanonicals(graph: nx.Graph) -> nx.Graph:
+    """
+    Remove all edges that are not cWW or backbone
+
+    :param graph: networkx graph
+
+    :return: networkx graph
+    """
+    remove_edges = [] 
+    for u, v, data in graph.edges(data=True):
+        if data['LW'].upper() not in ['B53', 'B35', 'CWW']:
+            remove_edges.append((u, v))
+        pass
+    graph.remove_edges_from(remove_edges)
+    return graph
+
 
 def in_stem(graph, u, v):
     """
