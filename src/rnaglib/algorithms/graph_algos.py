@@ -2,6 +2,7 @@
 
 import pickle
 import os
+import copy
 from typing import Optional, Hashable, Dict, List, Tuple
 
 from tqdm import tqdm
@@ -59,6 +60,21 @@ def reorder_nodes(g: nx.DiGraph) -> nx.DiGraph:
         reordered_graph.graph[key] = value
     return reordered_graph
 
+def remove_noncanonical_edges(graph: nx.Graph):
+    """
+    Remove edges that are not CWW or backbone.
+
+    :param graph: graph to edit
+
+    :return graph: new graph with only canonical edges
+    """
+    g_new = copy.deepcopy(graph)
+    remove_edges = []
+    for u, v, data in g_new.edges(data=True):
+        if data["LW"].upper() not in {"B53", "B35", "CWW"}:
+            remove_edges.append((u, v))
+    g_new.remove_edges_from(remove_edges)
+    return g_new
 
 def induced_edge_filter(graph: nx.DiGraph, roots: List[Hashable], depth: Optional[int] = 1) -> nx.DiGraph:
     """

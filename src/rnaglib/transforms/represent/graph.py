@@ -2,7 +2,7 @@ import torch
 import networkx as nx
 
 from rnaglib.config.graph_keys import GRAPH_KEYS, TOOL
-from rnaglib.algorithms import fix_buggy_edges
+from rnaglib.algorithms import fix_buggy_edges, remove_noncanonical_edges
 
 from .representation import Representation
 
@@ -20,6 +20,7 @@ class GraphRepresentation(Representation):
             clean_edges=True,
             edge_map=GRAPH_KEYS["edge_map"][TOOL],
             etype_key="LW",
+            canonical=False,
             **kwargs,
     ):
 
@@ -32,6 +33,7 @@ class GraphRepresentation(Representation):
         self.clean_edges = clean_edges
         self.etype_key = etype_key
         self.edge_map = edge_map
+        self.canonical = canonical
 
         super().__init__(**kwargs)
         pass
@@ -41,6 +43,9 @@ class GraphRepresentation(Representation):
             base_graph = fix_buggy_edges(graph=rna_graph)
         else:
             base_graph = rna_graph
+
+        if self.canonical:
+            base_graph = remove_noncanonical_edges(base_graph)
 
         if self.framework == "nx":
             return self.to_nx(base_graph, features_dict)
