@@ -6,6 +6,24 @@ from rnaglib.tasks.RNA_VS.task import VirtualScreening
 from rnaglib.transforms import GraphRepresentation
 from rnaglib.transforms import FeaturesComputer
 
+
+def set_seed(seed):
+    import numpy as np
+    import random
+    """Set all random seeds for reproducibility"""
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed(seed)
+        torch.cuda.manual_seed_all(seed)
+        torch.backends.cudnn.deterministic = True
+        torch.backends.cudnn.benchmark = False
+
+
+seed = 1
+set_seed(seed)
+
 # Create a task
 framework = 'pyg'
 ef_task = VirtualScreening('RNA_VS', ligand_framework=framework)
@@ -50,4 +68,9 @@ for k in range(epochs):
                   f'loss: {loss.item():.4f}, time: {time.time() - t0:.1f}s')
 
 model = model.eval()
+print(f"Results for seed {seed}:")
 final_vs = ef_task.evaluate(model)
+
+# seed 0: 76.2
+# seed 1: 75.2
+# seed 42: 76.4

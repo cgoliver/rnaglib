@@ -19,7 +19,6 @@ ta.get_split_loaders(batch_size=1)
 
 info = ta.describe()
 
-
 # Training model
 # Either by hand:
 # for epoch in range(100):

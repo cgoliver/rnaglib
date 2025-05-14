@@ -62,6 +62,15 @@ class RGCN(nn.Module):
         # Concatenation
         x = torch.cat(sequence, dim=1)  # Num_nodes * (h_dim*num_layers)
         out = self.pool(x, batch)
+
+        # In PyG, when pooling with an empty graph, it creates a zero embedding
+        # EXCEPT if the missing one is last in the batch
+        num_predicted = out.shape[0]
+        if data.batch_size != num_predicted:
+            existing_ids = batch.unique()
+            result = torch.zeros((data.batch_size, out.shape[-1]))
+            result[existing_ids] = out
+            out = result
         return out
 
 
@@ -289,13 +298,9 @@ class VSModel(nn.Module):
     def forward(self, pocket, ligand):
         data = pocket['graph']
         data, embeddings = self.encoder(data)
+
         graph_emb = self.pool(embeddings, data.batch)
         lig_emb = self.lig_encoder(ligand)
-        # # handle empty ligands as zero embs
-        # existing_ids = ligand.batch.unique()
-        # if len(existing_ids) != ligand.batch_size:
-        #     result = torch.zeros((ligand.batch_size, lig_emb.shape[-1]))
-        #     result[existing_ids] = lig_emb
         joint = torch.cat((graph_emb, lig_emb), dim=1)
         pred = self.decoder(joint)
         return pred
