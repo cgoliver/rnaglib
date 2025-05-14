@@ -38,7 +38,7 @@ class GraphRepresentation(Representation):
 
     def __call__(self, rna_graph, features_dict):
         if self.clean_edges:
-            base_graph = fix_buggy_edges(graph=rna_graph)
+            base_graph = fix_buggy_edges(graph=rna_graph, label=self.etype_key, edge_map=self.edge_map)
         else:
             base_graph = rna_graph
 

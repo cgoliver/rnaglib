@@ -44,7 +44,7 @@ class PygModel(torch.nn.Module):
         dropout_rate=0.5,
         multi_label=False,
         final_activation="sigmoid",
-        structure_level="2.5D",
+        layer_type="rgcn",
         device=None
     ):
         super().__init__()
@@ -56,7 +56,7 @@ class PygModel(torch.nn.Module):
         self.hidden_channels = hidden_channels
         self.dropout_rate = dropout_rate
         self.multi_label = multi_label
-        self.structure_level = structure_level
+        self.layer_type = layer_type
 
         self.convs = torch.nn.ModuleList()
         self.bns = torch.nn.ModuleList()
@@ -78,7 +78,7 @@ class PygModel(torch.nn.Module):
         )
 
         for i in range(self.num_layers):
-            if self.structure_level=="2D":
+            if self.layer_type in ["gcn","GCN"]:
                 self.convs.append(GCNConv(self.hidden_channels, self.hidden_channels))
             else:
                 self.convs.append(RGCNConv(self.hidden_channels, self.hidden_channels, self.num_unique_edge_attrs))
@@ -125,7 +125,7 @@ class PygModel(torch.nn.Module):
         x = self.input_non_linear_layer(x)
 
         for i in range(self.num_layers):
-            if self.structure_level=="2D":
+            if self.layer_type in ["gcn","GCN"]:
                 x = self.convs[i](x, edge_index)
             else:
                 x = self.convs[i](x, edge_index, edge_type)
