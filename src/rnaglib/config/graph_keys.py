@@ -8,8 +8,17 @@ EDGE_MAP_RGLIB = {'B53': 0, 'cHH': 1, 'cHS': 2, 'cHW': 3, 'cSH': 4, 'cSS': 5, 'c
                   'tHH': 10, 'tHS': 11, 'tHW': 12, 'tSH': 13, 'tSS': 14, 'tSW': 15, 'tWH': 16, 'tWS': 17, 'tWW': 18,
                   'B35': 19, }
 
+SIMPLIFIED_EDGE_MAP_FR3D = {'B53': 0, 'CHH': 2, 'CHS': 2, 'CHW': 2, 'CSH': 2, 'CSS': 2, 'CSW': 2, 'CWH': 2, 'CWS': 2, 'CWW': 1,
+                 'THH': 2, 'THS': 2, 'THW': 2, 'TSH': 2, 'TSS': 2, 'TSW': 2, 'TWH': 2, 'TWS': 2, 'TWW': 2, 'B35': 0}
+SIMPLIFIED_EDGE_MAP_RGLIB = {'B53': 0, 'cHH': 2, 'cHS': 2, 'cHW': 2, 'cSH': 2, 'cSS': 2, 'cSW': 2, 'cWH': 2, 'cWS': 2, 'cWW': 1,
+                  'tHH': 2, 'tHS': 2, 'tHW': 2, 'tSH': 2, 'tSS': 2, 'tSW': 2, 'tWH': 2, 'tWS': 2, 'tWW': 2,
+                  'B35': 0, }
+
 EDGE_MAP_FR3D_REVERSE = {v: k for k, v in EDGE_MAP_FR3D.items()}
 EDGE_MAP_RGLIB_REVERSE = {v: k for k, v in EDGE_MAP_RGLIB.items()}
+
+EDGE_MAP_2D_FR3D = {'B53': 0, 'B35': 1, 'CWW': 2}
+EDGE_MAP_2D_RGLIB = {'B53': 0, 'B35': 1, 'cWW': 2}
 
 CANONICALS_FR3D = {'B53', 'B35', 'CWW'}
 CANONICALS_RGLIB = {'B53', 'B35', 'cWW'}
@@ -31,6 +40,8 @@ GRAPH_KEYS = {'nt_position': {'RGLIB': 'nt_resnum', 'FR3D': 'pdb_pos'},
               'chain': {'RGLIB': 'chain_name', 'FR3D': 'chain'},
               'bp_type': {'RGLIB': 'LW', 'FR3D': 'label'},
               'edge_map': {'RGLIB': EDGE_MAP_RGLIB, 'FR3D': EDGE_MAP_FR3D},
+              'simplified_edge_map': {'RGLIB': SIMPLIFIED_EDGE_MAP_RGLIB, 'FR3D': SIMPLIFIED_EDGE_MAP_FR3D},
+              '2D_edge_map': {'RGLIB':EDGE_MAP_2D_RGLIB,'FR3D':EDGE_MAP_2D_FR3D},
               'canonical': {'RGLIB': CANONICALS_RGLIB, 'FR3D': CANONICALS_FR3D},
               'indel_vector': {'RGLIB': INDEL_VECTOR_RGLIB, 'FR3D': INDEL_VECTOR_FR3D},
               'valid_edges': {'RGLIB': EDGE_MAP_RGLIB.keys(), 'FR3D': EDGE_MAP_FR3D.keys()},
