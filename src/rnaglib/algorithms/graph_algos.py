@@ -710,7 +710,7 @@ def get_sequences(graph: nx.Graph,
                   gap_tolerance=2,
                   longest_only=True,
                   min_size_return=5,
-                  verbose=True) -> Tuple[Dict[str, Tuple[str, List[str]]]]:
+                  verbose=False) -> Tuple[Dict[str, Tuple[str, List[str]]]]:
     """Extract ordered sequences from each chain of the RNA.
     Returns a dictionary mapping <pdbid.chain>: (sequence, list of node IDs)
 

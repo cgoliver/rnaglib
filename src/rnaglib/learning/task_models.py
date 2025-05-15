@@ -79,6 +79,7 @@ class PygModel(torch.nn.Module):
         self.input_non_linear_layer = torch.nn.Sequential(
             torch.nn.Linear(num_node_features, self.hidden_channels),
             torch.nn.ReLU(),
+            BatchNorm1d(self.hidden_channels),
             torch.nn.Dropout(self.dropout_rate),
         )
 
