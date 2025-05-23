@@ -119,8 +119,9 @@ class BindingSite(ResidueClassificationTask):
     version = "2.0.2"
     default_metric = "balanced_accuracy"
 
-    def __init__(self, cutoff=6.0, size_thresholds=(15, 500), **kwargs):
+    def __init__(self, redundancy="all", cutoff=6.0, size_thresholds=(15, 500), **kwargs):
         self.target_var = f"binding_small-molecule-{cutoff}A"
+        self.redundancy = redundancy
         meta = {"multi_label": False}
         super().__init__(additional_metadata=meta, size_thresholds=size_thresholds, **kwargs)
 
@@ -144,7 +145,7 @@ class BindingSite(ResidueClassificationTask):
         connected_component_filters = ComposeFilters(connected_component_filters_list)
 
         # Run through database, applying our filters
-        dataset = RNADataset(debug=self.debug, in_memory=self.in_memory, redundancy="all", version=self.version)
+        dataset = RNADataset(debug=self.debug, in_memory=self.in_memory, redundancy=self.redundancy, version=self.version)
         all_rnas = []
         os.makedirs(self.dataset_path, exist_ok=True)
         for rna in tqdm(dataset, total=len(dataset), desc="Processing RNAs"):
