@@ -4,6 +4,7 @@ import networkx as nx
 import pickle
 from tqdm import tqdm
 
+from rnaglib.transforms import DummyAnnotator
 from rnaglib.tasks.RNA_VS.ligands import MolGraphEncoder
 from rnaglib.utils import graph_io
 from rnaglib.dataset import rna_from_pdbid
@@ -87,11 +88,12 @@ def dump_rna_jsons(root, recompute=False, version="2.0.2"):
         raise FileNotFoundError("We could not fetch graphs, please be sure that you have downloaded all rna graphs. "
                                 "If you didn't, you can run: rnaglib_download -r all")
 
-    pocket_dir = os.path.join(root, 'graphs')
+    pocket_dir = os.path.join(root, 'dataset')
     os.makedirs(pocket_dir, exist_ok=True)
 
     print("Processing graphs...")
     failed_set = set()
+    dummy_annotator = DummyAnnotator(graph_level=True)
     for group in tqdm(all_groups):
         pocket_path = os.path.join(pocket_dir, f"{group}.json")
         if os.path.exists(pocket_path) and not recompute:
@@ -105,6 +107,7 @@ def dump_rna_jsons(root, recompute=False, version="2.0.2"):
         nodes = all_groups[group]['nodes']
         new_pocket_graph = rglib_graph.subgraph(nodes)
         new_pocket_graph.graph['pocket_name'] = group
+        dummy_annotator({"rna": new_pocket_graph})
         nx.set_node_attributes(new_pocket_graph, values=nodes)
         graph_io.dump_json(pocket_path, new_pocket_graph)
     print(failed_set)

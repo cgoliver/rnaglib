@@ -1,76 +1,38 @@
-import time
-import torch
-import torch.optim as optim
-
-from rnaglib.tasks.RNA_VS.task import VirtualScreening
+from rnaglib.tasks.RNA_VS.vs_task import VirtualScreening
 from rnaglib.transforms import GraphRepresentation
-from rnaglib.transforms import FeaturesComputer
+from rnaglib.learning.task_models import PygModel
+
+# Creating task
+ta = VirtualScreening(root="RNA-VS", debug=False, precomputed=True)
+
+# Adding representation
+ta.dataset.add_representation(GraphRepresentation(framework="pyg"))
+
+# Splitting dataset
+print("Splitting Dataset")
+train, val, test = ta.get_split_loaders(recompute=False, batch_size=8)
+print(len(train.dataset))
+print(len(val.dataset))
+print(len(test.dataset))
+
+info = ta.describe()
+
+# TODO: include ligand in return dict using representations
 
 
-def set_seed(seed):
-    import numpy as np
-    import random
-    """Set all random seeds for reproducibility"""
-    random.seed(seed)
-    np.random.seed(seed)
-    torch.manual_seed(seed)
-    if torch.cuda.is_available():
-        torch.cuda.manual_seed(seed)
-        torch.cuda.manual_seed_all(seed)
-        torch.backends.cudnn.deterministic = True
-        torch.backends.cudnn.benchmark = False
+# Training model
+# Either by hand:
+# for epoch in range(100):
+#     for batch in ta.train_dataloader:
+#         graph = batch["graph"].to(self.device)
+#         ...
 
-
-seed = 1
-set_seed(seed)
-
-# Create a task
-framework = 'pyg'
-ef_task = VirtualScreening('RNA_VS', ligand_framework=framework)
-
-# Build corresponding datasets and dataloader
-features_computer = FeaturesComputer(nt_features=['nt_code'])
-representations = [GraphRepresentation(framework=framework)]
-rna_dataset_args = {'representations': representations, 'features_computer': features_computer}
-rna_loader_args = {'batch_size': 16, 'shuffle': True, 'num_workers': 0}
-train_dataloader, val_dataloader, test_dataloader = ef_task.get_split_loaders(dataset_kwargs=rna_dataset_args,
-                                                                              dataloader_kwargs=rna_loader_args)
-
-# Create an encoding model. This model must implement a predict_ligands(pocket, ligands) method
-if framework == 'pyg':
-    from rnaglib.tasks.RNA_VS.model_pyg import RNAEncoder, LigandGraphEncoder, Decoder, VSModel
-else:
-    from rnaglib.tasks.RNA_VS.model_dgl import RNAEncoder, LigandGraphEncoder, Decoder, VSModel
-
-model = VSModel(encoder=RNAEncoder(), lig_encoder=LigandGraphEncoder(), decoder=Decoder())
-assert hasattr(model, 'predict_ligands') and callable(getattr(model, 'predict_ligands'))
-
-# Train
-optimizer = optim.Adam(model.parameters(), lr=0.001)
-criterion = torch.nn.BCELoss()
-epochs = 10
-t0 = time.time()
-for k in range(epochs):
-    for i, batch in enumerate(train_dataloader):
-        pockets = batch['pocket']
-        ligands = batch['ligand']
-        actives = torch.tensor(batch['active'], dtype=torch.float32)
-
-        optimizer.zero_grad()
-        out = model(pockets, ligands)
-        loss = criterion(input=torch.flatten(out), target=actives)
-        loss.backward()
-        optimizer.step()
-        # if i > 3:
-        #     break
-        if not i % 5:
-            print(f'Epoch {k}, batch {i}/{len(train_dataloader)}, '
-                  f'loss: {loss.item():.4f}, time: {time.time() - t0:.1f}s')
-
-model = model.eval()
-print(f"Results for seed {seed}:")
-final_vs = ef_task.evaluate(model)
-
-# seed 0: 76.2
-# seed 1: 75.2
-# seed 42: 76.4
+# Or using a wrapper class
+# model = PygModel.from_task(ta, device='cpu', num_layers=4, hidden_channels=256)
+# model.configure_training(learning_rate=0.001)
+# model.train_model(ta, epochs=100)
+#
+# # Evaluating model
+# test_metrics = model.evaluate(ta)
+# for k, v in test_metrics.items():
+#     print(f"Test {k}: {v:.4f}")

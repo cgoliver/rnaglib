@@ -40,7 +40,7 @@ def run_virtual_screen(model, dataloader):
 
 
 if __name__ == "__main__":
-    from rnaglib.tasks.RNA_VS.task import VSTask
+    from rnaglib.tasks.RNA_VS.old_task import VSTask
     from rnaglib.tasks.RNA_VS.model_dgl import RNAEncoder, LigandGraphEncoder, Decoder, VSModel
     from rnaglib.transforms import GraphRepresentation
 

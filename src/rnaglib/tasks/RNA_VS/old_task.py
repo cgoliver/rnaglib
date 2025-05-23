@@ -61,15 +61,15 @@ class VirtualScreening:
         """
         train_dataset = VSRNATrainDataset(groups=self.train_groups,
                                           ligand_embedder=self.ligand_encoder,
-                                          dataset_path=os.path.join(self.root, 'graphs'),
+                                          dataset_path=os.path.join(self.root, 'dataset'),
                                           **dataset_kwargs)
         val_dataset = VSRNATrainDataset(groups=self.val_groups,
                                         ligand_embedder=self.ligand_encoder,
-                                        dataset_path=os.path.join(self.root, 'graphs'),
+                                        dataset_path=os.path.join(self.root, 'dataset'),
                                         **dataset_kwargs)
         test_dataset = VSRNATestDataset(groups=self.test_groups,
                                         ligand_embedder=self.ligand_encoder,
-                                        dataset_path=os.path.join(self.root, 'graphs'),
+                                        dataset_path=os.path.join(self.root, 'dataset'),
                                         **dataset_kwargs)
         self.train_dataset = train_dataset
         self.val_dataset = val_dataset

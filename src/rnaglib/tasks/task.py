@@ -378,6 +378,7 @@ class Task:
             for item in tqdm.tqdm(self.dataset):
                 node_map = {n: i for i, n in enumerate(sorted(item["rna"].nodes()))}
                 features_dict = self.dataset.features_computer(item)
+
                 if "nt_targets" in features_dict:
                     list_y = [features_dict["nt_targets"][n] for n in node_map]
                     # In the case of single target, pytorch CE loss expects shape (n,) and not (n,1)

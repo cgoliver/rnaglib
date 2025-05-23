@@ -11,6 +11,7 @@ NODE_FEATURE_MAP = {
     'nt_resnum': None,  # Not a feature
     "nt_name": None,  # This looks crappy to me but maybe there are some that are canonical and a lot of modified ones ?
     'nt_code': OneHotEncoder(mapping={'A': 0, 'U': 1, 'C': 2, 'G': 3, 'a': 0, 'u': 1, 'c': 2, 'g': 3}, num_values=4),
+    'dummy': BoolEncoder(),
     "nt_id": None,  # This looks crappy, it looks like all possible node ids (number of possibilities 600k)...
     "nt_type": None,  # Constant = 'RNA'
     "dbn": OneHotEncoder(mapping={'(': 0, '.': 1, ')': 2, '[': 3, ']': 4, '{': 5, '}': 6,
