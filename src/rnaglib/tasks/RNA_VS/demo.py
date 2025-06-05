@@ -3,15 +3,15 @@ import torch
 import torch.optim as optim
 
 from rnaglib.tasks.RNA_VS.vs_task import VirtualScreening
+from rnaglib.tasks.RNA_VS.evaluate import run_virtual_screen
 from rnaglib.transforms import GraphRepresentation
-from rnaglib.learning.task_models import PygModel
 from rnaglib.utils.misc import set_seed
 
 seed = 1
 set_seed(seed)
 
 # Create a task, we need to choose a framework for the ligand representation
-framework = 'dgl'
+framework = 'pyg'
 ta = VirtualScreening(root='RNA_VS', ligand_framework=framework, debug=False, precomputed=True)
 
 # Adding representation for RNAs
@@ -24,7 +24,7 @@ print(len(train.dataset))
 print(len(val.dataset))
 print(len(test.dataset))
 
-# info = ta.describe()
+info = ta.describe()
 
 # Create an encoding model. This model must implement a predict_ligands(pocket, ligands) method
 if framework == 'pyg':
@@ -38,7 +38,7 @@ assert hasattr(model, 'predict_ligands') and callable(getattr(model, 'predict_li
 # Train
 optimizer = optim.Adam(model.parameters(), lr=0.001)
 criterion = torch.nn.BCELoss()
-epochs = 10
+epochs = 1
 t0 = time.time()
 for k in range(epochs):
     for i, batch in enumerate(train):
@@ -62,25 +62,4 @@ for k in range(epochs):
 
 model = model.eval()
 print(f"Results for seed {seed}:")
-final_vs = ef_task.evaluate(model)
-
-# TODO: Adapt model train to the new data return formats
-# TODO: Get metrics
-
-
-# Training model
-# Either by hand:
-# for epoch in range(100):
-#     for batch in ta.train_dataloader:
-#         graph = batch["graph"].to(self.device)
-#         ...
-
-# Or using a wrapper class
-# model = PygModel.from_task(ta, device='cpu', num_layers=4, hidden_channels=256)
-# model.configure_training(learning_rate=0.001)
-# model.train_model(ta, epochs=100)
-#
-# # Evaluating model
-# test_metrics = model.evaluate(ta)
-# for k, v in test_metrics.items():
-#     print(f"Test {k}: {v:.4f}")
+final_vs = run_virtual_screen(model, test)

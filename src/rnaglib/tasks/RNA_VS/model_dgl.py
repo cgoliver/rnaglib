@@ -285,7 +285,7 @@ class VSModel(nn.Module):
 
     def predict_ligands(self, pocket, ligands):
         with torch.no_grad():
-            g, embeddings = self.encoder(pocket)
+            pocket, embeddings = self.encoder(pocket)
             graph_emb = self.pool(pocket, embeddings)
             lig_embs = self.lig_encoder(ligands)
             graph_emb = graph_emb.expand(len(lig_embs), -1)

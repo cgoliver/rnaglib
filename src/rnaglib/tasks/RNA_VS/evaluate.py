@@ -1,4 +1,5 @@
 import numpy as np
+import torch
 from sklearn import metrics
 
 
@@ -23,14 +24,18 @@ def run_virtual_screen(model, dataloader):
         if not i % 20:
             print(f"Done {i}/{len(dataloader)}")
 
-        pocket_name = data['group_rep']
-        ligands = data['ligands'][0]
-        actives = data['actives'][0]
+        ligands = data['ligands']["ligands"][0]
+        actives = data['ligands']["actives"][0]
+        # actives = torch.tensor(actives, dtype=torch.float32)
         if ligands.batch_size < 10:
             print(f"Skipping pocket{i}, not enough decoys")
             continue
 
-        pocket = data['pocket']
+        pocket = data['graph']
+        in_pocket = torch.tensor(data['in_pocket'])
+        pocket.in_pocket = in_pocket
+
+
         scores = model.predict_ligands(pocket, ligands)[:, 0].numpy()
         efs.append(mean_active_rank(scores, actives))
     if len(failed_set) > 0:
