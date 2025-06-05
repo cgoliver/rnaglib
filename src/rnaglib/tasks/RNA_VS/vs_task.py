@@ -2,12 +2,12 @@ import os
 import numpy as np
 
 from rnaglib.dataset import RNADataset
-from rnaglib.encoders import BoolEncoder
 from rnaglib.tasks import Task
 from rnaglib.transforms import FeaturesComputer
 from rnaglib.dataset_transforms import RandomSplitter, NameSplitter
 from rnaglib.tasks.RNA_VS import build_data
 from rnaglib.tasks.RNA_VS.data import InPocketRepresentation
+from rnaglib.tasks.RNA_VS.ligands import LigandRepresentation, TestLigandRepresentation
 
 
 class VirtualScreening(Task):
@@ -40,9 +40,19 @@ class VirtualScreening(Task):
         dataset.add_representation(InPocketRepresentation())
         return dataset
 
+    def load_groups(self):
+        import json
+        script_dir = os.path.dirname(__file__)
+        json_dump = os.path.join(script_dir, "data/dataset_as_json.json")
+        whole_data = json.load(open(json_dump, 'r'))
+        trainval_groups, test_groups = whole_data["trainval"], whole_data["test"]
+        self.trainval_groups, self.test_groups = trainval_groups, test_groups
+        return trainval_groups, test_groups
+
     def load(self):
         dataset, metadata, (train_ind, val_ind, test_ind) = super().load()
         self.dataset.add_representation(InPocketRepresentation())
+        self.load_groups()
         return self.dataset, metadata, (train_ind, val_ind, test_ind)
 
     def post_process(self):
@@ -70,19 +80,22 @@ class VirtualScreening(Task):
         if self.debug:
             return RandomSplitter()
         else:
-            import json
-            script_dir = os.path.dirname(__file__)
-            json_dump = os.path.join(script_dir, "data/dataset_as_json.json")
-            whole_data = json.load(open(json_dump, 'r'))
-            trainval_groups, test_groups = whole_data["trainval"], whole_data["test"]
-
             # Get data splits
-            train_val_cut = int(0.9 * len(trainval_groups))
+            train_val_cut = int(0.9 * len(self.trainval_groups))
             train_groups_keys = set(
-                np.random.choice(list(trainval_groups.keys()), size=train_val_cut, replace=False))
-            val_groups = [k for k in trainval_groups.keys() if k not in train_groups_keys]
+                np.random.choice(list(self.trainval_groups.keys()), size=train_val_cut, replace=False))
+            val_groups = [k for k in self.trainval_groups.keys() if k not in train_groups_keys]
             return NameSplitter(train_names=list(train_groups_keys),
                                 val_names=val_groups,
-                                test_names=list(test_groups.keys()))
+                                test_names=list(self.test_groups.keys()))
 
-
+    def set_datasets(self, recompute=True):
+        super().set_datasets(recompute=recompute)
+        trainval_ligand_rep = LigandRepresentation(framework=self.ligand_framework,
+                                                   groups=self.trainval_groups,
+                                                   root=self.root)
+        self.train_dataset.add_representation(trainval_ligand_rep)
+        self.val_dataset.add_representation(trainval_ligand_rep)
+        test_rep = TestLigandRepresentation(framework=self.ligand_framework, groups=self.test_groups)
+        self.test_dataset.add_representation(test_rep)
+        return self.train_dataset, self.val_dataset, self.test_dataset

@@ -66,7 +66,6 @@ class GraphRepresentation(Representation):
 
         # Careful ! When doing this, the graph nodes get sorted.
         g_dgl = dgl.from_networkx(nx_graph=nx_graph, edge_attrs=["edge_type"], node_attrs=features_dict.keys())
-
         return g_dgl
 
     def to_pyg(self, graph, features_dict):

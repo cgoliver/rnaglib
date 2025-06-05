@@ -2,12 +2,12 @@ from rnaglib.tasks.RNA_VS.vs_task import VirtualScreening
 from rnaglib.transforms import GraphRepresentation
 from rnaglib.learning.task_models import PygModel
 
+# Create a task, we need to choose a framework for the ligand representation
+framework = 'pyg'
+ta = VirtualScreening('RNA_VS', ligand_framework=framework, debug=False, precomputed=True)
 
-# Creating task
-ta = VirtualScreening(root="RNA-VS", debug=False, precomputed=True)
-
-# Adding representation
-ta.dataset.add_representation(GraphRepresentation(framework="pyg"))
+# Adding representation for RNAs
+ta.dataset.add_representation(GraphRepresentation(framework=framework))
 
 # Splitting dataset
 print("Splitting Dataset")
@@ -18,11 +18,16 @@ print(len(test.dataset))
 
 info = ta.describe()
 
-for da in train.dataset:
+for da in train:
     print(da)
     break
 
+# for da in test:
+#     print(da)
+#     break
+
 # TODO: include ligand in return dict using representations
+# TODO: get metrics
 
 
 # Training model
