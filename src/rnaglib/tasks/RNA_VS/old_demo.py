@@ -3,22 +3,8 @@ import torch
 import torch.optim as optim
 
 from rnaglib.tasks.RNA_VS.old_task import VirtualScreening
-from rnaglib.transforms import GraphRepresentation
-from rnaglib.transforms import FeaturesComputer
-
-
-def set_seed(seed):
-    import numpy as np
-    import random
-    """Set all random seeds for reproducibility"""
-    random.seed(seed)
-    np.random.seed(seed)
-    torch.manual_seed(seed)
-    if torch.cuda.is_available():
-        torch.cuda.manual_seed(seed)
-        torch.cuda.manual_seed_all(seed)
-        torch.backends.cudnn.deterministic = True
-        torch.backends.cudnn.benchmark = False
+from rnaglib.transforms import GraphRepresentation, FeaturesComputer
+from rnaglib.utils.misc import set_seed
 
 
 seed = 1

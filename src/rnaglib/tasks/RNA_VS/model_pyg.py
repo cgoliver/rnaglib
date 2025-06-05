@@ -237,9 +237,13 @@ class RNAEncoder(nn.Module):
             all_subgraphs = []
             all_embs = []
 
-            for graph in graphs:
+            for i, graph in enumerate(graphs):
+                # Extract the in_pocket mask for the current graph
+                start_idx = data.ptr[i].item()
+                end_idx = data.ptr[i + 1].item()
+                pocket_mask = data.in_pocket[start_idx:end_idx]
+
                 # Get nodes that are in the pocket. Handle case with single node
-                pocket_mask = graph.in_pocket
                 if pocket_mask.dim() == 0:
                     pocket_mask = pocket_mask.unsqueeze(0)
 
@@ -285,10 +289,9 @@ class VSModel(nn.Module):
         self.lig_encoder = lig_encoder
 
     def predict_ligands(self, pocket, ligands):
-        data = pocket['graph']
         with torch.no_grad():
-            data, embeddings = self.encoder(data)
-            graph_emb = self.pool(embeddings, data.batch)
+            pocket, embeddings = self.encoder(pocket)
+            graph_emb = self.pool(embeddings, pocket.batch)
             lig_embs = self.lig_encoder(ligands)
             graph_emb = graph_emb.expand(len(lig_embs), -1)
             pred = torch.cat((graph_emb, lig_embs), dim=1)
@@ -296,10 +299,8 @@ class VSModel(nn.Module):
             return pred
 
     def forward(self, pocket, ligand):
-        data = pocket['graph']
-        data, embeddings = self.encoder(data)
-
-        graph_emb = self.pool(embeddings, data.batch)
+        pocket, embeddings = self.encoder(pocket)
+        graph_emb = self.pool(embeddings, pocket.batch)
         lig_emb = self.lig_encoder(ligand)
         joint = torch.cat((graph_emb, lig_emb), dim=1)
         pred = self.decoder(joint)
