@@ -57,7 +57,6 @@ class GraphRepresentation(Representation):
         # Add features and targets
         for name, encoding in features_dict.items():
             nx.set_node_attributes(graph, name=name, values=encoding)
-
         return graph
 
     def to_dgl(self, graph, features_dict):

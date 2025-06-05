@@ -1,11 +1,32 @@
 import os
 
+import networkx as nx
 import numpy as np
 import random
 from torch.utils.data import Dataset
 
 from rnaglib.dataset import RNADataset
 from rnaglib.dataset_transforms import Collater
+from rnaglib.transforms import Representation
+
+
+class InPocketRepresentation(Representation):
+    """
+    Nodes close to the center of the pocket are flagged with a Boolean
+    This representation ensures that this is taken into account.
+    """
+    name = 'in_pocket'
+
+    def __init__(self):
+        pass
+
+    def __call__(self, rna_graph, features_dict):
+        in_pocket = nx.get_node_attributes(rna_graph, 'in_pocket')
+        in_pocket_flag = [flag for node,flag in sorted(in_pocket.items())]
+        return in_pocket_flag
+
+    def batch(self, samples):
+        return [x for y in samples for x in y]
 
 
 class VSCollater:

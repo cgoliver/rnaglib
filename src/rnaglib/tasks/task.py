@@ -169,7 +169,6 @@ class Task:
         for f in os.listdir(self.dataset.dataset_path):
             if Path(f).stem not in self.dataset.all_rnas:
                 os.remove(Path(self.dataset.dataset_path) / f)
-
         self.dataset.save_distances()
 
     def split(self, dataset: RNADataset):
@@ -316,9 +315,9 @@ class Task:
         """Load dataset and splits from disk."""
         # load splits
         print(">>> Loading precomputed task...")
-        self.dataset = RNADataset(
-            dataset_path=self.dataset_path, in_memory=self.in_memory, recompute_mapping=self.recompute
-        )
+        self.dataset = RNADataset(dataset_path=self.dataset_path,
+                                  in_memory=self.in_memory,
+                                  recompute_mapping=self.recompute)
 
         with Path.open(Path(self.root) / "metadata.json") as meta:
             self.metadata = json.load(meta)

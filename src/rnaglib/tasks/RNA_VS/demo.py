@@ -2,6 +2,7 @@ from rnaglib.tasks.RNA_VS.vs_task import VirtualScreening
 from rnaglib.transforms import GraphRepresentation
 from rnaglib.learning.task_models import PygModel
 
+
 # Creating task
 ta = VirtualScreening(root="RNA-VS", debug=False, precomputed=True)
 
@@ -16,6 +17,10 @@ print(len(val.dataset))
 print(len(test.dataset))
 
 info = ta.describe()
+
+for da in train.dataset:
+    print(da)
+    break
 
 # TODO: include ligand in return dict using representations
 

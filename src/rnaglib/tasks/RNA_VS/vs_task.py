@@ -2,10 +2,12 @@ import os
 import numpy as np
 
 from rnaglib.dataset import RNADataset
+from rnaglib.encoders import BoolEncoder
 from rnaglib.tasks import Task
 from rnaglib.transforms import FeaturesComputer
 from rnaglib.dataset_transforms import RandomSplitter, NameSplitter
 from rnaglib.tasks.RNA_VS import build_data
+from rnaglib.tasks.RNA_VS.data import InPocketRepresentation
 
 
 class VirtualScreening(Task):
@@ -33,7 +35,15 @@ class VirtualScreening(Task):
         if not os.path.exists(os.path.join(self.root, f'ligands_{self.ligand_framework}.p')) or self.recompute:
             build_data.precompute_ligand_graphs(root=self.root, recompute=self.recompute,
                                                 framework=self.ligand_framework)
-        return RNADataset(dataset_path=self.dataset_path)
+
+        dataset = RNADataset(dataset_path=self.dataset_path, in_memory=self.in_memory)
+        dataset.add_representation(InPocketRepresentation())
+        return dataset
+
+    def load(self):
+        dataset, metadata, (train_ind, val_ind, test_ind) = super().load()
+        self.dataset.add_representation(InPocketRepresentation())
+        return self.dataset, metadata, (train_ind, val_ind, test_ind)
 
     def post_process(self):
         pass
@@ -51,7 +61,7 @@ class VirtualScreening(Task):
     @property
     def default_splitter(self):
         """Returns the splitting strategy to be used for this specific task. Canonical splitter is ClusterSplitter which is a
-        similarity-based splitting relying on clustering which could be refined into a sequencce- or structure-based clustering
+        similarity-based splitting relying on clustering which could be refined into a sequence or structure-based clustering
         using distance_name argument
 
         :return: the default splitter to be used for the task
@@ -74,3 +84,5 @@ class VirtualScreening(Task):
             return NameSplitter(train_names=list(train_groups_keys),
                                 val_names=val_groups,
                                 test_names=list(test_groups.keys()))
+
+
