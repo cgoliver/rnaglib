@@ -2,8 +2,7 @@ import time
 import torch
 import torch.optim as optim
 
-from rnaglib.tasks.RNA_VS.vs_task import VirtualScreening
-from rnaglib.tasks.RNA_VS.evaluate import run_virtual_screen
+from rnaglib.tasks.RNA_VS.task import VirtualScreening
 from rnaglib.transforms import GraphRepresentation
 from rnaglib.utils.misc import set_seed
 
@@ -62,4 +61,4 @@ for k in range(epochs):
 
 model = model.eval()
 print(f"Results for seed {seed}:")
-final_vs = run_virtual_screen(model, test)
+final_vs = ta.evaluate(model)

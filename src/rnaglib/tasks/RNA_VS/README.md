@@ -22,19 +22,13 @@ compounds).
 
 This repository contains seven files:
 
-1. `demo.py`
-2. `build_data.py`
-3. `data.py`
-4. `evaluate.py`
-5. `ligands.py`
-6. `model.py`
-7. `task.py`
+1. `build_data.py`
+2. `demo.py`
+3. `ligands.py`
+4. `model_dgl.py`
+5. `model_pyg.py`
+6. `task.py`
 
-### demo.py
-
-This file contains a demonstration of how to use the `RNA-VS` task, to train a simple model.
-It trains a small RGCN encoder and outputs some performance metrics.
-It can be easily expanded for further model development.
 
 ### build_data.py
 
@@ -43,9 +37,15 @@ This script encapsulates the data creation:
 - Extracting the pockets and annotating their inner part with an 'in_pocket' feature.
 - Computing all ligand representations as graphs and saving them in a pickle object
 
-### data.py
+### demo.py
 
-This file contains the data loading logic, both for training and testing.
+This file contains a demonstration of how to use the `RNA-VS` task, to train a simple model.
+It trains a small RGCN encoder and outputs some performance metrics.
+It can be easily expanded for further model development.
+
+### ligands.py
+
+This file contains the ligand related logic. 
 
 Since the binding pockets are clustered into groups, a single binding site is associated to several actives and decoys.
 At train time, we choose to use a positive or negative pair with a balanced probability.
@@ -53,17 +53,9 @@ Then we sample an active (resp. inactive) from the corresponding group, and trai
 
 At test time, we use all actives and inactives associated to a binding site and rank them with our method.
 
-### evaluate.py
+It also contains the logic to encode a ligand as a graph.
 
-Just a simple script to compute the auroc metric over a dataloader of pairs of (RNA binding site, list of compounds)
-
-### ligands.py
-
-Simple script containing the logic to encode a ligand as a graph.
-Right now, this only supports a DGL representation.
-Support for other frameworks is on the todo, but feel free to PR.
-
-### model.py
+### model_{pyg/dgl}.py
 
 Script defining the model architecture for this task.
 Note that the final model should implement a `predict_ligands(pocket, ligands)` method (to rank compounds).
@@ -75,4 +67,3 @@ It handles building the data and follows the general Task API:
 
 - task.get_split_loaders(dataset_kwargs=None, dataloader_kwargs=None)
 - task.evaluate(model)
-

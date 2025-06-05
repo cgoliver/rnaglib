@@ -18,7 +18,7 @@ from .RNA_IF.inverse_folding import InverseFolding, gRNAde
 from .RNA_Ligand.ligand_identity import LigandIdentification
 from .RNA_Prot.protein_binding_site import ProteinBindingSite
 from .RNA_Site.binding_site import BindingSite, BenchmarkBindingSite
-from .RNA_VS.old_task import VirtualScreening
+from .RNA_VS.task import VirtualScreening
 
 from .utils import get_task
 

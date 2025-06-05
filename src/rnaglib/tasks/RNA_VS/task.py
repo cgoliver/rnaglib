@@ -1,14 +1,16 @@
 import os
 
+import networkx as nx
 import numpy as np
+from sklearn import metrics
+import torch
 from torch.utils.data import DataLoader
 
 from rnaglib.dataset import RNADataset
 from rnaglib.tasks import Task
-from rnaglib.transforms import FeaturesComputer
+from rnaglib.transforms import Representation, FeaturesComputer
 from rnaglib.dataset_transforms import RandomSplitter, NameSplitter, Collater
 from rnaglib.tasks.RNA_VS import build_data
-from rnaglib.tasks.RNA_VS.data import InPocketRepresentation
 from rnaglib.tasks.RNA_VS.ligands import LigandRepresentation, TestLigandRepresentation
 
 
@@ -125,3 +127,63 @@ class VirtualScreening(Task):
         dataloader_kwargs["collate_fn"] = collater
         dataloader_kwargs["batch_size"] = 1
         self.test_dataloader = DataLoader(dataset=self.test_dataset, **dataloader_kwargs)
+
+    def evaluate(self, model, loader=None):
+        loader = loader if loader is not None else self.test_dataloader
+        return run_virtual_screen(model, loader)
+
+
+def run_virtual_screen(model, dataloader):
+    """
+    Run_virtual_screen.
+
+    :param model: trained affinity prediction model
+    :param dataloader: Loader of VirtualScreenDataset object
+    :returns efs: list of efs, one for each pocket in the dataset
+    """
+
+    def mean_active_rank(scores, is_active):
+        scores = (scores - scores.min()) / (scores.max() - scores.min())
+        fpr, tpr, thresholds = metrics.roc_curve(is_active, scores, drop_intermediate=True)
+        return metrics.auc(fpr, tpr)
+
+    efs = list()
+    failed_set = set()
+    print(f"Doing VS on {len(dataloader)} pockets.")
+    for i, data in enumerate(dataloader):
+        if not i % 20:
+            print(f"Done {i}/{len(dataloader)}")
+
+        ligands = data['ligands']["ligands"][0]
+        actives = data['ligands']["actives"][0]
+        # actives = torch.tensor(actives, dtype=torch.float32)
+        if ligands.batch_size < 10:
+            print(f"Skipping pocket{i}, not enough decoys")
+            continue
+
+        pocket = data['graph']
+        in_pocket = torch.tensor(data['in_pocket'])
+        pocket.in_pocket = in_pocket
+
+        scores = model.predict_ligands(pocket, ligands)[:, 0].numpy()
+        efs.append(mean_active_rank(scores, actives))
+    if len(failed_set) > 0:
+        print(f"VS failed on {failed_set}")
+    print('Mean EF :', np.mean(efs))
+    return efs
+
+
+class InPocketRepresentation(Representation):
+    """
+    Nodes close to the center of the pocket are flagged with a Boolean
+    This representation ensures that this is taken into account.
+    """
+    name = 'in_pocket'
+
+    def __call__(self, rna_graph, features_dict):
+        in_pocket = nx.get_node_attributes(rna_graph, 'in_pocket')
+        in_pocket_flag = [flag for node, flag in sorted(in_pocket.items())]
+        return in_pocket_flag
+
+    def batch(self, samples):
+        return [x for y in samples for x in y]
