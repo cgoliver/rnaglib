@@ -1,10 +1,12 @@
 import os
+
 import numpy as np
+from torch.utils.data import DataLoader
 
 from rnaglib.dataset import RNADataset
 from rnaglib.tasks import Task
 from rnaglib.transforms import FeaturesComputer
-from rnaglib.dataset_transforms import RandomSplitter, NameSplitter
+from rnaglib.dataset_transforms import RandomSplitter, NameSplitter, Collater
 from rnaglib.tasks.RNA_VS import build_data
 from rnaglib.tasks.RNA_VS.data import InPocketRepresentation
 from rnaglib.tasks.RNA_VS.ligands import LigandRepresentation, TestLigandRepresentation
@@ -35,6 +37,7 @@ class VirtualScreening(Task):
         if not os.path.exists(os.path.join(self.root, f'ligands_{self.ligand_framework}.p')) or self.recompute:
             build_data.precompute_ligand_graphs(root=self.root, recompute=self.recompute,
                                                 framework=self.ligand_framework)
+        self.load_groups()
 
         dataset = RNADataset(dataset_path=self.dataset_path, in_memory=self.in_memory)
         dataset.add_representation(InPocketRepresentation())
@@ -96,6 +99,29 @@ class VirtualScreening(Task):
                                                    root=self.root)
         self.train_dataset.add_representation(trainval_ligand_rep)
         self.val_dataset.add_representation(trainval_ligand_rep)
-        test_rep = TestLigandRepresentation(framework=self.ligand_framework, groups=self.test_groups)
+        test_rep = TestLigandRepresentation(framework=self.ligand_framework,
+                                            groups=self.test_groups,
+                                            root=self.root)
         self.test_dataset.add_representation(test_rep)
         return self.train_dataset, self.val_dataset, self.test_dataset
+
+    def set_loaders(self, recompute=True, **dataloader_kwargs):
+        """We need to override because we have a test collater (since train and test representations are not the same)
+        """
+        self.set_datasets(recompute=recompute)
+
+        # If no collater is provided we need one
+        if dataloader_kwargs is None:
+            dataloader_kwargs = {"collate_fn": Collater(self.train_dataset)}
+        if "collate_fn" not in dataloader_kwargs:
+            collater = Collater(self.train_dataset)
+            dataloader_kwargs["collate_fn"] = collater
+
+        # Now build the loaders
+        self.train_dataloader = DataLoader(dataset=self.train_dataset, **dataloader_kwargs)
+        dataloader_kwargs["shuffle"] = False
+        self.val_dataloader = DataLoader(dataset=self.val_dataset, **dataloader_kwargs)
+        collater = Collater(self.test_dataset)
+        dataloader_kwargs["collate_fn"] = collater
+        dataloader_kwargs["batch_size"] = 1
+        self.test_dataloader = DataLoader(dataset=self.test_dataset, **dataloader_kwargs)

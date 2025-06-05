@@ -1,8 +1,9 @@
 import os
-import pickle
 
 import networkx as nx
 import numpy as np
+import pickle
+import random
 import torch
 from rdkit import Chem
 from rnaglib.transforms import Representation
@@ -177,8 +178,6 @@ class LigandRepresentation(Representation):
                                               cache_path=os.path.join(self.root, f'ligands_{self.framework}.p'))
 
     def __call__(self, rna_graph, features_dict):
-        import random
-
         # Pick either active or inactive at random, then sample a ligand of the right group and encode it
         group = self.groups[rna_graph.name]
         is_active = random.random() > 0.5
@@ -191,16 +190,31 @@ class LigandRepresentation(Representation):
     def batch(self, samples):
         actives = [elt['active'] for elt in samples]
         ligands = self.ligand_encoder.collate_fn([elt['ligand'] for elt in samples])
-        return {'ligand': ligands,
-                'active': actives}
+        return {'ligands': ligands,
+                'actives': actives}
 
 
 class TestLigandRepresentation(Representation):
-    name = "ligand"
+    name = "ligands"
 
-    def __init__(self, groups, framework='pyg'):
-        self.framework = framework
+    def __init__(self, groups, root, framework='pyg', decoy_mode='pdb'):
         self.groups = groups
+        self.root = root
+        self.framework = framework
+        self.decoy_mode = decoy_mode
+        self.ligand_encoder = MolGraphEncoder(framework=framework,
+                                              cache_path=os.path.join(self.root, f'ligands_{self.framework}.p'))
 
     def __call__(self, rna_graph, features_dict):
-        pass
+        group = self.groups[rna_graph.name]
+        actives = group['actives']
+        inactives = group[f'{self.decoy_mode}_decoys']
+        ligands = self.ligand_encoder.smiles_to_graph_list(actives + inactives)
+        return {'ligands': ligands,
+                'actives': [1 for _ in range(len(actives))] + [0 for _ in range(len(inactives))]}
+
+    def batch(self, samples):
+        actives = [elt['actives'] for elt in samples]
+        ligands = [elt['ligands'] for elt in samples]
+        return {'ligands': ligands,
+                'actives': actives}

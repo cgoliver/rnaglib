@@ -4,7 +4,7 @@ from rnaglib.learning.task_models import PygModel
 
 # Create a task, we need to choose a framework for the ligand representation
 framework = 'pyg'
-ta = VirtualScreening('RNA_VS', ligand_framework=framework, debug=False, precomputed=True)
+ta = VirtualScreening(root='RNA_VS', ligand_framework=framework, debug=False, precomputed=True)
 
 # Adding representation for RNAs
 ta.dataset.add_representation(GraphRepresentation(framework=framework))
@@ -16,18 +16,18 @@ print(len(train.dataset))
 print(len(val.dataset))
 print(len(test.dataset))
 
-info = ta.describe()
+# info = ta.describe()
 
-for da in train:
-    print(da)
-    break
-
-# for da in test:
+# for da in train:
 #     print(da)
 #     break
 
-# TODO: include ligand in return dict using representations
-# TODO: get metrics
+for da in test:
+    print(da)
+    break
+
+# TODO: Adapt model train to the new data return formats
+# TODO: Get metrics
 
 
 # Training model
