@@ -3,7 +3,7 @@ import networkx as nx
 
 from rnaglib.algorithms.graph_algos import remove_noncanonicals
 from rnaglib.config.graph_keys import GRAPH_KEYS, TOOL
-from rnaglib.algorithms import fix_buggy_edges, remove_non_standard_edges
+from rnaglib.algorithms import fix_buggy_edges, remove_noncanonical_edges
 
 from .representation import Representation
 
@@ -46,7 +46,7 @@ class GraphRepresentation(Representation):
             base_graph = rna_graph
 
         if self.canonical:
-            base_graph = remove_noncanonicals(base_graph)
+            base_graph = remove_noncanonical_edges(base_graph)
 
         if self.framework == "nx":
             return self.to_nx(base_graph, features_dict)

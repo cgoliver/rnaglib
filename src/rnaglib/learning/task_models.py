@@ -79,6 +79,7 @@ class PygModel(torch.nn.Module):
         self.input_non_linear_layer = torch.nn.Sequential(
             torch.nn.Linear(num_node_features, self.hidden_channels),
             torch.nn.ReLU(),
+            BatchNorm1d(self.hidden_channels),
             torch.nn.Dropout(self.dropout_rate),
         )
 
@@ -111,7 +112,7 @@ class PygModel(torch.nn.Module):
         self.optimizer = None
         if device is None:
             if torch.cuda.is_available():
-                self.device = "gpu"
+                self.device = "cuda"
             elif torch.backends.mps.is_available():
                 self.device = "mps"
             else:
