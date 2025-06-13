@@ -4,7 +4,7 @@ from rnaglib.transforms import GraphRepresentation
 
 ta = InverseFolding(root="RNA_IF", recompute=True, debug=False)
 
-ta.dataset.add_representation(GraphRepresentation(framework="pyg"))
+ta.add_representation(GraphRepresentation(framework="pyg"))
 
 # Splitting dataset
 ta.get_split_loaders(recompute=True)

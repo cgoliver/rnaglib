@@ -301,6 +301,7 @@ class RNADataset(Dataset):
             feature_level: Literal["residue", "rna"] = "residue",
             *,  # enforce keyword only arguments
             is_input: bool = True,
+            custom_encoders=None
     ):
         """Add a feature to the dataset for model training.
 
@@ -314,7 +315,7 @@ class RNADataset(Dataset):
         :param is_input: Are you using the feature on the input side (`True`) or as a prediction target (`False`)?
         """
         feature_name = feature
-        custom_encoders = None
+        custom_encoders = {} if custom_encoders is None else custom_encoders
         # using an existing key in the RNA dictionary as feature
         if isinstance(feature, Transform):
             # check if transform has already been applied
@@ -331,7 +332,7 @@ class RNADataset(Dataset):
                 feature(self)
 
             feature_name = feature.name
-            custom_encoders = {feature_name: feature.encoder}
+            custom_encoders[feature_name]= feature.encoder
 
         self.features_computer.add_feature(
             feature_names=feature_name,

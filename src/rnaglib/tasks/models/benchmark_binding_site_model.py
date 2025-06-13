@@ -21,7 +21,7 @@ if Path('test_fri').exists():
     shutil.rmtree('test_fri')
 
 ta = BenchmarkLigandBindingSiteDetection('test_fri')
-ta.dataset.add_representation(GraphRepresentation(framework = 'pyg'))
+ta.add_representation(GraphRepresentation(framework = 'pyg'))
 
 train_ind, val_ind, test_ind = ta.split()
 train_set = ta.dataset.subset(train_ind)

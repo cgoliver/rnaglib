@@ -7,7 +7,7 @@ from rnaglib.transforms import GraphRepresentation
 ta = ProteinBindingSite("RNA_RBP_struc", recompute=False, debug=False, precomputed=False)
 
 # Add representation
-ta.dataset.add_representation(GraphRepresentation(framework="pyg"))
+ta.add_representation(GraphRepresentation(framework="pyg"))
 
 # Splitting dataset
 ta.get_split_loaders(recompute=False)

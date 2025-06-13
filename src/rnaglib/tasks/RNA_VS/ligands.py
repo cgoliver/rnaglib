@@ -167,9 +167,15 @@ class MolGraphEncoder:
 
 
 class LigandRepresentation(Representation):
+    """
+    This is only used for training the VS task.
+    For a given RNA, return a ligand that is either active or inactive with a probability 0.5.
+    Also return the label
+    """
     name = "ligand"
 
     def __init__(self, groups, root, framework='pyg', decoy_mode='pdb'):
+        super().__init__()
         self.groups = groups
         self.root = root
         self.framework = framework
@@ -195,9 +201,14 @@ class LigandRepresentation(Representation):
 
 
 class TestLigandRepresentation(Representation):
+    """
+    This is only used for the RNA_VS testing task.
+    For a given test RNA, this returns a list of active and inactive ligands, along with their annotations.
+    """
     name = "ligands"
 
     def __init__(self, groups, root, framework='pyg', decoy_mode='pdb'):
+        super().__init__()
         self.groups = groups
         self.root = root
         self.framework = framework

@@ -1,5 +1,6 @@
 import os
 
+import json
 import networkx as nx
 import numpy as np
 from sklearn import metrics
@@ -46,19 +47,23 @@ class VirtualScreening(Task):
         return dataset
 
     def load_groups(self):
-        import json
+        """
+        The data is extracted from the RNAmigos repo directly, and preprocessed in build_data.
+
+        It is then stored as a json, and stores ids of RNA pockets as keys of a dictionary.
+        It also stores the center of these pockets as a binary mask.
+        These pockets are split into training and testing systems.
+
+        Values of the pocket dictionary contain lists of active and inactive ligands for each RNA pocket.
+
+        :return:
+        """
         script_dir = os.path.dirname(__file__)
         json_dump = os.path.join(script_dir, "data/dataset_as_json.json")
         whole_data = json.load(open(json_dump, 'r'))
         trainval_groups, test_groups = whole_data["trainval"], whole_data["test"]
         self.trainval_groups, self.test_groups = trainval_groups, test_groups
         return trainval_groups, test_groups
-
-    def load(self):
-        dataset, metadata, (train_ind, val_ind, test_ind) = super().load()
-        self.dataset.add_representation(InPocketRepresentation())
-        self.load_groups()
-        return self.dataset, metadata, (train_ind, val_ind, test_ind)
 
     def post_process(self):
         pass
@@ -75,9 +80,9 @@ class VirtualScreening(Task):
 
     @property
     def default_splitter(self):
-        """Returns the splitting strategy to be used for this specific task. Canonical splitter is ClusterSplitter which is a
-        similarity-based splitting relying on clustering which could be refined into a sequence or structure-based clustering
-        using distance_name argument
+        """Returns the splitting strategy to be used for this specific task.
+
+        Here, we follow the splits proposed in RNAmigos2
 
         :return: the default splitter to be used for the task
         :rtype: Splitter
@@ -94,7 +99,27 @@ class VirtualScreening(Task):
                                 val_names=val_groups,
                                 test_names=list(self.test_groups.keys()))
 
+    def load(self):
+        """
+        We need to adapt the loading a bit so that the groups are loaded again
+        :return:
+        """
+        dataset, metadata, (train_ind, val_ind, test_ind) = super().load()
+        self.dataset.add_representation(InPocketRepresentation())
+        self.load_groups()
+        return self.dataset, metadata, (train_ind, val_ind, test_ind)
+
     def set_datasets(self, recompute=True):
+        """
+        This is a specific for this task.
+        Since we do not only make inference on an RNA, but also on one or several ligands, we frame these annotations
+        as additional, specific, stateful RNA representations.
+        Moreover, we need a different format for training on pairs (rna, ligand) and
+         for testing on pairs (rna, list of ligands).
+        Thus, we need to include those representations in the datasets at construction time.
+        :param recompute:
+        :return:
+        """
         super().set_datasets(recompute=recompute)
         trainval_ligand_rep = LigandRepresentation(framework=self.ligand_framework,
                                                    groups=self.trainval_groups,
@@ -108,7 +133,8 @@ class VirtualScreening(Task):
         return self.train_dataset, self.val_dataset, self.test_dataset
 
     def set_loaders(self, recompute=True, **dataloader_kwargs):
-        """We need to override because we have a test collater (since train and test representations are not the same)
+        """
+        We need to override because we have a test collater (since train and test representations are not the same)
         """
         self.set_datasets(recompute=recompute)
 
@@ -129,48 +155,44 @@ class VirtualScreening(Task):
         self.test_dataloader = DataLoader(dataset=self.test_dataset, **dataloader_kwargs)
 
     def evaluate(self, model, loader=None):
-        loader = loader if loader is not None else self.test_dataloader
-        return run_virtual_screen(model, loader)
+        """
+        Run_virtual_screen.
+
+        :param model: trained affinity prediction model
+        :param loader: Loader of VirtualScreenDataset object
+        :returns efs: list of efs, one for each pocket in the dataset
+        """
+        dataloader = loader if loader is not None else self.test_dataloader
 
 
-def run_virtual_screen(model, dataloader):
-    """
-    Run_virtual_screen.
+        def mean_active_rank(scores, is_active):
+            scores = (scores - scores.min()) / (scores.max() - scores.min())
+            fpr, tpr, thresholds = metrics.roc_curve(is_active, scores, drop_intermediate=True)
+            return metrics.auc(fpr, tpr)
 
-    :param model: trained affinity prediction model
-    :param dataloader: Loader of VirtualScreenDataset object
-    :returns efs: list of efs, one for each pocket in the dataset
-    """
+        efs = list()
+        failed_set = set()
+        print(f"Doing VS on {len(dataloader)} pockets.")
+        for i, data in enumerate(dataloader):
+            if not i % 20:
+                print(f"Done {i}/{len(dataloader)}")
 
-    def mean_active_rank(scores, is_active):
-        scores = (scores - scores.min()) / (scores.max() - scores.min())
-        fpr, tpr, thresholds = metrics.roc_curve(is_active, scores, drop_intermediate=True)
-        return metrics.auc(fpr, tpr)
+            ligands = data['ligands']["ligands"][0]
+            actives = data['ligands']["actives"][0]
+            if ligands.batch_size < 10:
+                print(f"Skipping pocket{i}, not enough decoys")
+                continue
 
-    efs = list()
-    failed_set = set()
-    print(f"Doing VS on {len(dataloader)} pockets.")
-    for i, data in enumerate(dataloader):
-        if not i % 20:
-            print(f"Done {i}/{len(dataloader)}")
+            pocket = data['graph']
+            in_pocket = torch.tensor(data['in_pocket'])
+            pocket.in_pocket = in_pocket
 
-        ligands = data['ligands']["ligands"][0]
-        actives = data['ligands']["actives"][0]
-        # actives = torch.tensor(actives, dtype=torch.float32)
-        if ligands.batch_size < 10:
-            print(f"Skipping pocket{i}, not enough decoys")
-            continue
-
-        pocket = data['graph']
-        in_pocket = torch.tensor(data['in_pocket'])
-        pocket.in_pocket = in_pocket
-
-        scores = model.predict_ligands(pocket, ligands)[:, 0].numpy()
-        efs.append(mean_active_rank(scores, actives))
-    if len(failed_set) > 0:
-        print(f"VS failed on {failed_set}")
-    print('Mean EF :', np.mean(efs))
-    return efs
+            scores = model.predict_ligands(pocket, ligands)[:, 0].numpy()
+            efs.append(mean_active_rank(scores, actives))
+        if len(failed_set) > 0:
+            print(f"VS failed on {failed_set}")
+        print('Mean EF :', np.mean(efs))
+        return efs
 
 
 class InPocketRepresentation(Representation):

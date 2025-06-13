@@ -14,11 +14,12 @@ framework = 'pyg'
 ta = VirtualScreening(root='RNA_VS', ligand_framework=framework, debug=False, precomputed=True)
 
 # Adding representation for RNAs
-ta.dataset.add_representation(GraphRepresentation(framework=framework))
+ta.add_representation(GraphRepresentation(framework=framework))
 
 # Splitting dataset
 print("Splitting Dataset")
-train, val, test = ta.get_split_loaders(recompute=False, batch_size=8)
+loader_kwargs = {'batch_size': 16, 'shuffle': True, 'num_workers': 0}
+train, val, test = ta.get_split_loaders(recompute=False, **loader_kwargs)
 print(len(train.dataset))
 print(len(val.dataset))
 print(len(test.dataset))
@@ -37,7 +38,7 @@ assert hasattr(model, 'predict_ligands') and callable(getattr(model, 'predict_li
 # Train
 optimizer = optim.Adam(model.parameters(), lr=0.001)
 criterion = torch.nn.BCELoss()
-epochs = 1
+epochs = 40
 t0 = time.time()
 for k in range(epochs):
     for i, batch in enumerate(train):
@@ -49,8 +50,8 @@ for k in range(epochs):
         actives = batch['ligand']["actives"]
         actives = torch.tensor(actives, dtype=torch.float32)
         optimizer.zero_grad()
-        out = model(pockets, ligands)
-        loss = criterion(input=torch.flatten(out), target=actives)
+        preds = model(pockets, ligands)
+        loss = criterion(input=torch.flatten(preds), target=actives)
         loss.backward()
         optimizer.step()
         # if i > 3:
