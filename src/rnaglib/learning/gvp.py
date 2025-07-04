@@ -1,8 +1,12 @@
+import numpy as np
 import torch, functools
 from torch import nn
 import torch.nn.functional as F
 from torch_geometric.nn import MessagePassing
-from torch_scatter import scatter_add
+from torch_scatter import scatter_add, scatter_mean
+
+from rnaglib.utils.misc import tonumpy
+
 
 def tuple_sum(*args):
     '''
@@ -88,8 +92,14 @@ class GVP(nn.Module):
     :param vector_gate: whether to use vector gating.
                         (vector_act will be used as sigma^+ in vector gating if `True`)
     '''
-    def __init__(self, in_dims, out_dims, h_dim=None,
-                 activations=(F.relu, torch.sigmoid), vector_gate=False):
+    def __init__(
+        self, 
+        in_dims, 
+        out_dims, 
+        h_dim=None,
+        activations=(F.relu, torch.sigmoid), 
+        vector_gate=False
+    ):
         super(GVP, self).__init__()
         self.si, self.vi = in_dims
         self.so, self.vo = out_dims
@@ -229,9 +239,17 @@ class GVPConv(MessagePassing):
     :param vector_gate: whether to use vector gating.
                         (vector_act will be used as sigma^+ in vector gating if `True`)
     '''
-    def __init__(self, in_dims, out_dims, edge_dims,
-                 n_layers=3, module_list=None, aggr="mean", 
-                 activations=(F.relu, torch.sigmoid), vector_gate=False):
+    def __init__(
+        self, 
+        in_dims, 
+        out_dims, 
+        edge_dims,
+        n_layers=3, 
+        module_list=None, 
+        aggr="mean", 
+        activations=(F.relu, torch.sigmoid), 
+        vector_gate=False
+    ):
         super(GVPConv, self).__init__(aggr=aggr)
         self.si, self.vi = in_dims
         self.so, self.vo = out_dims
@@ -372,3 +390,252 @@ class GVPConvLayer(nn.Module):
             x_[0][node_mask], x_[1][node_mask] = x[0], x[1]
             x = x_
         return x
+    
+class GVPModel(torch.nn.Module):
+    @classmethod
+    def from_task(cls, 
+                  task, 
+                  num_node_features=None, 
+                  num_classes=None,
+                  graph_level=None, 
+                  **model_args):
+        """ Try to create a model based on task metadata.
+        Will fail if number of node features is not the default.
+        """
+        if num_node_features is None:
+            num_node_features = task.metadata["num_nodes_features"]
+        if num_classes is None:
+            num_classes = task.metadata["num_classes"]
+        if graph_level is None:
+            graph_level = task.metadata["graph_level"]
+
+        return cls(
+            num_node_features=num_node_features,
+            num_classes=num_classes,
+            graph_level=graph_level,
+            **model_args
+        )
+
+    def __init__(
+        self,
+        num_node_features,
+        num_classes,
+        num_unique_edge_attrs=20,
+        graph_level=False,
+        num_layers=2,
+        hidden_channels=128,
+        dropout_rate=0.5,
+        multi_label=False,
+        final_activation="sigmoid",
+        device=None,
+        seq_in=False,
+        node_in_dim=(15,4),
+        node_h_dim=(15,3),
+        edge_in_dim=(131,3),
+        edge_h_dim=(131,3),
+    ):
+        super().__init__()
+        self.num_node_features = num_node_features
+        self.num_classes = num_classes
+        self.num_unique_edge_attrs = num_unique_edge_attrs
+        self.graph_level = graph_level
+        self.num_layers = num_layers
+        self.hidden_channels = hidden_channels
+        self.dropout_rate = dropout_rate
+        self.multi_label = multi_label
+        self.seq_in=seq_in
+        self.node_in_dim = node_in_dim
+        self.node_h_dim = node_h_dim
+        self.edge_in_dim = edge_in_dim
+        self.edge_h_dim = edge_h_dim
+        if seq_in:
+            self.W_s = nn.Embedding(4, 4)
+            node_in_dim = (self.node_in_dim[0] + 4, self.node_in_dim[1])
+        
+        self.W_v = nn.Sequential(
+            LayerNorm(node_in_dim),
+            GVP(self.node_in_dim, self.node_h_dim, activations=(None, None))
+        )
+        self.W_e = nn.Sequential(
+            LayerNorm(edge_in_dim),
+            GVP(self.edge_in_dim, self.edge_h_dim, activations=(None, None))
+        )
+        
+        self.layers = nn.ModuleList(
+                GVPConvLayer(self.node_h_dim, self.edge_h_dim, drop_rate=self.dropout_rate) 
+            for _ in range(self.num_layers))
+        
+        ns, _ = self.node_h_dim
+        self.W_out = nn.Sequential(
+            LayerNorm(self.node_h_dim),
+            GVP(self.node_h_dim, (ns, 0))
+        )
+
+        if final_activation == "sigmoid":
+            self.final_activation = torch.nn.Sigmoid()
+        elif final_activation == "softmax":
+            self.final_activation = torch.nn.Softmax(dim=1)
+        elif final_activation == "relu":
+            self.final_activation = torch.nn.ReLU(inplace=True)
+        else:
+            self.final_activation = torch.nn.Identity()
+
+        self.dense = nn.Sequential(
+            nn.Linear(ns, 2*ns), 
+            self.final_activation,
+            nn.Dropout(p=self.dropout_rate),
+            nn.Linear(2*ns, 1)
+        )
+
+        self.optimizer = None
+        if device is None:
+            if torch.cuda.is_available():
+                self.device = "gpu"
+            elif torch.backends.mps.is_available():
+                self.device = "mps"
+            else:
+                self.device = "cpu"
+        else:
+            self.device = device
+    
+        self.configure_training()
+    
+    def forward(self, data): 
+        h_V, edge_index, h_E, seq, batch = data.h_V, data.edge_index, data.h_E, data.seq, data.batch
+        if seq is not None:
+            seq = self.W_s(seq)
+            h_V = (torch.cat([h_V[0], seq], dim=-1), h_V[1])
+        h_V = self.W_v(h_V)
+        h_E = self.W_e(h_E)
+        for layer in self.layers:
+            h_V = layer(h_V, edge_index, h_E)
+        out = self.W_out(h_V)
+        if self.graph_level:
+            if batch is None:
+                out = out.mean(dim=0, keepdims=True)
+            else:
+                out = scatter_mean(out, batch, dim=0)
+        return self.dense(out).squeeze(-1) + 0.5
+    
+    def configure_training(self, learning_rate=0.001):
+        """Configure training settings."""
+        self.to(self.device)
+        self.criterion = self.criterion.to(self.device)  # Move criterion to device for all cases
+        self.optimizer = torch.optim.Adam(self.parameters(), lr=learning_rate)
+
+    def compute_loss(self, out, target):
+        # If just two classes, flatten outputs since BCE behavior expects equal dimensions and CE (N,k):(N)
+        # Otherwise CE expects long as outputs
+        if not self.multi_label:
+            if self.num_classes == 2:
+                out = out.flatten()
+            else:
+                target = target.long()
+        loss = self.criterion(out, target)
+        return loss
+
+    def train_model(self, task, epochs=500):
+        if self.optimizer is None:
+            self.configure_training()
+
+        # Set class weights for binary classification based on actual distribution
+        if self.num_classes == 2:
+            neg_count = float(task.metadata["class_distribution"]["0"])
+            pos_count = float(task.metadata["class_distribution"]["1"])
+            pos_weight = torch.tensor(np.sqrt(neg_count / pos_count)).to(self.device)
+            self.criterion = torch.nn.BCEWithLogitsLoss(pos_weight=pos_weight)
+        for epoch in range(epochs):
+            # Training phase
+            self.train()
+            epoch_loss = 0
+            num_batches = 0
+            for batch in task.train_dataloader:
+                graph = batch["graph"].to(self.device)
+                self.optimizer.zero_grad()
+                out = self(graph)
+                loss = self.compute_loss(out, graph.y)
+                loss.backward()
+                self.optimizer.step()
+                epoch_loss += loss.item()
+                num_batches += 1
+
+            # Validation phase
+            if epoch % 10 == 0:
+                val_metrics = self.evaluate(task, split="val")
+                print(
+                    f"Epoch {epoch}: train_loss = {epoch_loss / num_batches:.4f}, val_loss = {val_metrics['loss']:.4f}",
+                )
+
+    def inference(self, loader) -> tuple:
+        """Evaluate model performance on a dataset.
+
+        Args:
+            loader: Data loader to use
+
+        Returns:
+            3 list containing predictions, probs, targets if residue level,
+        else 3 np arrays
+        """
+        self.eval()
+        all_probs = []
+        all_preds = []
+        all_labels = []
+        total_loss = 0
+        with torch.no_grad():
+            for batch in loader:
+                graph = batch["graph"]
+                graph = graph.to(self.device)
+                out = self(graph)
+                labels = graph.y
+                loss = self.compute_loss(out, labels)
+                total_loss += loss.item()
+
+                # For binary/multilabel, threshold the logits at 0 (equivalent to prob > 0.5 after sigmoid)
+                preds = (out > 0).float() if (self.multi_label or self.num_classes == 2) else out.argmax(dim=1)
+                probs = out
+
+                probs = tonumpy(probs)
+                preds = tonumpy(preds)
+                labels = tonumpy(labels)
+
+                # split predictions per RNA if residue level
+                if not self.graph_level:
+                    cumulative_sizes = tuple(tonumpy(graph.ptr))
+                    probs = [
+                        probs[start:end]
+                        for start, end in zip(cumulative_sizes[:-1], cumulative_sizes[1:], strict=False)
+                    ]
+                    preds = [
+                        preds[start:end]
+                        for start, end in zip(cumulative_sizes[:-1], cumulative_sizes[1:], strict=False)
+                    ]
+                    labels = [
+                        labels[start:end]
+                        for start, end in zip(cumulative_sizes[:-1], cumulative_sizes[1:], strict=False)
+                    ]
+                all_probs.extend(probs)
+                all_preds.extend(preds)
+                all_labels.extend(labels)
+
+        if self.graph_level:
+            all_probs = np.stack(all_probs)
+            all_preds = np.stack(all_preds)
+            all_labels = np.stack(all_labels)
+        mean_loss = total_loss / len(loader)
+        return mean_loss, all_preds, all_probs, all_labels
+
+    def get_dataloader(self, task, split="test"):
+        if split == "test":
+            dataloader = task.test_dataloader
+        elif split == "val":
+            dataloader = task.val_dataloader
+        else:
+            dataloader = task.train_dataloader
+        return dataloader
+
+    def evaluate(self, task, split="test"):
+        dataloader = self.get_dataloader(task=task, split=split)
+        mean_loss, all_preds, all_probs, all_labels = self.inference(loader=dataloader)
+        metrics = task.compute_metrics(all_preds, all_probs, all_labels)
+        metrics["loss"] = mean_loss
+        return metrics
