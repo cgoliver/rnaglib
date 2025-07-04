@@ -28,6 +28,7 @@ NODE_FEATURE_MAP = {
     "glyco_bond": OneHotEncoder(mapping={'anti': 0, '--': 1, 'syn': 2}),
     "C5prime_xyz": ListEncoder(list_length=3),
     "P_xyz": ListEncoder(list_length=3),
+    "xyz_P": ListEncoder(list_length=3),
     # This looks like a redundant feature with glyco_bond...
     "form": OneHotEncoder(mapping={'anti': 0, '--': 1, 'syn': 2}),
     "ssZp": FloatEncoder(),
