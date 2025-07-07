@@ -5,7 +5,6 @@ import torch
 import torch.nn.functional as F
 import torch_geometric
 from torch_geometric.utils import coalesce, to_undirected
-import torch_cluster
 
 # Small epsilon value added to distances to avoid division by zero
 DISTANCE_EPS = 0.001
