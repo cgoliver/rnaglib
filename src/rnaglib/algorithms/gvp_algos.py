@@ -319,3 +319,21 @@ def normalize(tensor, dim=-1):
     '''
     return torch.nan_to_num(
         torch.div(tensor, torch.linalg.norm(tensor, dim=dim, keepdim=True)))
+
+def get_backbone_coords(graph, node_map, pyrimidine_bb_indices, purine_bb_indices):
+    """Extract coordinates of the selected backbone atom beads """
+    all_bb_atom_coords = []
+
+    for purine_atom, pyrimidine_atom in zip(purine_bb_indices, pyrimidine_bb_indices):
+        atom_coords_list = []
+        for n in node_map.keys():
+            if  graph.nodes()[n]['nt_code'] in ["A","G","a","g"]:
+                atom = purine_atom
+            elif graph.nodes()[n]['nt_code'] in ["C","U","c","u"]:
+                atom = pyrimidine_atom
+            coords = graph.nodes()[n][f'xyz_{atom}']
+            atom_coords_list.append(torch.as_tensor(coords))
+        atom_coords = torch.stack(atom_coords_list)
+        all_bb_atom_coords.append(atom_coords)
+    
+    return torch.stack(all_bb_atom_coords, dim = 1)
