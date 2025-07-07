@@ -23,18 +23,12 @@ class GVPGraphRepresentation(Representation):
     def __init__(
         self,
         clean_edges=True,
-        framework="nx",
         num_rbf = 32,
         num_posenc = 32,
         pyrimidine_bb_indices = ["P","C4'","N1"],
         purine_bb_indices = ["P","C4'","N9"],
         **kwargs,
     ):
-        authorized_frameworks = {"nx", "dgl", "pyg"}
-        assert framework in authorized_frameworks, (
-            f"Framework {framework} not supported for this representation. " f"Choose one of {authorized_frameworks}."
-        )
-        self.framework = framework
         self.num_rbf = num_rbf
         self.num_posenc = num_posenc
         self.clean_edges = clean_edges
@@ -45,17 +39,13 @@ class GVPGraphRepresentation(Representation):
         pass
 
     def __call__(self, rna_graph, features_dict):
+
         if self.clean_edges:
             base_graph = fix_buggy_edges(graph=rna_graph)
         else:
             base_graph = rna_graph
 
-        if self.framework == "nx":
-            return self.to_nx(base_graph, features_dict)
-        if self.framework == "dgl":
-            return self.to_dgl(base_graph, features_dict)
-        if self.framework == "pyg":
-            return self.to_pyg(base_graph, features_dict)
+        return self.to_pyg(base_graph, features_dict)
 
     def to_pyg(self, graph, features_dict):
         from torch_geometric.data import Data
@@ -84,6 +74,11 @@ class GVPGraphRepresentation(Representation):
         # Get backbone coordinates
         coords = get_backbone_coords(graph, node_map, self.pyrimidine_bb_indices, self.purine_bb_indices)
 
+        # Mask for missing coordinates for any backbone atom: num_res
+        mask_coords = torch.BoolTensor(mask_coords)
+        # Also mask non-standard nucleotides
+        mask_coords = (mask_coords) & (seq != self.letter_to_num["_"])
+
         # Node internal coordinates (scalars) and normalised vectors
         dihedrals, angles, lengths = internal_coords(coords)
         angle_stack = torch.cat([dihedrals, angles], dim=-1)
@@ -91,6 +86,12 @@ class GVPGraphRepresentation(Representation):
         internal_coords_feat = torch.cat([torch.cos(angle_stack), torch.sin(angle_stack), lengths], dim=-1)
         internal_vecs_feat = internal_vecs(coords)
 
+        # Remove residues with missing coordinates or non-standard nucleotides
+        seq = seq[mask_coords]
+        coords_list = coords_list[:, mask_coords] # [:, :, 1]  # only retain C4'
+        internal_coords_feat = internal_coords_feat[:, mask_coords]
+        internal_vecs_feat = internal_vecs_feat[:, mask_coords]
+        
         # Construct merged edge index
         edge_index = []
         for coord in coords:
@@ -99,7 +100,6 @@ class GVPGraphRepresentation(Representation):
         edge_index = to_undirected(coalesce(
             torch.concat(edge_index, dim=1)
         ))
-
 
         # Edge displacement vectors: num_edges x num_conf x num_res x 3
         edge_vectors = coords[edge_index[0]] - coords[edge_index[1]]
@@ -139,17 +139,9 @@ class GVPGraphRepresentation(Representation):
         :param samples: A list of the output from this representation
         :return: a batched version of it.
         """
-        if self.framework == "nx":
-            return samples
-        if self.framework == "dgl":
-            import dgl
-
-            batched_graph = dgl.batch([sample for sample in samples])
-            return batched_graph
-        if self.framework == "pyg":
-            from torch_geometric.data import Batch
-            batch = Batch.from_data_list(samples)
-            # sometimes batching changes dtype from int to float32?
-            batch.edge_index = batch.edge_index.to(torch.int64)
-            batch.edge_attr = batch.edge_attr.to(torch.int64)
-            return batch
+        from torch_geometric.data import Batch
+        batch = Batch.from_data_list(samples)
+        # sometimes batching changes dtype from int to float32?
+        batch.edge_index = batch.edge_index.to(torch.int64)
+        batch.edge_attr = batch.edge_attr.to(torch.int64)
+        return batch
