@@ -38,15 +38,35 @@ modifications = get_modifications_cache()
 
 def get_rna_chains(mmcif_dict):
     """Return the list of RNA Chain IDs."""
+
+    """
     rna_chains = [
         chain
         for chain, chain_type in zip(mmcif_dict["_entity_poly.pdbx_strand_id"], mmcif_dict["_entity_poly.type"])
-        if chain_type == "polyribonucleotide"
+        if "ribonucleotide" in chain_type
     ]
+    """
+
+    chain_to_seq = defaultdict(list)
+    # grab all the nucleotide types for each atom 
+    # this seems to the the lowest level of information where we can
+    # discern that cif contains RNA.
+    # otherwise we rely on some metadata that may be absent
+    for chain_id, nuc_type in zip(mmcif_dict["_atom_site.label_asym_id"],
+                                  mmcif_dict["_atom_site.label_comp_id"]):
+
+        
+        chain_to_seq[chain_id].append(nuc_type.upper())
+    rna_chains = []
+    valid_nucs = set(modifications) | {"A", "U", "C", "G"}
+    for chain, seq in chain_to_seq.items():
+        if all(s in valid_nucs for s in seq):
+            rna_chains.append(chain)
     cleaned = []
     for r in rna_chains:
         sub = r.split(",")
         cleaned.extend([s for s in sub])
+    print(cleaned)
     return cleaned
 
 
@@ -151,7 +171,10 @@ def fr3d_to_graph(rna_path):
 
     # add coords with biopython
     parser = MMCIFParser()
-    structure = parser.get_structure("", rna_path)[0]
+    print(rna_path)
+    structure = parser.get_structure("", rna_path)
+    print(structure)
+    structure = structure[0]
 
     # bbs, nt_types = get_bb(structure, rna_chains, pdbid=pdbid)
     bbs, nt_types, nt_types_full = get_bb(structure, rna_chains, XNA_linking, pdbid=pdbid)

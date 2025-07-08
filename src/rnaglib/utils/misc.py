@@ -132,7 +132,7 @@ def clean_mmcif(
     rna_residues = ["A", "U", "C", "G"]
 
     chain_structure = gemmi.Structure()
-    chain_structure.add_model(gemmi.Model("X"))
+    chain_structure.add_model(gemmi.Model(0))
     # Iterate over all models and chains
     paths = []
     for chain in structure[0]:
