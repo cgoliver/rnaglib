@@ -187,10 +187,6 @@ def fr3d_to_graph(rna_path):
                     f"Couldn't find phosphate atom, taking center of atoms in residue instead for {pdbid}.{chain}.{pos} is at {phos_coord}."
                 )
             logger.debug(f"{node} {phos_coord}")
-            for atom in r:
-                if atom != "P":
-                    atom_coord = list(map(float, r[atom].get_coord()))
-                    coord_dict[node] = {f"xyz_{atom}": list(map(float, atom_coord))}
             coord_dict[node] = {"xyz_P": list(map(float, phos_coord))}
         nx.set_node_attributes(G, coord_dict)
     except Exception as e:
