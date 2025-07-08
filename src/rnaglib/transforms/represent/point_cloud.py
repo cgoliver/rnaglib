@@ -25,7 +25,7 @@ def get_point_cloud_dict(rna_graph, features_dict, sort=False):
     node_iterator = sorted(node_iterator) if sort else node_iterator
     for node, attrs in node_iterator:
         node_names.append(node)
-        node_coords = attrs['C5prime_xyz']
+        node_coords = attrs['xyz_P']
         node_coords = torch.as_tensor(np.array(node_coords, dtype=float))
         res_dict['point_cloud_coords'].append(node_coords)
         if "nt_features" in features_dict:
