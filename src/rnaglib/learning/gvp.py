@@ -429,10 +429,10 @@ class GVPModel(torch.nn.Module):
         final_activation="sigmoid",
         device=None,
         seq_in=False,
-        node_in_dim=(15,4),
-        node_h_dim=(15,3),
-        edge_in_dim=(131,3),
-        edge_h_dim=(131,3),
+        node_in_dim=(4,2),
+        node_h_dim=(4,2),
+        edge_in_dim=(32,1),
+        edge_h_dim=(32,1),
     ):
         super().__init__()
         self.num_node_features = num_node_features
@@ -443,12 +443,12 @@ class GVPModel(torch.nn.Module):
         self.hidden_channels = hidden_channels
         self.dropout_rate = dropout_rate
         self.multi_label = multi_label
-        self.seq_in=seq_in
+        self.seq_in = seq_in
         self.node_in_dim = node_in_dim
         self.node_h_dim = node_h_dim
         self.edge_in_dim = edge_in_dim
         self.edge_h_dim = edge_h_dim
-        if seq_in:
+        if self.seq_in:
             self.W_s = nn.Embedding(4, 4)
             node_in_dim = (self.node_in_dim[0] + 4, self.node_in_dim[1])
         
@@ -480,12 +480,26 @@ class GVPModel(torch.nn.Module):
         else:
             self.final_activation = torch.nn.Identity()
 
-        self.dense = nn.Sequential(
-            nn.Linear(ns, 2*ns), 
-            self.final_activation,
-            nn.Dropout(p=self.dropout_rate),
-            nn.Linear(2*ns, 1)
-        )
+        # Initialize training components
+        # Output layer
+        if self.multi_label:
+            self.final_linear = torch.nn.Linear(ns, self.num_classes)
+            self.criterion = torch.nn.BCEWithLogitsLoss()
+            self.final_activation = torch.nn.Identity()  # Use Identity for multi-label
+        elif num_classes == 2:
+            self.final_linear = torch.nn.Linear(ns, 1)
+            # Weight will be set in train_model based on actual class distribution
+            self.criterion = torch.nn.BCEWithLogitsLoss()
+            self.final_activation = torch.nn.Identity()  # Use Identity for binary
+        else:
+            self.final_linear = torch.nn.Linear(ns, self.num_classes)
+            self.criterion = torch.nn.CrossEntropyLoss()
+            if final_activation == "sigmoid":
+                self.final_activation = torch.nn.Sigmoid()
+            elif final_activation == "softmax":
+                self.final_activation = torch.nn.Softmax(dim=1)
+            else:
+                self.final_activation = torch.nn.Identity()
 
         self.optimizer = None
         if device is None:
@@ -502,7 +516,7 @@ class GVPModel(torch.nn.Module):
     
     def forward(self, data): 
         h_V, edge_index, h_E, seq, batch = data.h_V, data.edge_index, data.h_E, data.seq, data.batch
-        if seq is not None:
+        if self.seq_in:
             seq = self.W_s(seq)
             h_V = (torch.cat([h_V[0], seq], dim=-1), h_V[1])
         h_V = self.W_v(h_V)
@@ -515,7 +529,9 @@ class GVPModel(torch.nn.Module):
                 out = out.mean(dim=0, keepdims=True)
             else:
                 out = scatter_mean(out, batch, dim=0)
-        return self.dense(out).squeeze(-1) + 0.5
+        out = self.final_linear(out)
+        out = self.final_activation(out)
+        return out.squeeze(-1)
     
     def configure_training(self, learning_rate=0.001):
         """Configure training settings."""
@@ -526,22 +542,27 @@ class GVPModel(torch.nn.Module):
     def compute_loss(self, out, target):
         # If just two classes, flatten outputs since BCE behavior expects equal dimensions and CE (N,k):(N)
         # Otherwise CE expects long as outputs
-        if not self.multi_label:
+        if self.multi_label:
+            target = target.float()
+            pass
+        else:
             if self.num_classes == 2:
                 out = out.flatten()
-            else:
-                target = target.long()
         loss = self.criterion(out, target)
         return loss
 
-    def train_model(self, task, epochs=500):
+    def train_model(self, task, epochs=500, print_all_epochs=False):
         if self.optimizer is None:
             self.configure_training()
 
         # Set class weights for binary classification based on actual distribution
         if self.num_classes == 2:
-            neg_count = float(task.metadata["class_distribution"]["0"])
-            pos_count = float(task.metadata["class_distribution"]["1"])
+            if "0" in task.metadata["class_distribution"]:
+                neg_count = float(task.metadata["class_distribution"]["0"])
+                pos_count = float(task.metadata["class_distribution"]["1"])
+            else:
+                neg_count = float(task.metadata["class_distribution"][0])
+                pos_count = float(task.metadata["class_distribution"][1])
             pos_weight = torch.tensor(np.sqrt(neg_count / pos_count)).to(self.device)
             self.criterion = torch.nn.BCEWithLogitsLoss(pos_weight=pos_weight)
         for epoch in range(epochs):
@@ -550,17 +571,18 @@ class GVPModel(torch.nn.Module):
             epoch_loss = 0
             num_batches = 0
             for batch in task.train_dataloader:
-                graph = batch["graph"].to(self.device)
-                self.optimizer.zero_grad()
-                out = self(graph)
-                loss = self.compute_loss(out, graph.y)
-                loss.backward()
-                self.optimizer.step()
-                epoch_loss += loss.item()
-                num_batches += 1
+                if batch['gvp_graph'].num_nodes>0:
+                    graph = batch["gvp_graph"].to(self.device)
+                    self.optimizer.zero_grad()
+                    out = self(graph)
+                    loss = self.compute_loss(out, graph.y)
+                    loss.backward()
+                    self.optimizer.step()
+                    epoch_loss += loss.item()
+                    num_batches += 1
 
             # Validation phase
-            if epoch % 10 == 0:
+            if print_all_epochs or epoch % 10 == 0:
                 val_metrics = self.evaluate(task, split="val")
                 print(
                     f"Epoch {epoch}: train_loss = {epoch_loss / num_batches:.4f}, val_loss = {val_metrics['loss']:.4f}",
@@ -583,7 +605,7 @@ class GVPModel(torch.nn.Module):
         total_loss = 0
         with torch.no_grad():
             for batch in loader:
-                graph = batch["graph"]
+                graph = batch["gvp_graph"]
                 graph = graph.to(self.device)
                 out = self(graph)
                 labels = graph.y
