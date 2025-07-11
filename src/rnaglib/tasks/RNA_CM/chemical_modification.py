@@ -4,7 +4,7 @@ from tqdm import tqdm
 from rnaglib.dataset import RNADataset
 from rnaglib.tasks import ResidueClassificationTask
 from rnaglib.transforms import FeaturesComputer
-from rnaglib.transforms import ResidueAttributeFilter, DummyFilter
+from rnaglib.transforms import ResidueAttributeFilter, DummyFilter, AtomCoordsAnnotator
 from rnaglib.transforms import ConnectedComponentPartition
 from rnaglib.dataset_transforms import ClusterSplitter
 
@@ -24,7 +24,8 @@ class ChemicalModification(ResidueClassificationTask):
     default_metric = "balanced_accuracy"
     version = "2.0.2"
 
-    def __init__(self, size_thresholds=(15, 500), **kwargs):
+    def __init__(self, size_thresholds=(15, 500), coors_annotation="P_only", **kwargs):
+        self.coors_annotation = coors_annotation 
         meta = {'multi_label': False}
         super().__init__(additional_metadata=meta, size_thresholds=size_thresholds, **kwargs)
 
@@ -62,9 +63,13 @@ class ChemicalModification(ResidueClassificationTask):
         if self.debug:
             residue_attribute_filter = DummyFilter()
         connected_components_partition = ConnectedComponentPartition()
-
+        if self.coors_annotation!="P_only":
+            heavy_only = self.coors_annotation == "heavy_only"
+            coors_annotator = AtomCoordsAnnotator(heavy_only=heavy_only)
+        else:
+            coors_annotator = None
         # Run through database, applying our filters
-        dataset = RNADataset(debug=self.debug, in_memory=self.in_memory, version=self.version)
+        dataset = RNADataset(debug=self.debug, in_memory=self.in_memory, version=self.version, transforms=coors_annotator)
         all_rnas = []
         for rna in tqdm(dataset):
             for rna_connected_component in connected_components_partition(rna):
