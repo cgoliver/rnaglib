@@ -57,8 +57,9 @@ def get_rna_chains(mmcif_dict):
 
         
         chain_to_seq[chain_id].append(nuc_type.upper())
+    print(chain_to_seq)
     rna_chains = []
-    valid_nucs = set(modifications) | {"A", "U", "C", "G"}
+    valid_nucs = set(modifications['rna']) | {"A", "U", "C", "G"}
     for chain, seq in chain_to_seq.items():
         if all(s in valid_nucs for s in seq):
             rna_chains.append(chain)
@@ -66,7 +67,6 @@ def get_rna_chains(mmcif_dict):
     for r in rna_chains:
         sub = r.split(",")
         cleaned.extend([s for s in sub])
-    print(cleaned)
     return cleaned
 
 
