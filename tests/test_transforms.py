@@ -8,6 +8,7 @@ from rnaglib.transforms import Compose
 from rnaglib.transforms import SizeFilter
 from rnaglib.transforms import ChainSplitTransform
 from rnaglib.transforms import ConnectedComponentPartition
+from rnaglib.transforms import AtomCoordsAnnotator
 
 
 class TransformsTest(unittest.TestCase):
@@ -79,3 +80,10 @@ class TransformsTest(unittest.TestCase):
         t(self.dataset[0])
         self.check_gdata(g["rna"], "rfam")
         self.check_ndata(g["rna"], "rnafm")
+
+    def test_atom_coordinates(self):
+        g = self.dataset[0]
+        t = AtomCoordsAnnotator()
+        t(self.dataset[0])
+        self.check_ndata(g["rna"], "xyz_C1'")
+
