@@ -46,6 +46,7 @@ class AtomCoordsAnnotator(AnnotationTransform):
 
         try:
             coord_dict = defaultdict(dict)
+            atom_names = []
             for node in g.nodes():
                 chain, pos = node.split(".")[1:]
                 try:
@@ -54,20 +55,17 @@ class AtomCoordsAnnotator(AnnotationTransform):
                     for res in structure[chain]:
                         if int(pos) == res.id[1]:  # got non-standard residue
                             r = res
-                try:
-                    phos_coord = list(map(float, r["P"].get_coord()))
-                except KeyError:
-                    phos_coord = np.mean([a.get_coord() for a in r], axis=0)
-                    logger.warning(
-                        f"Couldn't find phosphate atom, taking center of atoms in residue instead for {pdbid}.{chain}.{pos} is at {phos_coord}."
-                    )
                 for atom in r:
                     atom_name = atom.get_name()
                     if atom_name != "P" and not (atom_name.startswith("H") and self.heavy_only):
+                        atom_names.append(atom_name)
                         atom_coord = list(map(float, atom.get_coord()))
                         coord_dict[node][f"xyz_{atom_name}"] = list(map(float, atom_coord))
                         logger.debug(f"{node} {atom_coord}")
-
+            for node in g.nodes():
+                for atom_name in atom_names:
+                    if f"xyz_{atom_name}" not in coord_dict[node]:
+                        coord_dict[node][f"xyz_{atom_name}"] = None
             nx.set_node_attributes(g, coord_dict)
 
         except Exception as e:
