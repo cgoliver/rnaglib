@@ -398,10 +398,8 @@ class GVPModel(torch.nn.Module):
     def __init__(
         self,
         num_classes,
-        num_unique_edge_attrs=20,
         graph_level=False,
         num_layers=2,
-        hidden_channels=128,
         dropout_rate=0.5,
         multi_label=False,
         final_activation="sigmoid",
@@ -413,10 +411,8 @@ class GVPModel(torch.nn.Module):
     ):
         super().__init__()
         self.num_classes = num_classes
-        self.num_unique_edge_attrs = num_unique_edge_attrs
         self.graph_level = graph_level
         self.num_layers = num_layers
-        self.hidden_channels = hidden_channels
         self.dropout_rate = dropout_rate
         self.multi_label = multi_label
         self.node_in_dim = node_in_dim
@@ -435,23 +431,14 @@ class GVPModel(torch.nn.Module):
         )
         
         self.layers = nn.ModuleList(
-                GVPConvLayer(self.node_h_dim, self.edge_h_dim, drop_rate=self.dropout_rate) 
-            for _ in range(self.num_layers))
+            GVPConvLayer(self.node_h_dim, self.edge_h_dim, drop_rate=self.dropout_rate) for _ in range(self.num_layers)
+        )
         
         ns, _ = self.node_h_dim
         self.W_out = nn.Sequential(
             LayerNorm(self.node_h_dim),
             GVP(self.node_h_dim, (ns, 0))
         )
-
-        if final_activation == "sigmoid":
-            self.final_activation = torch.nn.Sigmoid()
-        elif final_activation == "softmax":
-            self.final_activation = torch.nn.Softmax(dim=1)
-        elif final_activation == "relu":
-            self.final_activation = torch.nn.ReLU(inplace=True)
-        else:
-            self.final_activation = torch.nn.Identity()
 
         # Initialize training components
         # Output layer
