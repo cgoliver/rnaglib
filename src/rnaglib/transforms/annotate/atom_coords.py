@@ -1,6 +1,7 @@
 import os
 import sys
 
+import torch
 import numpy as np
 from pathlib import Path
 from typing import Union
@@ -10,25 +11,28 @@ from loguru import logger
 from Bio.PDB.MMCIFParser import MMCIFParser
 
 from rnaglib.transforms import AnnotationTransform
+from rnaglib.algorithms import fix_buggy_edges, internal_coords, internal_vecs, rbf_expansion, positional_encoding, normed_vec, get_backbone_coords
 
 logger.remove()
 logger.add(sys.stderr, level="INFO")
 
 class AtomCoordsAnnotator(AnnotationTransform):
-    """Annotation transform adding to each node of the dataset the 3D coordinates of all itss heavy atoms
+    """Annotation transform adding to each node of the dataset the 3D coordinates of its atoms or heavy atoms
 
-    :param bool include_ions: if set to False, only small-molecule-binding RNA residues are considered part of a binding site. If set to True, ion-binding RNA residues are also considered part of a binding site
-    :param float cutoff: the maximal distance (in Angstroms) between an RNA residue and any small molecule or ion atom such that the RNA residue is considered part of a binding site (either 4.0, 6.0 or 8.0, default 6.0)
+    :param Union[os.PathLike, str] structures_dir: directory in which the cif files of RNAs are stored
+    :param bool heavy_only: if set to True, the coordinates of all heavy atoms are annotated, if set to False, the coordinates of hydrogen atoms are also computed
+    :param List[str] atoms_list: list of names of atoms which coordinates to extract. If not set to None, it has the prioirty over heavy_only parameter
     """
-    def __init__(self, structures_dir: Union[os.PathLike, str]=None, heavy_only=True):
+    def __init__(self, structures_dir: Union[os.PathLike, str]=None, heavy_only=True, atoms_list=None):
         super().__init__()
         self.structures_dir = structures_dir
         self.heavy_only = heavy_only
+        self.atoms_list = atoms_list
 
     def forward(self, rna_dict: dict) -> dict:
         """Application of the transform to an RNA dictionary object
 
-        :param dict rna_dict: the RNA dictionary which has to be annotated with binding site information
+        :param dict rna_dict: the RNA dictionary which has to be annotated with atom coordinates
         :return: the annotated version of rna_dict
         :rtype: dict
         """
@@ -57,7 +61,7 @@ class AtomCoordsAnnotator(AnnotationTransform):
                             r = res
                 for atom in r:
                     atom_name = atom.get_name()
-                    if atom_name != "P" and not (atom_name.startswith("H") and self.heavy_only):
+                    if atom_name != "P" and not (atom_name.startswith("H") and self.heavy_only) and not(self.atoms_list is not None and atom not in self.atoms_list):
                         atom_names.append(atom_name)
                         atom_coord = list(map(float, atom.get_coord()))
                         coord_dict[node][f"xyz_{atom_name}"] = list(map(float, atom_coord))
