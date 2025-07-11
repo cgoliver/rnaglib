@@ -302,6 +302,9 @@ class GVPConvLayer(nn.Module):
     network to node embeddings, and returns updated node embeddings.
     
     To only compute the aggregated messages, see `GVPConv`.
+
+    Reference: Jing, B., Eismann, S., Suriana, P., Townshend, R. J., & Dror, R. (2020). Learning
+    from protein structure with geometric vector perceptrons. arXiv preprint arXiv:2009.01411.
     
     :param node_dims: node embedding dimensions (n_scalar, n_vector)
     :param edge_dims: input edge embedding dimensions (n_scalar, n_vector)
@@ -403,7 +406,6 @@ class GVPModel(torch.nn.Module):
         multi_label=False,
         final_activation="sigmoid",
         device=None,
-        seq_in=False,
         node_in_dim=(4,2),
         node_h_dim=(4,2),
         edge_in_dim=(32,1),
@@ -417,14 +419,11 @@ class GVPModel(torch.nn.Module):
         self.hidden_channels = hidden_channels
         self.dropout_rate = dropout_rate
         self.multi_label = multi_label
-        self.seq_in = seq_in
         self.node_in_dim = node_in_dim
         self.node_h_dim = node_h_dim
         self.edge_in_dim = edge_in_dim
         self.edge_h_dim = edge_h_dim
-        if self.seq_in:
-            self.W_s = nn.Embedding(4, 4)
-            node_in_dim = (self.node_in_dim[0] + 4, self.node_in_dim[1])
+
         
         self.W_v = nn.Sequential(
             LayerNorm(node_in_dim),
@@ -460,7 +459,7 @@ class GVPModel(torch.nn.Module):
             self.final_linear = torch.nn.Linear(ns, self.num_classes)
             self.criterion = torch.nn.BCEWithLogitsLoss()
             self.final_activation = torch.nn.Identity()  # Use Identity for multi-label
-        elif num_classes == 2:
+        elif self.num_classes == 2:
             self.final_linear = torch.nn.Linear(ns, 1)
             # Weight will be set in train_model based on actual class distribution
             self.criterion = torch.nn.BCEWithLogitsLoss()
@@ -489,10 +488,7 @@ class GVPModel(torch.nn.Module):
         self.configure_training()
     
     def forward(self, data): 
-        h_V, edge_index, h_E, seq, batch = data.h_V, data.edge_index, data.h_E, data.seq, data.batch
-        if self.seq_in:
-            seq = self.W_s(seq)
-            h_V = (torch.cat([h_V[0], seq], dim=-1), h_V[1])
+        h_V, edge_index, h_E, batch = data.h_V, data.edge_index, data.h_E, data.batch
         h_V = self.W_v(h_V)
         h_E = self.W_e(h_E)
         for layer in self.layers:
@@ -539,6 +535,7 @@ class GVPModel(torch.nn.Module):
                 pos_count = float(task.metadata["class_distribution"][1])
             pos_weight = torch.tensor(np.sqrt(neg_count / pos_count)).to(self.device)
             self.criterion = torch.nn.BCEWithLogitsLoss(pos_weight=pos_weight)
+            
         for epoch in range(epochs):
             # Training phase
             self.train()
