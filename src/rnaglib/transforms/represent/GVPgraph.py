@@ -2,13 +2,16 @@ import torch
 import networkx as nx
 from torch_geometric.utils import coalesce, to_undirected
 import torch_cluster
+from typing import List
 
 from rnaglib.config.graph_keys import GRAPH_KEYS, TOOL
 from rnaglib.config.feature_encoders import NODE_FEATURE_MAP
-from rnaglib.algorithms import fix_buggy_edges, internal_coords, internal_vecs, rbf_expansion, positional_encoding, normed_vec, get_backbone_coords
+from rnaglib.algorithms import fix_buggy_edges, internal_coords, internal_vecs, rbf_expansion, positional_encoding, normed_vec, get_backbone_coords, forward_reverse_vecs, get_sequences
 
 from .representation import Representation
 
+# Small epsilon value added to distances to avoid division by zero
+DISTANCE_EPS = 0.001
 
 class GVPGraphRepresentation(Representation):
     """
@@ -22,18 +25,34 @@ class GVPGraphRepresentation(Representation):
 
     def __init__(
         self,
-        clean_edges=True,
-        num_rbf = 32,
-        num_posenc = 32,
-        pyrimidine_bb_indices = ["P","C4'","N1"],
-        purine_bb_indices = ["P","C4'","N9"],
+        clean_edges = True,
+        graph_construction: str = "knn",
+        top_k: int = 16,
+        node_scalar_features: List[str] = ["seq"],
+        node_vector_features: List[str] = ["forward_reverse_unit_vectors"],
+        edge_scalar_features: List[str] = ["RBF"],
+        edge_vector_features: List[str] = ["unit_vector"],
+        num_rbf: int = 32,
+        num_posenc: int = 32,
+        center_atom: str = "P",
+        pyrimidine_frame_indices: List[str] = ["P","C4'","N1"],
+        purine_frame_indices: List[str] = ["P","C4'","N9"],
+        distance_eps: float = DISTANCE_EPS,
         **kwargs,
     ):
+        self.graph_construction = graph_construction
+        self.top_k = top_k
+        self.node_scalar_features = node_scalar_features
+        self.node_vector_features = node_vector_features
+        self.edge_scalar_features = edge_scalar_features
+        self.edge_vector_features = edge_vector_features
         self.num_rbf = num_rbf
         self.num_posenc = num_posenc
+        self.center_atom = center_atom
         self.clean_edges = clean_edges
-        self.pyrimidine_bb_indices = pyrimidine_bb_indices
-        self.purine_bb_indices = purine_bb_indices
+        self.pyrimidine_frame_indices = pyrimidine_frame_indices
+        self.purine_frame_indices = purine_frame_indices
+        self.distance_eps = distance_eps
 
         super().__init__(**kwargs)
         pass
@@ -52,7 +71,31 @@ class GVPGraphRepresentation(Representation):
 
         # for some reason from_networkx is not working so doing by hand
         # not super efficient at the moment
-        node_map = {n: i for i, n in enumerate(sorted(graph.nodes()))}
+        chain_seqs = get_sequences(graph)
+        global_index = 0
+        node_map = {}
+        # Indices at which the forward vector can't be computed (before discontinuities or at chain ends)
+        no_forward = []
+        # Indices at which the backward vector can't be computed (rightr after discontinuities or at chain beginnings)
+        no_backward = []
+
+        for chain in chain_seqs:
+            no_backward.append(global_index)
+            resname = chain_seqs[chain][1][0]
+            ind = int(resname.split('.')[2])
+            # Sort nodes
+            node_map[resname] = global_index
+            global_index += 1
+            for resname in chain_seqs[chain][1][1:]:
+                ind_new = int(resname.split('.')[2])
+                if ind_new != ind + 1:
+                    no_forward.append(global_index-1)
+                    no_backward.append(global_index)
+                ind = ind_new
+                node_map[resname] = global_index
+                global_index += 1
+            no_forward.append(global_index-1)
+
         seq, y = None, None
         if "nt_features" in features_dict:
             seq = (
@@ -72,65 +115,98 @@ class GVPGraphRepresentation(Representation):
             y = features_dict["rna_targets"].clone().detach()
 
         # Get backbone coordinates
-        coords = get_backbone_coords(graph, node_map, self.pyrimidine_bb_indices, self.purine_bb_indices)
-
+        nucleotide_coords, mask_coords = get_backbone_coords(graph, node_map, [self.center_atom], [self.center_atom])
+        nucleotide_coords = nucleotide_coords[:, 0, :]
+        compute_frame_coords = False
+        if any(feat in self.node_scalar_features for feat in ["dihedrals","angles","lengths"]) or "internal_vecs" in self.node_vector_features:
+            compute_frame_coords = True
+            coords, mask_coords = get_backbone_coords(graph, node_map, self.pyrimidine_frame_indices, self.purine_frame_indices)
+        
         # Mask for missing coordinates for any backbone atom: num_res
         mask_coords = torch.BoolTensor(mask_coords)
-        # Also mask non-standard nucleotides
-        mask_coords = (mask_coords) & (seq != self.letter_to_num["_"])
 
-        # Node internal coordinates (scalars) and normalised vectors
-        dihedrals, angles, lengths = internal_coords(coords)
-        angle_stack = torch.cat([dihedrals, angles], dim=-1)
-        lengths = torch.log(lengths + self.distance_eps)
-        internal_coords_feat = torch.cat([torch.cos(angle_stack), torch.sin(angle_stack), lengths], dim=-1)
-        internal_vecs_feat = internal_vecs(coords)
+        # Node scalar features
+        node_s_list = []
+        if compute_frame_coords:
+            dihedrals, angles, lengths = internal_coords(coords, mask_coords)
+        if "seq" in self.node_scalar_features:
+            node_s_list.append(seq)
+        if "dihedrals" in self.node_scalar_features:
+            node_s_list += [torch.cos(dihedrals), torch.sin(dihedrals)]
+        if "angles" in self.node_scalar_features:
+            node_s_list += [torch.cos(angles), torch.sin(angles)]
+        if "lengths" in self.node_scalar_features:
+            lengths = torch.log(lengths + self.distance_eps)
+            node_s_list.append(lengths)
+        node_s = torch.cat(node_s_list, dim = -1)[mask_coords]
+
+        # Node vector features
+        node_v_list = []
+        if "forward_reverse_unit_vectors" in self.node_vector_features:
+            forward_reverse_vecs_feat = forward_reverse_vecs(nucleotide_coords, no_forward, no_backward)
+            node_v_list.append(forward_reverse_vecs_feat)
+        if "internal_vecs" in self.node_vector_features:
+            internal_vecs_feat = internal_vecs(coords)
+            node_v_list.append(internal_vecs_feat)
+        node_v = torch.cat(node_v_list, dim = -2)[mask_coords]
 
         # Remove residues with missing coordinates or non-standard nucleotides
         seq = seq[mask_coords]
-        coords_list = coords_list[:, mask_coords] # [:, :, 1]  # only retain C4'
-        internal_coords_feat = internal_coords_feat[:, mask_coords]
-        internal_vecs_feat = internal_vecs_feat[:, mask_coords]
-        
-        # Construct merged edge index
-        edge_index = []
-        for coord in coords:
+        if "nt_targets" in features_dict:
+            y = y[mask_coords]
+        if compute_frame_coords:
+            coords = coords[mask_coords]
+
+        if self.graph_construction == "knn":
             # K-nearest neighbour graph using centroids of each neucleotide
-            edge_index.append(torch_cluster.knn_graph(coord.mean(1), self.top_k))
-        edge_index = to_undirected(coalesce(
-            torch.concat(edge_index, dim=1)
-        ))
+            edge_index = torch_cluster.knn_graph(nucleotide_coords, self.top_k)
+            edge_index = to_undirected(edge_index)
+        elif self.graph_construction == "base_pair":
+            # Base-pairing graph
+            edge_index = [[node_map[u], node_map[v]] for u, v in sorted(graph.edges())]
+            edge_index = torch.tensor(edge_index, dtype=torch.long).T
 
-        # Edge displacement vectors: num_edges x num_conf x num_res x 3
-        edge_vectors = coords[edge_index[0]] - coords[edge_index[1]]
-        edge_lengths = torch.sqrt((edge_vectors ** 2).sum(dim=-1) + self.distance_eps) #.unsqueeze(-1)
+        # Edge vector features
+        edge_v_list = []
+        if "unit_vector" in self.edge_vector_features:
+            # Edge displacement vectors: num_edges x num_res x 3
+            edge_vector = nucleotide_coords[edge_index[0]] - nucleotide_coords[edge_index[1]]
+            edge_vector = normed_vec(edge_vector).unsqueeze_(-2)
+            edge_v_list.append(edge_vector)
+        edge_v = torch.cat(edge_v_list, dim = -2)
 
-        # Edge RBF features: num_edges x num_conf x num_rbf
-        edge_rbf = rbf_expansion(edge_lengths, num_rbf=self.num_rbf)
+        # Edge scalar features
+        edge_s_list = []
+        if "lengths" in self.edge_scalar_features:
+            edge_vector = nucleotide_coords[edge_index[0]] - nucleotide_coords[edge_index[1]]
+            edge_lengths = torch.sqrt((edge_vector ** 2).sum(dim=-1) + self.distance_eps)
+            log_edge_lengths = torch.log(edge_lengths)
+            edge_s_list.append(log_edge_lengths)
+        if "RBF" in self.edge_scalar_features:
+            edge_vector = nucleotide_coords[edge_index[0]] - nucleotide_coords[edge_index[1]]
+            edge_lengths = torch.sqrt((edge_vector ** 2).sum(dim=-1) + self.distance_eps)
+            # Edge RBF features
+            edge_rbf = rbf_expansion(edge_lengths, num_rbf=self.num_rbf)
+            edge_s_list.append(edge_rbf)
+        if "posenc" in self.edge_scalar_features:
+            # Edge positional encodings: num_edges x num_conf x num_posenc
+            edge_posenc = positional_encoding(
+                (edge_index[0] - edge_index[1])[..., None], self.num_posenc
+            )
+            edge_s_list.append(edge_posenc)
+        edge_s = torch.cat(edge_s_list, dim=-1)
 
-        # Edge positional encodings: num_edges x num_conf x num_posenc
-        edge_posenc = positional_encoding(
-            (edge_index[0] - edge_index[1])[..., None], self.num_posenc
-        ).unsqueeze_(1).repeat(1, self.max_num_conformers, 1)
-
-        node_s = internal_coords_feat
-        node_v = internal_vecs_feat
-        edge_s = torch.cat([edge_rbf, edge_posenc, torch.log(edge_lengths)], dim=-1)
-        edge_v = normed_vec(edge_vectors) # .unsqueeze(-2)
         node_s, node_v, edge_s, edge_v = map(
             torch.nan_to_num,
             (node_s, node_v, edge_s, edge_v)
         )
+        num_nodes = node_s.shape[0]
 
-        edge_index = [[node_map[u], node_map[v]] for u, v in sorted(graph.edges())]
-        edge_index = torch.tensor(edge_index, dtype=torch.long).T
-        edge_attrs = [self.edge_map[data[self.etype_key]] for u, v, data in sorted(graph.edges(data=True))]
-        edge_attrs = torch.tensor(edge_attrs)
-        return Data(h_V=(node_s, node_v), y=y, edge_index=edge_index, h_E=(edge_s, edge_v), seq=seq)
+        return Data(h_V=(node_s, node_v), y=y, edge_index=edge_index, h_E=(edge_s, edge_v), seq=seq, num_nodes=num_nodes)
 
     @property
     def name(self):
-        return "graph"
+        return "gvp_graph"
 
     def batch(self, samples):
         """
@@ -143,5 +219,4 @@ class GVPGraphRepresentation(Representation):
         batch = Batch.from_data_list(samples)
         # sometimes batching changes dtype from int to float32?
         batch.edge_index = batch.edge_index.to(torch.int64)
-        batch.edge_attr = batch.edge_attr.to(torch.int64)
         return batch
