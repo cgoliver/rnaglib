@@ -37,8 +37,7 @@ edge_s, edge_v = ta.dataset[0]['gvp_graph'].h_E
 
 # Or using a wrapper class
 model = GVPModel(
-    ta.metadata["num_node_features"],
-    ta.metadata["num_classes"],
+    num_classes=ta.metadata["num_classes"],
     graph_level=False,
     node_in_dim=(node_s.shape[1],node_v.shape[1]),
     node_h_dim=(node_s.shape[1],node_v.shape[1]),
