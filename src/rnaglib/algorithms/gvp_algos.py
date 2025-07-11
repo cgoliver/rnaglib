@@ -31,22 +31,22 @@ def internal_coords(
 
     Inputs:
         X (Tensor): Backbone coordinates with shape
-            `(num_batch, num_residues, num_atom_types, 3)`.
+            `(num_residues, num_atom_types, 3)`.
         C (Tensor): Chain map tensor with shape
-            `(num_batch, num_residues)`.
+            `(num_residues)`.
 
     Outputs:
         dihedrals (Tensor): Backbone dihedral angles with shape
             `(num_batch, num_residues, 4)`
-        angles (Tensor): Backbone bond lengths with shape
+        angles (Tensor): Backbone bond angles with shape
             `(num_batch, num_residues, 4)`
         lengths (Tensor): Backbone bond lengths with shape
             `(num_batch, num_residues, 4)`
     """
     mask = (C > 0).float()
-    X_chain = X[:, :, :2, :]
-    num_batch, num_residues, _, _ = X_chain.shape
-    X_chain = X_chain.reshape(num_batch, 2 * num_residues, 3)
+    X_chain = X[:, :2, :]
+    num_residues, _, _ = X_chain.shape
+    X_chain = X_chain.reshape(2 * num_residues, 3)
 
     # This function historically returns the angle complement
     _lengths = lambda Xi, Xj: lengths(Xi, Xj, distance_eps=distance_eps)
@@ -58,21 +58,21 @@ def internal_coords(
     )
 
     # Compute internal coordinates associated with -[P]-[C4']-
-    PC4p_L = _lengths(X_chain[:, 1:, :], X_chain[:, :-1, :])
-    PC4p_A = _angles(X_chain[:, :-2, :], X_chain[:, 1:-1, :], X_chain[:, 2:, :])
+    PC4p_L = _lengths(X_chain[1:, :], X_chain[:-1, :])
+    PC4p_A = _angles(X_chain[:-2, :], X_chain[1:-1, :], X_chain[2:, :])
     PC4p_D = _dihedrals(
-        X_chain[:, :-3, :],
-        X_chain[:, 1:-2, :],
-        X_chain[:, 2:-1, :],
-        X_chain[:, 3:, :],
+        X_chain[:-3, :],
+        X_chain[1:-2, :],
+        X_chain[2:-1, :],
+        X_chain[3:, :],
     )
 
     # Compute internal coordinates associated with [C4']-[N]
-    X_P, X_C4p, X_N = X.unbind(dim=2)
-    X_P_next = X[:, 1:, 0, :]
+    X_P, X_C4p, X_N = X.unbind(dim=1)
+    X_P_next = X[1:, 0, :]
     N_L = _lengths(X_C4p, X_N)
     N_A = _angles(X_P, X_C4p, X_N)
-    N_D = _dihedrals(X_P_next, X_N[:, :-1, :], X_C4p[:, :-1, :], X_P[:, :-1, :])
+    N_D = _dihedrals(X_P_next, X_N[:-1, :], X_C4p[:-1, :], X_P[:-1, :])
 
     if C is None:
         C = torch.zeros_like(mask)
@@ -81,10 +81,10 @@ def internal_coords(
     # Note: this could probably also be expressed as a Conv, unclear
     # which is faster and this probably not rate-limiting.
     C = C * (mask.type(torch.long))
-    ii = torch.stack(2 * [C], dim=-1).view([num_batch, -1])
-    L0, L1 = ii[:, :-1], ii[:, 1:]
-    A0, A1, A2 = ii[:, :-2], ii[:, 1:-1], ii[:, 2:]
-    D0, D1, D2, D3 = ii[:, :-3], ii[:, 1:-2], ii[:, 2:-1], ii[:, 3:]
+    ii = torch.stack(2 * [C], dim=-1).view([-1])
+    L0, L1 = ii[:-1], ii[1:]
+    A0, A1, A2 = ii[:-2], ii[1:-1], ii[2:]
+    D0, D1, D2, D3 = ii[:-3], ii[1:-2], ii[2:-1], ii[3:]
 
     # Mask for linear backbone
     mask_L = torch.eq(L0, L1)
@@ -95,7 +95,7 @@ def internal_coords(
     mask_D = mask_D.type(torch.float32)
 
     # Masks for branched nitrogen
-    mask_N_D = torch.eq(C[:, :-1], C[:, 1:])
+    mask_N_D = torch.eq(C[:-1], C[1:])
     mask_N_D = mask_N_D.type(torch.float32)
     mask_N_A = mask
     mask_N_L = mask
@@ -106,7 +106,7 @@ def internal_coords(
         A = F.pad(A, (1, 1))
         L = F.pad(L, (0, 1))
         N_D = F.pad(N_D, (0, 1))
-        D, A, L = [x.reshape(num_batch, num_residues, 2) for x in [D, A, L]]
+        D, A, L = [x.reshape(num_residues, 2) for x in [D, A, L]]
         _pack = lambda a, b: torch.cat([a, b.unsqueeze(-1)], dim=-1)
         L = _pack(L, N_L)
         A = _pack(A, N_A)
@@ -219,7 +219,7 @@ def angles(
     # Bond angle of i-j-k
     U_ji = normed_vec(atom_i - atom_j, distance_eps=distance_eps)
     U_jk = normed_vec(atom_k - atom_j, distance_eps=distance_eps)
-    inner_prod = torch.einsum("bix,bix->bi", U_ji, U_jk)
+    inner_prod = torch.einsum("ix,ix->i", U_ji, U_jk)
     inner_prod = torch.clamp(inner_prod, -1, 1)
     A = torch.acos(inner_prod)
     if degrees:
@@ -274,11 +274,7 @@ def rbf_expansion(
     ):
     rbf_centers = torch.linspace(value_min, value_max, num_rbf)
     std = (rbf_centers[1] - rbf_centers[0]).item()
-    shape = list(h.shape)
-    shape_ones = [1 for _ in range(len(shape))] + [-1]
-    rbf_centers = rbf_centers.view(shape_ones)
     h = torch.exp(-(((h.unsqueeze(-1) - rbf_centers) / std) ** 2))
-    h = h.view(shape[:-1] + [-1])
     return h
 
 
@@ -297,20 +293,27 @@ def positional_encoding(inputs, num_posenc=32, period_range=(1.0, 1000.0)):
     return h
 
 
-def internal_vecs(X):
+def forward_reverse_vecs(X_c, no_forward, no_backward):
     # Relative displacement vectors along backbone
-    # X : num_conf x num_res x num_bb_atoms x 3
-    p, c4p, n = X[:, :, 0], X[:, :, 1], X[:, :, 2]
-    n, p = n - c4p, p - c4p
-    forward = F.pad(c4p[:, 1:] - c4p[:, :-1], [0, 0, 0, 1])
-    backward = F.pad(c4p[:, :-1] - c4p[:, 1:], [0, 0, 1, 0])
+    # X : num_res x num_bb_atoms x 3
+    forward = F.pad(X_c[1:] - X_c[:-1], [0, 0, 0, 1])
+    forward[no_forward] = torch.zeros_like(forward[no_forward])
+    backward = F.pad(X_c[:-1] - X_c[1:], [0, 0, 1, 0])
+    backward[no_backward] = torch.zeros_like(backward[no_backward])
     return torch.cat([
-        normed_vec(p).unsqueeze_(-2), 
-        normed_vec(n).unsqueeze_(-2), 
         normed_vec(forward).unsqueeze_(-2), 
         normed_vec(backward).unsqueeze_(-2),
     ], dim=-2)
 
+def internal_vecs(X):
+    # Relative displacement vectors along backbone
+    # X : num_res x num_bb_atoms x 3
+    p, c4p, n = X[:, 0], X[:, 1], X[:, 2]
+    n, p = n - c4p, p - c4p
+    return torch.cat([
+        normed_vec(p).unsqueeze_(-2), 
+        normed_vec(n).unsqueeze_(-2), 
+    ], dim=-2)
 
 def normalize(tensor, dim=-1):
     '''
@@ -319,20 +322,32 @@ def normalize(tensor, dim=-1):
     return torch.nan_to_num(
         torch.div(tensor, torch.linalg.norm(tensor, dim=dim, keepdim=True)))
 
-def get_backbone_coords(graph, node_map, pyrimidine_bb_indices, purine_bb_indices):
+def get_backbone_coords(graph, node_map, pyrimidine_bb_indices, purine_bb_indices, fill_value=1e-5):
     """Extract coordinates of the selected backbone atom beads """
     all_bb_atom_coords = []
+    all_mask_coords = []
 
     for purine_atom, pyrimidine_atom in zip(purine_bb_indices, pyrimidine_bb_indices):
         atom_coords_list = []
+        atom_mask_coords = []
         for n in node_map.keys():
             if  graph.nodes()[n]['nt_code'] in ["A","G","a","g"]:
                 atom = purine_atom
-            elif graph.nodes()[n]['nt_code'] in ["C","U","c","u"]:
+            else:
                 atom = pyrimidine_atom
             coords = graph.nodes()[n][f'xyz_{atom}']
-            atom_coords_list.append(torch.as_tensor(coords))
+            if coords is not None:
+                atom_coords_list.append(torch.as_tensor(coords))
+                atom_mask_coords.append(torch.tensor(0))
+            else:
+                atom_coords_list.append(fill_value*torch.ones(3))
+                atom_mask_coords.append(torch.tensor(1))
+
         atom_coords = torch.stack(atom_coords_list)
         all_bb_atom_coords.append(atom_coords)
-    
-    return torch.stack(all_bb_atom_coords, dim = 1)
+        mask_coords = torch.stack(atom_mask_coords)
+        all_mask_coords.append(mask_coords)
+        
+    mask_valid_coords = torch.stack(all_mask_coords, dim = 1).sum(axis=1)==0
+
+    return torch.stack(all_bb_atom_coords, dim = 1), mask_valid_coords
