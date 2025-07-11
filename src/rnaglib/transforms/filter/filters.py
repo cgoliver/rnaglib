@@ -132,7 +132,7 @@ class ResidueAttributeFilter(FilterTransform):
 
 class ResidueNameFilter(FilterTransform):
     """
-    Filter RNAs based on their residuess' names.
+    Filter RNAs based on their residues' names.
 
     This filter keeps only the RNAs such that a minimal number of their residues' names match a specific criterion.
 
