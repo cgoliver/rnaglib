@@ -1,11 +1,10 @@
 import torch
 import networkx as nx
-from torch_geometric.utils import coalesce, to_undirected
+from torch_geometric.utils import to_undirected
 import torch_cluster
 from typing import List
 
-from rnaglib.config.graph_keys import GRAPH_KEYS, TOOL
-from rnaglib.config.feature_encoders import NODE_FEATURE_MAP
+from rnaglib.config.feature_encoders import NODE_FEATURE_MAP, EDGE_FEATURE_MAP
 from rnaglib.algorithms import fix_buggy_edges, internal_coords, internal_vecs, rbf_expansion, positional_encoding, normed_vec, get_backbone_coords, forward_reverse_vecs, get_sequences
 
 from .representation import Representation
@@ -19,8 +18,13 @@ class GVPGraphRepresentation(Representation):
     like architecture where nodes are residues and edges are either base pairs or backbones.
     Node and edge features include both scalar and vector features.
 
-    Reference: Jing, B., Eismann, S., Suriana, P., Townshend, R. J., & Dror, R. (2020). Learning
+    References: 
+    Jing, B., Eismann, S., Suriana, P., Townshend, R. J., & Dror, R. (2020). Learning
     from protein structure with geometric vector perceptrons. arXiv preprint arXiv:2009.01411.
+
+    Chaitanya K. Joshi, Arian R. Jamasb, Ramon Viñas, Charles Harris, Simon Mathis, Alex Morehead, 
+    and Pietro Liò. gRNAde: Geometric Deep Learning for 3D RNA inverse design. International 
+    Conference on Learning Representations 2025.
     """
 
     def __init__(
@@ -28,15 +32,15 @@ class GVPGraphRepresentation(Representation):
         clean_edges = True,
         graph_construction: str = "knn",
         top_k: int = 16,
-        node_scalar_features: List[str] = ["seq"],
+        node_scalar_features: List[str] = ["nt_code"],
         node_vector_features: List[str] = ["forward_reverse_unit_vectors"],
         edge_scalar_features: List[str] = ["RBF"],
         edge_vector_features: List[str] = ["unit_vector"],
         num_rbf: int = 32,
         num_posenc: int = 32,
         center_atom: str = "P",
-        pyrimidine_frame_indices: List[str] = ["P","C4'","N1"],
-        purine_frame_indices: List[str] = ["P","C4'","N9"],
+        pyrimidine_bead_atoms: List[str] = ["P","C4'","N1"],
+        purine_bead_atoms: List[str] = ["P","C4'","N9"],
         distance_eps: float = DISTANCE_EPS,
         **kwargs,
     ):
@@ -50,8 +54,8 @@ class GVPGraphRepresentation(Representation):
         self.num_posenc = num_posenc
         self.center_atom = center_atom
         self.clean_edges = clean_edges
-        self.pyrimidine_frame_indices = pyrimidine_frame_indices
-        self.purine_frame_indices = purine_frame_indices
+        self.pyrimidine_bead_atoms = pyrimidine_bead_atoms
+        self.purine_bead_atoms = purine_bead_atoms
         self.distance_eps = distance_eps
 
         super().__init__(**kwargs)
@@ -69,8 +73,7 @@ class GVPGraphRepresentation(Representation):
     def to_pyg(self, graph, features_dict):
         from torch_geometric.data import Data
 
-        # for some reason from_networkx is not working so doing by hand
-        # not super efficient at the moment
+        # Get ordered RNA sequences
         chain_seqs = get_sequences(graph)
         global_index = 0
         node_map = {}
@@ -95,14 +98,13 @@ class GVPGraphRepresentation(Representation):
                 node_map[resname] = global_index
                 global_index += 1
             no_forward.append(global_index-1)
+        
+        # Retrieve features natively available in the base graph
+        base_graph_node_features = list(graph.nodes[list(graph.nodes())[0]].keys())
+        base_graph_edge_features = list(graph.edges[list(graph.edges())[0]].keys())
 
-        seq, y = None, None
-        if "nt_features" in features_dict:
-            seq = (
-                torch.stack([features_dict["nt_features"][n] for n in node_map.keys()])
-                if "nt_features" in features_dict
-                else None
-            )
+        # Encode target variable(s)
+        y = None
         if "nt_targets" in features_dict:
             list_y = [features_dict["nt_targets"][n] for n in node_map.keys()]
             # In the case of single target, pytorch CE loss expects shape (n,) and not (n,1)
@@ -120,17 +122,19 @@ class GVPGraphRepresentation(Representation):
         compute_frame_coords = False
         if any(feat in self.node_scalar_features for feat in ["dihedrals","angles","lengths"]) or "internal_vecs" in self.node_vector_features:
             compute_frame_coords = True
-            coords, mask_coords = get_backbone_coords(graph, node_map, self.pyrimidine_frame_indices, self.purine_frame_indices)
+            coords, mask_coords = get_backbone_coords(graph, node_map, self.pyrimidine_bead_atoms, self.purine_bead_atoms)
         
         # Mask for missing coordinates for any backbone atom: num_res
         mask_coords = torch.BoolTensor(mask_coords)
 
-        # Node scalar features
+        # Encode node scalar features
         node_s_list = []
+        for feature in self.node_scalar_features:
+            if feature in base_graph_node_features:
+                node_feature_tensor = torch.stack([NODE_FEATURE_MAP[feature].encode(graph.nodes()[n][feature]) for n in node_map.keys()])
+                node_s_list.append(node_feature_tensor)
         if compute_frame_coords:
             dihedrals, angles, lengths = internal_coords(coords, mask_coords)
-        if "seq" in self.node_scalar_features:
-            node_s_list.append(seq)
         if "dihedrals" in self.node_scalar_features:
             node_s_list += [torch.cos(dihedrals), torch.sin(dihedrals)]
         if "angles" in self.node_scalar_features:
@@ -140,7 +144,7 @@ class GVPGraphRepresentation(Representation):
             node_s_list.append(lengths)
         node_s = torch.cat(node_s_list, dim = -1)[mask_coords]
 
-        # Node vector features
+        # Encode node vector features
         node_v_list = []
         if "forward_reverse_unit_vectors" in self.node_vector_features:
             forward_reverse_vecs_feat = forward_reverse_vecs(nucleotide_coords, no_forward, no_backward)
@@ -151,7 +155,6 @@ class GVPGraphRepresentation(Representation):
         node_v = torch.cat(node_v_list, dim = -2)[mask_coords]
 
         # Remove residues with missing coordinates or non-standard nucleotides
-        seq = seq[mask_coords]
         if "nt_targets" in features_dict:
             y = y[mask_coords]
         if compute_frame_coords:
@@ -166,7 +169,7 @@ class GVPGraphRepresentation(Representation):
             edge_index = [[node_map[u], node_map[v]] for u, v in sorted(graph.edges())]
             edge_index = torch.tensor(edge_index, dtype=torch.long).T
 
-        # Edge vector features
+        # Encode edge vector features
         edge_v_list = []
         if "unit_vector" in self.edge_vector_features:
             # Edge displacement vectors: num_edges x num_res x 3
@@ -175,8 +178,13 @@ class GVPGraphRepresentation(Representation):
             edge_v_list.append(edge_vector)
         edge_v = torch.cat(edge_v_list, dim = -2)
 
-        # Edge scalar features
+        # Encode edge scalar features
         edge_s_list = []
+        if self.graph_construction == "base_pair":
+            for feature in self.edge_scalar_features:
+                if feature in base_graph_edge_features:
+                    edge_feature_tensor = torch.stack([EDGE_FEATURE_MAP[feature].encode(graph.edges()[(u,v)][feature]) for u, v in sorted(graph.edges())])
+                    edge_s_list.append(edge_feature_tensor)
         if "lengths" in self.edge_scalar_features:
             edge_vector = nucleotide_coords[edge_index[0]] - nucleotide_coords[edge_index[1]]
             edge_lengths = torch.sqrt((edge_vector ** 2).sum(dim=-1) + self.distance_eps)
@@ -202,7 +210,7 @@ class GVPGraphRepresentation(Representation):
         )
         num_nodes = node_s.shape[0]
 
-        return Data(h_V=(node_s, node_v), y=y, edge_index=edge_index, h_E=(edge_s, edge_v), seq=seq, num_nodes=num_nodes)
+        return Data(h_V=(node_s, node_v), y=y, edge_index=edge_index, h_E=(edge_s, edge_v), num_nodes=num_nodes)
 
     @property
     def name(self):
