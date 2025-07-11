@@ -392,33 +392,8 @@ class GVPConvLayer(nn.Module):
         return x
     
 class GVPModel(torch.nn.Module):
-    @classmethod
-    def from_task(cls, 
-                  task, 
-                  num_node_features=None, 
-                  num_classes=None,
-                  graph_level=None, 
-                  **model_args):
-        """ Try to create a model based on task metadata.
-        Will fail if number of node features is not the default.
-        """
-        if num_node_features is None:
-            num_node_features = task.metadata["num_nodes_features"]
-        if num_classes is None:
-            num_classes = task.metadata["num_classes"]
-        if graph_level is None:
-            graph_level = task.metadata["graph_level"]
-
-        return cls(
-            num_node_features=num_node_features,
-            num_classes=num_classes,
-            graph_level=graph_level,
-            **model_args
-        )
-
     def __init__(
         self,
-        num_node_features,
         num_classes,
         num_unique_edge_attrs=20,
         graph_level=False,
@@ -435,7 +410,6 @@ class GVPModel(torch.nn.Module):
         edge_h_dim=(32,1),
     ):
         super().__init__()
-        self.num_node_features = num_node_features
         self.num_classes = num_classes
         self.num_unique_edge_attrs = num_unique_edge_attrs
         self.graph_level = graph_level
