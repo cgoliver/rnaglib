@@ -94,7 +94,7 @@ class PygModel(torch.nn.Module):
             self.final_linear = torch.nn.Linear(self.hidden_channels, self.num_classes)
             self.criterion = torch.nn.BCEWithLogitsLoss()
             self.final_activation = torch.nn.Identity()  # Use Identity for multi-label
-        elif num_classes == 2:
+        elif self.num_classes == 2:
             self.final_linear = torch.nn.Linear(self.hidden_channels, 1)
             # Weight will be set in train_model based on actual class distribution
             self.criterion = torch.nn.BCEWithLogitsLoss()
