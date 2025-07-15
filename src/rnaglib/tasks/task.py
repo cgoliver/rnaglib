@@ -49,15 +49,16 @@ class Task:
     """
 
     def __init__(
-            self,
-            root: Union[str, os.PathLike],
-            debug: bool = False,
-            in_memory: bool = False,
-            recompute: bool = False,
-            precomputed: bool = True,
-            additional_metadata: Optional[Mapping] = None,
-            size_thresholds: Optional[Sequence] = None,
-            splitter: Optional[Splitter] = None,
+        self,
+        root: Union[str, os.PathLike],
+        debug: bool = False,
+        in_memory: bool = False,
+        recompute: bool = False,
+        precomputed: bool = True,
+        additional_metadata: Optional[Mapping] = None,
+        size_thresholds: Optional[Sequence] = None,
+        splitter: Optional[Splitter] = None,
+        redundancy_removal: bool = True,
     ):
         self.debug = debug
 
@@ -65,6 +66,7 @@ class Task:
         self.dataset_path = os.path.join(self.root, "dataset")
         self.in_memory = in_memory
         self.recompute = recompute
+        self.redundancy_removal = redundancy_removal
 
         self.init_metadata(additional_metadata=additional_metadata)
 
@@ -158,12 +160,14 @@ class Task:
         cd_hit_computer = CDHitComputer(similarity_threshold=0.9)
         cd_hit_rr = RedundancyRemover(distance_name="cd_hit", threshold=0.9)
         self.dataset = cd_hit_computer(self.dataset)
-        self.dataset = cd_hit_rr(self.dataset)
+        if self.redundancy_removal:
+            self.dataset = cd_hit_rr(self.dataset)
 
         us_align_computer = StructureDistanceComputer(name="USalign")
         us_align_rr = RedundancyRemover(distance_name="USalign", threshold=0.8)
         self.dataset = us_align_computer(self.dataset)
-        self.dataset = us_align_rr(self.dataset)
+        if self.redundancy_removal:
+            self.dataset = us_align_rr(self.dataset)
 
         # PATCH: delete graphs from dataset/ lost during redundancy removal
         for f in os.listdir(self.dataset.dataset_path):
