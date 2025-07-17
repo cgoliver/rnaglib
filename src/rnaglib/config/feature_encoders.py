@@ -1,4 +1,5 @@
 from rnaglib.encoders import FloatEncoder, BoolEncoder, OneHotEncoder, ListEncoder
+from rnaglib.config import EDGE_MAP_RGLIB
 
 """
 Assign encoders to features available by default.
@@ -102,7 +103,7 @@ NODE_FEATURE_MAP = {
 
 # TODO : include edge information, but it's not trivial to deal with edges beyond RGCN...
 EDGE_FEATURE_MAP = {
-    "LW": None,  #
+    "LW": OneHotEncoder(mapping=EDGE_MAP_RGLIB),  #
     "backbone": BoolEncoder(),
     "nt1": None,  # trash
     "nt2": None,  # trash
