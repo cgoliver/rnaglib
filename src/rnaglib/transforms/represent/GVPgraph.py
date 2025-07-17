@@ -74,7 +74,7 @@ class GVPGraphRepresentation(Representation):
         from torch_geometric.data import Data
 
         # Get ordered RNA sequences
-        chain_seqs = get_sequences(graph)
+        chain_seqs = get_sequences(graph, gap_tolerance=1, longest_only=False, min_size_return=1)
         global_index = 0
         node_map = {}
         # Indices at which the forward vector can't be computed (before discontinuities or at chain ends)
