@@ -12,7 +12,7 @@ ta.get_split_loaders(recompute=True)
 # Train model
 model = PygModel(
     num_node_features=ta.metadata["num_node_features"],
-    num_classes=ta.metadata["num_classes"] + 1,  # to account for non standard nucs
+    num_classes=ta.metadata["num_classes"],  # to account for non standard nucs
     graph_level=False,
 )
 model.configure_training(learning_rate=0.001)

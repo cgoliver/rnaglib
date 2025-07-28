@@ -164,7 +164,6 @@ class VirtualScreening(Task):
         """
         dataloader = loader if loader is not None else self.test_dataloader
 
-
         def mean_active_rank(scores, is_active):
             scores = (scores - scores.min()) / (scores.max() - scores.min())
             fpr, tpr, thresholds = metrics.roc_curve(is_active, scores, drop_intermediate=True)
@@ -173,6 +172,7 @@ class VirtualScreening(Task):
         efs = list()
         failed_set = set()
         print(f"Doing VS on {len(dataloader)} pockets.")
+
         for i, data in enumerate(dataloader):
             if not i % 20:
                 print(f"Done {i}/{len(dataloader)}")

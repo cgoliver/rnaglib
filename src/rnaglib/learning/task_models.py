@@ -9,43 +9,46 @@ from rnaglib.utils.misc import tonumpy
 
 class PygModel(torch.nn.Module):
     @classmethod
-    def from_task(cls, 
-                  task, 
-                  num_node_features=None, 
+    def from_task(cls,
+                  task,
+                  num_node_features=None,
                   num_classes=None,
-                  graph_level=None, 
+                  graph_level=None,
+                  multi_label=None,
                   **model_args):
         """ Try to create a model based on task metadata.
         Will fail if number of node features is not the default.
         """
+
         if num_node_features is None:
             num_node_features = task.metadata["num_node_features"]
         if num_classes is None:
             num_classes = task.metadata["num_classes"]
         if graph_level is None:
             graph_level = task.metadata["graph_level"]
-
+        if multi_label is None:
+            multi_label = task.metadata["multi_label"]
         return cls(
-                  num_node_features=num_node_features,
-                  num_classes=num_classes,
-                  graph_level=graph_level,
-                  **model_args
-                  )
-        pass
+            num_node_features=num_node_features,
+            num_classes=num_classes,
+            graph_level=graph_level,
+            multi_label=multi_label,
+            **model_args
+        )
 
     def __init__(
-        self,
-        num_node_features,
-        num_classes,
-        num_unique_edge_attrs=20,
-        graph_level=False,
-        num_layers=2,
-        hidden_channels=128,
-        dropout_rate=0.5,
-        multi_label=False,
-        final_activation="sigmoid",
-        layer_type="rgcn",
-        device=None
+            self,
+            num_node_features,
+            num_classes,
+            num_unique_edge_attrs=20,
+            graph_level=False,
+            num_layers=2,
+            hidden_channels=128,
+            dropout_rate=0.5,
+            multi_label=False,
+            final_activation="sigmoid",
+            layer_type="rgcn",
+            device=None
     ):
         super().__init__()
         self.num_node_features = num_node_features
@@ -78,7 +81,7 @@ class PygModel(torch.nn.Module):
         )
 
         for i in range(self.num_layers):
-            if self.layer_type in ["gcn","GCN"]:
+            if self.layer_type in ["gcn", "GCN"]:
                 self.convs.append(GCNConv(self.hidden_channels, self.hidden_channels))
             else:
                 self.convs.append(RGCNConv(self.hidden_channels, self.hidden_channels, self.num_unique_edge_attrs))
@@ -125,7 +128,7 @@ class PygModel(torch.nn.Module):
         x = self.input_non_linear_layer(x)
 
         for i in range(self.num_layers):
-            if self.layer_type in ["gcn","GCN"]:
+            if self.layer_type in ["gcn", "GCN"]:
                 x = self.convs[i](x, edge_index)
             else:
                 x = self.convs[i](x, edge_index, edge_type)
@@ -155,13 +158,13 @@ class PygModel(torch.nn.Module):
                 target = target.long()
         loss = self.criterion(out, target)
         if weighted:
-            batch_class_distribution = {i: (target==i).sum().item() for i in range(metadata['num_classes'])}
+            batch_class_distribution = {i: (target == i).sum().item() for i in range(metadata['num_classes'])}
             batch_weight = 0
             num_classes = metadata['num_classes']
             for i in range(num_classes):
-                batch_weight += 1/metadata["class_distribution"][str(i)]*batch_class_distribution[i]/len(target)
-            batch_weight = batch_weight*metadata["dataset_size"]/num_classes
-            loss = loss*batch_weight
+                batch_weight += 1 / metadata["class_distribution"][str(i)] * batch_class_distribution[i] / len(target)
+            batch_weight = batch_weight * metadata["dataset_size"] / num_classes
+            loss = loss * batch_weight
         return loss
 
     def train_model(self, task, epochs=500):

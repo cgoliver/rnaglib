@@ -38,7 +38,7 @@ assert hasattr(model, 'predict_ligands') and callable(getattr(model, 'predict_li
 # Train
 optimizer = optim.Adam(model.parameters(), lr=0.001)
 criterion = torch.nn.BCELoss()
-epochs = 40
+epochs = 0
 t0 = time.time()
 for k in range(epochs):
     for i, batch in enumerate(train):
