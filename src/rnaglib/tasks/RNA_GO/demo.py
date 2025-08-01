@@ -11,7 +11,7 @@ ta = RNAGo(
 )
 
 # Adding representation
-ta.dataset.add_representation(GraphRepresentation(framework="pyg"))
+ta.add_representation(GraphRepresentation(framework="pyg"))
 
 # Splitting dataset
 print("Splitting Dataset")

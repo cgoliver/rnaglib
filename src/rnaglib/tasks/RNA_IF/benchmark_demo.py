@@ -6,7 +6,7 @@ from rnaglib.transforms import GraphRepresentation
 
 ta = gRNAde(root="gRNAde", recompute=True, in_memory=False, debug=True)
 
-ta.dataset.add_representation(GraphRepresentation(framework="pyg"))
+ta.add_representation(GraphRepresentation(framework="pyg"))
 
 # Splitting dataset
 ta.get_split_loaders(recompute=False)

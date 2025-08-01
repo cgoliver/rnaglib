@@ -30,12 +30,8 @@ class TransformsTest(unittest.TestCase):
         feat_dict = ft(t(self.dataset[0]))
 
     def test_add_dataset_features(self):
-        self.dataset.features_computer.add_feature(["nt_code"])
-        pass
+        self.dataset.add_feature(["nt_code"])
 
     def test_add_dataset_custom_features(self):
         t = RNAFMTransform()
-        self.dataset.features_computer.add_feature(
-            t.name, custom_encoders={t.name: t.encoder}
-        )
-        pass
+        self.dataset.add_feature(t.name, custom_encoders={t.name: t.encoder})

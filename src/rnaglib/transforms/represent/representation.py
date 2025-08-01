@@ -28,7 +28,7 @@ class Representation:
 
     def batch(self, samples):
         """
-        Batch a list of voxel samples
+        Batch a list of samples
 
         :param samples: A list of the output from this representation
         :return: a batched version of it.

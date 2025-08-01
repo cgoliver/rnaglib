@@ -1,11 +1,12 @@
 import os
-import pickle
 
 import networkx as nx
 import numpy as np
+import pickle
+import random
 import torch
 from rdkit import Chem
-from rdkit.Chem import MACCSkeys, AllChem
+from rnaglib.transforms import Representation
 
 
 def mol_to_nx(mol):
@@ -163,3 +164,68 @@ class MolGraphEncoder:
             from torch_geometric.data import Batch
             batch = Batch.from_data_list(graphs)
         return batch
+
+
+class LigandRepresentation(Representation):
+    """
+    This is only used for training the VS task.
+    For a given RNA, return a ligand that is either active or inactive with a probability 0.5.
+    Also return the label
+    """
+    name = "ligand"
+
+    def __init__(self, groups, root, framework='pyg', decoy_mode='pdb'):
+        super().__init__()
+        self.groups = groups
+        self.root = root
+        self.framework = framework
+        self.decoy_mode = decoy_mode
+        self.ligand_encoder = MolGraphEncoder(framework=framework,
+                                              cache_path=os.path.join(self.root, f'ligands_{self.framework}.p'))
+
+    def __call__(self, rna_graph, features_dict):
+        # Pick either active or inactive at random, then sample a ligand of the right group and encode it
+        group = self.groups[rna_graph.name]
+        is_active = random.random() > 0.5
+        ligands_to_use = group['actives'] if is_active else group[f'{self.decoy_mode}_decoys']
+        ligand = ligands_to_use[random.randint(0, len(ligands_to_use) - 1)]
+        ligand_graph = self.ligand_encoder.smiles_to_graph_one(ligand)
+        return {'ligand': ligand_graph,
+                'active': is_active}
+
+    def batch(self, samples):
+        actives = [elt['active'] for elt in samples]
+        ligands = self.ligand_encoder.collate_fn([elt['ligand'] for elt in samples])
+        return {'ligands': ligands,
+                'actives': actives}
+
+
+class TestLigandRepresentation(Representation):
+    """
+    This is only used for the RNA_VS testing task.
+    For a given test RNA, this returns a list of active and inactive ligands, along with their annotations.
+    """
+    name = "ligands"
+
+    def __init__(self, groups, root, framework='pyg', decoy_mode='pdb'):
+        super().__init__()
+        self.groups = groups
+        self.root = root
+        self.framework = framework
+        self.decoy_mode = decoy_mode
+        self.ligand_encoder = MolGraphEncoder(framework=framework,
+                                              cache_path=os.path.join(self.root, f'ligands_{self.framework}.p'))
+
+    def __call__(self, rna_graph, features_dict):
+        group = self.groups[rna_graph.name]
+        actives = group['actives']
+        inactives = group[f'{self.decoy_mode}_decoys']
+        ligands = self.ligand_encoder.smiles_to_graph_list(actives + inactives)
+        return {'ligands': ligands,
+                'actives': [1 for _ in range(len(actives))] + [0 for _ in range(len(inactives))]}
+
+    def batch(self, samples):
+        actives = [elt['actives'] for elt in samples]
+        ligands = [elt['ligands'] for elt in samples]
+        return {'ligands': ligands,
+                'actives': actives}

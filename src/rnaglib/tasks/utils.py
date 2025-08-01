@@ -10,7 +10,8 @@ TASK_MAP = {'rna_cm': 'ChemicalModification',
             'rna_site_bench': 'BenchmarkBindingSite',
             'rna_if': 'InverseFolding',
             'rna_if_bench': 'gRNAde',
-            'rna_go': 'RNAGo'
+            'rna_go': 'RNAGo',
+            'rna_vs': "VirtualScreening"
             }
 
 

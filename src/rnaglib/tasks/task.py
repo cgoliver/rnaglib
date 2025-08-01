@@ -19,7 +19,7 @@ import torch
 from torch.utils.data import DataLoader
 
 from rnaglib.dataset import RNADataset
-from rnaglib.transforms import Transform, FeaturesComputer, SizeFilter
+from rnaglib.transforms import Transform, FeaturesComputer, SizeFilter, Representation
 from rnaglib.utils import DummyGraphModel, DummyResidueModel, dump_json, tonumpy, download
 from rnaglib.dataset_transforms import StructureDistanceComputer, CDHitComputer
 from rnaglib.dataset_transforms import RandomSplitter, Splitter, RedundancyRemover
@@ -105,6 +105,23 @@ class Task:
             with open(Path(self.root) / "done.txt", "w") as f:
                 f.write("")
 
+    def init_metadata(self, additional_metadata: Optional[dict] = None) -> None:
+        """Initialize dictionary to hold key/value pairs to self.metadata."""
+        self.metadata = {}
+        if not additional_metadata is None:
+            self.metadata.update(additional_metadata)
+
+    def from_zenodo(self):
+        """Downloads the task dataset from Zenodo and loads it."""
+
+        url = ZENODO_URL + f"{self.name}.tar.gz"
+        print(f">>> Downloading task dataset from Zenodo {url}...")
+        download(url)
+        with tarfile.open(f"{self.name}.tar.gz") as tar_file:
+            tar_file.extractall()
+            shutil.move(f"{self.name}", self.root)
+        self.load()
+
     def from_scratch(self, size_thresholds):
         os.makedirs(self.dataset_path, exist_ok=True)
         print(">>> Creating task dataset from scratch...")
@@ -119,17 +136,6 @@ class Task:
         self.metadata.update(self.describe())
         self.metadata["data_version"] = self.dataset.version
 
-    def from_zenodo(self):
-        """Downloads the task dataset from Zenodo and loads it."""
-
-        url = ZENODO_URL + f"{self.name}.tar.gz"
-        print(f">>> Downloading task dataset from Zenodo {url}...")
-        download(url)
-        with tarfile.open(f"{self.name}.tar.gz") as tar_file:
-            tar_file.extractall()
-            shutil.move(f"{self.name}", self.root)
-        self.load()
-
     def process(self) -> RNADataset:
         """Tasks must implement this method.
 
@@ -139,20 +145,30 @@ class Task:
         """
         raise NotImplementedError
 
-    def init_metadata(self, additional_metadata: Optional[dict] = None) -> None:
-        """Initialize dictionary to hold key/value pairs to self.metadata."""
-        self.metadata = {}
-        if not additional_metadata is None:
-            self.metadata.update(additional_metadata)
+    def add_rna_to_building_list(self, all_rnas, rna):
+        """
+        Utility function for children process() definition, avoiding case disjunction based on in_memory
+        """
+        if self.in_memory:
+            all_rnas.append(rna)
+        else:
+            os.makedirs(self.dataset_path, exist_ok=True)
+            dump_json(os.path.join(self.dataset_path, f"{rna.name}.json"), rna)
+            all_rnas.append(rna.name)
+
+    def create_dataset_from_list(self, rnas):
+        """Computes an RNADataset object from the lists touched in add_rna_to_building_list"""
+        if self.in_memory:
+            print("in memory from list")
+            dataset = RNADataset(rnas=rnas)
+        else:
+            print("disk from list")
+            dataset = RNADataset(dataset_path=self.dataset_path, rna_id_subset=rnas)
+        return dataset
 
     def get_task_vars(self) -> FeaturesComputer:
         """Define a FeaturesComputer object to set which input and output variables will be used in the task."""
         return FeaturesComputer()
-
-    @property
-    def default_splitter(self):
-        """The splitter used if no other splitter is specified."""
-        return RandomSplitter()
 
     def post_process(self):
         """
@@ -176,8 +192,12 @@ class Task:
         for f in os.listdir(self.dataset.dataset_path):
             if Path(f).stem not in self.dataset.all_rnas:
                 os.remove(Path(self.dataset.dataset_path) / f)
-
         self.dataset.save_distances()
+
+    @property
+    def default_splitter(self):
+        """The splitter used if no other splitter is specified."""
+        return RandomSplitter()
 
     def split(self, dataset: RNADataset):
         """Calls the splitter and returns train, val, test splits.
@@ -207,24 +227,6 @@ class Task:
             print(">>> Done")
         return self.train_dataset, self.val_dataset, self.test_dataset
 
-    def add_representation(self, representation: Transform):
-        self.dataset.add_representation(representation)
-        pass
-
-    def remove_representation(self, representation_name: str):
-        self.dataset.remove_representation(representation_name)
-        pass
-
-    def add_feature(
-            self,
-            feature: Union[str, Transform],
-            feature_level: Literal["residue", "rna"] = "residue",
-            is_input: bool = True,
-    ):
-        """Shortcut to RNADataset.add_feature"""
-        self.dataset.add_feature(feature=feature, feature_level=feature_level, is_input=is_input)
-        pass
-
     def set_loaders(self, recompute=True, **dataloader_kwargs):
         """Sets the dataloader properties.
         Call this each time you modify ``self.dataset``.
@@ -251,23 +253,27 @@ class Task:
             self.set_loaders(recompute=recompute, **dataloader_kwargs)
         return self.train_dataloader, self.val_dataloader, self.test_dataloader
 
-    def evaluate(self, model, loader) -> dict:
-        raise NotImplementedError
+    def load(self):
+        """Load dataset and splits from disk."""
+        # load splits
+        print(">>> Loading precomputed task...")
+        self.dataset = RNADataset(dataset_path=self.dataset_path,
+                                  in_memory=self.in_memory,
+                                  recompute_mapping=self.recompute)
 
-    @cached_property
-    def task_id(self):
-        """Task hash is a hash of all RNA ids and node IDs in the dataset"""
-        h = hashlib.new("sha256")
-        if not self.in_memory:
-            return ""
-        for rna in self.dataset.rnas:
-            h.update(rna.name.encode("utf-8"))
-            for nt in sorted(rna.nodes()):
-                h.update(nt.encode("utf-8"))
-        [h.update(str(i).encode("utf-8")) for i in self.train_ind]
-        [h.update(str(i).encode("utf-8")) for i in self.val_ind]
-        [h.update(str(i).encode("utf-8")) for i in self.test_ind]
-        return h.hexdigest()
+        with Path.open(Path(self.root) / "metadata.json") as meta:
+            self.metadata = json.load(meta)
+        if (
+                os.path.exists(os.path.join(self.root, "train_idx.txt"))
+                and os.path.exists(os.path.join(self.root, "val_idx.txt"))
+                and os.path.exists(os.path.join(self.root, "test_idx.txt"))
+        ):
+            self.train_ind = [int(ind) for ind in open(os.path.join(self.root, "train_idx.txt")).readlines()]
+            self.val_ind = [int(ind) for ind in open(os.path.join(self.root, "val_idx.txt")).readlines()]
+            self.test_ind = [int(ind) for ind in open(os.path.join(self.root, "test_idx.txt")).readlines()]
+
+        self.dataset.features_computer = self.get_task_vars()
+        return self.dataset, self.metadata, (self.train_ind, self.val_ind, self.test_ind)
 
     def write(self):
         """Save task data and splits to root.
@@ -319,27 +325,35 @@ class Task:
 
         pd.DataFrame(rows).to_csv(path)
 
-    def load(self):
-        """Load dataset and splits from disk."""
-        # load splits
-        print(">>> Loading precomputed task...")
-        self.dataset = RNADataset(
-            dataset_path=self.dataset_path, in_memory=self.in_memory, recompute_mapping=self.recompute
-        )
+    def add_representation(self, representation: Representation):
+        self.dataset.add_representation(representation)
 
-        with Path.open(Path(self.root) / "metadata.json") as meta:
-            self.metadata = json.load(meta)
-        if (
-                os.path.exists(os.path.join(self.root, "train_idx.txt"))
-                and os.path.exists(os.path.join(self.root, "val_idx.txt"))
-                and os.path.exists(os.path.join(self.root, "test_idx.txt"))
-        ):
-            self.train_ind = [int(ind) for ind in open(os.path.join(self.root, "train_idx.txt")).readlines()]
-            self.val_ind = [int(ind) for ind in open(os.path.join(self.root, "val_idx.txt")).readlines()]
-            self.test_ind = [int(ind) for ind in open(os.path.join(self.root, "test_idx.txt")).readlines()]
+    def remove_representation(self, representation_name: str):
+        self.dataset.remove_representation(representation_name)
 
-        self.dataset.features_computer = self.get_task_vars()
-        return self.dataset, self.metadata, (self.train_ind, self.val_ind, self.test_ind)
+    def add_feature(
+            self,
+            feature: Union[str, Transform],
+            feature_level: Literal["residue", "rna"] = "residue",
+            is_input: bool = True,
+    ):
+        """Shortcut to RNADataset.add_feature"""
+        self.dataset.add_feature(feature=feature, feature_level=feature_level, is_input=is_input)
+
+    @cached_property
+    def task_id(self):
+        """Task hash is a hash of all RNA ids and node IDs in the dataset"""
+        h = hashlib.new("sha256")
+        if not self.in_memory:
+            return ""
+        for rna in self.dataset.rnas:
+            h.update(rna.name.encode("utf-8"))
+            for nt in sorted(rna.nodes()):
+                h.update(nt.encode("utf-8"))
+        [h.update(str(i).encode("utf-8")) for i in self.train_ind]
+        [h.update(str(i).encode("utf-8")) for i in self.val_ind]
+        [h.update(str(i).encode("utf-8")) for i in self.test_ind]
+        return h.hexdigest()
 
     def __eq__(self, other):
         return self.task_id == other.task_id
@@ -385,6 +399,7 @@ class Task:
             for item in tqdm.tqdm(self.dataset):
                 node_map = {n: i for i, n in enumerate(sorted(item["rna"].nodes()))}
                 features_dict = self.dataset.features_computer(item)
+
                 if "nt_targets" in features_dict:
                     list_y = [features_dict["nt_targets"][n] for n in node_map]
                     # In the case of single target, pytorch CE loss expects shape (n,) and not (n,1)
@@ -431,23 +446,8 @@ class Task:
                     print(f"\tClass {cls}: {v[cls]} {'nodes'}")
         return info
 
-    def add_rna_to_building_list(self, all_rnas, rna):
-        if self.in_memory:
-            all_rnas.append(rna)
-        else:
-            os.makedirs(self.dataset_path, exist_ok=True)
-            dump_json(os.path.join(self.dataset_path, f"{rna.name}.json"), rna)
-            all_rnas.append(rna.name)
-
-    def create_dataset_from_list(self, rnas):
-        """Computes an RNADataset object from the lists touched in add_rna_to_building_list"""
-        if self.in_memory:
-            print("in memory from list")
-            dataset = RNADataset(rnas=rnas)
-        else:
-            print("disk from list")
-            dataset = RNADataset(dataset_path=self.dataset_path, rna_id_subset=rnas)
-        return dataset
+    def evaluate(self, model, loader) -> dict:
+        raise NotImplementedError
 
     def compute_distances(self):
         self.dataset = self.dataset.similarity_matrix_computer.compute_distances(self.dataset)

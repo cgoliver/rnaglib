@@ -72,8 +72,8 @@ class TaskTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             ta = ChemicalModification(root=tmp, **self.default_dataset_params)
             # prepare the data
-            ta.dataset.add_representation(GraphRepresentation(framework="pyg"))
-            ta.dataset.features_computer.add_feature(feature_names="nt_code")
+            ta.add_representation(GraphRepresentation(framework="pyg"))
+            ta.add_feature(feature="nt_code")
             # refresh loaders
             train_load, val_load, test_load = ta.get_split_loaders()
             loss, *outputs = ta.dummy_inference()

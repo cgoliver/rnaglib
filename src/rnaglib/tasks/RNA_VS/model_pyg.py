@@ -69,6 +69,7 @@ class RGCN(nn.Module):
         if data.batch_size != num_predicted:
             existing_ids = batch.unique()
             result = torch.zeros((data.batch_size, out.shape[-1]))
+            result = result.to(out.device)
             result[existing_ids] = out
             out = result
         return out
@@ -237,9 +238,13 @@ class RNAEncoder(nn.Module):
             all_subgraphs = []
             all_embs = []
 
-            for graph in graphs:
+            for i, graph in enumerate(graphs):
+                # Extract the in_pocket mask for the current graph
+                start_idx = data.ptr[i].item()
+                end_idx = data.ptr[i + 1].item()
+                pocket_mask = data.in_pocket[start_idx:end_idx]
+
                 # Get nodes that are in the pocket. Handle case with single node
-                pocket_mask = graph.in_pocket
                 if pocket_mask.dim() == 0:
                     pocket_mask = pocket_mask.unsqueeze(0)
 
@@ -285,10 +290,9 @@ class VSModel(nn.Module):
         self.lig_encoder = lig_encoder
 
     def predict_ligands(self, pocket, ligands):
-        data = pocket['graph']
         with torch.no_grad():
-            data, embeddings = self.encoder(data)
-            graph_emb = self.pool(embeddings, data.batch)
+            pocket, embeddings = self.encoder(pocket)
+            graph_emb = self.pool(embeddings, pocket.batch)
             lig_embs = self.lig_encoder(ligands)
             graph_emb = graph_emb.expand(len(lig_embs), -1)
             pred = torch.cat((graph_emb, lig_embs), dim=1)
@@ -296,11 +300,127 @@ class VSModel(nn.Module):
             return pred
 
     def forward(self, pocket, ligand):
-        data = pocket['graph']
-        data, embeddings = self.encoder(data)
-
-        graph_emb = self.pool(embeddings, data.batch)
+        pocket, embeddings = self.encoder(pocket)
+        graph_emb = self.pool(embeddings, pocket.batch)
         lig_emb = self.lig_encoder(ligand)
         joint = torch.cat((graph_emb, lig_emb), dim=1)
         pred = self.decoder(joint)
         return pred
+
+
+class VSPygModel():
+    @classmethod
+    def from_task(cls,
+                  task,
+                  num_node_features=None,
+                  num_classes=None,
+                  graph_level=None,
+                  multi_label=None,
+                  **model_args):
+        # Retain unused args for compatibility
+        if num_node_features is None:
+            num_node_features = task.metadata["num_node_features"]
+        return cls(
+            num_node_features=num_node_features,
+            num_classes=num_classes,
+            graph_level=graph_level,
+            multi_label=multi_label,
+            **model_args
+        )
+
+    def __init__(
+            self,
+            num_node_features,
+            num_unique_edge_attrs=20,
+            hidden_dim=64,
+            dropout_rate=0.2,
+            num_hidden_layers=3,
+            subset_pocket_nodes=True,
+            batch_norm=True,
+            multi_label=False,
+            num_classes=1,
+            graph_level=False,
+            device=None
+    ):
+        super().__init__()
+        self.num_node_features = num_node_features
+        self.num_unique_edge_attrs = num_unique_edge_attrs
+
+        self.num_classes = num_classes
+        self.graph_level = graph_level
+        self.multi_label = multi_label
+
+        encoder = RNAEncoder(in_dim=num_node_features,
+                             num_rels=num_unique_edge_attrs,
+                             hidden_dim=hidden_dim,
+                             num_hidden_layers=num_hidden_layers,
+                             subset_pocket_nodes=subset_pocket_nodes,
+                             dropout=dropout_rate,
+                             batch_norm=batch_norm)
+        lig_encoder = LigandGraphEncoder()
+        decoder = Decoder(dropout=dropout_rate, batch_norm=batch_norm)
+        self.model = VSModel(encoder=encoder, lig_encoder=lig_encoder, decoder=decoder)
+        # self.model = VSModel(encoder=RNAEncoder(), lig_encoder=LigandGraphEncoder(), decoder=Decoder())
+
+        self.optimizer = None
+        self.criterion = torch.nn.BCELoss()
+        if device is None:
+            if torch.cuda.is_available():
+                self.device = "cuda"
+            elif torch.backends.mps.is_available():
+                self.device = "mps"
+            else:
+                self.device = "cpu"
+        else:
+            self.device = device
+
+        self.configure_training()
+
+    def configure_training(self, learning_rate=0.001):
+        """Configure training settings."""
+        self.model.to(self.device)
+        self.criterion = self.criterion.to(self.device)
+        self.optimizer = torch.optim.Adam(self.model.parameters(), lr=learning_rate)
+
+    def train_model(self, task, epochs=10):
+        if self.optimizer is None:
+            self.configure_training()
+
+        for epoch in range(epochs):
+            # Training phase
+            self.model.train()
+            epoch_loss = 0
+            for batch in task.train_dataloader:
+                self.optimizer.zero_grad()
+                loss = self.process_batch(batch)
+                loss.backward()
+                self.optimizer.step()
+                epoch_loss += loss.item()
+
+            val_loss = 0
+            # Validation phase
+            if epoch % 5 == 0:
+                self.model.eval()
+                for batch in task.train_dataloader:
+                    loss = self.process_batch(batch)
+                    val_loss += loss.item()
+                print(
+                    f"Epoch {epoch}:"
+                    f" train_loss = {epoch_loss / len(task.train_dataloader):.4f},"
+                    f" val_loss = {val_loss / len(task.val_dataloader):.4f}")
+
+    def process_batch(self, batch):
+        pockets = batch['graph'].to(self.device)
+        in_pocket = torch.tensor(batch['in_pocket']).to(self.device)
+        pockets.in_pocket = in_pocket
+        ligands = batch['ligand']["ligands"].to(self.device)
+        actives = batch['ligand']["actives"]
+        actives = torch.tensor(actives, dtype=torch.float32).to(self.device)
+        preds = self.model(pockets, ligands)
+        loss = self.criterion(input=torch.flatten(preds), target=actives)
+        return loss
+
+    def evaluate(self, task):
+        self.model.eval()
+        test_ef = task.evaluate(self.model)
+        return test_ef

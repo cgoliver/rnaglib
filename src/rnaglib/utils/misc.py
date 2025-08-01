@@ -46,10 +46,10 @@ def load_index(redundancy="nr", version="1.0.0", glib_path=f"{os.path.expanduser
 
 
 def cif_remove_residues(
-    cif_path: str | os.PathLike,
-    keep_residues: list | None,
-    out_path: str | os.PathLike,
-    file_type: str = "cif",
+        cif_path: str | os.PathLike,
+        keep_residues: list | None,
+        out_path: str | os.PathLike,
+        file_type: str = "cif",
 ):
     """Remove all residues from a cif file except for those in `keep_residues` list.
 
@@ -117,9 +117,9 @@ def filter_cif_with_res(cif_path, keep_residues, out_path, file_type="cif"):
 
 
 def clean_mmcif(
-    cif_path: str | os.PathLike,
-    output_path: str | os.PathLike = ".",
-    file_type: str = "cif",
+        cif_path: str | os.PathLike,
+        output_path: str | os.PathLike = ".",
+        file_type: str = "cif",
 ):
     """Remove non-RNA entities.
 
@@ -173,11 +173,11 @@ def subset_mmcif_biopython(input_cif, allowed_residues, output_cif):
 
 
 def split_mmcif_by_chain(
-    cif_path: str | os.PathLike,
-    output_dir: str | os.PathLike = ".",
-    prefix=None,
-    min_length=0,
-    max_length=1000,
+        cif_path: str | os.PathLike,
+        output_dir: str | os.PathLike = ".",
+        prefix=None,
+        min_length=0,
+        max_length=1000,
 ):
     """Write one mmCIF for each chain in the input mmCIF.
 
@@ -216,3 +216,18 @@ def split_mmcif_by_chain(
         with open(output_file, "w") as f:
             f.write(chain_structure.make_mmcif_document().as_string())
     return paths
+
+
+def set_seed(seed):
+    import numpy as np
+    import random
+    import torch
+    """Set all random seeds for reproducibility"""
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed(seed)
+        torch.cuda.manual_seed_all(seed)
+        torch.backends.cudnn.deterministic = True
+        torch.backends.cudnn.benchmark = False

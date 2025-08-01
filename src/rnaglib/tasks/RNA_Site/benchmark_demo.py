@@ -6,7 +6,7 @@ from rnaglib.learning.task_models import PygModel
 ta = BenchmarkBindingSite(root="RNA_Site_Bench", recompute=True)
 
 # Add representation
-ta.dataset.add_representation(GraphRepresentation(framework="pyg"))
+ta.add_representation(GraphRepresentation(framework="pyg"))
 
 # Splitting dataset
 ta.get_split_loaders(recompute=False)

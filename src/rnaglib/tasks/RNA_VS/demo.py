@@ -4,37 +4,27 @@ import torch.optim as optim
 
 from rnaglib.tasks.RNA_VS.task import VirtualScreening
 from rnaglib.transforms import GraphRepresentation
-from rnaglib.transforms import FeaturesComputer
-
-
-def set_seed(seed):
-    import numpy as np
-    import random
-    """Set all random seeds for reproducibility"""
-    random.seed(seed)
-    np.random.seed(seed)
-    torch.manual_seed(seed)
-    if torch.cuda.is_available():
-        torch.cuda.manual_seed(seed)
-        torch.cuda.manual_seed_all(seed)
-        torch.backends.cudnn.deterministic = True
-        torch.backends.cudnn.benchmark = False
-
+from rnaglib.utils.misc import set_seed
 
 seed = 1
 set_seed(seed)
 
-# Create a task
+# Create a task, we need to choose a framework for the ligand representation
 framework = 'pyg'
-ef_task = VirtualScreening('RNA_VS', ligand_framework=framework)
+ta = VirtualScreening(root='RNA_VS', ligand_framework=framework, debug=False, precomputed=True)
 
-# Build corresponding datasets and dataloader
-features_computer = FeaturesComputer(nt_features=['nt_code'])
-representations = [GraphRepresentation(framework=framework)]
-rna_dataset_args = {'representations': representations, 'features_computer': features_computer}
-rna_loader_args = {'batch_size': 16, 'shuffle': True, 'num_workers': 0}
-train_dataloader, val_dataloader, test_dataloader = ef_task.get_split_loaders(dataset_kwargs=rna_dataset_args,
-                                                                              dataloader_kwargs=rna_loader_args)
+# Adding representation for RNAs
+ta.add_representation(GraphRepresentation(framework=framework))
+
+# Splitting dataset
+print("Splitting Dataset")
+loader_kwargs = {'batch_size': 16, 'shuffle': True, 'num_workers': 0}
+train, val, test = ta.get_split_loaders(recompute=False, **loader_kwargs)
+print(len(train.dataset))
+print(len(val.dataset))
+print(len(test.dataset))
+
+info = ta.describe()
 
 # Create an encoding model. This model must implement a predict_ligands(pocket, ligands) method
 if framework == 'pyg':
@@ -48,29 +38,28 @@ assert hasattr(model, 'predict_ligands') and callable(getattr(model, 'predict_li
 # Train
 optimizer = optim.Adam(model.parameters(), lr=0.001)
 criterion = torch.nn.BCELoss()
-epochs = 10
+epochs = 0
 t0 = time.time()
 for k in range(epochs):
-    for i, batch in enumerate(train_dataloader):
-        pockets = batch['pocket']
-        ligands = batch['ligand']
-        actives = torch.tensor(batch['active'], dtype=torch.float32)
+    for i, batch in enumerate(train):
+        pockets = batch['graph']
+        in_pocket = torch.tensor(batch['in_pocket'])
+        pockets.in_pocket = in_pocket
 
+        ligands = batch['ligand']["ligands"]
+        actives = batch['ligand']["actives"]
+        actives = torch.tensor(actives, dtype=torch.float32)
         optimizer.zero_grad()
-        out = model(pockets, ligands)
-        loss = criterion(input=torch.flatten(out), target=actives)
+        preds = model(pockets, ligands)
+        loss = criterion(input=torch.flatten(preds), target=actives)
         loss.backward()
         optimizer.step()
         # if i > 3:
         #     break
         if not i % 5:
-            print(f'Epoch {k}, batch {i}/{len(train_dataloader)}, '
+            print(f'Epoch {k}, batch {i}/{len(train)}, '
                   f'loss: {loss.item():.4f}, time: {time.time() - t0:.1f}s')
 
 model = model.eval()
 print(f"Results for seed {seed}:")
-final_vs = ef_task.evaluate(model)
-
-# seed 0: 76.2
-# seed 1: 75.2
-# seed 42: 76.4
+final_vs = ta.evaluate(model)

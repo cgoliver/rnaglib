@@ -244,6 +244,7 @@ class RNAEncoder(nn.Module):
         graphs, embeddings = g, h
         if self.subset_pocket_nodes:
             # This tedious step is necessary, otherwise subgraphing looses track of the batch
+            g.ndata['in_pocket'] = g.in_pocket
             graphs = dgl.unbatch(g)
             all_subgraphs = []
             all_embs = []
@@ -283,10 +284,9 @@ class VSModel(nn.Module):
         self.lig_encoder = lig_encoder
 
     def predict_ligands(self, pocket, ligands):
-        g = pocket['graph']
         with torch.no_grad():
-            g, embeddings = self.encoder(g)
-            graph_emb = self.pool(g, embeddings)
+            pocket, embeddings = self.encoder(pocket)
+            graph_emb = self.pool(pocket, embeddings)
             lig_embs = self.lig_encoder(ligands)
             graph_emb = graph_emb.expand(len(lig_embs), -1)
             pred = torch.cat((graph_emb, lig_embs), dim=1)
@@ -294,9 +294,8 @@ class VSModel(nn.Module):
             return pred
 
     def forward(self, pocket, ligand):
-        g = pocket['graph']
-        g, embeddings = self.encoder(g)
-        graph_emb = self.pool(g, embeddings)
+        pocket, embeddings = self.encoder(pocket)
+        graph_emb = self.pool(pocket, embeddings)
         lig_emb = self.lig_encoder(ligand)
         pred = torch.cat((graph_emb, lig_emb), dim=1)
         pred = self.decoder(pred)
