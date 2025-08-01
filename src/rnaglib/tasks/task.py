@@ -55,6 +55,7 @@ class Task:
             in_memory: bool = False,
             recompute: bool = False,
             precomputed: bool = True,
+            redundancy_removal: bool = True,
             additional_metadata: Optional[Mapping] = None,
             size_thresholds: Optional[Sequence] = None,
             splitter: Optional[Splitter] = None,
@@ -65,6 +66,7 @@ class Task:
         self.dataset_path = os.path.join(self.root, "dataset")
         self.in_memory = in_memory
         self.recompute = recompute
+        self.redundancy_removal = redundancy_removal
 
         self.init_metadata(additional_metadata=additional_metadata)
 
@@ -76,6 +78,9 @@ class Task:
             self.load()
         else:
             # Try loading from zenodo if dataset exists
+            # Recompute case is necessary to skip Zenodo loading
+            if self.recompute:
+                precomputed = False
             if precomputed and hasattr(self, "name") and self.name in TASKS:
                 try:
                     self.from_zenodo()
@@ -110,8 +115,8 @@ class Task:
         self.dataset = self.process()
         self.dataset.features_computer = self.get_task_vars()
 
-        self.metadata.update(self.describe())
         self.post_process()
+        self.metadata.update(self.describe())
         self.metadata["data_version"] = self.dataset.version
 
     def from_zenodo(self):
@@ -158,12 +163,14 @@ class Task:
         cd_hit_computer = CDHitComputer(similarity_threshold=0.9)
         cd_hit_rr = RedundancyRemover(distance_name="cd_hit", threshold=0.9)
         self.dataset = cd_hit_computer(self.dataset)
-        self.dataset = cd_hit_rr(self.dataset)
+        if self.redundancy_removal:
+            self.dataset = cd_hit_rr(self.dataset)
 
         us_align_computer = StructureDistanceComputer(name="USalign")
         us_align_rr = RedundancyRemover(distance_name="USalign", threshold=0.8)
         self.dataset = us_align_computer(self.dataset)
-        self.dataset = us_align_rr(self.dataset)
+        if self.redundancy_removal:
+            self.dataset = us_align_rr(self.dataset)
 
         # PATCH: delete graphs from dataset/ lost during redundancy removal
         for f in os.listdir(self.dataset.dataset_path):

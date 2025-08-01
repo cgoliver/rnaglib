@@ -78,7 +78,8 @@ class InverseFolding(ResidueClassificationTask):
         cd_hit_computer = CDHitComputer(similarity_threshold=0.99)
         cd_hit_rr = RedundancyRemover(distance_name="cd_hit", threshold=0.9)
         self.dataset = cd_hit_computer(self.dataset)
-        self.dataset = cd_hit_rr(self.dataset)
+        if self.redundancy_removal:
+            self.dataset = cd_hit_rr(self.dataset)
 
         us_align_computer = StructureDistanceComputer(name="USalign")
         self.dataset = us_align_computer(self.dataset)
