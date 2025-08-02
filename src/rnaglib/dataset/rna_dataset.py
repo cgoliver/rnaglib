@@ -199,13 +199,13 @@ class RNADataset(Dataset):
 
         if len(self.transforms) > 0:
             for transform in self.transforms:
-                transform(rna_dict)
+                rna_dict = transform(rna_dict)
 
         features_dict = self.features_computer(rna_dict)
         # apply representations to the res_dict
         # each is a callable that updates the res_dict
         for rep in self.representations:
-            rna_dict[rep.name] = rep(rna_graph, features_dict)
+            rna_dict[rep.name] = rep(rna_dict["rna"], features_dict)
         return rna_dict
 
     def get_by_name(self, rna_name):
