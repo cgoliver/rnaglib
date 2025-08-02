@@ -257,7 +257,7 @@ class FeaturesComputer(Transform):
     def build_edge_feature_parser(self, asked_features=None):
         raise NotImplementedError
 
-    def forward(self, rna_dict: Dict):
+    def forward_single_structure(self, rna_graph: nx.DiGraph):
         """
         Add 3 dictionaries to the `rna_dict` wich maps nts, edges, and the whole graph
         to a feature vector each. The final converter uses these to include the data in the
@@ -266,24 +266,30 @@ class FeaturesComputer(Transform):
 
         features_dict = {}
         if len(self.rna_features_parser) > 0:
-            rna_feature_encoding = self.encode_rna(rna_dict["rna"], parser=self.rna_features_parser)
+            rna_feature_encoding = self.encode_rna(rna_graph, parser=self.rna_features_parser)
             features_dict["rna_features"] = rna_feature_encoding
 
         if len(self.rna_targets_parser) > 0:
-            rna_targets_encoding = self.encode_rna(rna_dict["rna"], parser=self.rna_targets_parser)
+            rna_targets_encoding = self.encode_rna(rna_graph, parser=self.rna_targets_parser)
             features_dict["rna_targets"] = rna_targets_encoding
 
         # Get Node labels
         if len(self.node_features_parser) > 0:
             feature_encoding = self.encode_nodes(
-                rna_dict["rna"],
+                rna_graph,
                 node_parser=self.node_features_parser,
             )
             features_dict["nt_features"] = feature_encoding
         if len(self.node_targets_parser) > 0:
             target_encoding = self.encode_nodes(
-                rna_dict["rna"],
+                rna_graph,
                 node_parser=self.node_targets_parser,
             )
             features_dict["nt_targets"] = target_encoding
         return features_dict
+    
+    def forward(self, rna_dict: Dict|List[Dict]):
+        if isinstance(rna_dict["rna"], list):
+            return [self.forward_single_structure(rna_graph) for rna_graph in rna_dict["rna"]]
+        else:
+            return self.forward_single_structure(rna_dict["rna"])
