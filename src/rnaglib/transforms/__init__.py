@@ -5,3 +5,4 @@ from rnaglib.transforms.featurize import *
 from rnaglib.transforms.filter import *
 from rnaglib.transforms.partition import *
 from rnaglib.transforms.represent import *
+from rnaglib.transforms.multi_state import MultiStateTransform
