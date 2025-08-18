@@ -169,7 +169,10 @@ def get_all_existing(dataset_path: os.PathLike, all_rnas: list[str] | None = Non
 
 def get_default_download_dir():
     """Get the absolute path to the download directory."""
-    dirname = os.path.join(os.path.expanduser("~"), ".rnaglib/")
+    if "RNAGLIB_PATH" in os.environ:
+        dirname = os.path.join(os.environ["RNAGLIB_PATH"], ".rnaglib/")
+    else:
+        dirname = os.path.join(os.path.expanduser("~"), ".rnaglib/")
     if not os.path.exists(dirname):
         os.makedirs(dirname)
         os.makedirs(os.path.join(dirname, "downloads"))
