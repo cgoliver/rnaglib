@@ -1,7 +1,7 @@
 import torch
 import networkx as nx
 from torch_geometric.utils import to_undirected
-import torch_cluster
+from torch_geometric.nn.pool import knn_graph
 from typing import List
 
 from rnaglib.config.feature_encoders import NODE_FEATURE_MAP, EDGE_FEATURE_MAP
@@ -162,7 +162,7 @@ class GVPGraphRepresentation(Representation):
 
         if self.graph_construction == "knn":
             # K-nearest neighbour graph using centroids of each neucleotide
-            edge_index = torch_cluster.knn_graph(nucleotide_coords, self.top_k)
+            edge_index = knn_graph(nucleotide_coords, self.top_k)
             edge_index = to_undirected(edge_index)
         elif self.graph_construction == "base_pair":
             # Base-pairing graph
