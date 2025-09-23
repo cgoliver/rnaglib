@@ -27,46 +27,39 @@ class SequenceRepresentation(Representation):
             f"Framework {framework} not supported for this representation. " f"Choose one of {authorized_frameworks}."
         )
         self.framework = framework
-        self.backbone = backbone
 
         super().__init__(**kwargs)
         pass
 
     def __call__(self, rna_graph, features_dict):
-        sequence = get_sequences(rna_graph)
-        assert (
-            len(sequence) == 1
-        ), "Sequence representation only works on single-chain RNAs. Use the ChainSplitTransform() to subdivide the whole RNA into individual chains first."
+        sequence_dict = get_sequences(rna_graph)
 
-        sequence, node_ids = list(sequence.values())[0]
-        self.sequence = sequence
-        self.node_ids = node_ids
+        full_seq = ""
+        full_nid = []
+        chain_index = []
 
-        seq_graph = nx.DiGraph()
-        seq_graph.add_nodes_from(node_ids)
-        if self.backbone in ["both", "5p3p"]:
-            seq_graph.add_edges_from([(node_ids[i], node_ids[i + 1], {"LW": "B53"}) for i in range(len(node_ids) - 1)])
-        if self.backbone in ["both", "3p5p"]:
-            seq_graph.add_edges_from([(node_ids[i - 1], node_ids[i], {"LW": "B35"}) for i in range(1, len(node_ids))])
+        for i, (chain_id, (seq, nids)) in enumerate(sequence_dict.items()):
+            full_seq += seq
+            full_nid.extend(nids)
+            chain_index.extend([i] * len(seq))
 
         if self.framework == "torch":
-            return self.to_torch(seq_graph, features_dict)
-        if self.framework == "dgl":
-            return self.to_dgl(seq_graph, features_dict)
+            data = self.to_torch(full_nid, features_dict, chain_index)
+            return data
         if self.framework == "pyg":
-            return self.to_pyg(seq_graph, features_dict)
+            data = self.to_pyg(full_nid, features_dict, chain_index)
+            return data
 
-
-    def to_torch(self, graph, features_dict):
+    def to_torch(self, node_ids, features_dict, chain_index):
         x, y = None, None
         if "nt_features" in features_dict:
             x = (
-                torch.stack([features_dict["nt_features"][n] for n in self.node_ids])
+                torch.stack([features_dict["nt_features"][n] for n in node_ids])
                 if "nt_features" in features_dict
                 else None
             )
         if "nt_targets" in features_dict:
-            list_y = [features_dict["nt_targets"][n] for n in self.node_ids]
+            list_y = [features_dict["nt_targets"][n] for n in node_ids]
             # In the case of single target, pytorch CE loss expects shape (n,) and not (n,1)
             # For multi-target cases, we stack to get (n,d)
             if len(list_y[0]) == 1:
@@ -76,23 +69,23 @@ class SequenceRepresentation(Representation):
         if "rna_targets" in features_dict:
             y = torch.tensor(features_dict["rna_targets"])
 
-        return x
+        chain_index = torch.tensor(chain_index, dtype=torch.long)
+        return x, chain_index
 
-    def to_pyg(self, graph, features_dict):
+    def to_pyg(self, node_ids, features_dict, chain_index):
         from torch_geometric.data import Data
 
         # for some reason from_networkx is not working so doing by hand
         # not super efficient at the moment
         x, y = None, None
-        print(self.sequence)
         if "nt_features" in features_dict:
             x = (
-                torch.stack([features_dict["nt_features"][n] for n in self.node_ids])
+                torch.stack([features_dict["nt_features"][n] for n in node_ids])
                 if "nt_features" in features_dict
                 else None
             )
         if "nt_targets" in features_dict:
-            list_y = [features_dict["nt_targets"][n] for n in self.node_ids]
+            list_y = [features_dict["nt_targets"][n] for n in node_ids]
             # In the case of single target, pytorch CE loss expects shape (n,) and not (n,1)
             # For multi-target cases, we stack to get (n,d)
             if len(list_y[0]) == 1:
@@ -102,10 +95,8 @@ class SequenceRepresentation(Representation):
         if "rna_targets" in features_dict:
             y = torch.tensor(features_dict["rna_targets"])
 
-        node_map = {nid: idx for idx, nid in enumerate(sorted(graph.nodes()))}
-        edge_index = [[node_map[u], node_map[v]] for u, v in sorted(graph.edges())]
-        edge_index = torch.tensor(edge_index, dtype=torch.long).T
-        return Data(x=x, y=y, edge_index=edge_index)
+        chain_index = torch.tensor(chain_index, dtype=torch.long)
+        return Data(x=x, y=y, chain_index=chain_index)
 
     @property
     def name(self):
@@ -123,5 +114,4 @@ class SequenceRepresentation(Representation):
 
             batch = Batch.from_data_list(samples)
             # sometimes batching changes dtype from int to float32?
-            batch.edge_index = batch.edge_index.to(torch.int64)
             return batch
