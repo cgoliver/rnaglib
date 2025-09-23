@@ -56,6 +56,7 @@ class SequenceRepresentation(Representation):
         if self.framework == "pyg":
             return self.to_pyg(seq_graph, features_dict)
 
+
     def to_torch(self, graph, features_dict):
         x, y = None, None
         if "nt_features" in features_dict:
