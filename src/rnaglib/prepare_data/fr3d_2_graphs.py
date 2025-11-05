@@ -8,6 +8,7 @@ import os
 import sys
 import traceback
 from pathlib import Path
+from typing import Optional, Literal
 
 import numpy as np
 from collections import defaultdict
@@ -36,7 +37,7 @@ logger.add(sys.stderr, level="INFO")
 modifications = get_modifications_cache()
 
 
-def get_rna_chains(mmcif_dict):
+def get_rna_chains(mmcif_dict, auth_chains: Optional[bool] = False):
     """Return the list of RNA Chain IDs."""
 
     """
@@ -52,7 +53,8 @@ def get_rna_chains(mmcif_dict):
     # this seems to the the lowest level of information where we can
     # discern that cif contains RNA.
     # otherwise we rely on some metadata that may be absent
-    for chain_id, nuc_type in zip(mmcif_dict["_atom_site.label_asym_id"],
+    asym = "auth" if auth_chains else "label"
+    for chain_id, nuc_type in zip(mmcif_dict[f"_atom_site.{asym}_asym_id"],
                                   mmcif_dict["_atom_site.label_comp_id"]):
 
         
@@ -134,10 +136,11 @@ def nt_to_rgl(nt, pdbid):
     return f"{pdbid.lower()}.{chain}.{pos}"
 
 
-def fr3d_to_graph(rna_path):
+def fr3d_to_graph(rna_path, auth_chains: Optional[bool] = False):
     """Use fr3d to generate networkx annotation graph.
 
     :param rna_path: path to a PDB of the RNA structure
+    :param auth_chains: use author's chain ID or label chain ID
     :returns nx.Graph: networkx graph with annotations
     """
     rna_path = Path(rna_path)
@@ -149,12 +152,15 @@ def fr3d_to_graph(rna_path):
 
     pdbid = rna_path.stem.lower()
     try:
-        rna_chains = get_rna_chains(MMCIF2Dict.MMCIF2Dict(rna_path))
+        mmcif_dict = MMCIF2Dict.MMCIF2Dict(rna_path)
+        rna_chains = get_rna_chains(mmcif_dict,\
+                                    auth_chains=auth_chains)
         logger.debug(f"RNA chains in {pdbid}: {rna_chains}")
     except KeyError:
         logger.error(f"Couldn't identify RNA chains in {pdbid}")
         return None
 
+    print("rna chains ", rna_chains)
     # load mmCIF structure
     struc_dict = MMCIF2Dict.MMCIF2Dict(rna_path)
 
@@ -170,10 +176,9 @@ def fr3d_to_graph(rna_path):
     # XNA_linking = [chem_comp['chem_code'][idx] for idx, tp in enumerate(chem_comp['chem_type']) if tp =='RNA linking']
 
     # add coords with biopython
-    parser = MMCIFParser()
-    print(rna_path)
+    parser = MMCIFParser(auth_chains=auth_chains)
     structure = parser.get_structure("", rna_path)
-    print(structure)
+    print(list(structure.get_chains()))
     structure = structure[0]
 
     # bbs, nt_types = get_bb(structure, rna_chains, pdbid=pdbid)
