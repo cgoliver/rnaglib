@@ -58,7 +58,9 @@ class GraphRepresentation(Representation):
     def to_nx(self, graph, features_dict):
         # Get Edge Labels
         edge_type = {(u, v): self.edge_map[data[self.etype_key]] for u, v, data in graph.edges(data=True)}
+        print(edge_type)
         nx.set_edge_attributes(graph, name="edge_type", values=edge_type)
+        print("attr")
 
         # Add features and targets
         for name, encoding in features_dict.items():

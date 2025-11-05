@@ -12,6 +12,7 @@ from bidict import bidict
 import networkx as nx
 import numpy as np
 
+from rnaglib.algorithms.graph_algos import multigraph_to_simple
 from rnaglib.transforms.featurize import FeaturesComputer
 from rnaglib.transforms.represent import Representation
 from rnaglib.transforms.transform import AnnotationTransform, Transform
@@ -190,6 +191,8 @@ class RNADataset(Dataset):
 
         if self.in_memory:
             rna_graph = self.rnas[idx]
+            if not self.multigraph:
+                rna_graph = multigraph_to_simple(rna_graph)
         else:
             rna_graph = load_graph(str(nx_path), multigraph=self.multigraph)
             rna_graph.name = rna_name
