@@ -77,13 +77,13 @@ class TransformsTest(unittest.TestCase):
         tr_1 = RNAFMTransform(debug=True)
         tr_2 = RfamTransform()
         t = Compose([tr_1, tr_2])
-        t(self.dataset[0])
+        t(g)
         self.check_gdata(g["rna"], "rfam")
         self.check_ndata(g["rna"], "rnafm")
 
     def test_atom_coordinates(self):
         g = self.dataset[0]
         t = AtomCoordsAnnotator()
-        t(self.dataset[0])
+        t(g)
         self.check_ndata(g["rna"], "xyz_C1'")
 
