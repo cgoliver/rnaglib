@@ -185,6 +185,16 @@
                         <option value="sequence">Sequence</option>
                     </select>
                 </div>
+                
+                <div class="control-group">
+                    <label for="split-select">Split:</label>
+                    <select id="split-select">
+                        <option value="default" selected>Default</option>
+                        <option value="random">Random</option>
+                        <option value="sequence">Sequence</option>
+                        <option value="structure">Structure</option>
+                    </select>
+                </div>
             </div>
             
             <div id="task-description" class="task-description"></div>
@@ -248,12 +258,43 @@
         function generateCode() {
             const taskId = document.getElementById('task-select').value;
             const representation = document.getElementById('representation-select').value;
+            const splitType = document.getElementById('split-select').value;
             
             const repConfig = representations[representation];
             
-            const code = `${repConfig.import}
-from rnaglib.tasks import get_task
-from rnaglib.learning.task_models import PygModel
+            // Determine splitter import and instantiation based on split type
+            let splitterImport = '';
+            let splitterCode = '';
+            if (splitType === 'random') {
+                splitterImport = 'from rnaglib.dataset_transforms import RandomSplitter';
+                splitterCode = 'task.splitter = RandomSplitter()';
+            } else if (splitType === 'sequence') {
+                splitterImport = 'from rnaglib.dataset_transforms import ClusterSplitter';
+                splitterCode = 'task.splitter = ClusterSplitter(distance_name="cd_hit")';
+            } else if (splitType === 'structure') {
+                splitterImport = 'from rnaglib.dataset_transforms import ClusterSplitter';
+                splitterCode = 'task.splitter = ClusterSplitter(distance_name="USalign")';
+            }
+            // If splitType is 'default', splitterImport and splitterCode remain empty
+            
+            // Build import section - only include splitter import if split is selected
+            const imports = [
+                repConfig.import,
+                'from rnaglib.tasks import get_task',
+                'from rnaglib.learning.task_models import PygModel'
+            ];
+            if (splitterImport) {
+                imports.push(splitterImport);
+            }
+            const importSection = imports.join('\n');
+            
+            // Build code section - only include splitter code if split is selected
+            let codeSection = `task.add_representation(${repConfig.variable})`;
+            if (splitterCode) {
+                codeSection += `\n${splitterCode}`;
+            }
+            
+            const code = `${importSection}
 
 # Load task, representation, and get loaders
 task = get_task(root="my_root",
@@ -261,7 +302,7 @@ task = get_task(root="my_root",
 model = PygModel.from_task(task)
 ${repConfig.variable} = ${repConfig.instantiation}
 
-task.add_representation(${repConfig.variable})
+${codeSection}
 train_loader, val_loader, test_loader = task.get_split_loaders(batch_size=8)
 
 for batch in train_loader:
@@ -309,6 +350,7 @@ test_metrics = model.evaluate(task, split='test')`;
         // Update code when selections change
         document.getElementById('task-select').addEventListener('change', generateCode);
         document.getElementById('representation-select').addEventListener('change', generateCode);
+        document.getElementById('split-select').addEventListener('change', generateCode);
         
         // Generate initial code
         generateCode();
