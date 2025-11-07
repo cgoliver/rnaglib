@@ -61,14 +61,14 @@ class RNAAttributeFilter(FilterTransform):
 class ResidueAttributeFilter(FilterTransform):
     """Reject RNAs that lack a certain annotation at the whole residue-level.
 
-    :param attribute: which node-level attribute to look for.
+    :param attribute: Which node-level attribute to look for.
     :param aggregation_mode: str (either "aggfunc" or "min_valid"); if set to "aggfunc", keeps an RNA if the output of
-    the aggregation function of the residue attribute at the RNA level passes the value_checker; if set to "min_valid", 
-    keeps an RNA if more than min_valid nodes pass the value_checker
-    :param value_checker: function with accepts the value of the desired attribute and returns True/False
-    :param aggfunc: function to aggregate the residue labels at the RNA level (only if aggregarion_mode is "aggfunc")
-    :param min_valid: minium number of valid nodes that pass the filter for keeping the RNA. (only if aggregation_mode
-    is "min_valid")
+        the aggregation function of the residue attribute at the RNA level passes the value_checker; if set to "min_valid",
+        keeps an RNA if more than min_valid nodes pass the value_checker.
+    :param value_checker: Function that accepts the value of the desired attribute and returns True/False.
+    :param aggfunc: Function to aggregate the residue labels at the RNA level (only if aggregation_mode is "aggfunc").
+    :param min_valid: Minimum number of valid nodes that pass the filter for keeping the RNA (only if aggregation_mode
+        is "min_valid").
 
 
     Example

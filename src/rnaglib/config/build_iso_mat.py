@@ -59,10 +59,10 @@ def get_undirected_iso(bpa, bpb):
     :param bpa: LW edge code
     :type bpa: str
     :param bpb: LW edge code
-    :type bpb: str 
+    :type bpb: str
 
-    :return: isostericty value
-    :rtype float
+    :return: Isostericity value
+    :rtype: float
 
     """
     bpa = bpa.upper()

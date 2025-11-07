@@ -34,7 +34,7 @@ This is the general formulation of the transform, from which specific Transforms
 
 
 Annotation Transforms
---------------------
+----------------------
 
 These transforms update the information stored in an RNA dictionary.
 
@@ -49,7 +49,6 @@ These transforms update the information stored in an RNA dictionary.
     SecondaryStructureTransform
     SmallMoleculeBindingTransform
     RBPTransform
-    ProteinContentAnnotator
     AnnotatorFromDict
     DummyAnnotator
     CifMetadata

@@ -2,7 +2,12 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 from torch.nn import BatchNorm1d, Dropout
-from torch_geometric.nn import RGCNConv, global_mean_pool
+try:
+    from torch_geometric.nn import RGCNConv, global_mean_pool
+except ImportError:
+    # Fallback for when torch_geometric is not available (e.g., during docs build)
+    RGCNConv = None
+    global_mean_pool = None
 
 from rnaglib.utils.misc import tonumpy
 

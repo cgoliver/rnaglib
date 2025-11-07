@@ -58,16 +58,16 @@ class SimFunctionNode:
 
         :param method: a string that identifies which of these method to use
         :param depth: The depth to use in the annotations rings
-        :param decay: When using rings comparison function, the weight decay of importance based on the depth (the
-        closest rings weigh more as they are central to the comparison)
+        :param decay: When using rings comparison function, the weight decay of importance
+            based on the depth (the closest rings weigh more as they are central to the comparison)
         :param idf: Whether to use IDF weighting on the frequency of labels.
-        :param normalization: We experiment with three normalization scheme,
-                              the basal one is just a division of the
-        score by the maximum value, 'sqrt' denotes using the square root of the ratio as a power of the raw value and
-        'log' uses the log. The underlying idea is that we want to put more emphasis on the long matches than on just
-        matching a few nodes
-        :param hash_init_path: For the graphlets comparisons, we need to supply a hashing path to be able to store the
-        values of ged and reuse them based on the hash.
+        :param normalization: We experiment with three normalization scheme, the basal one
+            is just a division of the score by the maximum value, 'sqrt' denotes using the
+            square root of the ratio as a power of the raw value and 'log' uses the log.
+            The underlying idea is that we want to put more emphasis on the long matches
+            than on just matching a few nodes
+        :param hash_init_path: For the graphlets comparisons, we need to supply a hashing
+            path to be able to store the values of ged and reuse them based on the hash.
         """
 
         POSSIBLE_METHODS = {"R_1", "R_iso", "hungarian", "R_graphlets", "graphlet"}

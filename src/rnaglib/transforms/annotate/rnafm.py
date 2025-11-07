@@ -26,11 +26,11 @@ class RNAFMTransform(Transform):
     embedding. Go `here <https://github.com/ml4bio/RNA-FM>`_ for the RNA-FM
     source code.
 
-    :param chunking_strategy: how to process sequences longer than 1024. ``'simple'`` just
-    splits into non-overlapping segments.
-    :param chunk_size: size of chunks to use (default is 512)
-    :param cache_path: a directory containing pre-computed npz embeddings
-    :param expand_mean: True
+    :param chunking_strategy: How to process sequences longer than 1024. ``'simple'`` just
+        splits into non-overlapping segments.
+    :param chunk_size: Size of chunks to use (default is 512)
+    :param cache_path: A directory containing pre-computed npz embeddings
+    :param expand_mean: If True, expand mean embeddings
 
     .. note::
         Maximum size for basic RNA-FM model is 1024. If sequence is larger

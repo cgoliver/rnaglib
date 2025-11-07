@@ -1,7 +1,14 @@
 import torch
 import networkx as nx
-from torch_geometric.utils import to_undirected
-from torch_geometric.nn.pool import knn_graph
+try:
+    from torch_geometric.utils import to_undirected
+    from torch_geometric.nn.pool import knn_graph
+except ImportError:
+    # Fallback for when torch_geometric is not available (e.g., during docs build)
+    def to_undirected(edge_index, *args, **kwargs):
+        raise NotImplementedError("torch_geometric not available")
+    def knn_graph(*args, **kwargs):
+        raise NotImplementedError("torch_geometric not available")
 from typing import List
 
 from rnaglib.config.feature_encoders import NODE_FEATURE_MAP, EDGE_FEATURE_MAP
@@ -71,7 +78,10 @@ class GVPGraphRepresentation(Representation):
         return self.to_pyg(base_graph, features_dict)
 
     def to_pyg(self, graph, features_dict):
-        from torch_geometric.data import Data
+        try:
+            from torch_geometric.data import Data
+        except ImportError:
+            raise ImportError("torch_geometric is required for GVP graph representation")
 
         # Get ordered RNA sequences
         chain_seqs = get_sequences(graph, gap_tolerance=1, longest_only=False, min_size_return=1)
@@ -223,7 +233,10 @@ class GVPGraphRepresentation(Representation):
         :param samples: A list of the output from this representation
         :return: a batched version of it.
         """
-        from torch_geometric.data import Batch
+        try:
+            from torch_geometric.data import Batch
+        except ImportError:
+            raise ImportError("torch_geometric is required for GVP graph representation")
         batch = Batch.from_data_list(samples)
         # sometimes batching changes dtype from int to float32?
         batch.edge_index = batch.edge_index.to(torch.int64)

@@ -32,10 +32,11 @@ ZENODO_URL = f"https://sandbox.zenodo.org/records/{ZENODO_RECORD}/files/"
 
 class Task:
     """Abstract class for a benchmarking task using the rnaglib datasets.
+
     This class handles the logic for building the underlying dataset which is held in an
-    rnaglib.dataset.RNADataset object.
-     Once the dataset is created, the splitter is invoked to create the train/val/test indices.
-     Tasks also define an evaluate() function to yield appropriate model performance metrics.
+    rnaglib.dataset.RNADataset object. Once the dataset is created, the splitter is invoked
+    to create the train/val/test indices. Tasks also define an evaluate() function to yield
+    appropriate model performance metrics.
 
     :param root: path to a folder where the task information will be stored for fast loading.
     :param debug: if True, only a fraction of the dataset is used.
@@ -45,7 +46,7 @@ class Task:
     :param additional_metadata: dictionary with metadata to include in task.
     :param size_thresholds: 2 element list with lower and upper bound on RNA size to consider.
     :param splitter: rnaglib.dataset_transforms.Splitter object that handles splitting of data into
-    train/val/test indices. If None uses task's default_splitter() attribute.
+        train/val/test indices. If None uses task's default_splitter() attribute.
     """
 
     def __init__(

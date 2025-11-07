@@ -193,26 +193,26 @@ Finally we can draw some plots of the base pair type and secondary structure ele
 
 This is the distribution of secondary structures in binding pockets and in a random sample of residues:
 
-.. image:: images/sse.png 
+.. image:: ../images/sse.png 
 
 
 And the same but for the different LW base pair geometries:
 
-.. image:: images/bp.png 
+.. image:: ../images/bp.png 
 
 
 From this small experiment we confirm a `property <https://academic.oup.com/nar/article/38/18/5982/1065889>`_ of RNA binding sites which is that they tend to occur in looping regions with a slight tendency towards non-canonical (non-CWW) base pair geometries. 
 
 
 
-:download:`Download source code for this example. <code/cb.py>`
+:download:`Download source code for this example. <../code/cb.py>`
 
 
 Aligning two RNA graphs: Graph Edit Distance (GED)
 -------------------------------------------------------
 
 GED is the gold standard of graph comparisons. We have put our ged implementation as a part of networkx, and offer
-in :doc:`rnaglib.algorithms` the weighting scheme we propose to compare 2.5D graphs. One can call ``rnaglib.algorithms.ged()`` on two
+in :doc:`../code_index/rnaglib.algorithms` the weighting scheme we propose to compare 2.5D graphs. One can call ``rnaglib.algorithms.ged()`` on two
 graphs to compare them. However, due to the exponential complexity of the comparison, the maximum size of the graphs
 should be around ten nodes, making it more suited for comparing graphlets or subgraphs.
 

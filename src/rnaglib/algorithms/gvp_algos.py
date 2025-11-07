@@ -3,8 +3,16 @@ import numpy as np
 from typing import Optional, Tuple
 import torch
 import torch.nn.functional as F
-import torch_geometric
-from torch_geometric.utils import coalesce, to_undirected
+try:
+    import torch_geometric
+    from torch_geometric.utils import coalesce, to_undirected
+except ImportError:
+    # Fallback for when torch_geometric is not available (e.g., during docs build)
+    torch_geometric = None
+    def coalesce(*args, **kwargs):
+        raise NotImplementedError("torch_geometric not available")
+    def to_undirected(*args, **kwargs):
+        raise NotImplementedError("torch_geometric not available")
 
 # Small epsilon value added to distances to avoid division by zero
 DISTANCE_EPS = 0.001

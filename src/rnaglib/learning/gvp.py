@@ -2,8 +2,21 @@ import numpy as np
 import torch, functools
 from torch import nn
 import torch.nn.functional as F
-from torch_geometric.nn import MessagePassing
-from torch_scatter import scatter_add, scatter_mean
+try:
+    from torch_geometric.nn import MessagePassing
+except ImportError:
+    # Fallback for when torch_geometric is not available (e.g., during docs build)
+    class MessagePassing:
+        pass
+
+try:
+    from torch_scatter import scatter_add, scatter_mean
+except ImportError:
+    # Fallback for when torch_scatter is not available (e.g., during docs build)
+    def scatter_add(src, index, dim=-1, out=None, dim_size=None, fill_value=0):
+        raise NotImplementedError("torch_scatter not available")
+    def scatter_mean(src, index, dim=-1, out=None, dim_size=None, fill_value=0):
+        raise NotImplementedError("torch_scatter not available")
 
 from rnaglib.utils.misc import tonumpy
 

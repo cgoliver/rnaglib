@@ -73,7 +73,10 @@ class SequenceRepresentation(Representation):
         return x, chain_index
 
     def to_pyg(self, node_ids, features_dict, chain_index):
-        from torch_geometric.data import Data
+        try:
+            from torch_geometric.data import Data
+        except ImportError:
+            raise ImportError("torch_geometric is required for sequence representation")
 
         # for some reason from_networkx is not working so doing by hand
         # not super efficient at the moment
@@ -110,7 +113,10 @@ class SequenceRepresentation(Representation):
         :return: a batched version of it.
         """
         if self.framework == "pyg":
-            from torch_geometric.data import Batch
+            try:
+                from torch_geometric.data import Batch
+            except ImportError:
+                raise ImportError("torch_geometric is required for sequence representation")
 
             batch = Batch.from_data_list(samples)
             # sometimes batching changes dtype from int to float32?

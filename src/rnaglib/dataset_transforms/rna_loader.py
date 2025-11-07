@@ -200,7 +200,7 @@ class EdgeLoaderGenerator:
 
 
 class DefaultBasePairLoader:
-    """ Dataloader that yields base pairs """
+    """Dataloader that yields base pairs."""
 
     def __init__(self,
                  dataset=None,
@@ -212,16 +212,15 @@ class DefaultBasePairLoader:
                  num_workers=4,
                  framework='dgl',
                  **kwargs):
-        """
-        Just a default edge base pair loader that deals with the splits
+        """Just a default edge base pair loader that deals with the splits.
 
         :param dataset: A GraphDataset we want to loop over for base-pair prediction
-        :param data_path: Optionnaly, we can use a data path to create a default GraphDataset
+        :param data_path: Optionally, we can use a data path to create a default GraphDataset
         :param batch_size: The desired batch size (number of whole graphs)
-        :param inner_batch_size:The desired inner batch size (number of sampled edge in a batched graph)
+        :param inner_batch_size: The desired inner batch size (number of sampled edge in a batched graph)
         :param sampler_layers: The size of the neighborhood
         :param neg_samples: The number of negative sample to use per positive ones
-        :param framework: which learning framework to use
+        :param framework: Which learning framework to use
         :param num_workers: The number of cores to use for loading
         """
         # Create default loaders

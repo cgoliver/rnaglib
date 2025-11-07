@@ -34,14 +34,11 @@ class RNADataset(Dataset):
 
     :param rnas: For use in memory, list of RNA objects represented as networkx graphs.
     :param dataset_path: If using filenames, this is the path to the folder containing the graphs to load.
-    :param version: If using filenames, and no dataset_path is provided, this is the version of the RNA dataset
-     download that will be used, and set as dataset_path
-    :param redundancy: same as version, sets the redundancy mode to use if neither rnas nor dataset_path is provided.
+    :param version: If using filenames, and no dataset_path is provided, this is the version of the RNA dataset download that will be used, and set as dataset_path
+    :param redundancy: Same as version, sets the redundancy mode to use if neither rnas nor dataset_path is provided.
     :param rna_id_subset: List of graphs filenames to grab in the dataset_path to keep instead of using all available.
-    :param recompute_mapping: When loading a dataset, you can choose to use an existing bidict_mapping
-    (for instance if some graphs are irrelevant)
-    :param in_memory: When loading a dataset from files, you can choose to load the data in memory by setting
-    in memory to true
+    :param recompute_mapping: When loading a dataset, you can choose to use an existing bidict_mapping (for instance if some graphs are irrelevant).
+    :param in_memory: When loading a dataset from files, you can choose to load the data in memory by setting in_memory to true.
     :param debug: if True, will only report 50 items
     :param get_pdbs: if True, will also fetch the corresponding structures.
     :param multigraph: Whether to load RNAs as multi-graphs or simple graphs. Multigraphs can have

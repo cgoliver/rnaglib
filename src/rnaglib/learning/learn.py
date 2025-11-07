@@ -34,7 +34,7 @@ def pretrain_unsupervised(model,
     :param node_sim: If None, we just rely on the node_sim in the data loader.
     :param learning_routine: A LearningRoutine object, if we want to also use a validation phase and early stopping
     :param rec_params: These are parameters useful for the loss computation and
-    further explained in learning_utils.rec_loss
+        further explained in learning_utils.rec_loss
 
     :return: The best loss obtained
     """

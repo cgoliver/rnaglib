@@ -79,7 +79,10 @@ class GraphRepresentation(Representation):
         return g_dgl
 
     def to_pyg(self, graph, features_dict):
-        from torch_geometric.data import Data
+        try:
+            from torch_geometric.data import Data
+        except ImportError:
+            raise ImportError("torch_geometric is required for PyG representation")
 
         # for some reason from_networkx is not working so doing by hand
         # not super efficient at the moment
@@ -127,7 +130,10 @@ class GraphRepresentation(Representation):
             batched_graph = dgl.batch([sample for sample in samples])
             return batched_graph
         if self.framework == "pyg":
-            from torch_geometric.data import Batch
+            try:
+                from torch_geometric.data import Batch
+            except ImportError:
+                raise ImportError("torch_geometric is required for PyG representation")
             batch = Batch.from_data_list(samples)
             # sometimes batching changes dtype from int to float32?
             batch.edge_index = batch.edge_index.to(torch.int64)
