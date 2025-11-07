@@ -63,6 +63,21 @@
             box-shadow: 0 0 10px rgba(147, 51, 234, 0.3);
         }
         
+        .task-description {
+            margin-top: 12px;
+            padding: 12px;
+            background: #f9fafb;
+            border-left: 4px solid #9333ea;
+            border-radius: 4px;
+            font-size: 13px;
+            line-height: 1.6;
+            color: #4b5563;
+        }
+        
+        .task-description strong {
+            color: #6b21a8;
+        }
+        
         .code-display {
             background: #1f2937;
             border-radius: 6px;
@@ -150,6 +165,7 @@
                     <option value="rna_site">Binding Site</option>
                     <option value="rna_site_bench">Benchmark Binding Site</option>
                 </select>
+                <div id="task-description" class="task-description"></div>
             </div>
             
             <div class="control-group">
@@ -206,6 +222,18 @@
             'rna_site_bench': 'Benchmark Binding Site'
         };
         
+        // Task descriptions
+        const taskDescriptions = {
+            'rna_cm': '<strong>Task type:</strong> Binary classification (residue-level)<br><strong>Biological meaning:</strong> Predicts whether a given residue is chemically modified. Chemical modifications are post-transcriptional changes that affect RNA function and stability.',
+            'rna_go': '<strong>Task type:</strong> Multi-class classification (RNA-level)<br><strong>Biological meaning:</strong> Predicts Gene Ontology (GO) terms associated with the Rfam family of an RNA chain. This tests the ability of models to capture characteristic structural features from 3D structure.',
+            'rna_if': '<strong>Task type:</strong> Multi-class classification (residue-level)<br><strong>Biological meaning:</strong> Predicts nucleotide identity (sequence) at each residue from 3D structure alone. This is the inverse folding problem: given structure, predict sequence.',
+            'rna_if_bench': '<strong>Task type:</strong> Multi-class classification (residue-level)<br><strong>Biological meaning:</strong> Same as inverse folding but uses data and splits from the gRNAde benchmark. Predicts nucleotide identity from structure using standardized evaluation protocols.',
+            'rna_ligand': '<strong>Task type:</strong> Multi-class classification (substructure-level)<br><strong>Biological meaning:</strong> Predicts which small molecule ligand is most likely to bind a given RNA binding pocket. This is useful for drug discovery and understanding RNA-small molecule interactions.',
+            'rna_prot': '<strong>Task type:</strong> Binary classification (residue-level)<br><strong>Biological meaning:</strong> Predicts whether a residue belongs to a protein-binding interface. This helps identify RNA-protein interaction sites, which are crucial for understanding RNA function and regulation.',
+            'rna_site': '<strong>Task type:</strong> Binary classification (residue-level)<br><strong>Biological meaning:</strong> Predicts whether a residue is part of a binding site for small molecules. This identifies potential drug binding sites and helps understand RNA-ligand interactions.',
+            'rna_site_bench': '<strong>Task type:</strong> Binary classification (residue-level)<br><strong>Biological meaning:</strong> Same as binding site prediction but uses data and splits from the RNASite benchmark. Predicts small molecule binding sites using standardized evaluation protocols.'
+        };
+        
         function generateCode() {
             const taskId = document.getElementById('task-select').value;
             const representation = document.getElementById('representation-select').value;
@@ -238,6 +266,14 @@ test_metrics = model.evaluate(task, split='test')`;
                 // Remove any existing highlighting first
                 codeElement.className = 'language-python';
                 Prism.highlightElement(codeElement);
+            }
+            
+            // Update task description
+            const descriptionElement = document.getElementById('task-description');
+            if (taskDescriptions[taskId]) {
+                descriptionElement.innerHTML = taskDescriptions[taskId];
+            } else {
+                descriptionElement.innerHTML = '';
             }
         }
         
