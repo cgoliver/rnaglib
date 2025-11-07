@@ -226,7 +226,7 @@ task.add_representation(${repConfig.variable})
 train_loader, val_loader, test_loader = task.get_split_loaders(batch_size=8)
 
 for batch in train_loader:
-    batch = batch['graph'].to(model.device)
+    batch = batch[${repConfig.variable}.name].to(model.device)
     output = model(batch)
 
 test_metrics = model.evaluate(task, split='test')`;
