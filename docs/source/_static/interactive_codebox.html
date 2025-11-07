@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Code Generator</title>
+    <!-- Prism.js for syntax highlighting -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+    <style>
+        .codebox-container {
+            font-family: 'Arial', sans-serif;
+            background: #ffffff;
+            border: 2px solid #e9d5ff;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .controls {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .control-group label {
+            font-weight: bold;
+            color: #6b21a8;
+            font-size: 14px;
+        }
+        
+        .control-group select {
+            padding: 10px 15px;
+            border: 2px solid #9333ea;
+            border-radius: 6px;
+            background: white;
+            color: #1f2937;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            min-width: 200px;
+        }
+        
+        .control-group select:hover {
+            border-color: #6b21a8;
+            box-shadow: 0 0 10px rgba(147, 51, 234, 0.2);
+        }
+        
+        .control-group select:focus {
+            outline: none;
+            border-color: #6b21a8;
+            box-shadow: 0 0 10px rgba(147, 51, 234, 0.3);
+        }
+        
+        .code-display {
+            background: #1f2937;
+            border-radius: 6px;
+            padding: 20px;
+            position: relative;
+        }
+        
+        .code-display pre {
+            margin: 0;
+            color: #e5e7eb;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 13px;
+            line-height: 1.6;
+            overflow-x: auto;
+            background: transparent !important;
+            padding: 0;
+        }
+        
+        .code-display code {
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 13px;
+        }
+        
+        /* Override Prism theme colors to match our dark theme */
+        .code-display .token.keyword { color: #c084fc; }
+        .code-display .token.string { color: #34d399; }
+        .code-display .token.function { color: #60a5fa; }
+        .code-display .token.comment { color: #9ca3af; font-style: italic; }
+        .code-display .token.punctuation { color: #e5e7eb; }
+        .code-display .token.operator { color: #fbbf24; }
+        .code-display .token.number { color: #f472b6; }
+        .code-display .token.builtin { color: #60a5fa; }
+        
+        .copy-button {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            padding: 8px 16px;
+            background: #9333ea;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+        
+        .copy-button:hover {
+            background: #6b21a8;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(147, 51, 234, 0.3);
+        }
+        
+        .copy-button:active {
+            transform: translateY(0);
+        }
+        
+        .copy-button.copied {
+            background: #10b981;
+        }
+        
+        code {
+            color: #e5e7eb;
+        }
+        
+        .keyword { color: #c084fc; }
+        .string { color: #34d399; }
+        .function { color: #60a5fa; }
+        .comment { color: #9ca3af; }
+    </style>
+</head>
+<body>
+    <div class="codebox-container">
+        <div class="controls">
+            <div class="control-group">
+                <label for="task-select">Task:</label>
+                <select id="task-select">
+                    <option value="rna_cm">Chemical Modification</option>
+                    <option value="rna_go">RNA GO</option>
+                    <option value="rna_if">Inverse Folding</option>
+                    <option value="rna_if_bench">gRNAde</option>
+                    <option value="rna_ligand">Ligand Identification</option>
+                    <option value="rna_prot">Protein Binding Site</option>
+                    <option value="rna_site">Binding Site</option>
+                    <option value="rna_site_bench">Benchmark Binding Site</option>
+                </select>
+            </div>
+            
+            <div class="control-group">
+                <label for="representation-select">Representation:</label>
+                <select id="representation-select">
+                    <option value="graph">Graph</option>
+                    <option value="voxel">Voxel</option>
+                    <option value="point_cloud">Point Cloud</option>
+                    <option value="sequence">Sequence</option>
+                </select>
+            </div>
+        </div>
+        
+        <div class="code-display">
+            <button class="copy-button" onclick="copyCode()">Copy Code</button>
+            <pre id="code-output"><code id="code-content" class="language-python"></code></pre>
+        </div>
+    </div>
+    
+    <script>
+        // Representation configurations
+        const representations = {
+            graph: {
+                import: 'from rnaglib.transforms import GraphRepresentation',
+                instantiation: 'GraphRepresentation(framework="pyg")',
+                variable: 'pyg_rep'
+            },
+            voxel: {
+                import: 'from rnaglib.transforms import VoxelRepresentation',
+                instantiation: 'VoxelRepresentation()',
+                variable: 'voxel_rep'
+            },
+            point_cloud: {
+                import: 'from rnaglib.transforms import PointCloudRepresentation',
+                instantiation: 'PointCloudRepresentation()',
+                variable: 'point_cloud_rep'
+            },
+            sequence: {
+                import: 'from rnaglib.transforms import SequenceRepresentation',
+                instantiation: 'SequenceRepresentation()',
+                variable: 'seq_rep'
+            }
+        };
+        
+        // Task display names
+        const taskNames = {
+            'rna_cm': 'Chemical Modification',
+            'rna_go': 'RNA GO',
+            'rna_if': 'Inverse Folding',
+            'rna_if_bench': 'gRNAde',
+            'rna_ligand': 'Ligand Identification',
+            'rna_prot': 'Protein Binding Site',
+            'rna_site': 'Binding Site',
+            'rna_site_bench': 'Benchmark Binding Site'
+        };
+        
+        function generateCode() {
+            const taskId = document.getElementById('task-select').value;
+            const representation = document.getElementById('representation-select').value;
+            
+            const repConfig = representations[representation];
+            
+            const code = `${repConfig.import}
+from rnaglib.tasks import get_task
+from rnaglib.learning.task_models import PygModel
+
+# Load task, representation, and get loaders
+task = get_task(root="my_root",
+                task_id="${taskId}")
+model = PygModel.from_task(task)
+${repConfig.variable} = ${repConfig.instantiation}
+
+task.add_representation(${repConfig.variable})
+train_loader, val_loader, test_loader = task.get_split_loaders(batch_size=8)
+
+for batch in train_loader:
+    batch = batch['graph'].to(model.device)
+    output = model(batch)
+
+test_metrics = model.evaluate(task, split='test')`;
+            
+            const codeElement = document.getElementById('code-content');
+            codeElement.textContent = code;
+            // Re-run Prism highlighting after code update
+            if (window.Prism) {
+                // Remove any existing highlighting first
+                codeElement.className = 'language-python';
+                Prism.highlightElement(codeElement);
+            }
+        }
+        
+        function copyCode() {
+            // Get plain text from code element (works even with Prism highlighting)
+            const codeElement = document.getElementById('code-content');
+            const code = codeElement.textContent || codeElement.innerText;
+            navigator.clipboard.writeText(code).then(() => {
+                const button = document.querySelector('.copy-button');
+                const originalText = button.textContent;
+                button.textContent = 'Copied!';
+                button.classList.add('copied');
+                setTimeout(() => {
+                    button.textContent = originalText;
+                    button.classList.remove('copied');
+                }, 2000);
+            }).catch(err => {
+                console.error('Failed to copy code:', err);
+            });
+        }
+        
+        // Update code when selections change
+        document.getElementById('task-select').addEventListener('change', generateCode);
+        document.getElementById('representation-select').addEventListener('change', generateCode);
+        
+        // Generate initial code
+        generateCode();
+    </script>
+</body>
+</html>
+
