@@ -103,6 +103,10 @@ class Task:
                 f.write("")
 
     def from_scratch(self, size_thresholds):
+        """Create task dataset from scratch.
+
+        :param size_thresholds: Optional 2-element list with lower and upper bound on RNA size to consider
+        """
         os.makedirs(self.dataset_path, exist_ok=True)
         print(">>> Creating task dataset from scratch...")
         # instantiate the Size filter if required
@@ -117,7 +121,10 @@ class Task:
         self.metadata["data_version"] = self.dataset.version
 
     def from_zenodo(self):
-        """Downloads the task dataset from Zenodo and loads it."""
+        """Download the task dataset from Zenodo and load it.
+
+        Downloads the precomputed task dataset from Zenodo and extracts it to the task root directory.
+        """
 
         url = ZENODO_URL + f"{self.name}.tar.gz"
         print(f">>> Downloading task dataset from Zenodo {url}...")
@@ -133,29 +140,41 @@ class Task:
         Executing the method should result in a list of ``.json`` files
         saved in ``{root}/dataset``. All the RNA graphs should contain all the annotations needed to run the task
         (e.g. node/edge attributes)
+
+        :return: RNADataset containing the processed RNA graphs
         """
         raise NotImplementedError
 
     def init_metadata(self, additional_metadata: Optional[dict] = None) -> None:
-        """Initialize dictionary to hold key/value pairs to self.metadata."""
+        """Initialize dictionary to hold key/value pairs to self.metadata.
+
+        :param additional_metadata: Optional dictionary with metadata to include in task
+        """
         self.metadata = {}
         if additional_metadata is not None:
             self.metadata.update(additional_metadata)
 
     def get_task_vars(self) -> FeaturesComputer:
-        """Define a FeaturesComputer object to set which input and output variables will be used in the task."""
+        """Define a FeaturesComputer object to set which input and output variables will be used in the task.
+
+        :return: FeaturesComputer object configured for this task
+        """
         return FeaturesComputer()
 
     @property
     def default_splitter(self):
-        """The splitter used if no other splitter is specified."""
+        """The splitter used if no other splitter is specified.
+
+        :return: RandomSplitter instance
+        """
         return RandomSplitter()
 
     def post_process(self):
-        """
-        The most common post_processing steps to remove redundancy.
+        """Apply post-processing steps to remove redundancy.
 
-        Other tasks should implement their own if this is not the desired default behavior
+        The most common post-processing steps to remove redundancy using CD-Hit
+        and USalign distance metrics. Other tasks should implement their own if
+        this is not the desired default behavior.
         """
         cd_hit_computer = CDHitComputer(similarity_threshold=0.9)
         cd_hit_rr = RedundancyRemover(distance_name="cd_hit", threshold=0.9)
@@ -186,8 +205,11 @@ class Task:
         return splits
 
     def set_datasets(self, recompute=True):
-        """Sets the train, val and test datasets
+        """Set the train, val and test datasets.
+
         Call this each time you modify ``self.dataset``.
+
+        :param recompute: If True, recompute the splits even if they exist
         """
         if not hasattr(self, "train_ind") or recompute:
             print("Splitting..")
@@ -242,8 +264,12 @@ class Task:
         self.dataset.add_feature(feature=feature, feature_level=feature_level, is_input=is_input)
 
     def set_loaders(self, recompute=True, **dataloader_kwargs):
-        """Sets the dataloader properties.
+        """Set the dataloader properties.
+
         Call this each time you modify ``self.dataset``.
+
+        :param recompute: If True, recompute the datasets and loaders even if they exist
+        :param dataloader_kwargs: Additional keyword arguments to pass to DataLoader
         """
         self.set_datasets(recompute=recompute)
 
@@ -273,11 +299,22 @@ class Task:
         return self.train_dataloader, self.val_dataloader, self.test_dataloader
 
     def evaluate(self, model, loader) -> dict:
+        """Evaluate model performance on a dataset.
+
+        Tasks must implement this method to compute task-specific metrics.
+
+        :param model: The model to evaluate
+        :param loader: DataLoader containing the data to evaluate on
+        :return: Dictionary of metric names and values
+        """
         raise NotImplementedError
 
     @cached_property
     def task_id(self):
-        """Task hash is a hash of all RNA ids and node IDs in the dataset"""
+        """Task hash is a hash of all RNA ids and node IDs in the dataset.
+
+        :return: SHA256 hash string of the task, or empty string if not in_memory
+        """
         h = hashlib.new("sha256")
         if not self.in_memory:
             return ""
@@ -293,9 +330,9 @@ class Task:
     def write(self):
         """Save task data and splits to root.
 
-        Creates a folder in ``root`` called ``'graphs'``
-        which stores the RNAs that form the dataset, and three `.txt` files (`'{train, val, test}_idx.txt'`,
-        one for each split with a list of indices.
+        Creates a folder in ``root`` called ``'dataset'``
+        which stores the RNAs that form the dataset, and three `.txt` files (`'{train, val, test}_idx.txt'`),
+        one for each split with a list of indices. Also saves metadata.json and task.csv.
         """
         if not os.path.exists(self.dataset_path) or not os.listdir(self.dataset_path) or self.recompute:
             print(">>> Saving dataset.")
@@ -318,7 +355,10 @@ class Task:
         print(">>> Done")
 
     def to_csv(self, path: Union[str, os.PathLike]):
-        """Write a single CSV with all task data."""
+        """Write a single CSV with all task data.
+
+        :param path: Path where the CSV file should be written
+        """
         rows = []
         graph_level = self.metadata['graph_level']
         for i, rna in enumerate(self.dataset):
@@ -341,7 +381,10 @@ class Task:
         pd.DataFrame(rows).to_csv(path)
 
     def load(self):
-        """Load dataset and splits from disk."""
+        """Load dataset and splits from disk.
+
+        :return: Tuple of (dataset, metadata, (train_ind, val_ind, test_ind))
+        """
         # load splits
         print(">>> Loading precomputed task...")
         self.dataset = RNADataset(
@@ -379,8 +422,7 @@ class Task:
         Including dimensions needed for model initialization
         and other relevant statistics. Prints the description and returns it as a dict.
 
-        Returns:
-            dict: Contains dataset information and model dimensions
+        :return: Dictionary containing dataset information and model dimensions
         """
 
         try:
@@ -472,7 +514,11 @@ class Task:
             all_rnas.append(rna.name)
 
     def create_dataset_from_list(self, rnas):
-        """Computes an RNADataset object from the lists touched in add_rna_to_building_list"""
+        """Compute an RNADataset object from the lists touched in add_rna_to_building_list.
+
+        :param rnas: List of RNA objects or RNA names (depending on in_memory setting)
+        :return: RNADataset created from the provided list
+        """
         if self.in_memory:
             print("in memory from list")
             dataset = RNADataset(rnas=rnas)
