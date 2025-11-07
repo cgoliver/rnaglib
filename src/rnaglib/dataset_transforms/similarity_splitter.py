@@ -41,6 +41,11 @@ class ClusterSplitter(Splitter):
         super().__init__(**kwargs)
 
     def forward(self, dataset):
+        """Split dataset into train, validation, and test sets using clustering.
+
+        :param dataset: RNADataset to split
+        :return: Tuple of (train_indices, val_indices, test_indices)
+        """
         print(f"pre cluster len: {len(dataset)}")
         clusters = self.cluster_split(dataset, frac=0, split=False)
         if self.balanced and not self.debug:
@@ -63,11 +68,14 @@ class ClusterSplitter(Splitter):
         return train, val, test
 
     def balancer(self, clusters, label_counts, dataset, fracs, n=0.2):
-        """Splits clusters into train, val, test keeping into account label balance.
+        """Split clusters into train, val, test keeping into account label balance.
 
-        Fracs is a tuple of fractions to get the right proportions.
-        Dataset needs to be passed since the cluster indices apply to keep_dataset,
-        not necessarily the original one.
+        :param clusters: List of clusters, each cluster is a list of RNA names
+        :param label_counts: Dictionary mapping RNA names to their label counters
+        :param dataset: RNADataset to split
+        :param fracs: Tuple of fractions (train, val, test) to get the right proportions
+        :param n: Not used (kept for compatibility)
+        :return: Tuple of (train_clusters, val_clusters, test_clusters)
         """
         balanced = self.balanced if not self.debug else 0
         if balanced:
@@ -125,10 +133,11 @@ class ClusterSplitter(Splitter):
         We then remove the current cluster from the pool and add it to the test set.
         Points that remain in the pool are kept as the training set.
 
-        :param dataset: dataset to split
-        :param frac: fraction of dataset to use as the test set
-        :param n: portion of the test set size to use as largest test set cluster size
-        :param split: if split is False, we return all clusters instead of splitting them
+        :param dataset: RNADataset to split
+        :param frac: Fraction of dataset to use as the test set
+        :param n: Portion of the test set size to use as largest test set cluster size (default 0.05)
+        :param split: If False, return all clusters instead of splitting them (default True)
+        :return: If split=True: tuple of (test_clusters, train_clusters). If split=False: list of all clusters
         """
         if dataset.distances is not None:
             if not self.distance_name in dataset.distances:

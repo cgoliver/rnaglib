@@ -64,10 +64,11 @@ def split_list_in_fractions(
     """Split a list and return sub-lists by given fractions split and validation.
     The remainder of the dataset is used for the test set.
 
-    :param list_to_split: list you want to split.
-    :param float split_train: fraction of dataet to use for train set (default 0.7)
-    :param float split_valid: fraction of dataset to use for validation (default 0.15)
-    :param int seed: seed for shuffling (default 0)
+    :param list_to_split: List you want to split
+    :param split_train: Fraction of dataset to use for train set (default 0.7)
+    :param split_valid: Fraction of dataset to use for validation (default 0.15)
+    :param seed: Seed for shuffling (default 0)
+    :return: Tuple of (train_list, valid_list, test_list)
     """
     copy_list = list_to_split.copy()
     random.Random(seed).shuffle(copy_list)
@@ -106,6 +107,13 @@ def random_split(dataset, split_train=0.7, split_valid=0.15, seed=0):
 
 
 def split_dataset(dataset, split_train=0.7, split_valid=0.85):
+    """Split a dataset into train, validation, and test sets.
+
+    :param dataset: RNADataset to split
+    :param split_train: Proportion of dataset for training (default 0.7)
+    :param split_valid: Proportion of dataset for validation (default 0.85)
+    :return: Tuple of (train_set, validation_set, test_set)
+    """
     node_targets = [f"node_{target}" for target in dataset.nt_targets]
     # 1st strategy : if we are looking for a single property : subset the graphs that contain at least a node with this
     # property and make a random split among these.

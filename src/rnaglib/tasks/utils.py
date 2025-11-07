@@ -15,13 +15,14 @@ TASK_MAP = {'rna_cm': 'ChemicalModification',
 
 
 def get_task(root=".", task_id="rna_cm", **task_kwargs) -> Task:
-    """  Load a task object using its unique string ID. You can get a list of
-    all available task IDs as a list by importing ``rnaglib.tasks.TASKS``.
+    """Load a task object using its unique string ID.
 
-    :param root: directory for holding the task data.
-    :param task_id: string ID of desired task. 
+    You can get a list of all available task IDs as a list by importing ``rnaglib.tasks.TASKS``.
 
-    :returns: a Task object.
+    :param root: Directory for holding the task data
+    :param task_id: String ID of desired task (e.g., "rna_cm", "rna_go")
+    :param task_kwargs: Additional keyword arguments to pass to the task constructor
+    :return: Task object instance
     """
     try:
         cls = TASK_MAP[task_id]

@@ -12,16 +12,17 @@ class Collater:
     """
 
     def __init__(self, dataset):
-        """ Initialize a Collater object.
-        :return: a picklable python function that can be called on a batch by Pytorch loaders
+        """Initialize a Collater object.
+
+        :param dataset: RNADataset to use for collating batches
         """
         self.dataset = dataset
 
     def __call__(self, samples):
-        """
-        :param samples:
-        :return: a dict
+        """Collate a batch of samples into a dictionary.
 
+        :param samples: List of sample dictionaries from the dataset
+        :return: Dictionary with batched representations and other keys
         """
         batch = dict()
         for representation in self.dataset.representations:
@@ -43,16 +44,17 @@ def get_loader(dataset,
                verbose=False,
                persistent_workers=True,
                ):
-    """ Fetch a loader object for a given dataset.
+    """Fetch a loader object for a given dataset.
 
-    :param rnaglib.dataset.RNADataset dataset: Dataset for loading.
-    :param int batch_size: number of items in batch
-    :param bool split: whether to compute splits
-    :param float split_train: proportion of dataset to keep for training
-    :param float split_valid: proportion of dataset to keep for validation
-    :param bool verbose: print updates
-    :return: torch.utils.data.DataLoader
-
+    :param dataset: RNADataset for loading
+    :param batch_size: Number of items in batch
+    :param num_workers: Number of worker processes for data loading
+    :param split: Whether to compute train/val/test splits
+    :param split_train: Proportion of dataset to keep for training (default 0.7)
+    :param split_valid: Proportion of dataset to keep for validation (default 0.85)
+    :param verbose: Print updates during loading
+    :param persistent_workers: Keep workers alive between epochs
+    :return: If split=False: single DataLoader. If split=True: tuple of (train_loader, valid_loader, test_loader)
     """
     persistent_workers = False if num_workers == 0 else persistent_workers
 
@@ -98,8 +100,15 @@ def get_inference_loader(list_to_predict,
                          batch_size=5,
                          num_workers=20,
                          **kwargs):
-    """
-    This is to just make an inference over a list of graphs.
+    """Create a DataLoader for inference over a list of graphs.
+
+    :param list_to_predict: List of RNA IDs or indices to predict on
+    :param data_path: Path to dataset directory (if dataset is None)
+    :param dataset: RNADataset instance (if data_path is None)
+    :param batch_size: Number of items in batch
+    :param num_workers: Number of worker processes for data loading
+    :param kwargs: Additional keyword arguments to pass to DataLoader
+    :return: DataLoader for inference
     """
     if (dataset is None and data_path is None) or (dataset is not None and data_path is not None):
         raise ValueError("To create an inference loader please provide either an existing dataset or a data path")

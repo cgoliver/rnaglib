@@ -135,6 +135,11 @@ class Splitter:
         return train, val, test
 
     def forward(self, dataset):
+        """Split dataset into train, validation, and test sets.
+
+        :param dataset: RNADataset to split
+        :return: Tuple of (train_indices, val_indices, test_indices)
+        """
         raise NotImplementedError
 
 

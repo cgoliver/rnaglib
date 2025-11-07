@@ -19,10 +19,10 @@ class RedundancyRemover(DSTransform):
         self.threshold = threshold
 
     def __call__(self, dataset):
-        """"Removes redundancy to a specific dataset following the parameters specified in the RedundancyRemover object
+        """Remove redundancy from a dataset following the parameters specified in the RedundancyRemover object.
 
-        :return: the dataset with redundancy removed according to specified criteria
-        :rtype: RNADataset
+        :param dataset: RNADataset to remove redundancy from
+        :return: RNADataset with redundancy removed according to specified criteria
         """
         if dataset.distances is None or not self.distance_name in dataset.distances:
             raise ValueError(f"The distance matrix using distances {self.distance_name} has not been computed")

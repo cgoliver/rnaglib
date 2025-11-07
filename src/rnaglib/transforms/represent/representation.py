@@ -8,12 +8,11 @@ class Representation:
         pass
 
     def __call__(self, rna_graph, features_dict):
-        """
-        Return
+        """Transform an RNA graph into a representation.
 
-        :param rna_graph:
-        :param features_dict:
-        :return:
+        :param rna_graph: NetworkX graph representing the RNA structure
+        :param features_dict: Dictionary containing node and edge features
+        :return: Representation of the RNA (e.g., graph, voxel, point cloud)
         """
         raise NotImplementedError
 

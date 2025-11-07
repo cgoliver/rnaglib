@@ -395,6 +395,8 @@ class GVPConvLayer(nn.Module):
         return x
     
 class GVPModel(torch.nn.Module):
+    """Geometric Vector Perceptron (GVP) model for RNA graph classification."""
+    
     def __init__(
         self,
         num_classes,
@@ -409,6 +411,20 @@ class GVPModel(torch.nn.Module):
         edge_in_dim=(32,1),
         edge_h_dim=(32,1),
     ):
+        """Initialize GVPModel.
+
+        :param num_classes: Number of output classes
+        :param graph_level: If True, perform graph-level classification; if False, node-level
+        :param num_layers: Number of GVP convolution layers
+        :param dropout_rate: Dropout rate for regularization
+        :param multi_label: If True, use multi-label classification
+        :param final_activation: Final activation function ("sigmoid", "softmax", or None)
+        :param device: Device to run on ("cuda", "mps", or "cpu"). If None, auto-detects
+        :param node_in_dim: Tuple of (scalar_dim, vector_dim) for input node features
+        :param node_h_dim: Tuple of (scalar_dim, vector_dim) for hidden node features
+        :param edge_in_dim: Tuple of (scalar_dim, vector_dim) for input edge features
+        :param edge_h_dim: Tuple of (scalar_dim, vector_dim) for hidden edge features
+        """
         super().__init__()
         self.num_classes = num_classes
         self.graph_level = graph_level
@@ -474,7 +490,12 @@ class GVPModel(torch.nn.Module):
     
         self.configure_training()
     
-    def forward(self, data): 
+    def forward(self, data):
+        """Forward pass through the GVP model.
+
+        :param data: PyTorch Geometric data object containing graph structure and features
+        :return: Model output predictions
+        """
         h_V, edge_index, h_E, batch = data.h_V, data.edge_index, data.h_E, data.batch
         h_V = self.W_v(h_V)
         h_E = self.W_e(h_E)
@@ -491,12 +512,21 @@ class GVPModel(torch.nn.Module):
         return out.squeeze(-1)
     
     def configure_training(self, learning_rate=0.001):
-        """Configure training settings."""
+        """Configure training settings.
+
+        :param learning_rate: Learning rate for the Adam optimizer
+        """
         self.to(self.device)
         self.criterion = self.criterion.to(self.device)  # Move criterion to device for all cases
         self.optimizer = torch.optim.Adam(self.parameters(), lr=learning_rate)
 
     def compute_loss(self, out, target):
+        """Compute loss between predictions and targets.
+
+        :param out: Model output predictions
+        :param target: Ground truth labels
+        :return: Loss value
+        """
         # If just two classes, flatten outputs since BCE behavior expects equal dimensions and CE (N,k):(N)
         # Otherwise CE expects long as outputs
         if self.multi_label:
@@ -509,6 +539,12 @@ class GVPModel(torch.nn.Module):
         return loss
 
     def train_model(self, task, epochs=500, print_all_epochs=False):
+        """Train the model on a task.
+
+        :param task: Task object containing train and validation dataloaders
+        :param epochs: Number of training epochs
+        :param print_all_epochs: If True, print metrics every epoch; if False, print every 10 epochs
+        """
         if self.optimizer is None:
             self.configure_training()
 
@@ -549,12 +585,10 @@ class GVPModel(torch.nn.Module):
     def inference(self, loader) -> tuple:
         """Evaluate model performance on a dataset.
 
-        Args:
-            loader: Data loader to use
-
-        Returns:
-            3 list containing predictions, probs, targets if residue level,
-        else 3 np arrays
+        :param loader: DataLoader containing the data to evaluate on
+        :return: Tuple of (mean_loss, predictions, probabilities, labels)
+            If residue-level: predictions, probs, labels are lists
+            If graph-level: predictions, probs, labels are numpy arrays
         """
         self.eval()
         all_probs = []
@@ -605,6 +639,12 @@ class GVPModel(torch.nn.Module):
         return mean_loss, all_preds, all_probs, all_labels
 
     def get_dataloader(self, task, split="test"):
+        """Get a dataloader for a specific split.
+
+        :param task: Task object containing dataloaders
+        :param split: Split to get ("test", "val", or "train")
+        :return: DataLoader for the specified split
+        """
         if split == "test":
             dataloader = task.test_dataloader
         elif split == "val":
@@ -614,6 +654,12 @@ class GVPModel(torch.nn.Module):
         return dataloader
 
     def evaluate(self, task, split="test"):
+        """Evaluate model on a task split and compute metrics.
+
+        :param task: Task object containing dataloaders and compute_metrics method
+        :param split: Split to evaluate on ("test", "val", or "train")
+        :return: Dictionary of metric names and values, including loss
+        """
         dataloader = self.get_dataloader(task=task, split=split)
         mean_loss, all_preds, all_probs, all_labels = self.inference(loader=dataloader)
         metrics = task.compute_metrics(all_preds, all_probs, all_labels)

@@ -40,11 +40,13 @@ class StructureDistanceComputer(DistanceComputer):
         super().__init__(name=self.name, **kwargs)
 
     def forward(self, dataset):
-        """Computes pairwise structural similarity between all pairs of RNAs with rna-align.
-        Stalls with RNAs > 200 nts.
+        """Compute pairwise structural similarity between all pairs of RNAs.
 
-        :param dataset: RNA dataset to compute similarity over.
-        :returns np.array: Array of pairwise similarities in order of given dataset.
+        Uses RNAalign or USalign. Stalls with RNAs > 200 nts.
+
+        :param dataset: RNADataset to compute similarity over
+        :return: Tuple of (similarity_matrix, list_of_kept_rna_names)
+            similarity_matrix is a numpy array of pairwise similarities
         """
         if self.name not in ["RNAalign", "USalign"]:
             raise ValueError("name must be 'RNAalign' or 'USalign'")

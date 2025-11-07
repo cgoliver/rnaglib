@@ -9,6 +9,11 @@ from rnaglib.utils import cdhit_wrapper
 
 
 class CDHitComputer(DistanceComputer):
+    """Compute sequence similarity using CD-Hit clustering.
+
+    :param similarity_threshold: Sequence similarity threshold for clustering (default 0.9)
+    :param kwargs: Additional arguments passed to DistanceComputer
+    """
     def __init__(
             self,
             similarity_threshold: float = 0.9,
@@ -24,8 +29,9 @@ class CDHitComputer(DistanceComputer):
         using CD-Hit. For a given pair of multi-chained RNAs, their overall similarity score
         is given by the Tanimoto coefficient of the sets of clusters assigned to each of the RNA's chains.
 
-        :param dataset: RNA dataset to compute similarity over.
-        :returns np.array: Array of pairwise similarities in order of given dataset.
+        :param dataset: RNADataset to compute similarity over
+        :return: Tuple of (similarity_matrix, list_of_kept_rna_names)
+            similarity_matrix is a numpy array of pairwise similarities
         """
         # prepare input for CD-Hit. One entry per consecutive chunk in sequence.
         ids, sequences = [], []

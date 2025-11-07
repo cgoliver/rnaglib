@@ -13,6 +13,11 @@ class DistanceComputer(DSTransform):
         pass
 
     def __call__(self, dataset):
+        """Compute distance matrix for a dataset.
+
+        :param dataset: RNADataset to compute distances for
+        :return: RNADataset with distance matrix added
+        """
         if dataset.distances is None or self.name not in dataset.distances or self.recompute:
             similarity_matrix, keep_dataset_names = self.forward(dataset)
             if len(keep_dataset_names) != len(dataset):
@@ -28,4 +33,9 @@ class DistanceComputer(DSTransform):
         return dataset
 
     def forward(self, dataset):
+        """Compute similarity matrix for a dataset.
+
+        :param dataset: RNADataset to compute similarities for
+        :return: Tuple of (similarity_matrix, list_of_kept_rna_names)
+        """
         raise NotImplementedError

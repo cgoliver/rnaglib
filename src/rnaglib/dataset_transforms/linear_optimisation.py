@@ -24,7 +24,14 @@ def validate_inputs(
     split_ratios: tuple[float, float, float],
     ratio_tolerance: float,
 ) -> None:
-    """Validate all input parameters."""
+    """Validate all input parameters.
+
+    :param clusters: List of clusters, each cluster is a list of RNA names
+    :param cluster_counters: List of Counter objects, one per cluster, counting labels
+    :param split_ratios: Tuple of (train_ratio, val_ratio, test_ratio) that must sum to 1.0
+    :param ratio_tolerance: Tolerance for split ratios (must be between 0 and 1)
+    :raises ValidationError: If inputs are invalid
+    """
     if not clusters or not cluster_counters:
         raise ValidationError("Clusters and cluster_counters cannot be empty")
 
@@ -46,7 +53,16 @@ def calculate_balance_metrics(
     cluster_counters: list[Counter],
     split_ratios: tuple[float, float, float],
 ) -> SplitMetrics:
-    """Calculate metrics showing how well the splits achieve balance targets."""
+    """Calculate metrics showing how well the splits achieve balance targets.
+
+    :param splits: List of three splits, each containing lists of cluster names
+    :param clusters: List of clusters, each cluster is a list of RNA names
+    :param target_sizes: Target sizes for train, val, test splits
+    :param cluster_sizes: List of sizes for each cluster
+    :param cluster_counters: List of Counter objects, one per cluster, counting labels
+    :param split_ratios: Tuple of (train_ratio, val_ratio, test_ratio)
+    :return: SplitMetrics object with size and label deviation metrics
+    """
     size_errors = []
     label_errors = []
     per_split_label_errors = [[] for _ in range(3)]
@@ -103,7 +119,20 @@ def assign_clusters(
     Union[list[list[str]], None],
     Union[SplitMetrics, None],
 ]:
-    """Split clusters into train/val/test sets optimizing for balance."""
+    """Split clusters into train/val/test sets optimizing for balance.
+
+    Uses linear programming to assign clusters to splits while balancing size and label distribution.
+
+    :param clusters: List of clusters, each cluster is a list of RNA names
+    :param cluster_counters: List of Counter objects, one per cluster, counting labels
+    :param split_ratios: Tuple of (train_ratio, val_ratio, test_ratio) (default (0.7, 0.15, 0.15))
+    :param ratio_tolerance: Tolerance for split ratios (default 0.5)
+    :param size_weight: Weight for size balance in objective function (default 1.0)
+    :param label_weight: Weight for label balance in objective function (default 1.0)
+    :param verbose: Whether to print solver messages (default False)
+    :return: Tuple of (train_clusters, val_clusters, test_clusters, metrics)
+        Returns None values if optimization fails
+    """
     try:
         validate_inputs(clusters, cluster_counters, split_ratios, ratio_tolerance)
     except ValidationError as e:
@@ -210,7 +239,10 @@ def assign_clusters(
 
 
 def print_split_metrics(metrics: SplitMetrics) -> None:
-    """Print formatted metrics for the splits."""
+    """Print formatted metrics for the splits.
+
+    :param metrics: SplitMetrics object containing size and label deviation metrics
+    """
     print("\nBalance Metrics:")
     print(
         f"Size deviation - Mean: {metrics.size_deviation['mean'] * 100:.1f}%, "
