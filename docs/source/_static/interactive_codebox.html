@@ -22,16 +22,24 @@
         
         .controls {
             display: flex;
+            flex-direction: column;
             gap: 20px;
             margin-bottom: 20px;
+        }
+        
+        .dropdowns-row {
+            display: flex;
+            gap: 20px;
             flex-wrap: wrap;
-            align-items: center;
+            align-items: flex-start;
         }
         
         .control-group {
             display: flex;
             flex-direction: column;
             gap: 8px;
+            flex: 1;
+            min-width: 200px;
         }
         
         .control-group label {
@@ -153,30 +161,33 @@
 <body>
     <div class="codebox-container">
         <div class="controls">
-            <div class="control-group">
-                <label for="task-select">Task:</label>
-                <select id="task-select">
-                    <option value="rna_cm">Chemical Modification</option>
-                    <option value="rna_go">RNA GO</option>
-                    <option value="rna_if">Inverse Folding</option>
-                    <option value="rna_if_bench">gRNAde</option>
-                    <option value="rna_ligand">Ligand Identification</option>
-                    <option value="rna_prot">Protein Binding Site</option>
-                    <option value="rna_site">Binding Site</option>
-                    <option value="rna_site_bench">Benchmark Binding Site</option>
-                </select>
-                <div id="task-description" class="task-description"></div>
+            <div class="dropdowns-row">
+                <div class="control-group">
+                    <label for="task-select">Task:</label>
+                    <select id="task-select">
+                        <option value="rna_cm">Chemical Modification</option>
+                        <option value="rna_go">RNA GO</option>
+                        <option value="rna_if">Inverse Folding</option>
+                        <option value="rna_if_bench">gRNAde</option>
+                        <option value="rna_ligand">Ligand Identification</option>
+                        <option value="rna_prot">Protein Binding Site</option>
+                        <option value="rna_site">Binding Site</option>
+                        <option value="rna_site_bench">Benchmark Binding Site</option>
+                    </select>
+                </div>
+                
+                <div class="control-group">
+                    <label for="representation-select">Representation:</label>
+                    <select id="representation-select">
+                        <option value="graph">Graph</option>
+                        <option value="voxel">Voxel</option>
+                        <option value="point_cloud">Point Cloud</option>
+                        <option value="sequence">Sequence</option>
+                    </select>
+                </div>
             </div>
             
-            <div class="control-group">
-                <label for="representation-select">Representation:</label>
-                <select id="representation-select">
-                    <option value="graph">Graph</option>
-                    <option value="voxel">Voxel</option>
-                    <option value="point_cloud">Point Cloud</option>
-                    <option value="sequence">Sequence</option>
-                </select>
-            </div>
+            <div id="task-description" class="task-description"></div>
         </div>
         
         <div class="code-display">
