@@ -266,7 +266,7 @@ def hash_analyze(annot_dir):
             start = time.time()
             hash_table, _ = build_hash_table(annot_dir, graphlet_size=1, **arg_dic)
             tot = time.time() - start
-            if not hash_table is None:
+            if hash_table is not None:
                 n, k, lf = load_factor(hash_table)
             else:
                 n, k, lf = (None, None, None)

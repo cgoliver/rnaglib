@@ -106,10 +106,8 @@ class PartitionTransform(Transform):
         if isinstance(data, (list, Generator, RNADataset)):
             for rna in data:
                 yield from self.forward(rna)
-            pass
         else:
             yield from self.forward(data)
-        pass
 
     def new_name(self, rna_partition: dict):
         """Compute the name of the given partition of RNA"""
@@ -126,7 +124,6 @@ class Compose(Transform):
     def __init__(self, transforms: List[Transform], **kwargs):
         self.transforms = transforms
         super().__init__(**kwargs)
-        pass
 
     def forward(self, data: Any):
         for tr in self.transforms:

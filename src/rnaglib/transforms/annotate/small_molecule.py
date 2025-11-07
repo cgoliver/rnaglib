@@ -111,9 +111,9 @@ def hariboss_filter(lig, cif_dict, mass_lower_limit=160, mass_upper_limit=1000,
     """
 
     allowed_atoms = ["C", "H", "N", "O", "Br", "Cl", "F", "P", "Si", "B", "Se"]
-    if not additional_atoms is None:
+    if additional_atoms is not None:
         allowed_atoms += additional_atoms
-    if not disallowed_atoms is None:
+    if disallowed_atoms is not None:
         allowed_atoms = [a for a in allowed_atoms if a not in
                               disallowed_atoms]
     allowed_atoms += [atom_name.upper() for atom_name in

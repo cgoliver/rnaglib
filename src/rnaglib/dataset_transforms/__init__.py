@@ -27,8 +27,6 @@ __all__ = [
     "split_dataset",
     "RedundancyRemover",
     "DistanceComputer",
-    "CDHitComputer",
-    "StructureDistanceComputer",
     "get_loader",
     "Collater",
     "EdgeLoaderGenerator",

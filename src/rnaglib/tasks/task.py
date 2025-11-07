@@ -26,8 +26,8 @@ from rnaglib.dataset_transforms import RandomSplitter, Splitter, RedundancyRemov
 from rnaglib.dataset_transforms import Collater
 from rnaglib.tasks import TASKS
 
-ZENOD_RECORD = "189027"
-ZENODO_URL = f"https://sandbox.zenodo.org/records/{ZENOD_RECORD}/files/"
+ZENODO_RECORD = "189027"
+ZENODO_URL = f"https://sandbox.zenodo.org/records/{ZENODO_RECORD}/files/"
 
 
 class Task:
@@ -139,7 +139,7 @@ class Task:
     def init_metadata(self, additional_metadata: Optional[dict] = None) -> None:
         """Initialize dictionary to hold key/value pairs to self.metadata."""
         self.metadata = {}
-        if not additional_metadata is None:
+        if additional_metadata is not None:
             self.metadata.update(additional_metadata)
 
     def get_task_vars(self) -> FeaturesComputer:
@@ -169,7 +169,7 @@ class Task:
         if self.redundancy_removal:
             self.dataset = us_align_rr(self.dataset)
 
-        # PATCH: delete graphs from dataset/ lost during redundancy removal
+        # Clean up graph files that were removed during redundancy removal
         for f in os.listdir(self.dataset.dataset_path):
             if Path(f).stem not in self.dataset.all_rnas:
                 os.remove(Path(self.dataset.dataset_path) / f)
@@ -179,7 +179,7 @@ class Task:
     def split(self, dataset: RNADataset):
         """Calls the splitter and returns train, val, test splits.
 
-        :param dataset: 
+        :param dataset: RNADataset to split
         """
         splits = self.splitter(dataset)
         self.train_ind, self.val_ind, self.test_ind = splits
@@ -197,8 +197,14 @@ class Task:
         self.test_dataset = self.dataset.subset(self.test_ind)
 
     def get_split_datasets(self, recompute=True):
-        # If datasets were not already computed or if we want to recompute them to account
-        # for changes in the global dataset
+        """Get train, validation, and test datasets.
+
+        If datasets were not already computed or if recompute is True,
+        splits the dataset and creates the train/val/test subsets.
+
+        :param recompute: If True, recompute the splits even if they exist
+        :return: Tuple of (train_dataset, val_dataset, test_dataset)
+        """
         if recompute or "train_dataset" not in self.__dict__:
             print(">>> Splitting the dataset...")
             self.set_datasets(recompute=recompute)
@@ -206,12 +212,18 @@ class Task:
         return self.train_dataset, self.val_dataset, self.test_dataset
 
     def add_representation(self, representation: Transform):
+        """Add a representation transform to the dataset.
+
+        :param representation: Transform object to add as a representation
+        """
         self.dataset.add_representation(representation)
-        pass
 
     def remove_representation(self, representation_name: str):
+        """Remove a representation transform from the dataset.
+
+        :param representation_name: Name of the representation to remove
+        """
         self.dataset.remove_representation(representation_name)
-        pass
 
     def add_feature(
             self,
@@ -219,9 +231,15 @@ class Task:
             feature_level: Literal["residue", "rna"] = "residue",
             is_input: bool = True,
     ):
-        """Shortcut to RNADataset.add_feature"""
+        """Add a feature to the dataset.
+
+        Shortcut to RNADataset.add_feature.
+
+        :param feature: Feature name or Transform object to add
+        :param feature_level: Level at which the feature applies ("residue" or "rna")
+        :param is_input: If True, feature is used as input; if False, as target
+        """
         self.dataset.add_feature(feature=feature, feature_level=feature_level, is_input=is_input)
-        pass
 
     def set_loaders(self, recompute=True, **dataloader_kwargs):
         """Sets the dataloader properties.
@@ -230,8 +248,6 @@ class Task:
         self.set_datasets(recompute=recompute)
 
         # If no collater is provided we need one
-        if dataloader_kwargs is None:
-            dataloader_kwargs = {"collate_fn": Collater(self.train_dataset)}
         if "collate_fn" not in dataloader_kwargs:
             collater = Collater(self.train_dataset)
             dataloader_kwargs["collate_fn"] = collater
@@ -243,8 +259,15 @@ class Task:
         self.test_dataloader = DataLoader(dataset=self.test_dataset, **dataloader_kwargs)
 
     def get_split_loaders(self, recompute=False, **dataloader_kwargs):
-        # If dataloaders were not already precomputed or if we want to recompute them to account
-        # for changes in the global dataset
+        """Get train, validation, and test dataloaders.
+
+        If dataloaders were not already precomputed or if recompute is True,
+        creates new dataloaders for the train/val/test splits.
+
+        :param recompute: If True, recompute the loaders even if they exist
+        :param dataloader_kwargs: Additional keyword arguments to pass to DataLoader
+        :return: Tuple of (train_dataloader, val_dataloader, test_dataloader)
+        """
         if recompute or "train_dataloader" not in self.__dict__:
             self.set_loaders(recompute=recompute, **dataloader_kwargs)
         return self.train_dataloader, self.val_dataloader, self.test_dataloader
@@ -295,7 +318,7 @@ class Task:
         print(">>> Done")
 
     def to_csv(self, path: Union[str, os.PathLike]):
-        """ Write a single CSV with all task data."""
+        """Write a single CSV with all task data."""
         rows = []
         graph_level = self.metadata['graph_level']
         for i, rna in enumerate(self.dataset):
@@ -325,7 +348,7 @@ class Task:
             dataset_path=self.dataset_path, in_memory=self.in_memory, recompute_mapping=self.recompute
         )
 
-        with Path.open(Path(self.root) / "metadata.json") as meta:
+        with open(Path(self.root) / "metadata.json") as meta:
             self.metadata = json.load(meta)
         if (
                 os.path.exists(os.path.join(self.root, "train_idx.txt"))
@@ -340,6 +363,11 @@ class Task:
         return self.dataset, self.metadata, (self.train_ind, self.val_ind, self.test_ind)
 
     def __eq__(self, other):
+        """Check if two tasks are equal based on their task_id.
+
+        :param other: Another Task instance to compare with
+        :return: True if tasks have the same task_id, False otherwise
+        """
         return self.task_id == other.task_id
 
     def __repr__(self) -> str:
@@ -369,14 +397,12 @@ class Task:
 
             first_node_map = {n: i for i, n in enumerate(sorted(first_item["rna"].nodes()))}
             first_features_dict = self.dataset.features_computer(first_item)
-            # print(first_features_dict)
             first_features_array = first_features_dict["nt_features"][next(iter(first_node_map.keys()))]
             num_node_features = first_features_array.shape[0]
 
             # Dynamic class counting
             class_counts = {}
             classes = set()
-            unique_edge_attrs = set()  # only used with graphs
 
             multi_label = self.metadata['multi_label']
             # Collect statistics from dataset
@@ -430,6 +456,14 @@ class Task:
         return info
 
     def add_rna_to_building_list(self, all_rnas, rna):
+        """Add an RNA to the building list.
+
+        If in_memory is True, appends the RNA object directly. Otherwise,
+        saves the RNA to disk and appends its name.
+
+        :param all_rnas: List to append the RNA or RNA name to
+        :param rna: RNA graph object to add
+        """
         if self.in_memory:
             all_rnas.append(rna)
         else:
@@ -448,23 +482,49 @@ class Task:
         return dataset
 
     def compute_distances(self):
+        """Compute similarity distances between RNAs in the dataset.
+
+        Uses the dataset's similarity_matrix_computer to compute distances.
+        """
         self.dataset = self.dataset.similarity_matrix_computer.compute_distances(self.dataset)
 
     def remove_redundancy(self):
+        """Remove redundant RNAs from the dataset based on similarity.
+
+        Uses the dataset's similarity_matrix_computer to remove redundant entries.
+        """
         self.dataset = self.dataset.similarity_matrix_computer.remove_redundancy(self.dataset)
 
 
 class ClassificationTask(Task):
+    """Base class for classification tasks.
+
+    Provides methods for dummy inference and metric computation.
+    """
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
     @property
     def dummy_model(self) -> torch.nn:
+        """Get a dummy model for testing purposes.
+
+        Returns a DummyGraphModel for graph-level tasks or DummyResidueModel
+        for residue-level tasks.
+
+        :return: A dummy PyTorch model
+        """
         if self.metadata['graph_level']:
             return DummyGraphModel(num_classes=self.metadata['num_classes'])
         return DummyResidueModel(num_classes=self.metadata['num_classes'])
 
     def dummy_inference(self):
+        """Run dummy inference on the test dataset.
+
+        Uses the dummy model to generate predictions and probabilities
+        for all samples in the test dataloader.
+
+        :return: Tuple of (loss, predictions, probabilities, labels)
+        """
         all_probs = []
         all_preds = []
         all_labels = []
@@ -524,6 +584,16 @@ class ClassificationTask(Task):
         return 0, all_preds, all_probs, all_labels
 
     def compute_one_metric(self, preds, probs, labels):
+        """Compute classification metrics for a single set of predictions.
+
+        Computes accuracy, F1 score, and optionally MCC, balanced accuracy,
+        Jaccard score, and AUC depending on task configuration.
+
+        :param preds: Predicted labels
+        :param probs: Prediction probabilities
+        :param labels: True labels
+        :return: Dictionary of metric names and values
+        """
         one_metric = {
             "accuracy": accuracy_score(labels, preds),
             "f1": f1_score(
@@ -550,6 +620,16 @@ class ClassificationTask(Task):
         return one_metric
 
     def compute_metrics(self, all_preds, all_probs, all_labels):
+        """Compute classification metrics aggregated across all predictions.
+
+        For graph-level tasks, computes metrics directly. For residue-level tasks,
+        computes metrics per RNA and aggregates them, also including global metrics.
+
+        :param all_preds: List of predicted labels (per RNA for residue-level)
+        :param all_probs: List of prediction probabilities (per RNA for residue-level)
+        :param all_labels: List of true labels (per RNA for residue-level)
+        :return: Dictionary of metric names and values
+        """
         if self.metadata['graph_level']:
             return self.compute_one_metric(all_preds, all_probs, all_labels)
         # Here we have a list of preds [(n1,), (n2,)...] for each residue in each RNA
@@ -578,6 +658,10 @@ class ClassificationTask(Task):
 
 
 class ResidueClassificationTask(ClassificationTask):
+    """Classification task at the residue level.
+
+    Each residue (nucleotide) in the RNA is classified independently.
+    """
     def __init__(self, additional_metadata=None, **kwargs):
         meta = {'graph_level': False}
         if additional_metadata is not None:
@@ -586,6 +670,10 @@ class ResidueClassificationTask(ClassificationTask):
 
 
 class RNAClassificationTask(ClassificationTask):
+    """Classification task at the RNA (graph) level.
+
+    Each RNA graph is classified as a whole, rather than individual residues.
+    """
     def __init__(self, additional_metadata=None, **kwargs):
         meta = {'graph_level': True}
         if additional_metadata is not None:

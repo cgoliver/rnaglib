@@ -71,7 +71,7 @@ def process_axis(axis,
     else:
         pos = circular_layout(g)
 
-    if not node_color is None:
+    if node_color is not None:
         nodes = nx.draw_networkx_nodes(g, pos, node_size=50, node_color=node_color, linewidths=1, ax=axis)
     else:
         nt_color = []
@@ -92,7 +92,7 @@ def process_axis(axis,
     if node_ids:
         node_labels = {n: str(n).replace("_", "-") for n in g.nodes()}
         nx.draw_networkx_labels(g, pos, node_labels, font_color='black', ax=axis)
-    if not node_labels is None:
+    if node_labels is not None:
         nx.draw_networkx_labels(g, pos, node_labels, font_color='black', ax=axis)
 
     nodes.set_edgecolor('black')
@@ -116,7 +116,7 @@ def process_axis(axis,
     # nx.draw_networkx_edges(g, pos, edge_color="red", connectionstyle="arc3,rad=0.1", edgelist=non_bb_edges, ax=axis)
     nx.draw_networkx_edges(g, pos, edgelist=bb_edges, width=1, ax=axis)
 
-    if not highlight_edges is None:
+    if highlight_edges is not None:
         nx.draw_networkx_edges(g, pos, edgelist=highlight_edges, edge_color='y', width=8, alpha=0.5, ax=axis)
 
     nx.draw_networkx_edge_labels(g,
@@ -125,7 +125,7 @@ def process_axis(axis,
                                  edge_labels=edge_labels,
                                  ax=axis)
     axis.set_axis_off()
-    if not subtitle is None:
+    if subtitle is not None:
         axis.set_title(subtitle)
 
 
@@ -192,9 +192,9 @@ def rna_draw_pair(graphs, subtitles=None, highlight_edges=None, node_colors=None
     fig, ax = plt.subplots(1, len(graphs), num=1)
     for i, g in enumerate(graphs):
         subtitle, node_color = (None, None)
-        if not subtitles is None:
+        if subtitles is not None:
             subtitle = subtitles[i]
-        if not node_colors is None:
+        if node_colors is not None:
             node_color = node_colors[i]
 
         process_axis(ax[i],
@@ -230,7 +230,7 @@ def rna_draw_grid(graphs,
     """
     if grid_shape is None:
         assert len(set(map(len, graphs))) == 1, "All rows must have the same number of entries."
-    if not subtitles is None:
+    if subtitles is not None:
         assert len(set(map(len, subtitles))) == 1, "All rows must have the same number of entries."
 
         N = len(graphs)
@@ -255,7 +255,7 @@ def rna_draw_grid(graphs,
                          highlight_edges=highlight_edges,
                          node_color='grey')
 
-    if not row_labels is None:
+    if row_labels is not None:
         for a, row in zip(ax[:, 0], row_labels):
             a.set_ylabel(row, rotation=0)
 

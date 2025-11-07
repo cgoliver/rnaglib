@@ -32,7 +32,7 @@ for i, rna in tqdm(enumerate(dataset),total=dataset_size):
     lig_to_nodes = defaultdict(list)
     lig_info = nx.get_node_attributes(rna['rna'], 'binding_small-molecule-6.0A')
     for node, ligand in lig_info.items():
-        if not ligand is None:
+        if ligand is not None:
             lig_to_nodes[tuple(ligand['id'])].append(node)
             ligands_dict[node] = ligand['name']
     for ligand_id, binding_pocket in lig_to_nodes.items():
