@@ -44,7 +44,7 @@ class Mock(MagicMock):
     @classmethod
     def __getattr__(cls, name):
         return MagicMock()
-    
+
     def __getattr__(self, name):
         return MagicMock()
     

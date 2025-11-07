@@ -68,11 +68,6 @@ rnaglib Official Documentation
 
 ``rnaglib`` (RNA Geometric Library) is a Python package for studying models of RNA 3D structures.
 
-.. figure:: https://raw.githubusercontent.com/cgoliver/rnaglib/c092768f19d32d40329ca822e59db5507ec245ca/images/tasksfig.png
-   :alt: Tasks Figure
-   :width: 800px
-   :align: center
-
 Core Features
 -----------------
 
@@ -80,6 +75,29 @@ Core Features
 * Train and benchmark deep learning models for RNA 3D structure-function tasks
 * RNA graph visualization 
 * Create fully reproducible custom datasets and tasks
+
+.. figure:: https://raw.githubusercontent.com/cgoliver/rnaglib/c092768f19d32d40329ca822e59db5507ec245ca/images/tasksfig.png
+   :alt: Tasks Figure
+   :width: 800px
+   :align: center
+
+Train a model
+-----------------
+
+Select your task and representation to generate sample code:
+
+.. raw:: html
+   :file: _static/interactive_codebox.html
+
+Dataset Sizes by Task
+------------------------
+
+The following plot shows the number of RNAs in each available task dataset, with inverse folding tasks (large-scale) on the left and other tasks (smaller-scale) on the right:
+
+.. figure:: images/task_dataset_sizes.svg
+   :alt: Task Dataset Sizes
+   :width: 100%
+   :align: center
 
 
 Get started with rnaglib
