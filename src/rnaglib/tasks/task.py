@@ -177,17 +177,25 @@ class Task:
         and USalign distance metrics. Other tasks should implement their own if
         this is not the desired default behavior.
         """
-        cd_hit_computer = CDHitComputer(similarity_threshold=0.9)
-        cd_hit_rr = RedundancyRemover(distance_name="cd_hit", threshold=0.9)
-        self.dataset = cd_hit_computer(self.dataset)
-        if self.redundancy_removal:
-            self.dataset = cd_hit_rr(self.dataset)
+        # Check if cd-hit is available
+        if shutil.which("cd-hit") is not None:
+            cd_hit_computer = CDHitComputer(similarity_threshold=0.9)
+            cd_hit_rr = RedundancyRemover(distance_name="cd_hit", threshold=0.9)
+            self.dataset = cd_hit_computer(self.dataset)
+            if self.redundancy_removal:
+                self.dataset = cd_hit_rr(self.dataset)
+        else:
+            print("Warning: cd-hit not available, skipping CD-Hit distance computation")
 
-        us_align_computer = StructureDistanceComputer(name="USalign")
-        us_align_rr = RedundancyRemover(distance_name="USalign", threshold=0.8)
-        self.dataset = us_align_computer(self.dataset)
-        if self.redundancy_removal:
-            self.dataset = us_align_rr(self.dataset)
+        # Check if USalign is available
+        if shutil.which("USalign") is not None:
+            us_align_computer = StructureDistanceComputer(name="USalign")
+            us_align_rr = RedundancyRemover(distance_name="USalign", threshold=0.8)
+            self.dataset = us_align_computer(self.dataset)
+            if self.redundancy_removal:
+                self.dataset = us_align_rr(self.dataset)
+        else:
+            print("Warning: USalign not available, skipping USalign distance computation")
 
         # Clean up graph files that were removed during redundancy removal
         for f in os.listdir(self.dataset.dataset_path):
@@ -690,8 +698,14 @@ class ClassificationTask(Task):
             one_metric = self.compute_one_metric(pred, prob, label)
             metrics.append([v for k, v in sorted(one_metric.items())])
             sorted_keys = sorted(one_metric.keys())
+        if len(metrics) == 0:
+            # No valid metrics computed, return empty dict
+            return {}
         metrics = np.array(metrics)
         mean_metrics = np.mean(metrics, axis=0)
+        # Handle case where mean_metrics is a scalar (single metric)
+        if mean_metrics.ndim == 0:
+            mean_metrics = [mean_metrics.item()]
         metrics = {k: v for k, v in zip(sorted_keys, mean_metrics, strict=False)}
 
         # Get the flattened result, renamed to include "global"
@@ -721,6 +735,8 @@ class RNAClassificationTask(ClassificationTask):
 
     Each RNA graph is classified as a whole, rather than individual residues.
     """
+
+    
     def __init__(self, additional_metadata=None, **kwargs):
         meta = {'graph_level': True}
         if additional_metadata is not None:

@@ -1,6 +1,7 @@
 """Inverse Folding task definitions"""
 
 import os
+import shutil
 from collections import defaultdict
 from pathlib import Path
 
@@ -75,13 +76,22 @@ class InverseFolding(ResidueClassificationTask):
         """The task-specific post processing steps to remove redundancy and compute distances which will be used by the splitters.
         """
         print(">>> RNA_IF post")
-        cd_hit_computer = CDHitComputer(similarity_threshold=0.99)
-        cd_hit_rr = RedundancyRemover(distance_name="cd_hit", threshold=0.9)
-        self.dataset = cd_hit_computer(self.dataset)
-        self.dataset = cd_hit_rr(self.dataset)
+        # Check if cd-hit is available
+        if shutil.which("cd-hit") is not None:
+            cd_hit_computer = CDHitComputer(similarity_threshold=0.99)
+            cd_hit_rr = RedundancyRemover(distance_name="cd_hit", threshold=0.9)
+            self.dataset = cd_hit_computer(self.dataset)
+            self.dataset = cd_hit_rr(self.dataset)
+        else:
+            print("Warning: cd-hit not available, skipping CD-Hit distance computation")
 
-        us_align_computer = StructureDistanceComputer(name="USalign")
-        self.dataset = us_align_computer(self.dataset)
+        # Check if USalign is available
+        if shutil.which("USalign") is not None:
+            us_align_computer = StructureDistanceComputer(name="USalign")
+            self.dataset = us_align_computer(self.dataset)
+        else:
+            print("Warning: USalign not available, skipping USalign distance computation")
+
         self.dataset.save_distances()
 
     def get_task_vars(self) -> FeaturesComputer:

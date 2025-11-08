@@ -1,5 +1,6 @@
 import os
 import json
+import shutil
 
 import numpy as np
 from tqdm import tqdm
@@ -106,12 +107,21 @@ class LigandIdentification(RNAClassificationTask):
     def post_process(self):
         """The task-specific post processing steps to remove redundancy and compute distances which will be used by the splitters.
         """
-        cd_hit_computer = CDHitComputer(similarity_threshold=0.9)
-        prepare_dataset = PrepareDataset(distance_name="cd_hit", threshold=0.9)
-        us_align_computer = StructureDistanceComputer(name="USalign")
-        self.dataset = cd_hit_computer(self.dataset)
-        self.dataset = prepare_dataset(self.dataset)
-        self.dataset = us_align_computer(self.dataset)
+        # Check if cd-hit is available
+        if shutil.which("cd-hit") is not None:
+            cd_hit_computer = CDHitComputer(similarity_threshold=0.9)
+            prepare_dataset = PrepareDataset(distance_name="cd_hit", threshold=0.9)
+            self.dataset = cd_hit_computer(self.dataset)
+            self.dataset = prepare_dataset(self.dataset)
+        else:
+            print("Warning: cd-hit not available, skipping CD-Hit distance computation")
+
+        # Check if USalign is available
+        if shutil.which("USalign") is not None:
+            us_align_computer = StructureDistanceComputer(name="USalign")
+            self.dataset = us_align_computer(self.dataset)
+        else:
+            print("Warning: USalign not available, skipping USalign distance computation")
 
     def set_loaders(self, recompute=True, **dataloader_kwargs):
         """Sets the dataloader properties. This is a reimplementation of the set_loaders method of Task class

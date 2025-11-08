@@ -1,4 +1,5 @@
 import os
+import shutil
 
 from rnaglib.dataset import RNADataset
 from rnaglib.tasks import RNAClassificationTask
@@ -138,5 +139,9 @@ class RNAGo(RNAClassificationTask):
         """
         Computes sequence similarity between all atom pairs using CD-Hit
         """
-        cd_hit_computer = CDHitComputer(similarity_threshold=0.9)
-        self.dataset = cd_hit_computer(self.dataset)
+        # Check if cd-hit is available
+        if shutil.which("cd-hit") is not None:
+            cd_hit_computer = CDHitComputer(similarity_threshold=0.9)
+            self.dataset = cd_hit_computer(self.dataset)
+        else:
+            print("Warning: cd-hit not available, skipping CD-Hit distance computation")
