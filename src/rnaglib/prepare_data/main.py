@@ -116,9 +116,11 @@ def cline():
     )
     parser.add_argument(
         "--atom_coords_to_store",
-        type=str | list,
+        nargs="+",
         default=["P"],
-        help='Atoms whose coordinates must be saved in the graph. Can be either a list (e.g., ["P", "OP1", "OP2"]), or the str "all_atom" (to save all atomic coordinates))',
+        help='Atoms whose coordinates must be saved in the graph. '
+            'Provide one or more atom names (e.g. P OP1 OP2), or the single '
+            'value all_atom to save all atomic coordinates.',
     )
     parser.add_argument(
         "--include_stacking",
