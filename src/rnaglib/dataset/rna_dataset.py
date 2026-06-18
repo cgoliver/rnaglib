@@ -72,20 +72,20 @@ class RNADataset(Dataset):
     """
 
     def __init__(
-            self,
-            rnas: list[nx.Graph] = None,
-            dataset_path: str | os.PathLike = None,
-            version="2.0.2",
-            redundancy="nr",
-            rna_id_subset: list[str] = None,
-            recompute_mapping: bool = True,
-            in_memory: bool = None,
-            features_computer: FeaturesComputer = None,
-            representations: list[Representation] | Representation = None,
-            debug: bool = False,
-            get_pdbs: bool = True,
-            multigraph: bool = False,
-            transforms: list[Transform] | Transform = None,
+        self,
+        rnas: list[nx.Graph] = None,
+        dataset_path: str | os.PathLike = None,
+        version="2.0.2",
+        redundancy="nr",
+        rna_id_subset: list[str] = None,
+        recompute_mapping: bool = True,
+        in_memory: bool = None,
+        features_computer: FeaturesComputer = None,
+        representations: list[Representation] | Representation = None,
+        debug: bool = False,
+        get_pdbs: bool = True,
+        multigraph: bool = False,
+        transforms: list[Transform] | Transform = None,
     ):
         self.transforms = [transforms] if transforms is not None and not isinstance(transforms, Iterable) else []
         self.multigraph = multigraph
@@ -115,7 +115,13 @@ class RNADataset(Dataset):
             if recompute_mapping or not self.bidict_path.exists():
                 # Keep track of a list_id <=> system mapping. First remove extensions
                 existing_all_rna_names = [get_name_extension(rna, permissive=True)[0] for rna in existing_all_rnas]
-                self.all_rnas = bidict({rna: i for i, rna in enumerate(existing_all_rna_names)})
+                seen = {}
+                unique_rnas = []
+                for rna in existing_all_rna_names:
+                    if rna not in seen:
+                        seen[rna] = True
+                        unique_rnas.append(rna)
+                self.all_rnas = bidict({rna: i for i, rna in enumerate(unique_rnas)})
 
             else:
                 with self.bidict_path.open() as f:

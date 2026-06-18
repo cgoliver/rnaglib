@@ -114,11 +114,23 @@ def cline():
         default=False,
         help="runs only on --n-debug structures for debug.",
     )
+    parser.add_argument(
+        "--atom_coords_to_store",
+        type=str | list,
+        default=["P"],
+        help='Atoms whose coordinates must be saved in the graph. Can be either a list (e.g., ["P", "OP1", "OP2"]), or the str "all_atom" (to save all atomic coordinates))',
+    )
+    parser.add_argument(
+        "--include_stacking",
+        action="store_true",
+        default=False,
+        help="If true, add stacking edges to the graph",
+    )
     parser.add_argument("--n-debug", type=int, default=10, help="set number of debug structures.")
     return parser.parse_args()
 
 
-def build_graph_from_cif(cif_path, dump_dir=None):
+def build_graph_from_cif(cif_path, dump_dir=None, atom_coords_to_store=["P"], include_stacking=False):
     """Takes a cif file and builds the full RNAglib graph.
 
     :param cif_path: path to source mmCif file
@@ -127,7 +139,7 @@ def build_graph_from_cif(cif_path, dump_dir=None):
     :return: graph if `dump_dir` is None, else return path to saved graph.
     """
     structures_dir = Path(cif_path).parent
-    graph = fr3d_to_graph(cif_path, atom_coords_to_store=["P"])
+    graph = fr3d_to_graph(cif_path, atom_coords_to_store=atom_coords_to_store, include_stacking=include_stacking)
     if graph is None:
         return None
 
@@ -157,7 +169,7 @@ def prepare_data_main(args):
     """
 
     if args.one_mmcif is not None:
-        build_graph_from_cif(cif=args.one_mmcif, dump_dir=args.output_dir)
+        build_graph_from_cif(cif=args.one_mmcif, dump_dir=args.output_dir, atom_coords_to_store=args.atom_coords_to_store, include_stacking=args.include_stacking)
         return
     else:
         build_dir = dir_setup(args)

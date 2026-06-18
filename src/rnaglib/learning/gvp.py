@@ -2,11 +2,23 @@ import torch, functools
 from torch import nn
 import torch.nn.functional as F
 from torch_geometric.nn import MessagePassing
-from torch_scatter import scatter_add, scatter_mean
 
 from rnaglib.utils.misc import tonumpy
 from .gvp_utils import GVP, LayerNorm, GVPConvLayer, MultiGVPConvLayer
-    
+
+def scatter_mean(src, index, dim=0, dim_size=None):
+    if dim_size is None:
+        dim_size = index.max().item() + 1
+    shape = list(src.shape)
+    shape[dim] = dim_size
+    out = torch.zeros(shape, dtype=src.dtype, device=src.device)
+    count = torch.zeros(dim_size, dtype=src.dtype, device=src.device)
+    out.scatter_add_(dim, index.unsqueeze(-1).expand_as(src), src)
+    count.scatter_add_(0, index, torch.ones(index.size(0), dtype=src.dtype, device=src.device))
+    count = count.clamp(min=1)
+    out = out / count.view([-1] + [1] * (src.dim() - 1))
+    return out
+
 class GVPModel(torch.nn.Module):
     def __init__(
         self,
