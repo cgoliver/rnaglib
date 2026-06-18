@@ -4,7 +4,7 @@ from .graph_io import download_graphs
 from .graph_io import download
 from .graph_io import available_pdbids
 from .graph_io import load_graph
-from .graph_io import dump_json
+from .graph_io import dump_json, dump_graph
 from .graph_io import load_json
 from .graph_io import update_RNApdb
 from .graph_io import get_rna_list
@@ -28,6 +28,7 @@ __all__ = [
     "get_rna_list",
     "load_graph",
     "dump_json",
+    "dump_graph",
     "load_json",
     "update_RNApdb",
     "listdir_fullpath",

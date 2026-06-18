@@ -43,6 +43,8 @@ pass a path to the  `graph_dir` argument. """
         with tempfile.TemporaryDirectory() as tmpdir:
             if download_dir is None:
                 pdir = tmpdir
+            else:
+                pdir = download_dir
             cif_path = pl.retrieve_pdb_file(pdbid, pdir=pdir, file_format="mmCif")
             graph = build_graph_from_cif(cif_path, None)
 
@@ -70,15 +72,17 @@ class RNA:
             raise ValueError("No valid input provided")
 
     def from_dict(self, rna_dict: dict):
+        self.rna_dict = rna_dict
         for k, v in rna_dict.items():
             if k == 'rna':
+                setattr(self, k, v)
                 for attr, val in rna_dict['rna'].graph.items():
-                    setattr(self, k, v)
+                    setattr(self, attr, val)
             else:
                 setattr(self, k, v)
 
     def from_pdbid(self, pdbid: str):
-        rna_dict = rna_from_pdbid(pdbid, multigraph=self.multigraph)
+        rna_dict = rna_from_pdbid(pdbid)
         self.from_dict(rna_dict)
 
     def to_dict(self):

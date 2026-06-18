@@ -105,7 +105,7 @@ def get_inference_loader(list_to_predict,
         raise ValueError("To create an inference loader please provide either an existing dataset or a data path")
 
     subset = dataset.subset(list_to_predict)
-    collater = Collater()
+    collater = Collater(subset)
     train_loader = DataLoader(dataset=subset,
                               shuffle=False,
                               batch_size=batch_size,
@@ -144,6 +144,12 @@ class EdgeLoaderGenerator:
         self.neg_samples = neg_samples
         self.sampler_layers = sampler_layers
         self.inner_batch_size = inner_batch_size
+
+        try:
+            import dgl
+        except ImportError:
+            raise ImportError("EdgeLoaderGenerator requires 'dgl'. Please install it to use this generator.")
+
         self.sampler = dgl.dataloading.MultiLayerFullNeighborSampler(self.sampler_layers)
         self.negative_sampler = dgl.dataloading.negative_sampler.Uniform(self.neg_samples)
         self.eloader_args = {

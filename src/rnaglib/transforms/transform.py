@@ -1,6 +1,7 @@
 import os
 from joblib import Parallel, delayed
-from typing import List, Union, Any, Iterable, Generator, TYPE_CHECKING
+from collections.abc import Iterable, Generator
+from typing import List, Union, Any, TYPE_CHECKING
 
 
 class Transform:
@@ -148,7 +149,7 @@ class ComposeFilters:
     def __init__(self, filters: List[FilterTransform]):
         self.filters = filters
 
-    def __call__(self, data: dict) -> bool:
+    def __call__(self, data: Iterable) -> Generator:
         RNADataset = __import__("rnaglib.dataset").dataset.RNADataset
         if not isinstance(data, (list, Generator, RNADataset)):
             raise ValueError("Filter compose only works on collections of RNAs")

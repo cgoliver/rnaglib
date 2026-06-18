@@ -46,7 +46,7 @@ class RedundancyRemover(DSTransform):
                     if resolution < highest_resolution:
                         highest_resolution = resolution
                         highest_resolution_idx = rna_idx
-                except:
+                except Exception:
                     continue
             final_list_ids.append(highest_resolution_idx)
         dataset = dataset.subset(list_of_ids=final_list_ids)

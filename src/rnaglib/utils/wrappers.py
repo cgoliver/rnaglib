@@ -80,7 +80,7 @@ def rna_align_wrapper(
             cif_remove_residues(cif_path_1, reslist_1, new_cif_1)
             cif_path_1 = new_cif_1
         if reslist_2 is not None:
-            new_cif_2 = Path(tmpdir) / "rna_1.cif"
+            new_cif_2 = Path(tmpdir) / "rna_2.cif"
             cif_remove_residues(cif_path_2, reslist_2, new_cif_2)
             cif_path_2 = new_cif_2
 
@@ -91,30 +91,30 @@ def rna_align_wrapper(
             cif_path_2,
         ]
 
-    result = subprocess.run(command, capture_output=True, text=True, check=False)
-    if "-a" in flags:
-        pattern = r"TM-score=\s*([\d.]+)\s*\(if normalized by average length of two structures"
-        match = re.search(pattern, result.stdout)
-
-        if match:
-            tm = float(match.group(1))
-            return tm
-        print(result.stderr)
-        print(result.stdout)
-        return None
+        result = subprocess.run(command, capture_output=True, text=True, check=False)
+        if "-a" in flags:
+            pattern = r"TM-score=\s*([\d.]+)\s*\(if normalized by average length of two structures"
+            match = re.search(pattern, result.stdout)
+    
+            if match:
+                tm = float(match.group(1))
+                return tm
+            print(result.stderr)
+            print(result.stdout)
+            return None
 
 
 def locarna_wrapper(seq_1: str, seq_2: str):
     """Calls LocaRNA on two RNA sequences to perform sequence-2d-structure aligment"""
-    with tempfile.TemporaryDirectory as tdir:
+    with tempfile.TemporaryDirectory() as tdir:
         seq_1_file = Path(tdir) / "seq_1.fa"
         seq_2_file = Path(tdir) / "seq_2.fa"
 
         with open(seq_1_file, "w") as s1:
-            seq_1_file.write(f"> s1\n {seq_1}")
+            s1.write(f"> s1\n {seq_1}")
 
         with open(seq_2_file, "w") as s2:
-            seq_2_file.write(f"> s2\n {seq_2}")
+            s2.write(f"> s2\n {seq_2}")
 
         command = ["locarna", seq_1_file, seq_2_file]
         result = subprocess.run(command, capture_output=True, text=True, check=False)

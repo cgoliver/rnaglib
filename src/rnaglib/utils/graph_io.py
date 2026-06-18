@@ -69,6 +69,21 @@ def dump_json(filename, graph):
         json.dump(g_json, f, indent=2)
 
 
+def dump_graph(filename, graph):
+    """Dump a graph to either dict JSON or Networkx pickled dict/object.
+
+    :param filename: The dump name
+    :param graph: The graph to dump
+    """
+    if str(filename).endswith("json"):
+        dump_json(filename, graph)
+    elif str(filename).endswith("p"):
+        with open(filename, "wb") as f:
+            pickle.dump(graph, f)
+    else:
+        raise ValueError(f"Unknown extension for dump_graph: {filename}")
+
+
 def load_json(filename):
     """Just a shortcut to load a json graph more compactly.
 
@@ -104,7 +119,7 @@ def load_graph(filename, multigraph=False):
     """
     if str(filename).endswith("json"):
         graph = load_json(filename)
-    elif filename.endswith("p"):
+    elif str(filename).endswith("p"):
         pickled = pickle.load(open(filename, "rb"))
         # Depending on the data versionning, the object contained in the pickles is
         # - a graph with noderings in the nodes
@@ -159,7 +174,7 @@ def get_all_existing(dataset_path: os.PathLike, all_rnas: list[str] | None = Non
 
     # Filter out existing ones, and print message if there is a difference
     existing_all_rnas = [g_name for g_name in all_rnas if os.path.exists(Path(dataset_path) / f"{g_name}{extension}")]
-    missing = set(existing_all_rnas) - set(all_rnas)
+    missing = set(all_rnas) - set(existing_all_rnas)
     size_diff = len(all_rnas) - len(existing_all_rnas)
     if size_diff > 0:
         print(f"{size_diff} graphs were missing from {dataset_path} compared to asked graphs")
@@ -269,6 +284,8 @@ def download_name_generator(version="2.0.2", redundancy="nr", annotated=False, r
     """
     # Find remote url and get download link
     # full = https://zenodo.org/records/7624873/files/rnaglib-all-1.0.0.tar.gz?download=1
+    if debug:
+        redundancy = "debug"
     if annotated:
         if version == "1.0.0":
             print("Annotated version for v 1.0.0 not available. Try a higher version")
@@ -338,6 +355,10 @@ def download_graphs(
             update_RNApdb(pdb_path, rna_list=rna_list, nr_only=redundancy == "nr")
 
     else:
+        if get_pdbs:
+            print("Fetching missing PDB structures")
+            rna_list = [Path(p).stem for p in os.listdir(data_path / tag / "graphs")]
+            update_RNApdb(pdb_path, rna_list=rna_list, nr_only=redundancy == "nr")
         print("Database was found and not overwritten")
 
     if get_pdbs:
@@ -498,7 +519,10 @@ def update_RNApdb(pdir, nr_only=True, rna_list=None, debug=False):
     pl = PDBList()
 
     # If not fully downloaded before, download all structures
+    # download non obsolete structures
     pl.download_pdb_files(rna, pdir=pdir, overwrite=False)
+    # download obsolete structures
+    pl.download_pdb_files(rna, pdir=pdir, overwrite=False, obsolete=True)
     added, mod, obsolete = pl.get_recent_changes()
     # Download new and modded entries
     new_rna = rna.intersection(set(added).union(set(mod)))
@@ -506,8 +530,6 @@ def update_RNApdb(pdir, nr_only=True, rna_list=None, debug=False):
 
     # Remove Obsolete entries
     obsolete_dir = os.path.join(pdir, "obsolete")
-    if not os.path.exists(obsolete_dir):
-        os.mkdir(obsolete_dir)
     for cif in os.listdir(pdir):
         if cif[-8:-4].upper() in set(obsolete):
             os.rename(os.path.join(pdir, cif), os.path.join(obsolete_dir, cif))
@@ -520,6 +542,11 @@ def get_Ribochains():
 
     :return: dictionary, keys=pbid, value='all'
     """
+    try:
+        from rcsbsearchapi.search import AttributeQuery as Attr, TextQuery
+    except ImportError:
+        raise ImportError("Fetching from RCSB requires 'rcsbsearchapi'. Run `pip install rcsbsearchapi`.")
+
     q1 = Attr("rcsb_entry_info.polymer_entity_count_RNA") >= 1
     q2 = TextQuery("ribosome")
 
@@ -534,11 +561,15 @@ def get_Ribochains():
 
 
 def get_NonRibochains():
-    """Get a list of all PDB structures containing RNA
-    and do not have the text 'ribosome'
+    """Get a list of all PDB structures containing RNA and do not have the text 'ribosome'
 
     :return: dictionary, keys=pbid, value='all'
     """
+    try:
+        from rcsbsearchapi.search import AttributeQuery as Attr, TextQuery
+    except ImportError:
+        raise ImportError("Fetching from RCSB requires 'rcsbsearchapi'. Run `pip install rcsbsearchapi`.")
+
     q1 = Attr("rcsb_entry_info.polymer_entity_count_RNA") >= 1
     q2 = TextQuery("ribosome")
 
@@ -551,6 +582,11 @@ def get_Custom(text):
 
     :return: dictionary, keys=pbid, value='all'
     """
+    try:
+        from rcsbsearchapi.search import AttributeQuery as Attr, TextQuery
+    except ImportError:
+        raise ImportError("Fetching from RCSB requires 'rcsbsearchapi'. Run `pip install rcsbsearchapi`.")
+
     q1 = Attr("rcsb_entry_info.polymer_entity_count_RNA") >= 1
     q2 = TextQuery(text)
 
@@ -565,4 +601,4 @@ if __name__ == "__main__":
     # print(g.nodes())
     default = get_default_download_dir()
     print(default)
-    graph_from_pdbid("4nlf")
+    # graph_from_pdbid("4nlf")

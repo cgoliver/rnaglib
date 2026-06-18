@@ -118,8 +118,7 @@ class Task:
         print(f">>> Downloading task dataset from Zenodo {url}...")
         download(url)
         with tarfile.open(f"{self.name}.tar.gz") as tar_file:
-            tar_file.extractall()
-            shutil.move(f"{self.name}", self.root)
+            tar_file.extractall(path=self.root)
         self.load()
 
     def from_scratch(self, size_thresholds):
@@ -234,8 +233,6 @@ class Task:
         self.set_datasets(recompute=recompute)
 
         # If no collater is provided we need one
-        if dataloader_kwargs is None:
-            dataloader_kwargs = {"collate_fn": Collater(self.train_dataset)}
         if "collate_fn" not in dataloader_kwargs:
             collater = Collater(self.train_dataset)
             dataloader_kwargs["collate_fn"] = collater
@@ -268,9 +265,12 @@ class Task:
                 and os.path.exists(os.path.join(self.root, "val_idx.txt"))
                 and os.path.exists(os.path.join(self.root, "test_idx.txt"))
         ):
-            self.train_ind = [int(ind) for ind in open(os.path.join(self.root, "train_idx.txt")).readlines()]
-            self.val_ind = [int(ind) for ind in open(os.path.join(self.root, "val_idx.txt")).readlines()]
-            self.test_ind = [int(ind) for ind in open(os.path.join(self.root, "test_idx.txt")).readlines()]
+            with open(os.path.join(self.root, "train_idx.txt")) as f:
+                self.train_ind = [int(ind) for ind in f.readlines()]
+            with open(os.path.join(self.root, "val_idx.txt")) as f:
+                self.val_ind = [int(ind) for ind in f.readlines()]
+            with open(os.path.join(self.root, "test_idx.txt")) as f:
+                self.test_ind = [int(ind) for ind in f.readlines()]
 
         self.dataset.features_computer = self.get_task_vars()
         return self.dataset, self.metadata, (self.train_ind, self.val_ind, self.test_ind)
@@ -546,7 +546,7 @@ class ClassificationTask(Task):
                 average=None if self.metadata['num_classes'] == 2 else "macro",
                 multi_class="ovo",
             )
-        except:
+        except Exception:
             return one_metric
         return one_metric
 

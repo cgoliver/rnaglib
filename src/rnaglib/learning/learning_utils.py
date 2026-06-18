@@ -149,7 +149,7 @@ def rec_loss(embeddings, target_K, similarity=True, normalize=False,
         graph_weight = get_nc_weight(graph=graph, hops=hops)
     else:
         graph_weight = torch.ones(size=(len(embeddings), len(embeddings)))
-    graph_weight.to(K_predict.device)
+    graph_weight = graph_weight.to(K_predict.device)
 
     # Finally, subsample the prediction if needed
     if node_ids is not None:
@@ -253,6 +253,7 @@ class LearningRoutine:
             if self.epochs_from_best > self.early_stop_threshold:
                 print('This model was early stopped')
                 return True
+            return False
 
 
 def compute_embeddings(model, validation_loader):

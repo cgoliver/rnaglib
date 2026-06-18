@@ -59,8 +59,9 @@ class MultiLabelOneHotEncoder(OneHotEncoder):
 
     def decode(self, one_hot):
         decoded = []
-        for non_zero in torch.where(one_hot).tolist():
-            decoded.append(self.reverse_mapping[non_zero.item()])
+        for non_zero in torch.where(one_hot)[0].tolist():
+            decoded.append(self.reverse_mapping[non_zero])
+        return decoded
 
 
 class IntMappingEncoder:
@@ -104,6 +105,8 @@ class IntEncoder:
         """
         self.default_value = default_value
         self.mapping = mapping
+        if self.mapping is not None:
+            self.reverse_mapping = {v: k for k, v in typing.cast(dict, self.mapping).items()}
 
     def encode(self, value):
         """Assign encoding of `value` according to known possible values.
@@ -112,14 +115,17 @@ class IntEncoder:
         """
         try:
             return torch.tensor([value], dtype=torch.int)
-        except:
+        except Exception:
             return self.encode_default()
 
     def encode_default(self):
         return torch.tensor([self.default_value], dtype=torch.int)
 
-    def decode(self, value):
-        return self.mapping[value].item()
+        try:
+            val = value.item() if hasattr(value, "item") else int(value)
+            return self.reverse_mapping[val] if self.mapping else val
+        except Exception:
+            return None
 
 
 class FloatEncoder:
@@ -137,7 +143,7 @@ class FloatEncoder:
         """
         try:
             return torch.tensor([value], dtype=torch.float)
-        except:
+        except Exception:
             return self.encode_default()
 
     def encode_default(self):
@@ -201,7 +207,7 @@ class ListEncoder:
             return self.encode_default()
         try:
             x = torch.tensor(value, dtype=torch.float)
-        except:
+        except Exception:
             return self.encode_default()
         return x
 
