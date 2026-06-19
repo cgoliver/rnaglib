@@ -125,13 +125,13 @@ class RBPTransform(AnnotationTransform):
         protein_numbers = {}
         for node in g.nodes():
             chain, pos = node.split(".")[1:]
-            rbp_status[node] = (chain, int(pos)) in close_residues
+            rbp_status[node] = (chain, pos) in close_residues
             if self.protein_number_annotations:
                 node_protein_numbers_list = []
                 for i in range(len(self.distances)):
                     if protein_proximity:
                         try:
-                            node_protein_numbers_list.append(protein_numbers_list[i][(chain,int(pos))])
+                            node_protein_numbers_list.append(protein_numbers_list[i][(chain,pos)])
                         except:
                             node_protein_numbers_list.append(0)
                     else:
