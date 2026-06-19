@@ -229,7 +229,6 @@ def fr3d_to_graph(rna_path, atom_coords_to_store=["P"], include_stacking=False):
         for residue in chain:
             _, resseq, icode = residue.id
             key = (chain.id, resseq, icode)
-            print(f"label_map.keys()={label_map.keys()}")
             residue.xtra["label_seq_id"] = label_map[key]
 
     # bbs, nt_types = get_bb(structure, rna_chains, pdbid=pdbid)
