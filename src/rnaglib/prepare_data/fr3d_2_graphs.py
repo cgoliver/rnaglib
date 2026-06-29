@@ -169,10 +169,10 @@ def _collect_sym_needs(mmcif_dict, rna_chains):
 def _add_sym_copy_chain(G, chain_id, sym_code, R, t):
     """Add a symmetry copy of chain_id to G, transforming all coordinates with (R, t).
 
-    New node IDs use {pdbid}.{chain_id}_{sym_code}.{pos}. Backbone edges are
-    replicated from the identity chain so that downstream code sees a complete chain.
+    New node IDs use {pdbid}.{chain_id}-{sym_code}.{pos}. Backbone edges are replicated from the identity chain
+    so that downstream code sees a complete chain.
     """
-    sym_cid = f"{chain_id}_{sym_code}"
+    sym_cid = f"{chain_id}-{sym_code.replace('_', '-')}"
     orig_nodes = [n for n in G.nodes() if G.nodes[n].get("chain_id") == chain_id]
 
     if not orig_nodes:
@@ -254,7 +254,7 @@ def nt_to_rgl(nt, pdbid):
     pos = parts[4]
     icode = parts[7].strip() if len(parts) > 7 else ""
     sym = _sym_code(nt)
-    chain_key = f"{chain}_{sym}" if sym != "1_555" else chain
+    chain_key = f"{chain}-{sym.replace('_', '-')}" if sym != "1_555" else chain
     return f"{pdbid.lower()}.{chain_key}.{pos}{icode}"
 
 
@@ -415,7 +415,7 @@ def fr3d_to_graph(rna_path, atom_coords_to_store=["P"], include_stacking=False):
     # Build full symmetry-copy chains so that cross-symmetry base pairs can be
     # added as ordinary graph edges. Each sym copy is geometrically the image of
     # the original chain under the corresponding Cartesian operator from
-    # _pdbx_struct_oper_list. Node IDs use the convention {pdbid}.{chain}_{sym}.{pos}.
+    # _pdbx_struct_oper_list. Node IDs use the convention {pdbid}.{chain}-{sym}.{pos}.
     for sym_code, chains in sym_needs.items():
         if sym_code not in operators:
             logger.warning(f"{pdbid}: sym operator {sym_code} not in _pdbx_struct_oper_list, skipping")
