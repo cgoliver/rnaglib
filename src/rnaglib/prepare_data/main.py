@@ -129,6 +129,14 @@ def cline():
         help="If true, add stacking edges to the graph",
     )
     parser.add_argument("--n-debug", type=int, default=10, help="set number of debug structures.")
+    parser.add_argument(
+        "--rnas",
+        nargs="+",
+        default=None,
+        help="If given, process only this subset of RNA names (PDB IDs, e.g. 1abc 2xyz). "
+             "For rcsb source, only these CIFs are downloaded. "
+             "For local source, only matching files in --structures_dir are processed.",
+    )
     return parser.parse_args()
 
 
@@ -171,7 +179,7 @@ def prepare_data_main(args):
     """
 
     if args.one_mmcif is not None:
-        build_graph_from_cif(cif=args.one_mmcif, dump_dir=args.output_dir, atom_coords_to_store=args.atom_coords_to_store, include_stacking=args.include_stacking)
+        build_graph_from_cif(args.one_mmcif, dump_dir=args.output_dir, atom_coords_to_store=args.atom_coords_to_store, include_stacking=args.include_stacking)
         return
     else:
         build_dir = dir_setup(args)
@@ -182,10 +190,13 @@ def prepare_data_main(args):
     Path(args.structures_dir).mkdir(parents=True, exist_ok=True)
     if args.rna_source == "rcsb":
         print(f">>> Updating local PDB mirror in {args.structures_dir}")
-        rna_list = update_RNApdb(args.structures_dir, nr_only=args.nr, debug=args.debug)
+        rna_list = update_RNApdb(args.structures_dir, nr_only=args.nr, debug=args.debug, rna_list=args.rnas)
     if args.rna_source == "local":
         print(f">>> Using structures in {args.structures_dir}")
         rna_list = [f.split(".")[0] for f in os.listdir(args.structures_dir)]
+        if args.rnas is not None:
+            rnas_set = set(args.rnas)
+            rna_list = [r for r in rna_list if r in rnas_set]
 
     done = []
     if args.continu:
@@ -200,7 +211,8 @@ def prepare_data_main(args):
     total = len(todo)
     print(f">>> Processing {total} RNAs.")
     job = Parallel(n_jobs=args.num_workers)(
-        delayed(build_graph_from_cif)(t, graphs_dir) for t in tqdm(todo, total=total, desc="Building RNA graphs.")
+        delayed(build_graph_from_cif)(t, graphs_dir, atom_coords_to_store=args.atom_coords_to_store, include_stacking=args.include_stacking)
+        for t in tqdm(todo, total=total, desc="Building RNA graphs.")
     )
 
     chop_dir = os.path.join(build_dir, "chops")
