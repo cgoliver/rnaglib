@@ -90,6 +90,127 @@ def _sym_code(unit_id):
     return parts[8] if len(parts) > 8 else "1_555"
 
 
+def _parse_oper_list(mmcif_dict):
+    """Return {sym_name: (R, t)} from _pdbx_struct_oper_list.
+
+    The PDB stores these operators in Cartesian (Angstrom) space, so R and t
+    can be applied directly to BioPython coordinates without any cell conversion.
+    """
+    names = mmcif_dict.get("_pdbx_struct_oper_list.name", [])
+    operators = {}
+    for i, name in enumerate(names):
+        R = np.array([
+            [float(mmcif_dict[f"_pdbx_struct_oper_list.matrix[{r}][{c}]"][i]) for c in range(1, 4)]
+            for r in range(1, 4)
+        ])
+        t = np.array([float(mmcif_dict[f"_pdbx_struct_oper_list.vector[{r}]"][i]) for r in range(1, 4)])
+        operators[name] = (R, t)
+    return operators
+
+
+def _collect_sym_needs(mmcif_dict, rna_chains):
+    """Return {sym_name: set(auth_chain_id)} from _pdbx_struct_assembly_gen.
+
+    Uses the PDB biological assembly definition as the ground truth for which
+    chains receive symmetry copies. The identity operator is skipped since those
+    chains are already in the file. Only RNA chains are included.
+
+    Note: _pdbx_struct_assembly_gen.oper_expression references
+    _pdbx_struct_oper_list.id values (not operator names); asym_id_list uses
+    label_asym_id which is mapped to auth_asym_id via the atom_site table.
+    Structures where the relevant operator is absent from _pdbx_struct_oper_list
+    (e.g. pure crystal-packing contacts) are silently skipped since no Cartesian
+    matrix is available for them.
+    """
+    label_to_auth = {}
+    for l, a in zip(
+        mmcif_dict.get("_atom_site.label_asym_id", []),
+        mmcif_dict.get("_atom_site.auth_asym_id", []),
+    ):
+        label_to_auth.setdefault(l, a)
+
+    oper_ids   = mmcif_dict.get("_pdbx_struct_oper_list.id", [])
+    oper_names = mmcif_dict.get("_pdbx_struct_oper_list.name", [])
+    oper_types = mmcif_dict.get("_pdbx_struct_oper_list.type", [])
+    id_to_name = {}
+    identity_ids = set()
+    for oid, oname, otype in zip(oper_ids, oper_names, oper_types):
+        id_to_name[oid] = oname
+        if otype == "identity operation":
+            identity_ids.add(oid)
+
+    needed = defaultdict(set)
+    for oper_expr, asym_list in zip(
+        mmcif_dict.get("_pdbx_struct_assembly_gen.oper_expression", []),
+        mmcif_dict.get("_pdbx_struct_assembly_gen.asym_id_list", []),
+    ):
+        if "(" in oper_expr:
+            # Product-notation expressions (e.g. "(1-60)(61)") encode point-group
+            # assemblies; skip them as they are not relevant for crystal contacts.
+            logger.debug(f"Skipping product oper_expression: {oper_expr}")
+            continue
+        ops = [o.strip() for o in oper_expr.split(",")]
+        label_chains = [c.strip() for c in asym_list.split(",")]
+        for op_id in ops:
+            if op_id in identity_ids:
+                continue
+            sym_name = id_to_name.get(op_id)
+            if sym_name is None:
+                logger.warning(f"Operator id {op_id} not found in _pdbx_struct_oper_list")
+                continue
+            for label_chain in label_chains:
+                auth_chain = label_to_auth.get(label_chain)
+                if auth_chain in rna_chains:
+                    needed[sym_name].add(auth_chain)
+
+    return needed
+
+
+def _add_sym_copy_chain(G, chain_id, sym_code, R, t):
+    """Add a symmetry copy of chain_id to G, transforming all coordinates with (R, t).
+
+    New node IDs use {pdbid}.{chain_id}_{sym_code}.{pos}. Backbone edges are
+    replicated from the identity chain so that downstream code sees a complete chain.
+    """
+    sym_cid = f"{chain_id}_{sym_code}"
+    orig_nodes = [n for n in G.nodes() if G.nodes[n].get("chain_id") == chain_id]
+
+    if not orig_nodes:
+        logger.warning(f"No nodes for chain {chain_id}, skipping sym copy {sym_code}")
+        return
+
+    for orig_node in orig_nodes:
+        parts = orig_node.split(".")
+        parts[1] = sym_cid
+        sym_node = ".".join(parts)
+
+        attrs = dict(G.nodes[orig_node])
+        attrs["chain_id"] = sym_cid
+
+        for key in list(attrs.keys()):
+            val = attrs[key]
+            if key.startswith("xyz_") and val is not None:
+                attrs[key] = (R @ np.array(val) + t).tolist()
+
+        if "heavy_atoms" in attrs and attrs["heavy_atoms"] is not None:
+            attrs["heavy_atoms"] = {
+                atom: (R @ np.array(coord) + t).tolist()
+                for atom, coord in attrs["heavy_atoms"].items()
+            }
+
+        G.add_node(sym_node, **attrs)
+
+    # Replicate intra-chain backbone edges into the sym copy
+    for u, v, data in list(G.edges(data=True)):
+        if G.nodes[u].get("chain_id") == chain_id and G.nodes[v].get("chain_id") == chain_id:
+            u_parts = u.split("."); u_parts[1] = sym_cid
+            v_parts = v.split("."); v_parts[1] = sym_cid
+            sym_u = ".".join(u_parts)
+            sym_v = ".".join(v_parts)
+            if G.has_node(sym_u) and G.has_node(sym_v):
+                G.add_edge(sym_u, sym_v, **data)
+
+
 def get_bb(structure, rna_chains, XNA_linking, pdbid=""):
     """Get the backbone edges"""
     bb = []
@@ -132,7 +253,9 @@ def nt_to_rgl(nt, pdbid):
     chain = parts[2]
     pos = parts[4]
     icode = parts[7].strip() if len(parts) > 7 else ""
-    return f"{pdbid.lower()}.{chain}.{pos}{icode}"
+    sym = _sym_code(nt)
+    chain_key = f"{chain}_{sym}" if sym != "1_555" else chain
+    return f"{pdbid.lower()}.{chain_key}.{pos}{icode}"
 
 
 _FORGI_HELPER = Path(__file__).parent / "_forgi_helper.py"
@@ -187,15 +310,21 @@ def fr3d_to_graph(rna_path, atom_coords_to_store=["P"], include_stacking=False):
         return None
 
     pdbid = rna_path.stem.lower()
+
+    # load mmCIF structure
+    struc_dict = MMCIF2Dict.MMCIF2Dict(rna_path)
+
     try:
-        rna_chains = get_rna_chains(MMCIF2Dict.MMCIF2Dict(rna_path))
+        rna_chains = get_rna_chains(struc_dict)
         logger.debug(f"RNA chains in {pdbid}: {rna_chains}")
     except KeyError:
         logger.error(f"Couldn't identify RNA chains in {pdbid}")
         return None
 
-    # load mmCIF structure
-    struc_dict = MMCIF2Dict.MMCIF2Dict(rna_path)
+    # Parse Cartesian symmetry operators and identify which chains need copies.
+    # Done before building the graph so we know the scope of sym copies upfront.
+    operators = _parse_oper_list(struc_dict)
+    sym_needs = _collect_sym_needs(struc_dict, rna_chains)
 
     # find all XNA linking, including standard and non-standard
     chem_comp = {}
@@ -283,16 +412,23 @@ def fr3d_to_graph(rna_path, atom_coords_to_store=["P"], include_stacking=False):
         logger.exception(f"Failed to get coordinates for {pdbid}, {e}")
         return None
 
-    for pair in annot_df.itertuples():
-
-        # Discard pairs between residues having different symmetry codes
-        if _sym_code(pair.source) != _sym_code(pair.target):
+    # Build full symmetry-copy chains so that cross-symmetry base pairs can be
+    # added as ordinary graph edges. Each sym copy is geometrically the image of
+    # the original chain under the corresponding Cartesian operator from
+    # _pdbx_struct_oper_list. Node IDs use the convention {pdbid}.{chain}_{sym}.{pos}.
+    for sym_code, chains in sym_needs.items():
+        if sym_code not in operators:
+            logger.warning(f"{pdbid}: sym operator {sym_code} not in _pdbx_struct_oper_list, skipping")
             continue
+        R, t = operators[sym_code]
+        for chain_id in chains:
+            _add_sym_copy_chain(G, chain_id, sym_code, R, t)
 
+    for pair in annot_df.itertuples():
         elabel = pair.interaction
         if elabel not in EDGE_MAP_RGLIB_WITH_STACKING:
             continue
-        
+
         nt1 = nt_to_rgl(pair.source, pdbid)
         nt2 = nt_to_rgl(pair.target, pdbid)
 
