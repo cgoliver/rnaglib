@@ -3,7 +3,6 @@ import torch, functools
 from torch import nn
 import torch.nn.functional as F
 from torch_geometric.nn import MessagePassing
-from torch_scatter import scatter_add
 from rnaglib.algorithms import tuple_sum, tuple_cat, tuple_index, randn, _norm_no_nan, _merge, _split, _merge_multi, _split_multi
 
 class GVP(nn.Module):
@@ -298,8 +297,9 @@ class GVPConvLayer(nn.Module):
                 self.conv(autoregressive_x, edge_index_backward, edge_attr_backward)
             )
             
-            count = scatter_add(torch.ones_like(dst), dst,
-                        dim_size=dh[0].size(0)).clamp(min=1).unsqueeze(-1)
+            count = torch.zeros(dh[0].size(0), dtype=dst.dtype, device=dst.device)
+            count.scatter_add_(0, dst, torch.ones_like(dst))
+            count = count.clamp(min=1).unsqueeze(-1)
             
             dh = dh[0] / count, dh[1] / count.unsqueeze(-1)
 
