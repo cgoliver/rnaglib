@@ -14,7 +14,7 @@ import tqdm
 import numpy as np
 import pandas as pd
 from sklearn.metrics import accuracy_score, f1_score, matthews_corrcoef
-from sklearn.metrics import roc_auc_score, jaccard_score, balanced_accuracy_score
+from sklearn.metrics import roc_auc_score, jaccard_score, balanced_accuracy_score, average_precision_score
 import torch
 from torch.utils.data import DataLoader
 
@@ -187,11 +187,12 @@ class Task:
         if self.redundancy_removal:
             self.dataset = us_align_rr(self.dataset)
 
-        # PATCH: delete graphs from dataset/ lost during redundancy removal
-        for f in os.listdir(self.dataset.dataset_path):
-            if Path(f).stem not in self.dataset.all_rnas:
-                os.remove(Path(self.dataset.dataset_path) / f)
-        self.dataset.save_distances()
+        if not self.in_memory:
+            # PATCH: delete graphs from dataset/ lost during redundancy removal
+            for f in os.listdir(self.dataset.dataset_path):
+                if Path(f).stem not in self.dataset.all_rnas:
+                    os.remove(Path(self.dataset.dataset_path) / f)
+            self.dataset.save_distances()
 
     @property
     def default_splitter(self):
@@ -545,6 +546,14 @@ class ClassificationTask(Task):
                 probs,
                 average=None if self.metadata['num_classes'] == 2 else "macro",
                 multi_class="ovo",
+            )
+        except Exception:
+            return one_metric
+        try:
+            one_metric["auprc"] = average_precision_score(
+                labels,
+                probs,
+                average=None if self.metadata['num_classes'] == 2 else "macro",
             )
         except Exception:
             return one_metric
