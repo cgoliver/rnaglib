@@ -20,7 +20,7 @@ class ProteinBindingSite(ResidueClassificationTask):
     :param tuple[int] size_thresholds: range of RNA sizes to keep in the task dataset(default (15, 500))
     """
 
-    target_var = "protein_content_8.0"  # "protein_binding"
+    target_var = "protein_binding"
     input_var = "nt_code"
     name = "rna_prot"
     default_metric = "balanced_accuracy"
