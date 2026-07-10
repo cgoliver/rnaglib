@@ -22,6 +22,9 @@ class TestPrepareData(unittest.TestCase):
             "tag": "test",
             "rna_source": "rcsb",
             "nr": True,
+            "rnas": None,
+            "atom_coords_to_store": ["P"],
+            "include_stacking": False,
         }
         self.args = SimpleNamespace(**args)
 
