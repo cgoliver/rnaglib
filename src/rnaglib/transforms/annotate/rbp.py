@@ -6,6 +6,7 @@ import networkx as nx
 from Bio.PDB import NeighborSearch
 from Bio.PDB.MMCIFParser import FastMMCIFParser
 
+from rnaglib.config import get_modifications_cache
 from rnaglib.transforms import AnnotationTransform
 
 protein_residues = {
@@ -29,9 +30,7 @@ protein_residues = {
     "TRP",
     "TYR",
     "VAL",
-}
-
-phosphate_atoms = {"P", "OP1", "OP2"}
+} | set(get_modifications_cache()["protein"].keys())
 
 
 class RBPTransform(AnnotationTransform):
@@ -78,18 +77,11 @@ class RBPTransform(AnnotationTransform):
 
         for chain in structure[0]:
             for residue in chain:
-                res_name = residue.get_resname()
                 if (chain.id, str(residue.id[1])) in rna_res_ids:
-                    for atom in residue.get_atoms():
-                        if atom.get_name() in phosphate_atoms:
-                            rna_atoms.append(atom)
-                            break
+                    rna_atoms.extend(residue.get_atoms())
                     rna_residues.append(residue)
                 if residue.get_resname() in protein_residues:
-                    for atom in residue.get_atoms():
-                        if atom.get_name() == "CA":
-                            protein_atoms.append(atom)
-                            break
+                    protein_atoms.extend(residue.get_atoms())
 
         # Build a KDTree
         all_rna_atoms = list(rna_atoms)
@@ -112,12 +104,12 @@ class RBPTransform(AnnotationTransform):
                 close_atoms = neighbor_search.search(rna_atom.coord, distance_threshold)
                 if len(close_atoms) > 0:
                     rna_residue = rna_atom.get_parent()
-                    close_residues.add((rna_residue.get_parent().id, rna_residue.id[1]))
+                    close_residues.add((rna_residue.get_parent().id, str(rna_residue.id[1])))
                 if self.protein_number_annotations:
                     for i, current_distance_threshold in enumerate(self.distances):
                         close_atoms = neighbor_search.search(rna_atom.coord, current_distance_threshold)
                         rna_residue = rna_atom.get_parent()
-                        protein_numbers_list[i][(rna_residue.get_parent().id, rna_residue.id[1])] = len(close_atoms)
+                        protein_numbers_list[i][(rna_residue.get_parent().id, str(rna_residue.id[1]))] = len(close_atoms)
 
 
         # Output the results
