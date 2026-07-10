@@ -105,7 +105,7 @@ def filter_cif_with_res(cif_path, keep_residues, out_path, file_type="cif"):
             del model[i]
             continue
         for res_idx, residue in reversed(list(enumerate(chain))):
-            if (chain.name, int(residue.seqid.num)) not in keep_residues:
+            if (chain.name, int(residue.seqid.num), residue.seqid.icode.strip()) not in keep_residues:
                 del chain[res_idx]
 
     structure.remove_empty_chains()
