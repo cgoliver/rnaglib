@@ -713,18 +713,25 @@ def get_sequences(graph: nx.Graph,
         nuc = d["nt_code"].upper()
         if nuc not in ["A", "U", "C", "G"]:
             nuc = "N"
-        seqs[ch].append((nuc, int(pos)))
+
+        # get the label sequence ID
+        lsi = d.get("label_seq_id")
+        seqs[ch].append((nuc, pos, lsi))
 
     for ch, seq in seqs.items():
-        sorted_seq = sorted(seq, key=lambda x: x[1])
-        sorted_ids = [f"{pdbid}.{ch}.{pos}" for _, pos in sorted_seq]
+        use_lsi = seq[0][2] is not None
+        if use_lsi:
+            sorted_seq = sorted(seq, key=lambda x: x[2])
+        else:
+            sorted_seq = sorted(seq, key=lambda x: int(x[1]))
+        sorted_ids = [f"{pdbid}.{ch}.{pos}" for _, pos, _ in sorted_seq]
+        sorted_lsi = [lsi for _, _, lsi in sorted_seq]
 
-        # check if sequence is discontinuous and keep track of all its consecutive segments
         previous = 0
         consecutives = []
         for i in range(len(sorted_ids) - 1):
-            fivep = int(sorted_ids[i].split(".")[2])
-            threep = int(sorted_ids[i + 1].split(".")[2])
+            fivep = sorted_lsi[i] if use_lsi else int(sorted_ids[i].split(".")[2])
+            threep = sorted_lsi[i + 1] if use_lsi else int(sorted_ids[i + 1].split(".")[2])
             if threep != fivep + 1:
                 if verbose:
                     print(f"WARNING: chain discontinuous.")
@@ -734,17 +741,14 @@ def get_sequences(graph: nx.Graph,
                     previous = i + 1
         consecutives.append((previous, len(sorted_ids)))
 
-        # Simply return the longest
         if longest_only:
             longest = sorted(consecutives, key=lambda x: x[1] - x[0])[-1]
             consecutives = [longest]
-        # If we return more than one, only keep ones larger than a threshold, using 5 is nice for CD-Hit usage
         else:
             consecutives = [x for x in consecutives if x[1] - x[0] > min_size_return]
 
-        # Finally, return all such chunks, named with their start/end residues
         for i, (start, end) in enumerate(consecutives):
-            sorted_seq_chunk = "".join([s for s, _ in sorted_seq[start:end]])
+            sorted_seq_chunk = "".join([s for s, _, _ in sorted_seq[start:end]])
             sorted_ids_chunk = sorted_ids[start:end]
             if len(consecutives) == 1:
                 chunk_name = f"{pdbid}.{ch}"
