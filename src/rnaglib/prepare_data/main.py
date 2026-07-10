@@ -66,7 +66,7 @@ def cline():
         type=str,
         default="rcsb",
         help='Source of RNA structures. If "rcsb" RNAs taken from up to date list of\
-                              RNA-containing PDBs in RCSB. If "local" take all cifs in --structures_dir',
+        RNA-containing PDBs in RCSB. If "local" take all cifs in --structures_dir',
         choices=["rcsb", "local"],
     )
     parser.add_argument(
