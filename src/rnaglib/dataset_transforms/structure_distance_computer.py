@@ -63,7 +63,11 @@ class StructureDistanceComputer(DistanceComputer):
                 rna_graph = rna["rna"]
                 cif_path = Path(self.structures_path) / f"{rna_graph.graph['pdbid'].lower()}.cif"
                 if self.use_substructures:
-                    reslist = [(n.split(".")[1], int(n.split(".")[2])) for n in rna["rna"].nodes()]
+                    reslist = []
+                    for n in rna["rna"].nodes():
+                        _, chain, pos = n.split(".")
+                        icode = pos[-1] if not pos[-1].isdigit() else ""
+                        reslist.append((chain, int(pos[:-1] if icode else pos), icode))
                     new_cif = os.path.join(tmpdir, f"{rna_graph.name}.cif")
                     filter_cif_with_res(cif_path, reslist, new_cif)
                     all_pdb_path.append(new_cif)
