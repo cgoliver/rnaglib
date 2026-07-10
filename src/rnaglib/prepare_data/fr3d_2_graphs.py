@@ -216,10 +216,10 @@ def get_bb(structure, rna_chains, XNA_linking, pdbid=""):
     bb = []
     nt_types = {}
     nt_types_full = {}
+    lsi_dict = {}
     for chain in structure.get_chains():
         if chain.id not in rna_chains:
             continue
-        # reslist = get_residue_list(structure, chain)
         reslist = get_residue_list(chain, XNA_linking)
         logger.debug(reslist)
 
@@ -227,10 +227,9 @@ def get_bb(structure, rna_chains, XNA_linking, pdbid=""):
             if i == 0:
                 continue
             three_p = reslist[i - 1]
-            fivep_name = _res_node_id(pdbid, chain.id, five_p) 
+            fivep_name = _res_node_id(pdbid, chain.id, five_p)
             threep_name = _res_node_id(pdbid, chain.id, three_p)
 
-            # Use the label sequence ids (and not the author sequence ids) to compute backbone (for the purpose of sequence alignment, consecutive residues might have non-consecutive author seq ids)
             five_p_lsi = five_p.xtra.get("label_seq_id")
             three_p_lsi = three_p.xtra.get("label_seq_id")
             if five_p_lsi is None or three_p_lsi is None:
@@ -245,7 +244,10 @@ def get_bb(structure, rna_chains, XNA_linking, pdbid=""):
                 nt_types_full[fivep_name] = five_p.get_resname()
                 nt_types_full[threep_name] = three_p.get_resname()
 
-    return bb, nt_types, nt_types_full
+                lsi_dict[fivep_name] = five_p_lsi
+                lsi_dict[threep_name] = three_p_lsi
+
+    return bb, nt_types, nt_types_full, lsi_dict
 
 
 def nt_to_rgl(nt, pdbid):
@@ -304,7 +306,7 @@ def fr3d_to_graph(rna_path, atom_coords_to_store=["P"], include_stacking=False):
     rna_path = Path(rna_path)
     try:
         category = "basepair,stacking" if include_stacking else "basepair"
-        annot_df = generatePairwiseAnnotation_import(rna_path, category="basepair,stacking")
+        annot_df = generatePairwiseAnnotation_import(rna_path, category=category)
     except Exception as e:
         logger.exception(f"Fr3D error {rna_path}")
         return None
@@ -360,8 +362,7 @@ def fr3d_to_graph(rna_path, atom_coords_to_store=["P"], include_stacking=False):
             key = (chain.id, resseq, icode)
             residue.xtra["label_seq_id"] = label_map[key]
 
-    # bbs, nt_types = get_bb(structure, rna_chains, pdbid=pdbid)
-    bbs, nt_types, nt_types_full = get_bb(structure, rna_chains, XNA_linking, pdbid=pdbid)
+    bbs, nt_types, nt_types_full, lsi_dict = get_bb(structure, rna_chains, XNA_linking, pdbid=pdbid)
     # print(f"rna chain residues: {nt_types}")
     logger.trace(bbs)
     G = nx.MultiDiGraph()
@@ -369,6 +370,7 @@ def fr3d_to_graph(rna_path, atom_coords_to_store=["P"], include_stacking=False):
 
     nx.set_node_attributes(G, nt_types, "nt")
     nx.set_node_attributes(G, nt_types_full, "nt_full")
+    nx.set_node_attributes(G, lsi_dict, "label_seq_id")
 
     for node in G.nodes():
         G.nodes[node]["nt_code"] = nt_types[node]
@@ -406,7 +408,7 @@ def fr3d_to_graph(rna_path, atom_coords_to_store=["P"], include_stacking=False):
                         logger.warning(f"Couldn't find {atom_type} atom")
                     logger.debug(f"{node} {atom_coord}")
                     coord_dict[node][f"xyz_{atom_type}"] = atom_coord
-            nx.set_node_attributes(G, coord_dict)
+        nx.set_node_attributes(G, coord_dict)
 
     except Exception as e:
         logger.exception(f"Failed to get coordinates for {pdbid}, {e}")
@@ -424,9 +426,10 @@ def fr3d_to_graph(rna_path, atom_coords_to_store=["P"], include_stacking=False):
         for chain_id in chains:
             _add_sym_copy_chain(G, chain_id, sym_code, R, t)
 
+    edge_map = EDGE_MAP_RGLIB_WITH_STACKING if include_stacking else EDGE_MAP_RGLIB
     for pair in annot_df.itertuples():
         elabel = pair.interaction
-        if elabel not in EDGE_MAP_RGLIB_WITH_STACKING:
+        if elabel not in edge_map:
             continue
 
         nt1 = nt_to_rgl(pair.source, pdbid)
@@ -446,6 +449,6 @@ def fr3d_to_graph(rna_path, atom_coords_to_store=["P"], include_stacking=False):
 
 if __name__ == "__main__":
     # doc example with multiloop
-    # build_one("../data/1aju.cif")
+    # fr3d_to_graph("../data/1aju.cif")
     # multi chain
-    build_one("../data/structures/1fmn.cif")
+    fr3d_to_graph("../data/structures/1fmn.cif")
