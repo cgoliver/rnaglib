@@ -127,7 +127,7 @@ class ResidueAttributeFilter(FilterTransform):
         if self.aggregation_mode == "min_valid":
             return False
         else:
-            return self.aggfunc(vals_list)
+            return self.value_checker(self.aggfunc(vals_list))
 
 
 class ResidueNameFilter(FilterTransform):
