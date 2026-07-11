@@ -32,6 +32,9 @@ protein_residues = {
     "VAL",
 } | set(get_modifications_cache()["protein"].keys())
 
+def _res_pos_str(residue) -> str:
+    icode = residue.id[2].strip()
+    return f"{residue.id[1]}{icode}"
 
 class RBPTransform(AnnotationTransform):
     """
@@ -77,7 +80,7 @@ class RBPTransform(AnnotationTransform):
 
         for chain in structure[0]:
             for residue in chain:
-                if (chain.id, str(residue.id[1])) in rna_res_ids:
+                if (chain.id,  _res_pos_str(residue)) in rna_res_ids:
                     rna_atoms.extend(residue.get_atoms())
                     rna_residues.append(residue)
                 if residue.get_resname() in protein_residues:
@@ -104,12 +107,12 @@ class RBPTransform(AnnotationTransform):
                 close_atoms = neighbor_search.search(rna_atom.coord, distance_threshold)
                 if len(close_atoms) > 0:
                     rna_residue = rna_atom.get_parent()
-                    close_residues.add((rna_residue.get_parent().id, str(rna_residue.id[1])))
+                    close_residues.add((rna_residue.get_parent().id, _res_pos_str(rna_residue)))
                 if self.protein_number_annotations:
                     for i, current_distance_threshold in enumerate(self.distances):
                         close_atoms = neighbor_search.search(rna_atom.coord, current_distance_threshold)
                         rna_residue = rna_atom.get_parent()
-                        protein_numbers_list[i][(rna_residue.get_parent().id, str(rna_residue.id[1]))] = len(close_atoms)
+                        protein_numbers_list[i][(rna_residue.get_parent().id, _res_pos_str(rna_residue))] = len(close_atoms)
 
 
         # Output the results
