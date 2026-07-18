@@ -44,13 +44,13 @@ class RBPTransform(AnnotationTransform):
     annotation is further used to discard RNA residues with high protein content for certain tasks.
 
     :param structures_dir: Path to the directory where the structures are stored (ex. as cif files)
-    :param float distance_threshold: the radius (in Angstrom) of the zone considered as the environment of the residue (default 5.0)
+    :param float distance_threshold: the radius (in Angstrom) of the zone considered as the environment of the residue (default 4.0)
     :param bool protein_number_annotations: whether to add annotations regarding the number of protein atoms around each residue besides the binary annotation (default False)
     :param list[float] distances: the list of the radiuses (in Angstroms) of the balls centered around the residues within which we would like to compute the number of protein atoms
     :return: the annotated graph, actually the graph is mutated in place
     """
 
-    def __init__(self, structures_dir: Union[os.PathLike, str], distance_threshold: float = 5.0, protein_number_annotations: bool = False, distances: list[float] = [0.5]):
+    def __init__(self, structures_dir: Union[os.PathLike, str], distance_threshold: float = 4.0, protein_number_annotations: bool = False, distances: list[float] = [0.5]):
         self.structures_dir = structures_dir
         self.distance_threshold = distance_threshold
         self.protein_number_annotations = protein_number_annotations

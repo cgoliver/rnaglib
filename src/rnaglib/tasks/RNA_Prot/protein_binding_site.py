@@ -79,6 +79,17 @@ class ProteinBindingSite(ResidueClassificationTask):
                         if not self.size_filter.forward(rna_connected_component):
                             continue
                     rna = rna_connected_component["rna"]
+                    # Single-class components (every residue sharing the same
+                    # protein_binding value) carry no within-chain interface
+                    # signal for a residue-level localization task, so drop
+                    # them instead of training/evaluating on them.
+                    labels = {
+                        data[self.target_var]
+                        for _, data in rna.nodes(data=True)
+                        if data.get(self.target_var) is not None
+                    }
+                    if len(labels) < 2:
+                        continue
                     self.add_rna_to_building_list(all_rnas=all_rnas, rna=rna)
         dataset = self.create_dataset_from_list(rnas=all_rnas)
         return dataset
