@@ -13,6 +13,7 @@ from Bio.PDB.DSSP import DSSP
 from time import perf_counter
 
 from rnaglib.transforms import Transform, AnnotationTransform
+from rnaglib.transforms.annotate.rbp import protein_residues
 
 IONS = [
     "3CO",
@@ -77,6 +78,41 @@ IONS = [
     "ZN",
 ]
 
+# The sets below are offered to callers as excluded_ligands, none of them is a
+# default: HARIBOSS keeps all of these deliberately, weak binders being hits for
+# fragment based design, and dropping them here would put them out of reach of
+# every task downstream. Codes from IONS are absent on purpose, they are sorted
+# as ions before excluded_ligands is checked.
+
+# HARIBOSS reports polyamines as common RNA binders. Non specific, but they do
+# sit in grooves: median pocket of 88 RNA atoms, against 127 for specific ligands
+# and 60 for buffers. Kept apart from the enhancers so a task can drop one
+# without the other.
+POLYAMINES = {"SPD", "SPK", "SPM"}
+
+# Grouped with the enhancers rather than with the polyamines despite being long
+# polar molecules too: their pockets (64) match a buffer's, not a groove.
+PEG_FRAGMENTS = {
+    "12P", "15P", "1PE", "2PE", "7PE", "DIO", "M2M", "P33", "P6G", "PE3",
+    "PE4", "PE5", "PE8", "PEG", "PG4", "PG5", "PG6", "PGE", "TOE", "XPE",
+}
+
+# What HARIBOSS calls compounds "not likely to be specific ligands"
+BUFFERS_AND_ENHANCERS = {
+    # polyols and cryoprotectants
+    "BU3", "EDO", "GOL", "MPD", "MRD", "PDO", "PGO",
+    # alcohols
+    "EOH", "IPA", "MOH", "POH",
+    # buffers
+    "BTB", "CIT", "CXS", "EPE", "IMD", "MES", "MPO", "NHE", "TAM", "TAR", "TRS",
+    # detergents
+    "BNG", "BOG", "C8E", "HTG", "LDA", "LMT", "SDS",
+    # reducing agents and small organics
+    "ACY", "BME", "DTT", "DTV", "FMT", "OXL",
+}
+
+CRYSTALLIZATION_ADDITIVES = PEG_FRAGMENTS | BUFFERS_AND_ENHANCERS
+
 SMILES_CACHE = {}
 
 
@@ -97,8 +133,88 @@ def is_dna(res):
         return False
 
 
+# backbone bonds joining a residue to the rest of its chain, as (own, partner)
+# atom names: phosphodiester either way round, then peptide either way round,
+# then the 5'-5' triphosphate cap bridge either way round. A cap analog (M7G
+# capping a transcript) is not joined through its ribose O3' like a normal
+# residue: its own terminal bridging phosphate oxygen bonds directly to the
+# next residue's alpha phosphate, e.g. m7G(5')ppp(5')N. That bridging oxygen
+# is chemically one of three equivalent non-bridging positions on the beta
+# phosphate (O1B/O2B/O3B) and which label the deposition assigns it to is
+# arbitrary - confirmed on 5f98's six copies, which split 3xO3B/2xO1B/1xO2B
+# for the identical bond (~1.5-1.6A), plus 6vu1/6vvj (both O3B).
+CHAIN_LINKAGES = (
+    ("O3'", "P"), ("P", "O3'"),
+    ("C", "N"), ("N", "C"),
+    ("O1B", "P"), ("P", "O1B"),
+    ("O2B", "P"), ("P", "O2B"),
+    ("O3B", "P"), ("P", "O3B"),
+)
+
+
+def is_chain_integrated(lig, neighbors, covalent_cutoff=2.0):
+    """
+    Returns true if the input residue is covalently linked into a polymer chain
+
+    _chem_comp.type only says what a component is in isolation, which is wrong in
+    both directions: GTP and M7G are "non-polymer" but are routinely built as the
+    5' residue of a transcript, while ARG and CIR are "L-peptide linking" but are
+    genuine ligands of the argininamide and citrulline aptamers.
+
+    Only backbone bonds count. Any close contact would do were coordinates ideal,
+    but NMR models refined against hydrogen bond restraints put base pair donors
+    and acceptors under 2, which would reject bound ligands.
+
+    :param lig: biopython residue object
+    :param neighbors: NeighborSearch over the atoms of the same model as lig
+    :param covalent_cutoff: a P-O bond is around 1.6 long, a peptide C-N 1.3
+    """
+    for own, partner in CHAIN_LINKAGES:
+        if own not in lig:
+            continue
+        for other in neighbors.search(lig[own].get_coord(), radius=covalent_cutoff, level="A"):
+            if other.get_parent() is not lig and other.get_id() == partner:
+                return True
+    return False
+
+
+def is_rna_bound(lig, neighbors, rna_nodes, contact_cutoff=4.0, min_rna=2):
+    """
+    Returns true if the ligand binds the RNA rather than a protein partner: it
+    contacts at least min_rna RNA residues and at least as many RNA as protein.
+
+    The component averaged protein_content annotation never crosses its filter
+    threshold, so a ligand sitting in the protein with the RNA a few angstrom
+    away still passes. This is the local counterpart: the arginine substrate of
+    a synthetase is rejected while the argininamide aptamer ligand is kept, both
+    of them ARG.
+
+    RNA is the graph node set, so modified and locked nucleotides deposited as
+    heteroatoms (LCC, PSU, ...) count; protein is the residue set from rbp.
+    Contacts are distinct residues with a heavy atom within contact_cutoff.
+
+    :param lig: biopython residue object of the candidate ligand
+    :param neighbors: NeighborSearch over the atoms of the same model as lig
+    :param rna_nodes: set of (chain_id, resnum_str) of the RNA graph nodes
+    :param contact_cutoff: heavy atom distance for a contact (default 4.0)
+    :param min_rna: fewest RNA contacts for a genuine site (default 2)
+    """
+    rna, protein = set(), set()
+    for atom in lig:
+        for res in neighbors.search(atom.get_coord(), radius=contact_cutoff, level="R"):
+            if res is lig:
+                continue
+            key = (res.get_parent().id, str(res.id[1]))
+            if key in rna_nodes:
+                rna.add(key)
+            elif res.get_resname() in protein_residues:
+                protein.add(key)
+    return len(rna) >= min_rna and len(rna) >= len(protein)
+
+
 def hariboss_filter(lig, cif_dict, mass_lower_limit=160, mass_upper_limit=1000,
-                    verbose=False, additional_atoms=None, disallowed_atoms=None):
+                    verbose=False, additional_atoms=None, disallowed_atoms=None,
+                    excluded_ligands=None):
     """
     Sorts ligands into ion / ligand / None
      Returns ions for a specific list of ions, ligands if the hetatm has the right atoms and mass and None otherwise
@@ -107,8 +223,12 @@ def hariboss_filter(lig, cif_dict, mass_lower_limit=160, mass_upper_limit=1000,
     :param cif_dict: The output of the biopython MMCIF2DICT object
     :param mass_lower_limit:
     :param mass_upper_limit:
+    :param excluded_ligands: chem comp codes to reject on identity alone, e.g.
+        CRYSTALLIZATION_ADDITIVES. None rejects nothing.
 
     """
+    if excluded_ligands is None:
+        excluded_ligands = ()
 
     allowed_atoms = ["C", "H", "N", "O", "Br", "Cl", "F", "P", "Si", "B", "Se"]
     if not additional_atoms is None:
@@ -125,13 +245,18 @@ def hariboss_filter(lig, cif_dict, mass_lower_limit=160, mass_upper_limit=1000,
         if lig_name == "HOH":
             return None
 
-        if cif_dict["_chem_comp.type"][cif_dict["_chem_comp.id"].index(lig_name)] in ["RNA linking", "DNA linking"]:
-            if verbose: print(f"{lig_name} Covalent")
-            return None
+        # whether a component is a link in a chain or a free ligand is decided on
+        # the coordinates by is_chain_integrated, not on _chem_comp.type: ppGpp is
+        # typed "RNA linking" and argininamide "L-peptide linking", yet both are
+        # ligands of the riboswitch and the aptamer that bind them
 
         if lig_name in IONS:
             # if verbose: print("ION")
             return "ion"
+
+        if lig_name in excluded_ligands:
+            if verbose: print(f"{lig_name} additive")
+            return None
 
         lig_mass = float(cif_dict["_chem_comp.formula_weight"][cif_dict["_chem_comp.id"].index(lig_name)])
 
@@ -183,7 +308,12 @@ def get_smiles_from_rcsb(ligand_code):
 def get_small_partners(cif, mmcif_dict=None, radius=6, mass_lower_limit=160,
                        mass_upper_limit=1000, verbose=False,
                        additional_atoms=None,
-                       disallowed_atoms=None):
+                       disallowed_atoms=None,
+                       excluded_ligands=None,
+                       covalent_cutoff=2.0,
+                       rna_nodes=None,
+                       protein_contact_cutoff=4.0,
+                       min_rna_contacts=2):
     """
     Returns all the relevant small partners in the form of a dict of list of dicts:
     {'ligands': [
@@ -215,6 +345,9 @@ def get_small_partners(cif, mmcif_dict=None, radius=6, mass_lower_limit=160,
     all_interactions = {"ligands": [], "ions": []}
 
     model = structure[0]
+    # scoped to one model, the copies of a residue in the other models of an NMR
+    # ensemble sit within bonding distance of the ligand
+    model_neighbors = NeighborSearch(unfold_entities(model, "A"))
     for res_1 in model.get_residues():
         # Only look around het_flag
         het_flag = res_1.id[0]
@@ -226,10 +359,22 @@ def get_small_partners(cif, mmcif_dict=None, radius=6, mass_lower_limit=160,
                 res_1, mmcif_dict, mass_lower_limit=mass_lower_limit,
                 mass_upper_limit=mass_upper_limit, verbose=verbose,
                 additional_atoms=additional_atoms,
-                disallowed_atoms=disallowed_atoms
+                disallowed_atoms=disallowed_atoms,
+                excluded_ligands=excluded_ligands
             )
             # if selected is None and verbose:
                 # print("Failed HARIBOSS filter.")
+
+            # ions coordinate at around 2.0, only ligands are bond checked
+            if selected == "ligand" and is_chain_integrated(res_1, model_neighbors, covalent_cutoff):
+                if verbose: print(f"{res_1.id[0][2:]} chain integrated")
+                selected = None
+
+            # the RNA node set is only known when called from the transform
+            if selected == "ligand" and rna_nodes is not None and not is_rna_bound(
+                    res_1, model_neighbors, rna_nodes, protein_contact_cutoff, min_rna_contacts):
+                if verbose: print(f"{res_1.id[0][2:]} protein bound")
+                selected = None
 
             if selected is not None:  # ion or ligand
                 name = res_1.id[0][2:]
@@ -260,12 +405,16 @@ class SmallMoleculeBindingTransform(AnnotationTransform):
 
     def __init__(self, structures_dir: Union[os.PathLike, str], cutoffs=[4.0,
                                                                          6.0,
-                                                                         8.0], 
+                                                                         8.0],
                  mass_lower_limit=160,
                  mass_upper_limit=1000,
                  verbose=False,
                  additional_atoms=None,
-                 disallowed_atoms=None
+                 disallowed_atoms=None,
+                 excluded_ligands=None,
+                 covalent_cutoff=2.0,
+                 protein_contact_cutoff=4.0,
+                 min_rna_contacts=2
                  ):
         self.structures_dir = structures_dir
         self.cutoffs = sorted(cutoffs)
@@ -274,6 +423,10 @@ class SmallMoleculeBindingTransform(AnnotationTransform):
         self.mass_upper_limit = mass_upper_limit
         self.additional_atoms = additional_atoms
         self.disallowed_atoms = disallowed_atoms
+        self.excluded_ligands = excluded_ligands
+        self.covalent_cutoff = covalent_cutoff
+        self.protein_contact_cutoff = protein_contact_cutoff
+        self.min_rna_contacts = min_rna_contacts
 
 
     def forward(self, rna_dict: dict) -> dict:
@@ -288,8 +441,19 @@ class SmallMoleculeBindingTransform(AnnotationTransform):
         cif = str(Path(self.structures_dir) / f"{g.graph['pdbid'].lower()}.cif")
         mmcif_dict = MMCIF2Dict(cif)
 
+        rna_nodes = set(tuple(node.split(".")[1:]) for node in g.nodes())
+
         lig_to_smiles = {}
         for cutoff in self.cutoffs:
+            # Reset both fields for every node before recomputing. A previous
+            # pass over this same graph (e.g. a stale copy from before this
+            # ligand was reclassified as chain-integrated) may have left a
+            # stale non-None value here; only filling in currently-absent
+            # keys would let that stale value survive undetected.
+            for node, node_data in g.nodes(data=True):
+                node_data[f"binding_ion_{cutoff}A"] = None
+                node_data[f"binding_small-molecule-{cutoff}A"] = None
+
             # Fetch interactions with small molecules and ions
             all_interactions = get_small_partners(cif, mmcif_dict=mmcif_dict,
                                                   radius=cutoff,
@@ -297,9 +461,13 @@ class SmallMoleculeBindingTransform(AnnotationTransform):
                                                   mass_lower_limit=self.mass_lower_limit,
                                                   mass_upper_limit=self.mass_upper_limit,
                                                   additional_atoms=self.additional_atoms,
-                                                  disallowed_atoms=self.disallowed_atoms)
+                                                  disallowed_atoms=self.disallowed_atoms,
+                                                  excluded_ligands=self.excluded_ligands,
+                                                  covalent_cutoff=self.covalent_cutoff,
+                                                  rna_nodes=rna_nodes,
+                                                  protein_contact_cutoff=self.protein_contact_cutoff,
+                                                  min_rna_contacts=self.min_rna_contacts)
 
-            # First fill relevant nodes
             for interaction_dict in all_interactions["ligands"]:
                 for rna_neigh in interaction_dict["rna_neighs"]:
                     if rna_neigh in g.nodes:
@@ -315,11 +483,5 @@ class SmallMoleculeBindingTransform(AnnotationTransform):
                     # in the interaction dict but not in graph...
                     if rna_neigh in g.nodes:
                         g.nodes[rna_neigh][f"binding_ion_{cutoff}A"] = ion_id
-            # Then add a None field in all other nodes
-            for node, node_data in g.nodes(data=True):
-                if f"binding_ion_{cutoff}A" not in node_data:
-                    node_data[f"binding_ion_{cutoff}A"] = None
-                if f"binding_small-molecule-{cutoff}A" not in node_data:
-                    node_data[f"binding_small-molecule-{cutoff}A"] = None
             rna_dict["rna"].graph["ligand_to_smiles"] = lig_to_smiles
         return rna_dict
