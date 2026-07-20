@@ -47,14 +47,16 @@ class RBPTransform(AnnotationTransform):
     :param float distance_threshold: the radius (in Angstrom) of the zone considered as the environment of the residue (default 4.0)
     :param bool protein_number_annotations: whether to add annotations regarding the number of protein atoms around each residue besides the binary annotation (default False)
     :param list[float] distances: the list of the radiuses (in Angstroms) of the balls centered around the residues within which we would like to compute the number of protein atoms
+    :param int min_chain_length: minimum number of amino-acid residues a chain must contain for its residues to count as "protein" (default 2). Excludes lone free amino acids (e.g. a riboswitch's own bound glycine/arginine ligand) that share a resname with the amino-acid vocabulary but are not part of an actual polypeptide.
     :return: the annotated graph, actually the graph is mutated in place
     """
 
-    def __init__(self, structures_dir: Union[os.PathLike, str], distance_threshold: float = 4.0, protein_number_annotations: bool = False, distances: list[float] = [0.5]):
+    def __init__(self, structures_dir: Union[os.PathLike, str], distance_threshold: float = 4.0, protein_number_annotations: bool = False, distances: list[float] = [0.5], min_chain_length: int = 2):
         self.structures_dir = structures_dir
         self.distance_threshold = distance_threshold
         self.protein_number_annotations = protein_number_annotations
         self.distances = distances
+        self.min_chain_length = min_chain_length
         pass
 
     def forward(self, rna_dict: dict) -> dict:
@@ -78,12 +80,26 @@ class RBPTransform(AnnotationTransform):
         protein_atoms = []
         rna_residues = []
 
+        # First pass: for each chain, just enough to know whether it has at
+        # least min_chain_length amino-acid residues -- stop counting as soon
+        # as the threshold is reached rather than scanning the whole chain
+        # (matters for a several-hundred-residue ribosomal protein chain).
+        protein_chain_ok = {}
+        for chain in structure[0]:
+            count = 0
+            for residue in chain:
+                if residue.get_resname() in protein_residues:
+                    count += 1
+                    if count >= self.min_chain_length:
+                        break
+            protein_chain_ok[chain.id] = count >= self.min_chain_length
+
         for chain in structure[0]:
             for residue in chain:
                 if (chain.id,  _res_pos_str(residue)) in rna_res_ids:
                     rna_atoms.extend(residue.get_atoms())
                     rna_residues.append(residue)
-                if residue.get_resname() in protein_residues:
+                if residue.get_resname() in protein_residues and protein_chain_ok[chain.id]:
                     protein_atoms.extend(residue.get_atoms())
 
         # Build a KDTree
@@ -91,6 +107,7 @@ class RBPTransform(AnnotationTransform):
         all_protein_atoms = list(protein_atoms)
 
         close_residues = set()
+        contributing_chains = {}  # (chain, pos) -> set of protein chain IDs that produced the contact
 
         if self.protein_number_annotations:
             protein_numbers_list = [{} for _ in self.distances]
@@ -107,7 +124,11 @@ class RBPTransform(AnnotationTransform):
                 close_atoms = neighbor_search.search(rna_atom.coord, distance_threshold)
                 if len(close_atoms) > 0:
                     rna_residue = rna_atom.get_parent()
-                    close_residues.add((rna_residue.get_parent().id, _res_pos_str(rna_residue)))
+                    key = (rna_residue.get_parent().id, _res_pos_str(rna_residue))
+                    close_residues.add(key)
+                    contributing_chains.setdefault(key, set()).update(
+                        atom.get_parent().get_parent().id for atom in close_atoms
+                    )
                 if self.protein_number_annotations:
                     for i, current_distance_threshold in enumerate(self.distances):
                         close_atoms = neighbor_search.search(rna_atom.coord, current_distance_threshold)
@@ -118,9 +139,11 @@ class RBPTransform(AnnotationTransform):
         # Output the results
         rbp_status = {}
         protein_numbers = {}
+        protein_binding_chains = {}
         for node in g.nodes():
             chain, pos = node.split(".")[1:]
             rbp_status[node] = (chain, pos) in close_residues
+            protein_binding_chains[node] = sorted(contributing_chains.get((chain, pos), []))
             if self.protein_number_annotations:
                 node_protein_numbers_list = []
                 for i in range(len(self.distances)):
@@ -134,6 +157,7 @@ class RBPTransform(AnnotationTransform):
                 protein_numbers[node] = node_protein_numbers_list
 
         nx.set_node_attributes(g, rbp_status, "protein_binding")
+        nx.set_node_attributes(g, protein_binding_chains, "protein_binding_chains")
         if self.protein_number_annotations:
             nx.set_node_attributes(g, protein_numbers, "protein_content")
             for i, distance in enumerate(self.distances):
