@@ -32,7 +32,7 @@ class BenchmarkBindingSite(ResidueClassificationTask):
     version = "2.0.2"
     default_metric = "balanced_accuracy"
 
-    def __init__(self, cutoff=6.0,graph_path=None, **kwargs):
+    def __init__(self, cutoff=4.0,graph_path=None, **kwargs):
         self.cutoff = cutoff
         self.graph_path = graph_path
         meta = {"multi_label": False}
@@ -121,7 +121,7 @@ class BindingSite(ResidueClassificationTask):
     version = "2.0.2"
     default_metric = "balanced_accuracy"
 
-    def __init__(self, cutoff=6.0, size_thresholds=(15, 500), graph_path=None, **kwargs):
+    def __init__(self, cutoff=4.0, size_thresholds=(15, 500), graph_path=None, **kwargs):
         self.target_var = f"binding_small-molecule-{cutoff}A"
         self.graph_path = graph_path
         meta = {"multi_label": False}
@@ -138,13 +138,9 @@ class BindingSite(ResidueClassificationTask):
         rna_filter = ResidueAttributeFilter(attribute=self.target_var, value_checker=lambda val: val is not None)
         connected_components_partition = ConnectedComponentPartition()
 
-        protein_content_filter = ResidueAttributeFilter(
-            attribute="protein_content_8.0", aggregation_mode="aggfunc", value_checker=lambda x: x < 10, aggfunc=np.mean
-        )
-        connected_component_filters_list = [protein_content_filter]
+        connected_component_filters_list = []
         if self.size_thresholds is not None:
-            connected_component_filters_list.append(self.size_filter)
-        connected_component_filters = ComposeFilters(connected_component_filters_list)
+            size_filter = self.size_filter
 
         # Run through database, applying our filters
         dataset = RNADataset(dataset_path=self.graph_path, debug=self.debug, in_memory=self.in_memory, redundancy="all", version=self.version)
@@ -152,14 +148,10 @@ class BindingSite(ResidueClassificationTask):
         os.makedirs(self.dataset_path, exist_ok=True)
         for rna in tqdm(dataset, total=len(dataset), desc="Processing RNAs"):
             for rna_connected_component in connected_components_partition(rna):
-                if not connected_component_filters.forward(rna_connected_component):
+                if self.size_thresholds is not None and not size_filter.forward(rna_connected_component):
                     continue
                 if rna_filter.forward(rna_connected_component):
                     rna_g = rna_connected_component["rna"]
-                    bind = nx.get_node_attributes(rna_g,
-                                                  self.target_var).values()
-
-                    assert not all([b is None for b in bind])
                     self.add_rna_to_building_list(all_rnas=all_rnas, rna=rna_g)
         dataset = self.create_dataset_from_list(all_rnas)
         return dataset
