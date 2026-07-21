@@ -230,7 +230,7 @@ def hariboss_filter(lig, cif_dict, mass_lower_limit=160, mass_upper_limit=1000,
     if excluded_ligands is None:
         excluded_ligands = ()
 
-    allowed_atoms = ["C", "H", "N", "O", "Br", "Cl", "F", "P", "Si", "B", "Se"]
+    allowed_atoms = ["C", "H", "N", "O", "Br", "Cl", "F", "P", "Si", "B", "Se", "S"]
     if not additional_atoms is None:
         allowed_atoms += additional_atoms
     if not disallowed_atoms is None:
