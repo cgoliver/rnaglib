@@ -4,23 +4,63 @@ from rnaglib.dataset import RNADataset
 from rnaglib.tasks import RNAClassificationTask
 from rnaglib.encoders import MultiLabelOneHotEncoder
 from rnaglib.transforms import FeaturesComputer
-from rnaglib.dataset_transforms import ClusterSplitter, CDHitComputer
-from rnaglib.utils.rfam_utils import get_frequent_go_pdbsel
+from rnaglib.dataset_transforms import ClusterSplitter, CDHitComputer, StructureDistanceComputer
+from rnaglib.utils.rfam_utils import pdb_sel_to_rfam
 
 
 class RNAGo(RNAClassificationTask):
-    """Predict the GO terms associated with the Rfam family of a given RNA chain.
-    Of course, this task is solved by definition since families are constructed using covariance models.
-    However, it can still test the ability of a model to capture characteristic structural features from 3D.
+    """Predict the functional class of a given RNA chain from its 3D structure.
 
-    Task type: multi-class classification
+    Individual Rfam-derived GO terms are, by construction, near-synonyms of Rfam family membership
+    (e.g. GO:0005682 "U5 snRNP" is carried by exactly one family, RF00020), which makes single-GO-term
+    prediction solvable from sequence/family identity alone rather than from structure. To get a task
+    that actually probes 3D structural generalization, individual GO terms are grouped into 5 curated,
+    multi-family functional classes, each spanning several Rfam families/species so a model has to
+    generalize across genuine fold variation rather than fingerprint one family:
+
+    - ``ribosome``: rRNA components (5S, 5.8S, SSU/LSU across bacteria/archaea/eukarya/microsporidia/
+      trypanosome mitochondria). Rfam: RF00001, RF00002, RF00177, RF01959, RF01960, RF02540, RF02541,
+      RF02542, RF02543, RF02545, RF02546. Source GO: 0003735, 0005840.
+    - ``trna``: tRNA and tRNA-like/tRNA-derived elements. Rfam: RF00005 (tRNA), RF00233
+      (Tymo_tRNA-like), RF00023 (tmRNA). Source GO: 0030533, 0006401.
+    - ``spliceosome``: spliceosomal snRNAs (U1, U2, U4, U5, U6, U12, U6atac). Rfam: RF00003, RF00004,
+      RF00007, RF00015, RF00020, RF00026, RF00619. Source GO: 0000244, 0000348, 0000353, 0045131,
+      0046540, and the individual U-snRNA GO terms (e.g. 0005682, 0005688, 0030621).
+    - ``riboswitch``: ligand-sensing cis-regulatory aptamers. Rfam: RF00162, RF00234, RF00379, RF00380,
+      RF00442, RF00634, RF01689, RF01725, RF01763, RF01786, RF01826. Source GO: 0010468 (every Rfam
+      family carrying this GO term, among those with solved PDB structures, happens to be a riboswitch
+      class -- this is an empirical property of what's been deposited, not a restriction implied by the
+      GO term itself).
+    - ``ribozyme``: self-splicing introns and RNase P/MRP catalytic RNAs. Rfam: RF00028, RF00029,
+      RF00030, RF00009, RF00010. Source GO: 0000372, 0000373, 0004526, 0008033.
+
+    These 5 classes are pairwise disjoint at the Rfam-family level. Support in the PDB is uneven
+    (``ribosome``/``trna`` are dominated by a couple of very frequent families such as 5S rRNA and
+    cytoplasmic tRNA; ``riboswitch``/``ribozyme`` have the fewest structures but the most balanced
+    per-family diversity) -- this is real biological/deposition imbalance, not filtered away here.
+
+    Task type: multi-class (multi-label encoded) classification
     Task level: RNA-level
 
     :param tuple[int] size_thresholds: range of RNA sizes to keep in the task dataset(default (15, 500))
     """
 
+    FUNCTION_CLASSES = {
+        "ribosome": [
+            "RF00001", "RF00002", "RF00177", "RF01959", "RF01960",
+            "RF02540", "RF02541", "RF02542", "RF02543", "RF02545", "RF02546",
+        ],
+        "trna": ["RF00005", "RF00233", "RF00023"],
+        "spliceosome": ["RF00003", "RF00004", "RF00007", "RF00015", "RF00020", "RF00026", "RF00619"],
+        "riboswitch": [
+            "RF00162", "RF00234", "RF00379", "RF00380", "RF00442",
+            "RF00634", "RF01689", "RF01725", "RF01763", "RF01786", "RF01826",
+        ],
+        "ribozyme": ["RF00028", "RF00029", "RF00030", "RF00009", "RF00010"],
+    }
+
     input_var = "nt_code"  # node level attribute
-    target_var = "go_terms"  # graph level attribute
+    target_var = "function_class"  # graph level attribute
     name = "rna_go"
     version = "2.0.2"
     default_metric = "jaccard"
@@ -38,23 +78,16 @@ class RNAGo(RNAClassificationTask):
         :return: the default splitter to be used for the task
         :rtype: Splitter
         """
-        return ClusterSplitter(similarity_threshold=0.6, distance_name="cd_hit")
+        return ClusterSplitter(similarity_threshold=0.5, distance_name="USalign")
 
     def get_task_vars(self):
         """Specifies the `FeaturesComputer` object of the tasks which defines the features which have to be added to the RNAs
         (graphs) and nucleotides (graph nodes)
-        
+
         :return: the features computer of the task
         :rtype: FeaturesComputer
         """
         label_mapping = self.metadata["label_mapping"]
-        if self.debug:
-            label_mapping = {"0000353": 0,
-                             "0005682": 1,
-                             "0005686": 2,
-                             "0005688": 3,
-                             "0010468": 4
-                             }
         return FeaturesComputer(
             nt_features=self.input_var,
             rna_targets=self.target_var,
@@ -68,15 +101,17 @@ class RNAGo(RNAClassificationTask):
         :return: the task-specific dataset
         :rtype: RNADataset
         """
-        # Get initial mapping files:
-        df, rfam_go_mapping = get_frequent_go_pdbsel()
-        
-        dataset = RNADataset(redundancy='all', debug=self.debug, in_memory=self.in_memory, rna_id_subset=df['pdb_id'].unique(), version=self.version)
+        fam_to_class = {rfam: cls for cls, fams in self.FUNCTION_CLASSES.items() for rfam in fams}
+
+        # Only pull pdb selections whose Rfam family belongs to one of the 5 curated function classes.
+        df = pdb_sel_to_rfam()
+        df = df[df['rfam_acc'].isin(fam_to_class)]
+
+        dataset = RNADataset(redundancy='nr', debug=self.debug, in_memory=self.in_memory, rna_id_subset=df['pdb_id'].unique(), version=self.version)
 
         # Create dataset
         # Run through database, applying our filters
         all_rnas = []
-        go_terms_dict = {}
         os.makedirs(self.dataset_path, exist_ok=True)
         for rna in dataset:
             rna_graph = rna['rna']
@@ -94,13 +129,11 @@ class RNAGo(RNAClassificationTask):
                 subgraph = rna_graph.subgraph(chunk_nodes).copy()
                 subgraph.name = pdbsel
 
-                # Get the corresponding GO-terms for this RFAM selection
-                # Needs a bit of caution because one pdbsel could have more than one rfam_id
+                # Get the function class(es) for this RFAM selection.
+                # Needs a bit of caution because one pdbsel could have more than one rfam_id, but since
+                # FUNCTION_CLASSES partitions Rfam families, this resolves to a single class in practice.
                 rfams_pdbsel = lines.loc[lines['pdbsel'] == pdbsel]['rfam_acc'].values
-
-                # top_rfam_go_mapping = {rfam:[go_term for go_term in rfam_go_mapping[rfam] if go_term not in ['0000373','0003824','0006396','0006617','0009113']] for rfam in rfam_go_mapping}
-                # go_terms = [go for rfam_id in rfams_pdbsel for go in top_rfam_go_mapping[rfam_id]]
-                go_terms = [go for rfam_id in rfams_pdbsel for go in rfam_go_mapping[rfam_id]]
+                function_classes = sorted({fam_to_class[rfam_id] for rfam_id in rfams_pdbsel})
 
                 # Finally, apply quality filters
                 if len(subgraph) < 5 or len(subgraph.edges()) < 5:
@@ -111,32 +144,25 @@ class RNAGo(RNAClassificationTask):
                 if self.size_thresholds is not None:
                     if not self.size_filter.forward(chunk_dict):
                         continue
-                for go_term in go_terms:
-                    if go_term in go_terms_dict:
-                        go_terms_dict[go_term].append(rna_graph.name)
-                    else:
-                        go_terms_dict[go_term] = [rna_graph.name]
 
-                subgraph.graph['go_terms'] = list(set(go_terms))
+                subgraph.graph['function_class'] = function_classes
                 self.add_rna_to_building_list(all_rnas=all_rnas, rna=subgraph)
         dataset = self.create_dataset_from_list(all_rnas)
 
-        go_terms_to_keep = [key for key in go_terms_dict if len(go_terms_dict[key]) > 60]
-
-        for rna in dataset:
-            rna['rna'].graph['go_terms'] = [go_term for go_term in rna['rna'].graph['go_terms'] if
-                                            go_term in go_terms_to_keep]
-
-        # compute one-hot mapping of labels
-        unique_gos = sorted(
-            {go for system_gos in rfam_go_mapping.values() for go in system_gos if go in go_terms_to_keep})
-        rfam_mapping = {rfam: i for i, rfam in enumerate(unique_gos)}
-        self.metadata["label_mapping"] = rfam_mapping
+        # The label vocabulary is the fixed set of 5 curated classes, not derived from a frequency
+        # threshold on whatever happened to get built (unlike the old per-GO-term scheme), so it is
+        # stable across debug/full runs.
+        self.metadata["label_mapping"] = {cls: i for i, cls in enumerate(sorted(self.FUNCTION_CLASSES))}
         return dataset
 
     def post_process(self):
         """
-        Computes sequence similarity between all atom pairs using CD-Hit
+        Computes sequence similarity between all atom pairs using CD-Hit, and structure-based
+        pairwise similarity using USalign (needed by the USalign-based ClusterSplitter used as
+        this task's default splitter).
         """
         cd_hit_computer = CDHitComputer(similarity_threshold=0.9)
         self.dataset = cd_hit_computer(self.dataset)
+
+        us_align_computer = StructureDistanceComputer(name="USalign")
+        self.dataset = us_align_computer(self.dataset)
