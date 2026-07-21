@@ -143,12 +143,20 @@ def is_dna(res):
 # phosphate (O1B/O2B/O3B) and which label the deposition assigns it to is
 # arbitrary - confirmed on 5f98's six copies, which split 3xO3B/2xO1B/1xO2B
 # for the identical bond (~1.5-1.6A), plus 6vu1/6vvj (both O3B).
+# Last comes the aminoacyl ester of a charged tRNA, which joins the amino acid
+# through its carboxyl carbon to the ribose of the 3' terminal adenosine rather
+# than through a peptide bond, so none of the linkages above sees it: fMet on
+# tRNA-fMet is the third most frequent "ligand" in the database without it,
+# 44 structures, confirmed at 1.56A C-O3' on 5afi. Deposited as either the 2'
+# or the 3' isomer, both of which occur, hence the two ribose oxygens.
 CHAIN_LINKAGES = (
     ("O3'", "P"), ("P", "O3'"),
     ("C", "N"), ("N", "C"),
     ("O1B", "P"), ("P", "O1B"),
     ("O2B", "P"), ("P", "O2B"),
     ("O3B", "P"), ("P", "O3B"),
+    ("C", "O3'"), ("O3'", "C"),
+    ("C", "O2'"), ("O2'", "C"),
 )
 
 
@@ -379,7 +387,11 @@ def get_small_partners(cif, mmcif_dict=None, radius=6, mass_lower_limit=160,
             if selected is not None:  # ion or ligand
                 name = res_1.id[0][2:]
                 smiles = get_smiles_from_rcsb(name)
-                interaction_dict = {"id": tuple(res_1.id), "name": name, "smiles": smiles}
+                # the chain leads the id: a biopython residue id carries none, so two copies of one ligand sitting at
+                # equivalent positions in two chains share an id, and every consumer grouping residues by it welds
+                # their two sites into a single pocket. Measured on the v4 build, a quarter of the annotated sites
+                # spanned more than one chain and a third of those were geometrically impossible, up to 260A across
+                interaction_dict = {"id": (res_1.get_parent().id,) + tuple(res_1.id), "name": name, "smiles": smiles}
                 found_rna_neighbors = set()
                 for atom in res_1:
                     # print(atom)
