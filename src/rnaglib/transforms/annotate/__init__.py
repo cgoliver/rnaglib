@@ -5,6 +5,6 @@ from .rfam import *
 from .binding_sites import BindingSiteAnnotator
 from .from_dict import AnnotatorFromDict
 from .dummy import *
-from .small_molecule import SmallMoleculeBindingTransform
+from .small_molecule import SmallMoleculeBindingTransform, CRYSTALLIZATION_ADDITIVES
 from .rbp import RBPTransform
 from .cif_metadata import CifMetadata

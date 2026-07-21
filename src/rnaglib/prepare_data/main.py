@@ -18,6 +18,7 @@ from rnaglib.utils import dump_json
 from rnaglib.transforms import Compose
 from rnaglib.transforms import CifMetadata
 from rnaglib.transforms import SmallMoleculeBindingTransform
+from rnaglib.transforms import CRYSTALLIZATION_ADDITIVES
 #from rnaglib.transforms import SecondaryStructureTransform
 from rnaglib.transforms import RBPTransform
 from rnaglib.prepare_data import fr3d_to_graph
@@ -155,7 +156,7 @@ def build_graph_from_cif(cif_path, dump_dir=None, atom_coords_to_store=["P"], in
 
     transforms = [
         CifMetadata(structures_dir=structures_dir),
-        SmallMoleculeBindingTransform(structures_dir=structures_dir),
+        SmallMoleculeBindingTransform(structures_dir=structures_dir, excluded_ligands=CRYSTALLIZATION_ADDITIVES),
         RBPTransform(structures_dir=structures_dir, protein_number_annotations=True, distances=[4.0, 6.0, 8.0]),
     ]
 
