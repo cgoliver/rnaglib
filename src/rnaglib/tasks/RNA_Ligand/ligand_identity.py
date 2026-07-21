@@ -1,16 +1,14 @@
 import os
 import json
+from pathlib import Path
 
-import numpy as np
 from tqdm import tqdm
-from torch.utils.data import DataLoader, WeightedRandomSampler
-import torch
 
 from rnaglib.tasks import RNAClassificationTask
 from rnaglib.dataset import RNADataset
 from rnaglib.encoders import IntMappingEncoder
 from rnaglib.transforms import FeaturesComputer, AnnotatorFromDict, PartitionFromDict, ResolutionFilter
-from rnaglib.dataset_transforms import ClusterSplitter, CDHitComputer, StructureDistanceComputer, Collater
+from rnaglib.dataset_transforms import ClusterSplitter, CDHitComputer, StructureDistanceComputer
 from rnaglib.tasks.RNA_Ligand.prepare_dataset import PrepareDataset
 
 
@@ -22,8 +20,7 @@ class LigandIdentification(RNAClassificationTask):
     Task level: substructure-level
 
     :param tuple[int] size_thresholds: range of RNA sizes to keep in the task dataset(default (15, 500))
-    :param tuple[str] admissible_ligands: list of the names of the ligands to include in the dataset (default ('PAR', 'LLL', '8UZ')). By default, they are paromomycin (PAR), LLL and 8UZ since these are the four most frequent small molecules binding RNAs in our database.
-    :param bool use_balanced_sampler: whether to sample RNAs according to the distribution of their classes 
+    :param tuple[str] admissible_ligands: list of the names of the ligands to include in the dataset (default ('PAR', 'LLL', '8UZ')): paromomycin (PAR), LLL and 8UZ.
     """
     input_var = "nt_code"
     target_var = "ligand"
@@ -33,12 +30,12 @@ class LigandIdentification(RNAClassificationTask):
 
     def __init__(self,
         size_thresholds=(15, 500),
+        graph_path=None,
         admissible_ligands=('PAR', 'LLL', '8UZ'),
-        use_balanced_sampler=False,
         **kwargs
     ):
+        self.graph_path = graph_path
         self.admissible_ligands = admissible_ligands
-        self.use_balanced_sampler = use_balanced_sampler
         meta = {"multi_label": False}
 
         # create a dict where key is RNA name and values are lists of lists [[residue 1 of binding pocket 1,...,residue N of BP 1],...,[residue 1 of BP k,...]]
@@ -60,7 +57,7 @@ class LigandIdentification(RNAClassificationTask):
         :rtype: RNADataset
         """
         # Initialize dataset with in_memory=False to avoid loading everything at once
-        dataset = RNADataset(in_memory=False, redundancy='all', debug=self.debug, rna_id_subset=self.nodes_keep, version=self.version)
+        dataset = RNADataset(dataset_path=self.graph_path, in_memory=False, redundancy='all', debug=self.debug, rna_id_subset=self.nodes_keep, version=self.version)
 
         # Instantiate filters to apply
         resolution_filter = ResolutionFilter(resolution_threshold=4.0)
@@ -96,7 +93,10 @@ class LigandIdentification(RNAClassificationTask):
         represented_values = set()
         for rna in self.dataset:
             represented_values.add(rna['rna'].graph[self.target_var])
-        self.mapping = {target_value: i for i, target_value in enumerate(represented_values)}
+        # sorted, so that a given ligand always maps to the same class index: iterating the set directly makes the
+        # mapping depend on string hash randomization, hence on the process, which silently invalidates any per-class
+        # metric or checkpoint reloaded in another run
+        self.mapping = {target_value: i for i, target_value in enumerate(sorted(represented_values))}
         return FeaturesComputer(
             nt_features=self.input_var,
             rna_targets=self.target_var,
@@ -105,45 +105,30 @@ class LigandIdentification(RNAClassificationTask):
 
     def post_process(self):
         """The task-specific post processing steps to remove redundancy and compute distances which will be used by the splitters.
+
+        This mirrors the default Task.post_process, removing redundancy on sequence (CD-Hit) then on structure
+        (US-align). The only difference is that the representative of each cluster is chosen by PrepareDataset rather
+        than by RedundancyRemover, so that pockets in contact with a single ligand are preferred over confounding
+        pockets in contact with several.
         """
         cd_hit_computer = CDHitComputer(similarity_threshold=0.9)
-        prepare_dataset = PrepareDataset(distance_name="cd_hit", threshold=0.9)
-        us_align_computer = StructureDistanceComputer(name="USalign")
+        cd_hit_rr = PrepareDataset(distance_name="cd_hit", threshold=0.9)
         self.dataset = cd_hit_computer(self.dataset)
-        self.dataset = prepare_dataset(self.dataset)
+        if self.redundancy_removal:
+            self.dataset = cd_hit_rr(self.dataset)
+
+        us_align_computer = StructureDistanceComputer(name="USalign")
+        us_align_rr = PrepareDataset(distance_name="USalign", threshold=0.8)
         self.dataset = us_align_computer(self.dataset)
+        if self.redundancy_removal:
+            self.dataset = us_align_rr(self.dataset)
 
-    def set_loaders(self, recompute=True, **dataloader_kwargs):
-        """Sets the dataloader properties. This is a reimplementation of the set_loaders method of Task class
-        specific to RNA_Ligand to enable the computation of the balanced sampler
-        Call this each time you modify ``self.dataset``.
-
-        :param bool recompute: whether to recompute the dataset train/val/test splitting in case a splitting has already been computed (default True)
-        """
-        self.set_datasets(recompute=recompute)
-
-        # If no collater is provided we need one
-        if dataloader_kwargs is None:
-            dataloader_kwargs = {"collate_fn": Collater(self.train_dataset)}
-        if "collate_fn" not in dataloader_kwargs:
-            collater = Collater(self.train_dataset)
-            dataloader_kwargs["collate_fn"] = collater
-
-        targets = np.array([self.mapping[rna['rna'].graph["ligand"]] for rna in self.train_dataset])
-
-        samples_weight = np.array([1. / self.metadata["class_distribution"][str(i)] for i in targets])
-        samples_weight = torch.from_numpy(samples_weight)
-        balanced_sampler = WeightedRandomSampler(samples_weight, len(samples_weight))
-
-        # Now build the loaders
-        if self.use_balanced_sampler:
-            self.train_dataloader = DataLoader(dataset=self.train_dataset, sampler=balanced_sampler,
-                                               **dataloader_kwargs)
-        else:
-            self.train_dataloader = DataLoader(dataset=self.train_dataset, **dataloader_kwargs)
-        dataloader_kwargs["shuffle"] = False
-        self.val_dataloader = DataLoader(dataset=self.val_dataset, **dataloader_kwargs)
-        self.test_dataloader = DataLoader(dataset=self.test_dataset, **dataloader_kwargs)
+        if not self.in_memory:
+            # PATCH: delete graphs from dataset/ lost during redundancy removal
+            for f in os.listdir(self.dataset.dataset_path):
+                if Path(f).stem not in self.dataset.all_rnas:
+                    os.remove(Path(self.dataset.dataset_path) / f)
+            self.dataset.save_distances()
 
     @property
     def default_splitter(self):
