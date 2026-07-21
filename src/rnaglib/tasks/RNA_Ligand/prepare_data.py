@@ -1,52 +1,56 @@
-import numpy as np
 from collections import defaultdict
 import pandas as pd
 import networkx as nx
 import json
 from tqdm import tqdm
-from pathlib import Path
-from Bio.PDB.MMCIF2Dict import MMCIF2Dict
 
 from rnaglib.dataset import RNADataset
-from rnaglib.transforms import SizeFilter, ResidueAttributeFilter, ComposeFilters
+from rnaglib.transforms import SizeFilter, ResidueAttributeFilter
 from rnaglib.algorithms import bfs
+
+# contacts at 6.0A and at least 10 contacting residues, the binding site definition of HARIBOSS, which rna_site uses too
+BINDING_ATTRIBUTE = "binding_small-molecule-6.0A"
 
 # Initialize dataset with in_memory=False to avoid loading everything at once
 dataset = RNADataset(debug=False, in_memory=False, redundancy="all")
 
 # Instantiate filters to apply
-protein_content_filter = ResidueAttributeFilter(attribute="protein_content_8.0", aggregation_mode="aggfunc", value_checker=lambda x: x < 10, aggfunc=np.mean)
 size_filter = SizeFilter(5, 500)
-binding_pocket_filters_list = [protein_content_filter, size_filter]
-binding_pocket_filters = ComposeFilters(binding_pocket_filters_list)
+binding_site_filter = ResidueAttributeFilter(attribute=BINDING_ATTRIBUTE,
+                                             value_checker=lambda val: val is not None,
+                                             aggregation_mode="min_valid",
+                                             min_valid=10)
 
 
-# Run through database, applying our filters
+# Run through database, collecting the binding pockets
 bp_dict = defaultdict(list)
 ligands_dict = {}
 bp_id = 0
 dataset_size = len(dataset)
 for i, rna in tqdm(enumerate(dataset),total=dataset_size):
-    cif = str(Path(dataset.structures_path) / f"{rna['rna'].graph['pdbid'].lower()}.cif")
-    mmcif_dict = MMCIF2Dict(cif)
     lig_to_nodes = defaultdict(list)
-    lig_info = nx.get_node_attributes(rna['rna'], 'binding_small-molecule-6.0A')
+    lig_info = nx.get_node_attributes(rna['rna'], BINDING_ATTRIBUTE)
     for node, ligand in lig_info.items():
         if not ligand is None:
             lig_to_nodes[tuple(ligand['id'])].append(node)
-            ligands_dict[node] = ligand['name']
+    # nothing is filtered on the ligand or on the protein content of the pocket here: SmallMoleculeBindingTransform
+    # already discards chain-integrated components, ligands bound to the protein rather than to the RNA and, when
+    # asked, crystallization additives, all of them on the coordinates. Anything still annotated at this point is a
+    # genuine free ligand sitting on the RNA
     for ligand_id, binding_pocket in lig_to_nodes.items():
-        ligand_name = ligand_id[0][2:]
-        if not mmcif_dict['_chem_comp.type'][mmcif_dict['_chem_comp.id'].index(ligand_name)] in ['RNA linking','DNA linking']:
-            binding_pocket_nodes = bfs(rna['rna'], binding_pocket, label="LW")
-            n_hop = 2
-            while len(binding_pocket_nodes)<40 and n_hop<4:
-                binding_pocket_nodes = bfs(rna['rna'], binding_pocket_nodes, label="LW")
-                n_hop += 1
-            binding_pocket = rna['rna'].subgraph(binding_pocket_nodes).copy()
-            if protein_content_filter.forward({'rna':binding_pocket}):
-                bp_dict[rna['rna'].name].append(list(binding_pocket_nodes))
-                bp_id += 1    
+        # a ligand merely grazing the surface does not make a binding site. Every node of the seed carries the
+        # annotation of this ligand and of no other, so the filter counts exactly the residues in contact with it
+        if not binding_site_filter.forward({'rna': rna['rna'].subgraph(binding_pocket)}):
+            continue
+        for node in binding_pocket:
+            ligands_dict[node] = lig_info[node]['name']
+        binding_pocket_nodes = bfs(rna['rna'], binding_pocket, label="LW")
+        n_hop = 2
+        while len(binding_pocket_nodes)<40 and n_hop<4:
+            binding_pocket_nodes = bfs(rna['rna'], binding_pocket_nodes, label="LW")
+            n_hop += 1
+        bp_dict[rna['rna'].name].append(list(binding_pocket_nodes))
+        bp_id += 1
 
 bp_dict = {key:list(bp_dict[key]) for key in bp_dict}
 
