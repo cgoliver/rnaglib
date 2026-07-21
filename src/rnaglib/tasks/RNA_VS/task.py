@@ -22,7 +22,8 @@ class VirtualScreening(Task):
     version = "2.0.2"
     default_metric = "auroc"
 
-    def __init__(self, ligand_framework="pyg", **kwargs):
+    def __init__(self, ligand_framework="pyg", graph_path=None, **kwargs):
+        self.graph_path = graph_path
         self.ligand_framework = ligand_framework
         meta = {"multi_label": False, 'graph_level': True}
         super().__init__(additional_metadata=meta, **kwargs)
@@ -42,7 +43,7 @@ class VirtualScreening(Task):
                                                 framework=self.ligand_framework)
         self.load_groups()
 
-        dataset = RNADataset(dataset_path=self.dataset_path, in_memory=self.in_memory)
+        dataset = RNADataset(dataset_path=self.graph_path, in_memory=self.in_memory)
         dataset.add_representation(InPocketRepresentation())
         return dataset
 
