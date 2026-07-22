@@ -138,9 +138,12 @@ class RNAGo(RNAClassificationTask):
                 # Finally, apply quality filters
                 if len(subgraph) < 5 or len(subgraph.edges()) < 5:
                     continue
-                # A feature dict (including structure path) is needed for the filtering
-                chunk_dict = {k: v for k, v in rna.items() if k != 'graph'}
-                chunk_dict['graph'] = subgraph
+                # A feature dict (including structure path) is needed for the filtering.
+                # SizeFilter.forward reads rna_dict["rna"], so that key (not "graph") must be
+                # replaced with the extracted fragment, otherwise the filter silently sizes the
+                # whole parent chain/assembly instead of this pdbsel's fragment.
+                chunk_dict = {k: v for k, v in rna.items() if k != 'rna'}
+                chunk_dict['rna'] = subgraph
                 if self.size_thresholds is not None:
                     if not self.size_filter.forward(chunk_dict):
                         continue
