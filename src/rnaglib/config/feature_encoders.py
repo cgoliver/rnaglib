@@ -96,6 +96,7 @@ NODE_FEATURE_MAP = {
     "binding_protein_Ry": FloatEncoder(),
     "binding_protein_Rz": FloatEncoder(),
     "is_modified": BoolEncoder(),
+    "is_biological_modification": BoolEncoder(),
     "is_broken": BoolEncoder(),
     "protein_binding": BoolEncoder(),
     "protein_content": ListEncoder(list_length=3)

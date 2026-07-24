@@ -5,5 +5,6 @@ from .feature_encoders import NODE_FEATURE_MAP, EDGE_FEATURE_MAP
 
 # from .ligands import LIGAND_TO_SMILES
 from .modifications import get_modifications_cache
+from .natural_modifications import NATURAL_RNA_MODIFICATIONS, is_biological_modification
 
 from .build_iso_mat import iso_mat

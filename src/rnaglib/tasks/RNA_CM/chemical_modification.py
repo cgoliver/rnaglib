@@ -6,27 +6,39 @@ from rnaglib.tasks import ResidueClassificationTask
 from rnaglib.transforms import FeaturesComputer
 from rnaglib.transforms import ResidueAttributeFilter, DummyFilter
 from rnaglib.transforms import ConnectedComponentPartition
+from rnaglib.transforms import BiologicalModificationAnnotator
 from rnaglib.dataset_transforms import ClusterSplitter
 
 
 class ChemicalModification(ResidueClassificationTask):
-    """Residue-level binary classification task to predict whether a given residue is chemically modified.
+    """Residue-level binary classification task to predict whether a given residue carries a
+    natural, enzymatically installed RNA modification.
+
+    A positive is a residue whose PDB code is a curated natural modification (pseudouridine,
+    dihydrouridine, methylations, ...). The database-level ``is_modified`` flag is not used as
+    the target because it is set from residue-name length and also fires on synthetic analogs
+    (halogen/2'-F/LNA), DNA residues and nucleotide ligands. The stricter target is derived on
+    the fly by :class:`BiologicalModificationAnnotator`, so no database rebuild is needed.
 
     Task type: binary classification
     Task level: residue-level
 
     :param tuple[int] size_thresholds: range of RNA sizes to keep in the task dataset(default (15, 500))
+    :param allowed_modifications: iterable of PDB residue codes to count as positives. Defaults
+        to :data:`rnaglib.config.NATURAL_RNA_MODIFICATIONS`; widen it to change the scope
+        (e.g. to include synthetic analogs).
     """
 
-    target_var = "is_modified"
+    target_var = "is_biological_modification"
     input_var = "nt_code"
     name = "rna_cm"
     default_metric = "balanced_accuracy"
-    version = "2.0.2"
+    version = "3.0.0"
 
-    def __init__(self, size_thresholds=(15, 500), graph_path=None, **kwargs):
+    def __init__(self, size_thresholds=(15, 500), graph_path=None, allowed_modifications=None, **kwargs):
         meta = {'multi_label': False}
         self.graph_path = graph_path
+        self.allowed_modifications = allowed_modifications
         super().__init__(additional_metadata=meta, size_thresholds=size_thresholds, **kwargs)
 
     @property
@@ -57,6 +69,9 @@ class ChemicalModification(ResidueClassificationTask):
         :rtype: RNADataset
         """
         # Define your transforms
+        modification_annotator = BiologicalModificationAnnotator(
+            allowed_modifications=self.allowed_modifications
+        )
         residue_attribute_filter = ResidueAttributeFilter(
             attribute=self.target_var, value_checker=lambda val: val == True
         )
@@ -69,6 +84,7 @@ class ChemicalModification(ResidueClassificationTask):
         all_rnas = []
         for rna in tqdm(dataset):
             for rna_connected_component in connected_components_partition(rna):
+                modification_annotator(rna_connected_component)
                 if residue_attribute_filter.forward(rna_connected_component):
                     if self.size_thresholds is not None and not self.size_filter.forward(rna_connected_component):
                         continue
