@@ -1,4 +1,5 @@
 import os
+import re
 
 import pickle
 import torch
@@ -10,6 +11,21 @@ from rnaglib.config.graph_keys import GRAPH_KEYS, TOOL
 from rnaglib.algorithms import fix_buggy_edges, get_sequences
 
 from .graph import GraphRepresentation
+
+_POS_RE = re.compile(r"(-?\d+)(.*)")
+
+
+def _node_sort_key(node_id):
+    """Sort key for a '<pdbid>.<chain>.<pos>' node id.
+
+    `pos` may carry a PDB insertion code (e.g. "17A"), which is not a
+    plain integer, so it is split into a numeric part and a code suffix
+    to keep residues ordered as 17 < 17A < 18.
+    """
+    chain, pos = node_id.split(".")[1], node_id.split(".")[2]
+    num, ins_code = _POS_RE.match(pos).groups()
+    return (chain, int(num), ins_code)
+
 
 class DistographRepresentation(GraphRepresentation):
 
@@ -78,7 +94,7 @@ class DistographRepresentation(GraphRepresentation):
                 proba_matrix = dist_tensor[:, :, :self.B].sum(dim=2)
                 proba_matrix.fill_diagonal_(float(0))
                 new_edge_indices = torch.nonzero(proba_matrix > self.tau, as_tuple=False)
-                node_map = {n: i for i, n in enumerate(sorted(base_graph.nodes(), key=lambda x:(x.split('.')[1],int(x.split('.')[2]))))}
+                node_map = {n: i for i, n in enumerate(sorted(base_graph.nodes(), key=_node_sort_key))}
                 new_edges = [[node_map[sorted_distogram_residues[u]],node_map[sorted_distogram_residues[v]]] for u, v in new_edge_indices]
                 new_edges = torch.tensor(new_edges, dtype=torch.long).T
 
@@ -99,7 +115,7 @@ class DistographRepresentation(GraphRepresentation):
             if self.distogram_edge_features:
                 
                 distogram_map = {n: i for i, n in enumerate(sorted_distogram_residues)}
-                sorted_graph_residues = sorted(base_graph.nodes(), key=lambda x:(x.split('.')[1],int(x.split('.')[2])))
+                sorted_graph_residues = sorted(base_graph.nodes(), key=_node_sort_key)
                 edge_distances = []
                 for i, j in pyg_graph.edge_index.t():
                     try:

@@ -92,7 +92,7 @@ class GraphRepresentation(Representation):
 
         # for some reason from_networkx is not working so doing by hand
         # not super efficient at the moment
-        node_map = {n: i for i, n in enumerate(sorted(graph.nodes(), key=lambda x:(x.split('.')[1],int(x.split('.')[2]))))}
+        node_map = {n: i for i, n in enumerate(sorted(graph.nodes(), key=lambda x: (graph.nodes[x]['chain_id'], graph.nodes[x]['label_seq_id'])))}
         x, y = None, None
 
         if "nt_features" in features_dict:
@@ -124,8 +124,9 @@ class GraphRepresentation(Representation):
 
             if self.purine_representative != self.pyrimidine_representative:
 
-                all_attrs_pyrimidine_rep = nx.get_node_attributes(graph, f'xyz_{self.pyrimidine_representative}')
-                all_attrs_purine_rep = nx.get_node_attributes(graph, f'xyz_{self.purine_representative}')
+                all_heavy_atoms = nx.get_node_attributes(graph, f"heavy_atoms")
+                all_attrs_pyrimidine_rep = {n: atoms.get(self.pyrimidine_representative) if atoms is not None else None for n, atoms in all_heavy_atoms.items()}
+                all_attrs_purine_rep = {n: atoms.get(self.purine_representative) if atoms is not None else None for n, atoms in all_heavy_atoms.items()}
                 all_attrs_base_identity = nx.get_node_attributes(graph, 'nt')
                 pyrimidine_rep_coords_list = [all_attrs_pyrimidine_rep[n] if all_attrs_pyrimidine_rep[n] is not None else 3*[float('nan')] for n in node_map.keys()]
                 purine_rep_coords_list = [all_attrs_purine_rep[n] if all_attrs_purine_rep[n] is not None else 3*[float('nan')] for n in node_map.keys()]
@@ -168,9 +169,9 @@ class GraphRepresentation(Representation):
             edge_attrs = torch.zeros(edge_index.shape[1],dtype=int)
 
         else:
-            edge_index = [[node_map[u], node_map[v]] for u, v in sorted(graph.edges(), key=lambda x: (x[0].split('.')[1],int(x[0].split('.')[2]),x[1].split('.')[1],int(x[1].split('.')[2])))]
+            edge_index = [[node_map[u], node_map[v]] for u, v in sorted(graph.edges(), key=lambda x: (graph.nodes[x[0]]['chain_id'], graph.nodes[x[0]]['label_seq_id'], graph.nodes[x[1]]['chain_id'], graph.nodes[x[1]]['label_seq_id']))]
             edge_index = torch.tensor(edge_index, dtype=torch.long).T
-            edge_attrs = [self.edge_map[data[self.etype_key]] for u, v, data in sorted(graph.edges(data=True), key=lambda x: (x[0].split('.')[1],int(x[0].split('.')[2]),x[1].split('.')[1],int(x[1].split('.')[2])))]
+            edge_attrs = [self.edge_map[data[self.etype_key]] for u, v, data in sorted(graph.edges(data=True), key=lambda x: (graph.nodes[x[0]]['chain_id'], graph.nodes[x[0]]['label_seq_id'], graph.nodes[x[1]]['chain_id'], graph.nodes[x[1]]['label_seq_id']))]
             edge_attrs = torch.tensor(edge_attrs)
 
         if self.distance_edge_features:
