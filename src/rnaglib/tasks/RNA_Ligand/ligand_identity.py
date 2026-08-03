@@ -1,3 +1,4 @@
+
 import os
 import json
 import collections
@@ -98,7 +99,7 @@ class LigandIdentification(RNAClassificationTask):
                         continue
                     ligand_code = collections.Counter(codes).most_common(1)[0][0]
                     family = self.family_map.get(ligand_code)
-                    if family in self.admissible_families or self.debug:
+                    if family is not None and (family in self.admissible_families or self.debug):
                         pocket.graph[self.target_var] = family
                         self.add_rna_to_building_list(all_rnas=all_binding_pockets, rna=pocket)
         dataset = self.create_dataset_from_list(all_binding_pockets)
