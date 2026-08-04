@@ -44,9 +44,18 @@ jobs:
         run: |
           echo /home/runner/work/rnaglib/rnaglib/RNAalign >> $GITHUB_PATH
       - name: Install LocARNA
+        uses: mamba-org/setup-micromamba@v3
+        with:
+          environment-name: locarna-env
+          create-args: locarna
+          condarc: |
+            channels:
+              - bioconda
+              - conda-forge
+          cache-environment: true
+      - name: Export LocARNA path
         run: |
-          sudo apt-get update
-          sudo apt-get install -y locarna
+          echo /home/runner/micromamba/envs/locarna-env/bin >> $GITHUB_PATH
       - name: Cache RNA-FM weights
         id: cache-rnafm
         uses: actions/cache@v4
