@@ -43,6 +43,21 @@ jobs:
       - name: Export RNAalign path
         run: |
           echo /home/runner/work/rnaglib/rnaglib/RNAalign >> $GITHUB_PATH
+      - name: Install LocARNA
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y locarna
+      - name: Cache RNA-FM weights
+        id: cache-rnafm
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/torch/hub/checkpoints/RNA-FM_pretrained.pth
+          key: rnafm-pretrained-weights-v1
+      - name: Download RNA-FM weights
+        if: steps.cache-rnafm.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p ~/.cache/torch/hub/checkpoints
+          wget -O ~/.cache/torch/hub/checkpoints/RNA-FM_pretrained.pth https://huggingface.co/cuhkaih/rnafm/resolve/main/RNA-FM_pretrained.pth
       - name: Test with pytest
         run: |
           echo $PATH
