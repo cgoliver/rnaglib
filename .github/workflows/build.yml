@@ -36,11 +36,9 @@ jobs:
           echo /home/runner/work/rnaglib/rnaglib/ >> $GITHUB_PATH
       - name: Install rna-align
         run: |
-          wget https://zhanggroup.org/RNA-align/bin/RNAalign.tar.bz2
-          tar -xvjf RNAalign.tar.bz2
-          cd RNAalign
-          g++ -O3 -ffast-math -o RNAalign RNAalign.cpp -static
-          chmod u+x ./RNAalign
+          mkdir RNAalign
+          g++ -O3 -ffast-math -o RNAalign/RNAalign .github/vendor/RNAalign/RNAalign.cpp -static
+          chmod u+x RNAalign/RNAalign
           pwd
       - name: Export RNAalign path
         run: |
