@@ -107,7 +107,7 @@ class LigandIdentification(RNAClassificationTask):
                         continue
                     ligand_code = collections.Counter(codes).most_common(1)[0][0]
                     cluster = self.cluster_map.get(ligand_code)
-                    if cluster in self.admissible_clusters or self.debug:
+                    if cluster is not None and (cluster in self.admissible_clusters or self.debug):
                         pocket.graph[self.target_var] = cluster
                         self.add_rna_to_building_list(all_rnas=all_binding_pockets, rna=pocket)
         dataset = self.create_dataset_from_list(all_binding_pockets)
