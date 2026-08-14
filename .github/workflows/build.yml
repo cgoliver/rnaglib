@@ -29,23 +29,44 @@ jobs:
           echo /home/runner/work/rnaglib/rnaglib/cd-hit-v4.8.1-2019-0228 >> $GITHUB_PATH
       - name: Install US-align
         run: |
-          wget https://zhanggroup.org/US-align/bin/module/USalign.cpp
-          g++ -static -O3 -ffast-math -o USalign USalign.cpp
+          g++ -static -O3 -ffast-math -o USalign .github/vendor/USalign/USalign.cpp
           chmod u+x ./USalign
       - name: Export USalign path
         run: |
           echo /home/runner/work/rnaglib/rnaglib/ >> $GITHUB_PATH
       - name: Install rna-align
         run: |
-          wget https://zhanggroup.org/RNA-align/bin/RNAalign.tar.bz2
-          tar -xvjf RNAalign.tar.bz2
-          cd RNAalign
-          g++ -O3 -ffast-math -o RNAalign RNAalign.cpp -static
-          chmod u+x ./RNAalign
+          mkdir RNAalign
+          g++ -O3 -ffast-math -o RNAalign/RNAalign .github/vendor/RNAalign/RNAalign.cpp -static
+          chmod u+x RNAalign/RNAalign
           pwd
       - name: Export RNAalign path
         run: |
           echo /home/runner/work/rnaglib/rnaglib/RNAalign >> $GITHUB_PATH
+      - name: Install LocARNA
+        uses: mamba-org/setup-micromamba@v3
+        with:
+          environment-name: locarna-env
+          create-args: locarna
+          condarc: |
+            channels:
+              - bioconda
+              - conda-forge
+          cache-environment: true
+      - name: Export LocARNA path
+        run: |
+          echo /home/runner/micromamba/envs/locarna-env/bin >> $GITHUB_PATH
+      - name: Cache RNA-FM weights
+        id: cache-rnafm
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/torch/hub/checkpoints/RNA-FM_pretrained.pth
+          key: rnafm-pretrained-weights-v1
+      - name: Download RNA-FM weights
+        if: steps.cache-rnafm.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p ~/.cache/torch/hub/checkpoints
+          wget -O ~/.cache/torch/hub/checkpoints/RNA-FM_pretrained.pth https://huggingface.co/cuhkaih/rnafm/resolve/main/RNA-FM_pretrained.pth
       - name: Test with pytest
         run: |
           echo $PATH
@@ -59,7 +80,7 @@ jobs:
           coverage report -m
           coverage xml
       - name: Upload Coverage
-        uses: codecov/codecov-action@v2
+        uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: coverage.xml

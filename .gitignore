@@ -8,6 +8,23 @@ datasets/*
 doc/*
 fonts/*
 *junk*
+
+# Task(root=...) dataset build artifacts (name of root dir is user-chosen, so match by content instead)
+train_idx.txt
+val_idx.txt
+test_idx.txt
+task_id.txt
+done.txt
+task.csv
+
+# Sphinx autosummary generated stubs
+docs/source/code_index/generated/
+
+# Local figures/plots
+figs/
+
+# macOS zip extraction artifacts
+__MACOSX/
 *.pdb
 *torsions.txt
 *.dbn
@@ -34,6 +51,9 @@ create_pickle.py
 !.gitignore
 !.gitkeep
 !.readthedocs.yaml
+!.github/
+!.github/vendor/
+!.github/vendor/**
 
 # Compressed and archive files
 *.tar

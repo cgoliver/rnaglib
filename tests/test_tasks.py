@@ -38,6 +38,7 @@ class TaskTest(unittest.TestCase):
             ta = ProteinBindingSite(root=tmp, recompute=True, **self.default_dataset_params)
             self.check_task(ta)
 
+    @unittest.skip("RNA_CM pins debug data version 3.0.0, not yet published on Zenodo record 14930728")
     def test_ChemicalModification(self):
         with tempfile.TemporaryDirectory() as tmp:
             ta = ChemicalModification(root=tmp, recompute=True, **self.default_dataset_params)
@@ -68,6 +69,7 @@ class TaskTest(unittest.TestCase):
             ta = BenchmarkBindingSite(root=tmp, recompute=True, **self.default_dataset_params)
             self.check_task(ta)
 
+    @unittest.skip("RNA_CM pins debug data version 3.0.0, not yet published on Zenodo record 14930728")
     def test_eval(self):
         with tempfile.TemporaryDirectory() as tmp:
             ta = ChemicalModification(root=tmp, **self.default_dataset_params)

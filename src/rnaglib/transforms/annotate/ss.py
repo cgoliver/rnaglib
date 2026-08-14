@@ -1,4 +1,5 @@
 import os
+import warnings
 from typing import Union
 from pathlib import Path
 
@@ -29,7 +30,14 @@ class SecondaryStructureTransform(Transform):
         ss_dict = {}
         seq_dict = {}
         try:
-            out = forgi.load_rna(str(Path(self.structures_dir) / f"{pdbid}.cif"))
+            with warnings.catch_warnings():
+                warnings.filterwarnings(
+                    "ignore",
+                    message="Multiple models in file",
+                    category=UserWarning,
+                    module=r"forgi\.threedee\.utilities\.pdb",
+                )
+                out = forgi.load_rna(str(Path(self.structures_dir) / f"{pdbid}.cif"))
         except:
             pass
         else:

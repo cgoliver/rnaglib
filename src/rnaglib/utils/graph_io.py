@@ -241,9 +241,9 @@ def download(url, path=None, overwrite=True, retries=5, verify_ssl=True, log=Tru
                 if log:
                     print("Downloading %s from %s..." % (fname, url))
                 r = requests.get(url, stream=True, verify=verify_ssl)
-                total_length = int(r.headers.get("content-length"))
                 if r.status_code != 200:
                     raise RuntimeError("Failed downloading url %s" % url)
+                total_length = int(r.headers.get("content-length"))
                 with open(fname, "wb") as f:
                     dl = 0
                     for chunk in r.iter_content(chunk_size=1024):

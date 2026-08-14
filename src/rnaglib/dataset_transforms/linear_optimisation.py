@@ -2,7 +2,7 @@ import logging
 from collections import Counter
 from dataclasses import dataclass
 
-from pulp import COIN_CMD,PULP_CBC_CMD, LpMinimize, LpProblem, LpStatus, LpVariable, lpSum, value
+from pulp import COIN_CMD,PULP_CBC_CMD, LpMinimize, LpProblem, LpStatus, lpSum, value
 
 logger = logging.getLogger(__name__)
 
@@ -124,7 +124,7 @@ def assign_clusters(
 
 
     # Decision variables
-    x = LpVariable.dicts(
+    x = prob.add_variable_dicts(
         "split",
         ((i, j) for i in range(n_clusters) for j in splits),
         cat="Binary",
@@ -148,7 +148,7 @@ def assign_clusters(
 
     # Size objective
     for j, target in enumerate(target_sizes):
-        size_diff = LpVariable(f"size_diff_{j}", lowBound=0)
+        size_diff = prob.add_variable(f"size_diff_{j}", lowBound=0)
         split_size = lpSum(cluster_sizes[i] * x[i, j] for i in range(n_clusters))
 
         prob += split_size - target <= size_diff
@@ -161,7 +161,7 @@ def assign_clusters(
         label_total = sum(counter[label] for counter in cluster_counters)
         if label_total > 0:
             for j in splits:
-                diff = LpVariable(f"ratio_diff_{label}_{j}", lowBound=0)
+                diff = prob.add_variable(f"ratio_diff_{label}_{j}", lowBound=0)
                 split_count = lpSum(cluster_counters[i][label] * x[i, j] for i in range(n_clusters))
                 target_count = label_total * split_ratios[j]
 
