@@ -121,7 +121,7 @@ class BindingSite(ResidueClassificationTask):
     version = "2.0.2"
     default_metric = "balanced_accuracy"
 
-    def __init__(self, cutoff=4.0, size_thresholds=(15, 500), graph_path=None, **kwargs):
+    def __init__(self, cutoff=6.0, size_thresholds=(15, 500), graph_path=None, **kwargs):
         self.target_var = f"binding_small-molecule-{cutoff}A"
         self.graph_path = graph_path
         meta = {"multi_label": False}
@@ -135,7 +135,7 @@ class BindingSite(ResidueClassificationTask):
         :rtype: RNADataset
         """
         # Define your transforms
-        rna_filter = ResidueAttributeFilter(attribute=self.target_var, value_checker=lambda val: val is not None)
+        rna_filter = ResidueAttributeFilter(attribute=self.target_var, value_checker=lambda val: val is not None, aggregation_mode="min_valid", min_valid=10)
         connected_components_partition = ConnectedComponentPartition()
 
         connected_component_filters_list = []

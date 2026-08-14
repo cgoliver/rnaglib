@@ -65,8 +65,9 @@ class RNAGo(RNAClassificationTask):
     version = "2.0.2"
     default_metric = "jaccard"
 
-    def __init__(self, size_thresholds=(15, 500), **kwargs):
+    def __init__(self, size_thresholds=(15, 500), graph_path=None, **kwargs):
         meta = {"multi_label": True}
+        self.graph_path = graph_path
         super().__init__(additional_metadata=meta, size_thresholds=size_thresholds, **kwargs)
 
     @property
@@ -107,7 +108,7 @@ class RNAGo(RNAClassificationTask):
         df = pdb_sel_to_rfam()
         df = df[df['rfam_acc'].isin(fam_to_class)]
 
-        dataset = RNADataset(redundancy='nr', debug=self.debug, in_memory=self.in_memory, rna_id_subset=df['pdb_id'].unique(), version=self.version)
+        dataset = RNADataset(dataset_path=self.graph_path, redundancy='nr', debug=self.debug, in_memory=self.in_memory, rna_id_subset=df['pdb_id'].unique(), version=self.version)
 
         # Create dataset
         # Run through database, applying our filters
