@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 
 from rnaglib.dataset import RNADataset
 from rnaglib.tasks import RNAClassificationTask
@@ -170,3 +171,17 @@ class RNAGo(RNAClassificationTask):
 
         us_align_computer = StructureDistanceComputer(name="USalign")
         self.dataset = us_align_computer(self.dataset)
+
+        if not self.in_memory:
+            # Both computers above can drop RNAs that fail to process (e.g. cif filtering
+            # failures), reassigning self.dataset to a smaller subset. Without this, the
+            # dataset_path directory keeps every original *.json (including now-orphaned
+            # ones) while the computed distances are only ever held in memory -- so they're
+            # silently lost once this process exits, and a later RNADataset load sees a
+            # *.json count that no longer matches any saved distances.npz. Mirrors the base
+            # Task.post_process()'s "PATCH: delete graphs from dataset/ lost during
+            # redundancy removal" behavior, which this override otherwise bypasses entirely.
+            for f in os.listdir(self.dataset.dataset_path):
+                if Path(f).stem not in self.dataset.all_rnas:
+                    os.remove(Path(self.dataset.dataset_path) / f)
+            self.dataset.save_distances()
