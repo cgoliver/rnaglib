@@ -47,6 +47,9 @@ class RNADataset(Dataset):
                       backbone and base pairs between the same two residues.
     :param transforms: An optional list of transforms to apply to rnas before calling the features computer and
     the representations in get_item
+    :param cache_representations: If True, the dictionary produced by ``__getitem__`` is kept in memory
+    after its first computation and returned directly on subsequent accesses, avoiding recomputing the
+    representations for RNAs that are read more than once (e.g. across training epochs).
     :param features_computer: A FeaturesComputer object, useful to transform raw RNA data into tensors.
     :param representations: List of :class:`~rnaglib.representations.Representation` objects to
                           apply to each item.
@@ -72,21 +75,22 @@ class RNADataset(Dataset):
     """
 
     def __init__(
-            self,
-            rnas: list[nx.Graph] = None,
-            dataset_path: str | os.PathLike = None,
-            version="2.0.2",
-            redundancy="nr",
-            rna_id_subset: list[str] = None,
-            recompute_mapping: bool = True,
-            in_memory: bool = None,
-            features_computer: FeaturesComputer = None,
-            representations: list[Representation] | Representation = None,
-            debug: bool = False,
-            get_pdbs: bool = True,
-            multigraph: bool = False,
-            transforms: list[Transform] | Transform = None,
-            extension: str = ".json"
+        self,
+        rnas: list[nx.Graph] = None,
+        dataset_path: str | os.PathLike = None,
+        version="2.0.2",
+        redundancy="nr",
+        rna_id_subset: list[str] = None,
+        recompute_mapping: bool = True,
+        in_memory: bool = None,
+        features_computer: FeaturesComputer = None,
+        representations: list[Representation] | Representation = None,
+        debug: bool = False,
+        get_pdbs: bool = True,
+        multigraph: bool = False,
+        transforms: list[Transform] | Transform = None,
+        extension: str = ".json",
+        cache_representations: bool = False,
     ):
         if transforms is None:
             self.transforms = []
@@ -96,7 +100,12 @@ class RNADataset(Dataset):
             self.transforms = [transforms]
         self.multigraph = multigraph
         self.version = version
-        
+
+        # In-memory memoization of __getitem__ outputs, keyed by index. Lazily
+        # allocated on first access when enabled; None otherwise.
+        self.cache_representations = cache_representations
+        self._item_cache = None
+
         assert extension in {".json", ".p"}
         self.extension = extension
 
@@ -191,6 +200,14 @@ class RNADataset(Dataset):
         if idx >= len(self):
             raise IndexError
 
+        if self.cache_representations:
+            if self._item_cache is None:
+                self._item_cache = [None] * len(self)
+            if self._item_cache[idx] is not None:
+                # Shallow copy so consumers that pop keys off the mapping
+                # (e.g. the collater) don't mutate the stored entry.
+                return dict(self._item_cache[idx])
+
         # Recover rna name from passed index.
         rna_name = self.all_rnas.inv[idx]
         # Initialise paths
@@ -221,6 +238,10 @@ class RNADataset(Dataset):
         # each is a callable that updates the res_dict
         for rep in self.representations:
             rna_dict[rep.name] = rep(rna_dict["rna"], features_dict)
+
+        if self.cache_representations:
+            self._item_cache[idx] = rna_dict
+            return dict(rna_dict)
         return rna_dict
 
     def get_by_name(self, rna_name):
@@ -374,10 +395,14 @@ class RNADataset(Dataset):
             list_of_ids = [id_rna for id_rna in list_of_ids if id_rna in existing_ids]
 
         # Copy existing dataset, avoid expensive deep copy of rnas if in memory
+        # and of any memoized items (the subset re-indexes and starts empty).
         temp = self.rnas
+        temp_cache = self._item_cache
         self.rnas = None
+        self._item_cache = None
         subset = copy.deepcopy(self)
         self.rnas = temp
+        self._item_cache = temp_cache
 
         # Subset the bidict of names and the rna if in_memory
         if self.in_memory:
