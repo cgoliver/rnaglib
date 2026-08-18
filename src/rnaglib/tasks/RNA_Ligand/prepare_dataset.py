@@ -16,10 +16,20 @@ class PrepareDataset(DSTransform):
     better resolved. Dropping the cluster asserts nothing instead. This restricts the task to the sites where the label
     is well defined, and the resulting score should be read as such, since the sites removed here are the hard ones.
 
+    The mixed-label drop and the collapse-to-one-representative step are independent: the former is a correctness
+    guard (a superimposable site can't be given two different answers), the latter is a redundancy/sample-count
+    tradeoff. ``collapse_to_representative=False`` keeps that guard while keeping every member of a label-consistent
+    cluster instead of discarding all but the best-resolution one - useful when a class doesn't have enough
+    post-redundancy-removal samples to learn from and the near-duplicate structures being discarded aren't actually
+    ambiguous, just redundant.
+
     :param str distance_name: the name of the distance metric which has to be used to perform clustering. The distance
     must have been computed on the dataset (see DistanceComputer)
     :param float threshold: the similarity threshold (considering similarity as 1-distance) to use to perform clustering
     :param str target_name: the graph-level attribute holding the ligand a pocket is labelled with (default "ligand")
+    :param bool collapse_to_representative: if True (default), a label-consistent cluster is reduced to its
+        highest-resolution member. If False, all members of a label-consistent cluster are kept; mixed-label
+        clusters are still dropped entirely either way.
     """
 
     def __init__(
@@ -27,10 +37,12 @@ class PrepareDataset(DSTransform):
         distance_name: str = "USalign",
         threshold: float = 0.95,
         target_name: str = "ligand",
+        collapse_to_representative: bool = True,
     ):
         self.distance_name = distance_name
         self.threshold = threshold
         self.target_name = target_name
+        self.collapse_to_representative = collapse_to_representative
 
     def __call__(self, dataset):
         """
@@ -62,6 +74,10 @@ class PrepareDataset(DSTransform):
                 except Exception:
                     continue
             if len(bound_ligands) > 1:
+                continue
+
+            if not self.collapse_to_representative:
+                final_list_ids.extend(neighborhood)
                 continue
 
             highest_resolution = 100

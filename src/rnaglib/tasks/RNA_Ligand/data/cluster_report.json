@@ -2,38 +2,60 @@
   "clusters": [
     {
       "cluster_id": "cluster_00",
-      "n_ligands": 23,
+      "n_ligands": 39,
       "proxy_weighted_count": 9192,
       "mean_intra_similarity": 0.565,
       "members": [
-        "PAR",
-        "NMY",
-        "8UZ",
-        "84D",
-        "KAN",
         "RIO",
-        "LUJ",
-        "LIV",
-        "B6M",
-        "XXX",
-        "TOY",
-        "CNY",
-        "JS4",
-        "JS5",
-        "JS6",
-        "3TS",
+        "KAN",
         "ON0",
+        "CNY",
+        "JS6",
         "RPO",
-        "M5Z",
-        "V71",
         "N30",
+        "LHA",
+        "AB9",
+        "AB6",
+        "9VA",
+        "JS5",
+        "G0B",
+        "HYG",
+        "3TS",
+        "V71",
+        "SRY",
+        "JS4",
         "N33",
-        "S81"
+        "5I0",
+        "LIV",
+        "TOY",
+        "84D",
+        "OI9",
+        "XXX",
+        "LUJ",
+        "SJP",
+        "AM2",
+        "84G",
+        "OIY",
+        "PAR",
+        "NMZ",
+        "B6M",
+        "NMY",
+        "S81",
+        "8UZ",
+        "M5Z",
+        "HY0",
+        "AKN"
       ],
       "legacy_family_composition": {
         "(uncurated)": 13,
         "aminoglycoside": 10
-      }
+      },
+      "real_post_redundancy_count": 119,
+      "merged_from": [
+        "cluster_04",
+        "cluster_07"
+      ],
+      "note": "cluster_04 and cluster_07 merged in: real post-redundancy counts (4 and 10) were too small for a usable train/val/test split (cluster_04 had 0 test examples); both are chemically closest to cluster_00 (mean_inter_dist 0.683 / 0.710) and the merge keeps mean intra-cluster similarity at 0.395, above the 0.35 floor."
     },
     {
       "cluster_id": "cluster_01",
@@ -48,38 +70,60 @@
       "legacy_family_composition": {
         "(uncurated)": 1,
         "polyamine": 2
-      }
+      },
+      "real_post_redundancy_count": 14
     },
     {
       "cluster_id": "cluster_02",
-      "n_ligands": 17,
+      "n_ligands": 33,
       "proxy_weighted_count": 2080,
       "mean_intra_similarity": 0.426,
       "members": [
-        "SAM",
         "2BA",
-        "SAH",
-        "C2E",
-        "MTA",
-        "F3N",
+        "3AD",
         "4BW",
         "4M2",
-        "ADN",
+        "6MN",
         "A1IY6",
+        "ADN",
+        "ADP",
+        "AMP",
+        "AMZ",
+        "ATP",
+        "C2E",
         "DSH",
         "E7X",
-        "OJI",
-        "SFG",
-        "PUY",
         "EEM",
-        "3AD"
+        "F3N",
+        "G6P",
+        "GLP",
+        "IDG",
+        "JMH",
+        "MAN",
+        "MTA",
+        "N6E",
+        "NAD",
+        "NAI",
+        "NMN",
+        "NNR",
+        "OJI",
+        "PRP",
+        "PUY",
+        "SAH",
+        "SAM",
+        "SFG"
       ],
       "legacy_family_composition": {
         "cyclic dinucleotide": 3,
         "(uncurated)": 4,
         "nucleotide/nucleoside": 4,
         "S-adenosyl cofactor": 6
-      }
+      },
+      "real_post_redundancy_count": 34,
+      "merged_from": [
+        "cluster_05"
+      ],
+      "note": " cluster_05 merged in: after merging 04/07 into cluster_00, the balanced ClusterSplitter placed 0 val examples for cluster_05 (11 train / 0 val / 3 test) - still unusable for validation. Nearest partner cluster_02 gives mean_intra_sim=0.332, marginally below the 0.35 floor (short by ~5% relative); accepted given it fixes a real 0-val gap."
     },
     {
       "cluster_id": "cluster_03",
@@ -103,114 +147,8 @@
         "(uncurated)": 7,
         "aminoglycoside": 3,
         "carbohydrate": 1
-      }
-    },
-    {
-      "cluster_id": "cluster_04",
-      "n_ligands": 11,
-      "proxy_weighted_count": 1369,
-      "mean_intra_similarity": 0.357,
-      "members": [
-        "84G",
-        "OIY",
-        "AKN",
-        "LHA",
-        "SJP",
-        "AB9",
-        "9VA",
-        "NMZ",
-        "G0B",
-        "AB6",
-        "OI9"
-      ],
-      "legacy_family_composition": {
-        "(uncurated)": 7,
-        "carbohydrate": 2,
-        "aminoglycoside": 2
-      }
-    },
-    {
-      "cluster_id": "cluster_05",
-      "n_ligands": 16,
-      "proxy_weighted_count": 1233,
-      "mean_intra_similarity": 0.374,
-      "members": [
-        "NAD",
-        "GLP",
-        "PRP",
-        "NMN",
-        "G6P",
-        "AMP",
-        "AMZ",
-        "NNR",
-        "ATP",
-        "MAN",
-        "6MN",
-        "JMH",
-        "IDG",
-        "ADP",
-        "NAI",
-        "N6E"
-      ],
-      "legacy_family_composition": {
-        "carbohydrate": 5,
-        "nucleotide/nucleoside": 6,
-        "NAD / nicotinamide": 4,
-        "S-adenosyl cofactor": 1
-      }
-    },
-    {
-      "cluster_id": "cluster_06",
-      "n_ligands": 22,
-      "proxy_weighted_count": 1092,
-      "mean_intra_similarity": 0.384,
-      "members": [
-        "ERY",
-        "TEL",
-        "ZIT",
-        "A1D6G",
-        "MT9",
-        "LMA",
-        "CTY",
-        "EM1",
-        "TAO",
-        "3L2",
-        "DI0",
-        "AQJ",
-        "773",
-        "RU6",
-        "MIV",
-        "QTZ",
-        "ROX",
-        "1F3",
-        "QU2",
-        "ERN",
-        "1F4",
-        "1F2"
-      ],
-      "legacy_family_composition": {
-        "macrolide": 14,
-        "(uncurated)": 6,
-        "aminoglycoside": 1,
-        "carbohydrate": 1
-      }
-    },
-    {
-      "cluster_id": "cluster_07",
-      "n_ligands": 5,
-      "proxy_weighted_count": 1051,
-      "mean_intra_similarity": 0.378,
-      "members": [
-        "AM2",
-        "SRY",
-        "HYG",
-        "5I0",
-        "HY0"
-      ],
-      "legacy_family_composition": {
-        "(uncurated)": 1,
-        "aminoglycoside": 4
-      }
+      },
+      "real_post_redundancy_count": 40
     }
   ],
   "excluded": [
@@ -945,6 +883,36 @@
         "VIF",
         "VIR"
       ]
+    },
+    {
+      "n_ligands": 22,
+      "proxy_weighted_count": 1092,
+      "real_post_redundancy_count": 10,
+      "members": [
+        "ERY",
+        "TEL",
+        "ZIT",
+        "A1D6G",
+        "MT9",
+        "LMA",
+        "CTY",
+        "EM1",
+        "TAO",
+        "3L2",
+        "DI0",
+        "AQJ",
+        "773",
+        "RU6",
+        "MIV",
+        "QTZ",
+        "ROX",
+        "1F3",
+        "QU2",
+        "ERN",
+        "1F4",
+        "1F2"
+      ],
+      "exclusion_reason": "no merge partner keeps mean intra-cluster similarity >= 0.35 (best candidate cluster_03 gives 0.284); real post-redundancy count was 10 with 0 val / 0 test examples in the split"
     }
   ]
 }

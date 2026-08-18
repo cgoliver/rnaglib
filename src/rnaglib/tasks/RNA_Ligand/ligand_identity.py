@@ -9,7 +9,7 @@ from tqdm import tqdm
 from rnaglib.tasks import RNAClassificationTask
 from rnaglib.dataset import RNADataset
 from rnaglib.encoders import IntMappingEncoder
-from rnaglib.transforms import FeaturesComputer, PartitionFromDict, ResolutionFilter
+from rnaglib.transforms import FeaturesComputer, PartitionFromDict
 from rnaglib.dataset_transforms import ClusterSplitter, CDHitComputer, StructureDistanceComputer
 from rnaglib.tasks.RNA_Ligand.prepare_dataset import PrepareDataset
 
@@ -36,6 +36,11 @@ class LigandIdentification(RNAClassificationTask):
     :param tuple[int] size_thresholds: range of RNA sizes to keep in the task dataset (default (15, 500))
     :param tuple[str] admissible_clusters: cluster ids to keep as classes (default: all clusters present in
         ligand_to_cluster.json, i.e. every cluster that survived cluster_ligands.py's merge procedure).
+    :param bool collapse_structural_duplicates: if True (default), the US-align redundancy-removal step reduces
+        each label-consistent structural cluster to its single highest-resolution representative. If False, all
+        members of a label-consistent cluster are kept (mixed-label clusters are still dropped either way) -
+        trades more redundant near-duplicate structures for more samples in classes that don't have enough to
+        learn from post-redundancy-removal.
     """
     input_var = "nt_code"
     target_var = "ligand_cluster"
@@ -47,9 +52,11 @@ class LigandIdentification(RNAClassificationTask):
         size_thresholds=(15, 500),
         graph_path=None,
         admissible_clusters=None,
+        collapse_structural_duplicates=True,
         **kwargs
     ):
         self.graph_path = graph_path
+        self.collapse_structural_duplicates = collapse_structural_duplicates
         meta = {"multi_label": False}
 
         # create a dict where key is RNA name and values are lists of lists [[residue 1 of binding pocket 1,...,residue N of BP 1],...,[residue 1 of BP k,...]]
@@ -84,7 +91,20 @@ class LigandIdentification(RNAClassificationTask):
         dataset = RNADataset(dataset_path=self.graph_path, in_memory=False, redundancy='all', debug=self.debug, rna_id_subset=self.nodes_keep, version=self.version)
 
         # Instantiate filters to apply
-        resolution_filter = ResolutionFilter(resolution_threshold=4.0)
+        # ResolutionFilter (and RNAAttributeFilter's KeyError handling underneath it) rejects an RNA outright if
+        # 'resolution_high' is missing, which silently drops every cryo-EM entry that doesn't populate that field
+        # the way X-ray entries do: checked directly, recent large cryo-EM depositions here don't even have the
+        # key in rna.graph, and this turned out to be the single biggest cause of binding pockets being discarded
+        # pre-redundancy-removal for some ligand clusters. A missing value is a metadata gap, not evidence of bad
+        # quality, so it should pass; a present-but-too-coarse value should still be rejected. Written as a plain
+        # function rather than RNAAttributeFilter since that class treats a missing key as instant rejection
+        # before the value_checker ever runs, which is exactly the failure mode being fixed here.
+        def resolution_ok(rna):
+            val = rna["rna"].graph.get("resolution_high")
+            try:
+                return float(val) < 4.0
+            except (TypeError, ValueError):
+                return True
 
         # Instantiate transforms to apply
         nt_partition = PartitionFromDict(partition_dict=self.bp_dict)
@@ -93,7 +113,7 @@ class LigandIdentification(RNAClassificationTask):
         all_binding_pockets = []
         os.makedirs(self.dataset_path, exist_ok=True)
         for rna in tqdm(dataset):
-            if resolution_filter.forward(rna):
+            if resolution_ok(rna):
                 for binding_pocket_dict in nt_partition(rna):
                     if self.size_thresholds is not None:
                         if not self.size_filter.forward(binding_pocket_dict):
@@ -140,6 +160,11 @@ class LigandIdentification(RNAClassificationTask):
         (US-align). The only difference is that PrepareDataset, rather than RedundancyRemover, is used: it additionally
         drops a structural-similarity cluster whose pockets do not all bind ligands from the same Tanimoto cluster,
         since structure cannot determine the label there and keeping any representative would assert an arbitrary one.
+
+        The US-align step's collapse-to-one-representative behavior is controlled separately from the mixed-label
+        drop via ``self.collapse_structural_duplicates`` (see __init__): turning it off keeps every member of a
+        label-consistent structural cluster instead of just the best-resolution one, for classes that don't have
+        enough post-redundancy-removal samples to learn from.
         """
         cd_hit_computer = CDHitComputer(similarity_threshold=0.9)
         cd_hit_rr = PrepareDataset(distance_name="cd_hit", threshold=0.9, target_name=self.target_var)
@@ -148,7 +173,8 @@ class LigandIdentification(RNAClassificationTask):
             self.dataset = cd_hit_rr(self.dataset)
 
         us_align_computer = StructureDistanceComputer(name="USalign")
-        us_align_rr = PrepareDataset(distance_name="USalign", threshold=0.8, target_name=self.target_var)
+        us_align_rr = PrepareDataset(distance_name="USalign", threshold=0.8, target_name=self.target_var,
+                                      collapse_to_representative=self.collapse_structural_duplicates)
         self.dataset = us_align_computer(self.dataset)
         if self.redundancy_removal:
             self.dataset = us_align_rr(self.dataset)
