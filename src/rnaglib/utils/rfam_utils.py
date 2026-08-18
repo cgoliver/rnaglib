@@ -1,8 +1,16 @@
-from collections import defaultdict, Counter
+import json
+import math
 import os
+from collections import defaultdict, Counter
+
 import numpy as np
 import pandas as pd
-import pickle
+
+GO_ASPECTS = {"molecular_function", "biological_process", "cellular_component"}
+
+# The three GO roots. Every annotated RNA inherits all three through propagation,
+# so they carry no discriminative signal and are always excluded.
+GO_ROOTS = {"GO:0003674", "GO:0008150", "GO:0005575"}
 
 
 def pdb_sel_to_rfam():
@@ -23,7 +31,7 @@ def pdb_sel_to_rfam():
 def get_rfam_to_go():
     """
     Using the RFAM-GO mapping hosted there : https://ftp.ebi.ac.uk/pub/databases/Rfam/CURRENT/rfam2go/rfam2go
-    :return: a dict mapping RFAM ids to GO terms
+    :return: a dict mapping RFAM ids to GO terms (without the "GO:" prefix, e.g. "0003735")
     """
     rfam_to_go = defaultdict(list)
 
@@ -41,99 +49,162 @@ def get_rfam_to_go():
     return rfam_to_go
 
 
-def get_frequent_go_pdbsel(min_count=50, cache=True):
-    """
-    Get all GO annotations for the PDB, remove overrepresented ones (ribosomes and tRNAs) and
-      underrepresented ones (less than min_count), resulting in 15 classes
-    Then, remove redundant GO terms (very correlated columns), which results in 10 classes
-    :param min_count: the frequency cutoff, set at 50 following DeepFRI
-    :return: the final df with PDB selections and their associated labels
+def get_go_dag():
+    """Load the cached Rfam-derived GO term lookup: GO id -> {aspect, name, ancestors}.
+
+    ``ancestors`` is the self-inclusive, transitively-closed is_a/part_of ancestor set
+    (i.e. the true-path-rule propagation target set), as resolved from the QuickGO REST
+    API for every GO id appearing in ``rfam2go`` and their ancestors. Since GO ids are
+    curated by Rfam per-family (not per-PDB-structure), this covers every family Rfam has
+    ever annotated with a GO term, not just those currently observed in the PDB -- so newly
+    deposited PDB structures for an already-GO-annotated family don't require regenerating
+    this cache. A handful of GO ids referenced by rfam2go (obsolete/merged terms) are absent;
+    callers should treat missing ids as unresolvable rather than erroring.
+
+    :return: dict of GO id -> {"aspect": str, "name": str, "ancestors": list[str]}
     """
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    out_file_name = os.path.join(script_dir, "precomputed_rfam.p")
-    if os.path.exists(out_file_name) and out_file_name:
-        return pickle.load(open(out_file_name, "rb"))
-    # Get all pdbs with an existing RFAM annotation and group the corresponding selections by pdb
-    df = pdb_sel_to_rfam()
-    # pdb_dict = df.groupby('pdb_id').apply(lambda group: group.to_dict(orient='records')).to_dict()
-    # print(len(pdb_dict))
-    # print(sum([len(x) for x in pdb_dict.values()]))
-    # df holds 14709 lines, present in 3121 PDB files
+    with open(os.path.join(script_dir, "rfam_go_dag.json")) as f:
+        return json.load(f)
 
-    # from rnaglib.dataset import RNADataset
-    # data = RNADataset(redundancy='all', in_memory=False)
-    # list_systems = data.all_rnas.keys()
-    # existing_keys = set(pdb_dict.keys()).intersection(set(list_systems))
-    # Most systems are present in our database (3110/3121)
+
+def get_rfam_to_go_propagated(aspect):
+    """Rfam family -> GO terms, restricted to one GO aspect and propagated up the ontology
+    DAG (true-path rule): a family directly annotated with a specific/leaf GO term also
+    carries every ancestor of that term in the same aspect.
+
+    This is the key transformation that makes per-GO-term prediction meaningful for ncRNA:
+    a raw Rfam-to-GO annotation is (by construction, since Rfam curators assign GO terms per
+    family) essentially a family fingerprint -- predicting it from sequence/structure is
+    equivalent to predicting family membership. Propagating to ancestors turns that into a
+    hierarchical multi-label signal shared *across* families that fall under a common
+    ancestor (e.g. distinct spliceosomal snRNA families all inherit "spliceosome"/"RNA
+    splicing" even though their direct/leaf terms differ), which is what actually lets a
+    structural-generalization task be built on top of it. GO roots are excluded (see
+    ``GO_ROOTS``) since every annotated family inherits them and they carry no signal.
+
+    :param aspect: one of "molecular_function", "biological_process", "cellular_component"
+    :return: dict of rfam_acc -> set of propagated GO ids (e.g. {"GO:0000244", ...})
+    """
+    if aspect not in GO_ASPECTS:
+        raise ValueError(f"aspect must be one of {sorted(GO_ASPECTS)}, got {aspect!r}")
 
     rfam_to_go = get_rfam_to_go()
-    pdbsel_go_terms = [rfam_to_go[rfam] for rfam in df['rfam_acc']]
+    dag = get_go_dag()
 
-    # Count which go term happen at which frequency
-    flattened = [i for j in pdbsel_go_terms for i in j]
-    counter = Counter(flattened)
-    # a = sorted(counter.items(), key=lambda x: x[1])
-    # Counter({
-    # '0003735': 11260, '0005840': 11260, '0030533': 2242, '0000244': 202, '0000353': 201, '0046540': 201,
-    # '0010468': 124, ... '0005691': 1, '0030622': 1, '0019079': 1, '0039705': 1, '0008380': 1, '0003729': 1,
-    # '0017148': 1, '0050897': 1, '0055065': 1})
-    # As can be seen, there are rare values, and a few very frequent ones.
-    # The most frequent ones (0003735, 0005840) are 'structural constituent of ribosome' and 'ribosome',
-    # while 0030533 is 'tRNA'.
-
-    # Filter go terms based on size
-    filtered_go_terms = {go for go, count in counter.items() if 1000 > count > min_count}
-    # Keep only the lines in the df that amount to an RFAM id corresponding to a relevant GO term
-    row_filter = [len(set(pdbsel_go_list).intersection(filtered_go_terms)) > 0 for pdbsel_go_list in pdbsel_go_terms]
-    filtered_df = df[row_filter]
-
-    # Now we want to remove duplicated go-terms
-    # First, get the data in the form of a matrix
-    filtered_pdbsel_go_terms = [rfam_to_go[rfam] for rfam in filtered_df['rfam_acc']]
-    stacked = np.zeros((len(filtered_pdbsel_go_terms), len(filtered_go_terms)))
-    one_hot = {filtered_go_term: i for i, filtered_go_term in enumerate(filtered_go_terms)}
-    for i, gos in enumerate(filtered_pdbsel_go_terms):
-        for go in gos:
-            try:
-                idx = one_hot[go]
-            except KeyError:
+    out = defaultdict(set)
+    for rfam, go_nums in rfam_to_go.items():
+        for num in go_nums:
+            go_id = f"GO:{num}"
+            info = dag.get(go_id)
+            if info is None:
                 continue
-            stacked[i, idx] = 1
-
-    # Find highly correlated column pairs by computing the correlation matrix
-    correlation_matrix = np.corrcoef(stacked, rowvar=False)
-    threshold = 0.9  # Define your correlation threshold
-    correlated_pairs = []
-    num_columns = correlation_matrix.shape[0]
-    for i in range(num_columns):
-        for j in range(i + 1, num_columns):
-            if abs(correlation_matrix[i, j]) >= threshold:
-                correlated_pairs.append((i, j, correlation_matrix[i, j]))
-    # print("\nHighly correlated column pairs:", correlated_pairs)
-
-    # Pick one representative per correlated label
-    to_keep = set(range(num_columns))
-    for pair in correlated_pairs:
-        if pair[1] in to_keep:
-            to_keep.remove(pair[1])
-
-    # Now this is our final list of go-terms to predict. Subset again the df and return the result
-    final_go_terms = {filtered_go_term for filtered_go_term, i in one_hot.items() if i in to_keep}
-    final_filter = np.sum(stacked[:, list(to_keep)], axis=1) > 0
-    final_df = filtered_df[final_filter]
-    pruned_rfam2go = {rfam: [go for go in rfam_to_go[rfam] if go in final_go_terms] for rfam in final_df['rfam_acc']}
-    # final_pdbsel_go_terms = [[x for x in rfam_to_go[rfam] if x in final_go_terms] for rfam in filtered_df['rfam_acc']]
-    if cache:
-        pickle.dump((final_df, pruned_rfam2go), open(out_file_name, 'wb'))
-    return final_df, pruned_rfam2go
+            for ancestor in info["ancestors"]:
+                if ancestor in GO_ROOTS:
+                    continue
+                ancestor_info = dag.get(ancestor)
+                # An ancestor should always resolve (it came from this same DAG), but fall
+                # back to the leaf term's own aspect defensively rather than dropping it.
+                ancestor_aspect = ancestor_info["aspect"] if ancestor_info else info["aspect"]
+                if ancestor_aspect == aspect:
+                    out[rfam].add(ancestor)
+    return dict(out)
 
 
-if __name__ == "__main__":
-    df = pdb_sel_to_rfam()
-    pdb_dict = {pdb: (rfam, pdb_sel) for pdb_sel, pdb, rfam in df.values}
-    # print(pdb_dict)
+def filter_and_dedup_go_terms(
+    item_to_terms, item_to_families=None, min_count=5, max_frequency=0.8, min_families=1, corr_threshold=0.9
+):
+    """Frequency-filter and de-duplicate a per-item multi-label GO term annotation.
 
-    rfam_to_go = get_rfam_to_go()
-    # print(rfam_to_go)
+    Two-sided frequency filter: a term must annotate at least ``min_count`` items to be
+    learnable/evaluable at all, and at most ``max_frequency`` of all items, since terms that
+    are near-universal (typically shallow/generic ancestors surviving after propagation, e.g.
+    "binding" or "metabolic process") are uninformative and dominate any macro-averaged loss.
+    This mirrors DeepFRI's own frequency cutoff (`>50 non-redundant chains`), scaled down to
+    match the PDB's much smaller RNA structural coverage and generalized to a two-sided range
+    (an upper bound was already present in this codebase's original DeepFRI-inspired filter,
+    ad-hoc-restricted to ribosome/tRNA terms -- this generalizes it to any aspect/term).
 
-    get_frequent_go_pdbsel()
+    Raw item count alone cannot tell a term that is genuinely shared across families from one
+    that is a single family deposited many times over (e.g. one Rfam family solved repeatedly
+    in the PDB can rack up a high fragment count on its own) -- exactly the family-fingerprint
+    failure mode propagation is meant to fix. If ``item_to_families`` is given (item id -> set
+    of Rfam accessions backing it), a second, independent filter requires a term to be carried
+    by at least ``min_families`` distinct Rfam families among the items that survive the count
+    filter; this also matters for downstream similarity-based cluster splitting, since a
+    single-family term's few instances are structurally similar enough to likely land in one
+    connected component, leaving the label absent from some split entirely.
+
+    Terms surviving that filter are then de-duplicated: since propagation can create chains
+    of near-perfectly-correlated ancestor/descendant terms (when a term's only observed
+    parent in this dataset has no other children), pairs of terms with Pearson
+    correlation >= ``corr_threshold`` are collapsed, keeping one representative -- same idea
+    this codebase used previously for the flat (non-propagated) GO term list, restricted here
+    to *positive* correlation (co-occurring/synonymous terms). A strong *negative*
+    correlation means two terms are close to mutually exclusive, which is a real, informative
+    split between categories (e.g. ribosome-associated vs. RNA-binding-but-non-ribosomal MF
+    terms) -- not redundancy -- so it must not trigger de-duplication.
+
+    :param item_to_terms: dict of item id -> set of GO ids annotating it
+    :param item_to_families: optional dict of item id -> set of Rfam accessions backing it,
+        used only to enforce ``min_families``; if omitted, family diversity is not checked
+    :param min_count: minimum number of items a term must annotate to be kept
+    :param max_frequency: maximum fraction of items a term may annotate to be kept
+    :param min_families: minimum number of distinct Rfam families a term must be carried by
+        (requires ``item_to_families``; ignored otherwise)
+    :param corr_threshold: Pearson correlation above which two surviving terms are considered
+        near-duplicates (the later one, in dict-iteration order, is dropped)
+    :return: (filtered_item_to_terms, term_stats) where filtered_item_to_terms maps each
+        input item id to its surviving term subset, and term_stats maps each surviving GO id
+        to {"count": int, "ic": float} (``ic`` is the Shannon information content
+        -log2(count / n_items), as defined in the DeepFRI paper: rarer/more specific terms
+        get a higher score).
+    """
+    n_items = len(item_to_terms)
+    counter = Counter(term for terms in item_to_terms.values() for term in terms)
+    candidate_terms = sorted(
+        term for term, count in counter.items() if min_count <= count <= max_frequency * n_items
+    )
+
+    if item_to_families is not None and min_families > 1:
+        term_families = defaultdict(set)
+        for item, terms in item_to_terms.items():
+            families = item_to_families.get(item, set())
+            for term in terms:
+                term_families[term] |= families
+        candidate_terms = [term for term in candidate_terms if len(term_families[term]) >= min_families]
+
+    if not candidate_terms:
+        return {item: set() for item in item_to_terms}, {}
+
+    items = list(item_to_terms.keys())
+    term_index = {term: i for i, term in enumerate(candidate_terms)}
+    mat = np.zeros((len(items), len(candidate_terms)))
+    for i, item in enumerate(items):
+        for term in item_to_terms[item]:
+            j = term_index.get(term)
+            if j is not None:
+                mat[i, j] = 1.0
+
+    keep = list(range(len(candidate_terms)))
+    if mat.shape[1] > 1:
+        with np.errstate(invalid="ignore"):
+            corr = np.corrcoef(mat, rowvar=False)
+        dropped = set()
+        for i in range(len(candidate_terms)):
+            if i in dropped:
+                continue
+            for j in range(i + 1, len(candidate_terms)):
+                if j in dropped:
+                    continue
+                if corr[i, j] >= corr_threshold:
+                    dropped.add(j)
+        keep = [i for i in keep if i not in dropped]
+
+    kept_terms = {candidate_terms[i] for i in keep}
+    filtered = {item: (item_to_terms[item] & kept_terms) for item in items}
+    term_stats = {
+        term: {"count": counter[term], "ic": -math.log2(counter[term] / n_items)}
+        for term in kept_terms
+    }
+    return filtered, term_stats
