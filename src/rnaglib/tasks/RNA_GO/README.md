@@ -1,13 +1,19 @@
 # RNA-GO
 
-In this directory you can find the implementation of the `RNA-GO` task, that is a close equivalent to the Go-terms
-task for proteins as introduced by DeepFRI.
+In this directory you can find the implementation of the `RNA-GO` task, a close equivalent of the GO-term
+prediction task for proteins introduced by DeepFRI and evaluated as in GearNet.
 
-It provides a dataset of RNA along some GO annotations.
-These annotations were obtained from the files produced by RFAM.
-GO annotations with less than 50 or more than 1000 examples were discarded.
+It provides a dataset of RNA chains labeled with Gene Ontology (GO) terms, one task per GO aspect
+(`ontology="molecular_function"`, `"biological_process"`, or `"cellular_component"`). Annotations come from
+Rfam's own family-to-GO curation (`rfam2go`), joined onto PDB chains via `Rfam.pdb`, then propagated up the GO
+DAG under the true-path rule so that labels reflect shared function across families rather than acting as a
+proxy for Rfam family identity. GO terms are then frequency-filtered (`min_count`/`max_frequency`, following
+DeepFRI's `>50 non-redundant chains` cutoff, scaled down to the PDB's smaller RNA coverage) and de-duplicated
+(`corr_threshold`) -- see the `RNAGo` class docstring in `rna_go.py` for the full rationale.
 
-Please note that some RNA have more than one annotation.
+Please note that some RNA have more than one annotation. Evaluation follows DeepFRI/GearNet: `Fmax`
+(protein/RNA-centric maximum F-score) is the default metric, alongside a pair-centric micro-averaged AUPR
+(`auprc_pair`).
 
 ## Project Structure
 
