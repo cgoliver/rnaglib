@@ -30,6 +30,46 @@ ZENOD_RECORD = "189027"
 ZENODO_URL = f"https://sandbox.zenodo.org/records/{ZENOD_RECORD}/files/"
 
 
+def _fmax_score(labels: np.ndarray, probs: np.ndarray, n_thresholds: int = 51) -> float:
+    """Protein/RNA-centric maximum F-score (DeepFRI/GearNet ``Fmax``, eqs. 7-11): sweep a
+    decision threshold, at each one average precision over items with >=1 predicted label and
+    recall over all items, and return the best resulting F-measure across thresholds.
+
+    Thresholds are swept over the observed score range rather than a fixed [0, 1] grid, since
+    ``probs`` may be raw logits rather than calibrated probabilities depending on the caller
+    (this only changes the threshold's scale, not the resulting optimum, so it stays correct
+    either way -- unlike AUROC/AUPRC, which are already rank-based and unaffected by this).
+    """
+    labels = np.asarray(labels) > 0
+    probs = np.asarray(probs)
+    lo, hi = probs.min(), probs.max()
+    if lo == hi:
+        return 0.0
+
+    best_f = 0.0
+    true_pos_count = labels.sum(axis=1)
+    has_true = true_pos_count > 0
+    for t in np.linspace(lo, hi, n_thresholds):
+        pred = probs >= t
+        tp = (pred & labels).sum(axis=1)
+        pred_pos_count = pred.sum(axis=1)
+
+        has_pred = pred_pos_count > 0
+        if not np.any(has_pred):
+            continue
+        precision_i = np.divide(tp, pred_pos_count, out=np.zeros_like(tp, dtype=float), where=has_pred)
+        precision = precision_i[has_pred].mean()
+
+        recall_i = np.divide(tp, true_pos_count, out=np.zeros_like(tp, dtype=float), where=has_true)
+        recall = recall_i.mean()
+
+        if precision + recall == 0:
+            continue
+        f = 2 * precision * recall / (precision + recall)
+        best_f = max(best_f, f)
+    return best_f
+
+
 class Task:
     """Abstract class for a benchmarking task using the rnaglib datasets.
     This class handles the logic for building the underlying dataset which is held in an
@@ -100,7 +140,7 @@ class Task:
             print("no split found, splitting")
             self.split(self.dataset)
 
-        if not zenodo_loaded and not existing:
+        if not zenodo_loaded and (not existing or recompute):
             self.write()
             with open(Path(self.root) / "done.txt", "w") as f:
                 f.write("")
@@ -540,6 +580,17 @@ class ClassificationTask(Task):
             one_metric["balanced_accuracy"] = balanced_accuracy_score(labels, preds)
         if self.metadata['multi_label']:
             one_metric["jaccard"] = jaccard_score(labels, preds, average="macro")
+            try:
+                one_metric["fmax"] = _fmax_score(labels, probs)
+            except Exception:
+                pass
+            try:
+                # Pair-centric AUPR (GearNet "AUPRpair"): micro-averaged average precision
+                # over all (item, label) pairs, i.e. the flattened/pooled AP rather than the
+                # per-label-then-averaged "auprc" computed below.
+                one_metric["auprc_pair"] = average_precision_score(labels, probs, average="micro")
+            except Exception:
+                pass
         try:
             one_metric["auc"] = roc_auc_score(
                 labels,
