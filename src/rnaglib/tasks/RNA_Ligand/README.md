@@ -28,7 +28,7 @@ This is the task definition using `rnaglib`'s task API. It includes:
 - Defines choice of splitting strategy and through inheritance the model evaluation methods.
 
 The classification target is `ligand_class`: one of a small, hand-curated set of ligand classes defined in
-`data/ligand_classes.json`, in the spirit of the MaSIF-ligand task for proteins (ADP / CoA / FAD / NAD / NADP /
+`ligand_identity.py`'s `CLASS_MAP`, in the spirit of the MaSIF-ligand task for proteins (ADP / CoA / FAD / NAD / NADP /
 SAM pockets). Earlier iterations of this task used the exact ligand identity, then a hand-curated ChEBI/ClassyFire
 family, then a Tanimoto-similarity fingerprint cluster, then a hand-picked set of riboswitch/ribozyme cofactor
 ligands (SAM, NAD, arginine, c-di-AMP, PreQ1) as the target — all of these either let a handful of massively

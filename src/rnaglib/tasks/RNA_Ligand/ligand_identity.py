@@ -48,10 +48,10 @@ class LigandIdentification(RNAClassificationTask):
     dataset if left uncapped, reproducing the exact majority-class problem this redesign exists to avoid. Hence the
     ``max_per_class`` cap: applied only where a class actually exceeds it (only PAR does, at the current sizes).
 
-    The class -> ligand-code mapping lives in ``data/ligand_classes.json`` and is a hand curation, not a computed
-    clustering, so extending it (or swapping in a different set of ligand classes) is a matter of editing that file
-    and adjusting ``admissible_classes``. Any change should be validated the same way this set was: build the full
-    (non-debug) task and check real post-redundancy-removal per-class counts, since raw pre-redundancy pocket
+    The class -> ligand-code mapping lives in ``CLASS_MAP`` below and is a hand curation, not a computed
+    clustering, so extending it (or swapping in a different set of ligand classes) is a matter of editing that
+    dict and adjusting ``admissible_classes``. Any change should be validated the same way this set was: build the
+    full (non-debug) task and check real post-redundancy-removal per-class counts, since raw pre-redundancy pocket
     counts are a poor predictor of how many samples a class will actually retain.
 
     Task type: multi-class classification
@@ -59,7 +59,7 @@ class LigandIdentification(RNAClassificationTask):
 
     :param tuple[int] size_thresholds: range of RNA sizes to keep in the task dataset (default (15, 500))
     :param tuple[str] admissible_classes: class names to keep as targets (default: every class present in
-        ligand_classes.json).
+        ``CLASS_MAP``).
     :param bool collapse_structural_duplicates: if True, the US-align redundancy-removal step reduces each
         label-consistent structural cluster to its single highest-resolution representative. If False (default
         here -- unlike the general Task default), all members of a label-consistent cluster are kept (mixed-label
@@ -76,6 +76,17 @@ class LigandIdentification(RNAClassificationTask):
     name = "rna_ligand"
     default_metric = "auc"
     version = "2.0.2"
+
+    # maps a PDB chemical component code to its hand-curated ligand class (see class docstring)
+    CLASS_MAP = {
+        "PAR": "PAR",
+        "LLL": "LLL",
+        "NMY": "NMY",
+        "8UZ": "8UZ",
+        "GET": "GET",
+        "T1C": "T1C",
+        "CLM": "chloramphenicol",
+    }
 
     def __init__(self,
         size_thresholds=(15, 500),
@@ -101,14 +112,9 @@ class LigandIdentification(RNAClassificationTask):
         with open(ligands_dict_path, "r") as ligands_dict_json:
             self.ligands_dict = json.load(ligands_dict_json)
 
-        # class_map maps a PDB chemical component code to its hand-curated ligand class (see class docstring)
-        class_map_path = os.path.join(os.path.dirname(__file__), "data", "ligand_classes.json")
-        with open(class_map_path, "r") as class_map_json:
-            self.class_map = json.load(class_map_json)
-
         # default to every class present in the curated mapping
         self.admissible_classes = admissible_classes if admissible_classes is not None \
-            else sorted(set(self.class_map.values()))
+            else sorted(set(self.CLASS_MAP.values()))
         super().__init__(additional_metadata=meta, size_thresholds=size_thresholds, **kwargs)
 
     def process(self) -> RNADataset:
@@ -157,7 +163,7 @@ class LigandIdentification(RNAClassificationTask):
                     if not codes:
                         continue
                     ligand_code = collections.Counter(codes).most_common(1)[0][0]
-                    ligand_class = self.class_map.get(ligand_code)
+                    ligand_class = self.CLASS_MAP.get(ligand_code)
                     if ligand_class is not None and (ligand_class in self.admissible_classes or self.debug):
                         pocket.graph[self.target_var] = ligand_class
                         self.add_rna_to_building_list(all_rnas=all_binding_pockets, rna=pocket)
