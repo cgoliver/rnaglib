@@ -1,3 +1,5 @@
+import collections
+
 import numpy as np
 from scipy.sparse.csgraph import connected_components
 
@@ -23,24 +25,51 @@ class PrepareDataset(DSTransform):
     post-redundancy-removal samples to learn from and the near-duplicate structures being discarded aren't actually
     ambiguous, just redundant.
 
+    Two thresholds, two passes: ``threshold`` (loose - "similar enough to be redundant") and ``ambiguity_threshold``
+    (strict - "similar enough to plausibly be the same site") are deliberately decoupled, because
+    ``connected_components`` clustering is transitive: at a single shared threshold, pocket A can chain into pocket
+    C's cluster through an intermediate B (A-B and B-C both cross the cutoff) even when A and C themselves are not
+    that similar. Under the old single-threshold scheme, if A and C carry different labels, that transitive chaining
+    drops the *entire* neighborhood -- including A and B, whose own label was never actually ambiguous -- just
+    because a loosely-related third party C happened to bridge into the group. Splitting the check into two passes
+    fixes this:
+
+    1. **Ambiguity pass** (``ambiguity_threshold``, strict): cluster at the strict cutoff first. Only a neighborhood
+       built from genuinely near-identical structures can veto its members on label disagreement; everything that
+       survives this pass has an unambiguous label.
+    2. **Redundancy pass** (``threshold``, loose): re-cluster survivors at the loose cutoff to find near-duplicates
+       worth collapsing, but grouped *by label* within each loose neighborhood -- since two different labels can
+       legitimately co-occur in a loose (merely similar-fold) neighborhood without being ambiguous about each
+       other, every label present gets its own representative instead of the whole neighborhood being merged (or
+       dropped) into one.
+
+    If ``ambiguity_threshold`` is left as ``None``, it defaults to ``threshold``, reproducing the old single-pass
+    behavior (one shared cutoff for both concerns).
+
     :param str distance_name: the name of the distance metric which has to be used to perform clustering. The distance
     must have been computed on the dataset (see DistanceComputer)
-    :param float threshold: the similarity threshold (considering similarity as 1-distance) to use to perform clustering
+    :param float threshold: the similarity threshold (considering similarity as 1-distance) used for the redundancy
+    (collapse-to-representative) pass -- how similar two same-label pockets must be to be considered duplicates
+    :param float ambiguity_threshold: the (typically stricter) similarity threshold used for the mixed-label
+    correctness guard -- how similar two pockets must be to be considered plausibly-the-same-site. Defaults to
+    ``threshold`` (single-pass behavior) when None.
     :param str target_name: the graph-level attribute holding the ligand a pocket is labelled with (default "ligand")
-    :param bool collapse_to_representative: if True (default), a label-consistent cluster is reduced to its
-        highest-resolution member. If False, all members of a label-consistent cluster are kept; mixed-label
-        clusters are still dropped entirely either way.
+    :param bool collapse_to_representative: if True (default), each label within a label-consistent redundancy group
+        is reduced to its highest-resolution member. If False, every member is kept; the ambiguity guard still drops
+        genuinely mixed-label (near-identical) groups entirely either way.
     """
 
     def __init__(
         self,
         distance_name: str = "USalign",
         threshold: float = 0.95,
+        ambiguity_threshold: float = None,
         target_name: str = "ligand",
         collapse_to_representative: bool = True,
     ):
         self.distance_name = distance_name
         self.threshold = threshold
+        self.ambiguity_threshold = ambiguity_threshold
         self.target_name = target_name
         self.collapse_to_representative = collapse_to_representative
 
@@ -55,42 +84,63 @@ class PrepareDataset(DSTransform):
         if dataset.distances is None or not self.distance_name in dataset.distances:
             raise ValueError(f"The distance matrix using distances {self.distance_name} has not been computed")
 
-        adjacency_matrix = (dataset.distances[self.distance_name] <= 1 - self.threshold).astype(int)
-        n_components, labels = connected_components(adjacency_matrix)
+        distance_matrix = dataset.distances[self.distance_name]
 
-        neighbors = []
-        for i in range(n_components):
-            neighborhood = np.where(labels == i)[0].tolist()
-            neighbors.append(neighborhood)
+        def neighborhoods(similarity_threshold):
+            adjacency_matrix = (distance_matrix <= 1 - similarity_threshold).astype(int)
+            n_components, labels = connected_components(adjacency_matrix)
+            return [np.where(labels == i)[0].tolist() for i in range(n_components)]
 
-        final_list_ids = []
-        for neighborhood in neighbors:
-            # a cluster gathering pockets labelled with different ligands is ambiguous: keeping any of its members would
-            # assert that this site binds that ligand, when a superimposable site is known to bind another one. Drop it
-            bound_ligands = set()
-            for rna_idx in neighborhood:
-                try:
-                    bound_ligands.add(dataset[rna_idx]["rna"].graph[self.target_name])
-                except Exception:
-                    continue
+        def bound_ligand(rna_idx):
+            try:
+                return dataset[rna_idx]["rna"].graph[self.target_name]
+            except Exception:
+                return None
+
+        ambiguity_threshold = self.threshold if self.ambiguity_threshold is None else self.ambiguity_threshold
+
+        # Pass 1 (strict): a neighborhood of near-identical pockets that disagree on label is genuinely
+        # ambiguous -- superimposable sites can't be given two different answers -- so it's dropped whole.
+        # Everything that survives has an unambiguous, known label.
+        survivor_label = {}
+        for neighborhood in neighborhoods(ambiguity_threshold):
+            bound_ligands = {lig for lig in (bound_ligand(i) for i in neighborhood) if lig is not None}
             if len(bound_ligands) > 1:
                 continue
-
-            if not self.collapse_to_representative:
-                final_list_ids.extend(neighborhood)
+            if not bound_ligands:
                 continue
-
-            highest_resolution = 100
-            highest_resolution_idx = neighborhood[0]
+            label = next(iter(bound_ligands))
             for rna_idx in neighborhood:
-                rna_dict = dataset[rna_idx]
-                try:
-                    resolution = rna_dict["rna"].graph["resolution_high"]
-                    if resolution < highest_resolution:
-                        highest_resolution = resolution
-                        highest_resolution_idx = rna_idx
-                except Exception:
+                if bound_ligand(rna_idx) is not None:
+                    survivor_label[rna_idx] = label
+
+        # Pass 2 (loose): re-cluster survivors to find near-duplicates worth collapsing, grouped by label
+        # within each loose neighborhood -- two different labels can share a loose (merely similar-fold)
+        # neighborhood without being ambiguous about each other, since pass 1 already resolved ambiguity.
+        final_list_ids = []
+        for neighborhood in neighborhoods(self.threshold):
+            by_label = collections.defaultdict(list)
+            for rna_idx in neighborhood:
+                if rna_idx in survivor_label:
+                    by_label[survivor_label[rna_idx]].append(rna_idx)
+
+            for members in by_label.values():
+                if not self.collapse_to_representative:
+                    final_list_ids.extend(members)
                     continue
-            final_list_ids.append(highest_resolution_idx)
+
+                highest_resolution = 100
+                highest_resolution_idx = members[0]
+                for rna_idx in members:
+                    rna_dict = dataset[rna_idx]
+                    try:
+                        resolution = rna_dict["rna"].graph["resolution_high"]
+                        if resolution < highest_resolution:
+                            highest_resolution = resolution
+                            highest_resolution_idx = rna_idx
+                    except Exception:
+                        continue
+                final_list_ids.append(highest_resolution_idx)
+
         dataset = dataset.subset(list_of_ids=final_list_ids)
         return dataset
