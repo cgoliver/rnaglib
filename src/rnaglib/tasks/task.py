@@ -592,12 +592,27 @@ class ClassificationTask(Task):
             except Exception:
                 pass
         try:
-            one_metric["auc"] = roc_auc_score(
-                labels,
-                probs,
-                average=None if self.metadata['num_classes'] == 2 else "macro",
-                multi_class="ovo",
-            )
+            if self.metadata['multi_label'] or self.metadata['num_classes'] == 2:
+                one_metric["auc"] = roc_auc_score(
+                    labels,
+                    probs,
+                    average=None if self.metadata['num_classes'] == 2 else "macro",
+                    multi_class="ovo",
+                )
+            else:
+                # Explicit `labels` covering the full class range (matching
+                # `probs`'s column count) makes this robust to a split that's
+                # missing one of the classes entirely -- with `labels=None`,
+                # sklearn infers the class set from the classes actually
+                # present in `labels`, and raises when that count doesn't
+                # match `probs.shape[1]`.
+                one_metric["auc"] = roc_auc_score(
+                    labels,
+                    probs,
+                    average="macro",
+                    multi_class="ovo",
+                    labels=list(range(self.metadata['num_classes'])),
+                )
         except Exception:
             return one_metric
         try:
