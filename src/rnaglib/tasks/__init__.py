@@ -3,6 +3,7 @@ TASKS = ["rna_cm",
          "rna_if",
          "rna_if_bench",
          "rna_ligand",
+         "rna_ligand_group",
          "rna_prot",
          "rna_site",
          "rna_site_bench" 
@@ -16,6 +17,7 @@ from .RNA_CM.chemical_modification import ChemicalModification
 from .RNA_GO.rna_go import RNAGo
 from .RNA_IF.inverse_folding import InverseFolding, gRNAde
 from .RNA_Ligand.ligand_identity import LigandIdentification
+from .RNA_Ligand.ligand_group_identity import LigandGroupIdentification
 from .RNA_Prot.protein_binding_site import ProteinBindingSite
 from .RNA_Site.binding_site import BindingSite, BenchmarkBindingSite
 from .RNA_VS.task import VirtualScreening
@@ -31,6 +33,7 @@ __all__ = [
     "InverseFolding",
     "gRNAde",
     "LigandIdentification",
+    "LigandGroupIdentification",
     "ProteinBindingSite",
     "BindingSite",
     "BenchmarkBindingSite",

@@ -1,0 +1,33 @@
+{
+  "_doc": "Curated ligand groups for LigandGroupIdentification (rna_ligand_group). One group per recognition mode, curated from the chemical component names of every ligand annotated with >= 5 RNA contacts (4 A) in the all-atom graphs (2026-09-30). Codes not listed are not used (unassigned or excluded, see _excluded).",
+  "groups": {
+    "aminoglycoside_2DOS": ["PAR", "NMY", "KAN", "TOY", "GET", "LLL", "SIS", "AM2", "RIO", "LIV", "84G", "84D", "8UZ", "6HS", "B6M", "XXX", "FSJ", "JS4", "JS5", "JS6", "V71", "S81", "N30", "LUJ", "M5Z", "ON0", "RPO", "AKN", "AB9", "AB6", "NMZ", "SJP", "EUS", "EDS", "IDG", "BDG", "NEB", "G0B", "N33", "LHA", "2TB", "HYG", "HY0"],
+    "tetracycline": ["TAC", "T1C", "YQM", "V7A", "80P", "CTC", "P8F", "U3B"],
+    "streptomycin": ["SRY"],
+    "spectinomycin": ["SCM"],
+    "kasugamycin": ["KSG"],
+    "pactamycin": ["PCY"],
+    "negamycin": ["NEG"],
+    "streptothricin": ["OIY", "OI9"],
+    "ptc_antibiotic": ["CLM", "ZLD", "RD8", "G6M", "G6V", "917", "JJH", "SLD", "U7V", "U7Y", "UH0", "UI9", "ZC0", "CLY", "3QB", "MUL", "G34", "62B", "ANM", "HGR", "BLS", "SPS", "PUY", "VIR", "H8T", "VIF", "DOL"],
+    "macrolide": ["ERY", "ZIT", "TEL", "DI0", "CTY", "TAO", "TYK", "ROX", "773", "SPR", "CAI", "MIV", "QTZ", "QU2", "JOS", "LMA"],
+    "sam_sah": ["SAM", "SAH", "SFG", "EEM", "MTA"],
+    "tpp": ["TPP", "TPS", "PYI", "VIB", "GMI", "D2X", "218", "2QB", "2QC", "BFT", "KWU", "KWL", "KXC"],
+    "flavin": ["FMN", "RBF", "RS3", "GZ4", "GZ7", "GZG", "51B", "6YG"],
+    "guanine_like_nucleobase": ["PRF", "PQ0", "6GU", "6GO", "ANG", "DX4", "GNG", "HNG", "29G", "29H", "CMG", "Q44"],
+    "cyclic_dinucleotide": ["C2E", "2BA", "4BW"],
+    "nad_nmn": ["NAD", "NAI", "NMN", "NNR"],
+    "nucleotide": ["GTP", "5GP", "GMP", "AMP", "ATP", "ADP", "ADN", "3AD", "3AT", "DGP", "GCP", "N6E", "PPS", "G4P", "AMZ"],
+    "folate_pterin": ["THG", "H4B", "FFO", "DHF", "NPR", "T0A", "LYA", "QIJ", "THF"],
+    "arginine_like": ["ARG", "GND", "HRG", "CIR"],
+    "gfp_chromophore_dye": ["747", "2ZY", "1TU", "38E", "2ZZ", "V5Z", "V6T", "NI4", "NJL", "O00", "O2I", "J8F", "J93", "J8L", "J8O", "J8R", "J8U", "J8X", "KY6"],
+    "glucosamine_6P": ["GLP", "G6P", "6MN"]
+  },
+  "_excluded": {
+    "polyamines (non-specific backbone binders)": ["SPM", "SPK", "SPE"],
+    "buffer": ["B3P"],
+    "tRNA-attached amino acids / peptidyl analogues": ["FME", "F3N", "PHE", "HFA"],
+    "eukaryotic ribosome E-site / 40S drugs (primary site not mapped to E. coli numbering)": ["3HE", "3H3", "WV3", "34G", "YAT", "K16", "MQ6", "HMT", "HN8", "7AL", "ZBA"],
+    "other": "every code not listed in groups (heterogeneous or single-entry ligands, fluorogenic dyes of other chemotypes, fragments of unknown target)"
+  }
+}

@@ -6,6 +6,7 @@ from rnaglib.tasks import TASKS
 TASK_MAP = {'rna_cm': 'ChemicalModification',
             'rna_prot': 'ProteinBindingSite',
             'rna_ligand': 'LigandIdentification',
+            'rna_ligand_group': 'LigandGroupIdentification',
             'rna_site': 'BindingSite',
             'rna_site_bench': 'BenchmarkBindingSite',
             'rna_if': 'InverseFolding',

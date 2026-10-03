@@ -9,7 +9,9 @@ EDGE_MAP_RGLIB = {'B53': 0, 'cHH': 1, 'cHS': 2, 'cHW': 3, 'cSH': 4, 'cSS': 5, 'c
                   'B35': 19, }
 EDGE_MAP_RGLIB_WITH_STACKING = {'B53': 0, 'cHH': 1, 'cHS': 2, 'cHW': 3, 'cSH': 4, 'cSS': 5, 'cSW': 6, 'cWH': 7, 'cWS': 8, 'cWW': 9,
                   'tHH': 10, 'tHS': 11, 'tHW': 12, 'tSH': 13, 'tSS': 14, 'tSW': 15, 'tWH': 16, 'tWS': 17, 'tWW': 18,
-                  'B35': 19, 'ns35': 20, 'ns53': 21, 'ns33': 22, 'ns55': 23, }                  
+                  'B35': 19, 'ns35': 20, 'ns53': 21, 'ns33': 22, 'ns55': 23,
+                  # true FR3D stackings (the 'ns' labels above are near-stackings)
+                  's35': 24, 's53': 25, 's33': 26, 's55': 27, }
 
 SIMPLIFIED_EDGE_MAP_FR3D = {'B53': 0, 'CHH': 2, 'CHS': 2, 'CHW': 2, 'CSH': 2, 'CSS': 2, 'CSW': 2, 'CWH': 2, 'CWS': 2, 'CWW': 1,
                  'THH': 2, 'THS': 2, 'THW': 2, 'TSH': 2, 'TSS': 2, 'TSW': 2, 'TWH': 2, 'TWS': 2, 'TWW': 2, 'B35': 0}
