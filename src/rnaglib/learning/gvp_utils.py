@@ -142,7 +142,10 @@ class LayerNorm(nn.Module):
         s, v = x
         vn = _norm_no_nan(v, axis=-1, keepdims=True, sqrt=False)
         vn = torch.sqrt(torch.mean(vn, dim=-2, keepdim=True))
-        return self.scalar_norm(s), v / vn
+        # All-zero vector tokens stay zero with zero gradient: through the clamped norm their Jacobian is
+        # 1/sqrt(eps) = 1e4, which compounds over stacked layers until the gradient overflows.
+        live = (v != 0).any(dim=-1, keepdim=True).any(dim=-2, keepdim=True)
+        return self.scalar_norm(s), torch.where(live, v / vn, 0.0)
 
 class GVPConv(MessagePassing):
     '''
