@@ -1,4 +1,5 @@
 import os
+import shutil
 import unittest
 
 from rnaglib.utils import load_graph
@@ -10,6 +11,7 @@ class TestUtils(unittest.TestCase):
         data_path = os.path.join(current_dir, 'data', "1fmn.json")
         g = load_graph(data_path, multigraph=False)
 
+    @unittest.skipUnless(shutil.which("locarna"), "locarna is not installed")
     def test_locarna_wrapper_no_crash(self):
         """Test locarna wrapper runs without crashing (returns None or completes correctly)"""
         from rnaglib.utils.wrappers import locarna_wrapper
