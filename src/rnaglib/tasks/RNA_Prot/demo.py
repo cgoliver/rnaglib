@@ -4,7 +4,7 @@ from rnaglib.learning.task_models import PygModel
 from rnaglib.tasks import ProteinBindingSite
 from rnaglib.transforms import GraphRepresentation
 
-ta = ProteinBindingSite("RNA_RBP_struc", recompute=False, debug=False, precomputed=False)
+ta = ProteinBindingSite(root="RNA_Prot", recompute=False, debug=False, precomputed=False)
 
 # Add representation
 ta.add_representation(GraphRepresentation(framework="pyg"))

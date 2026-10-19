@@ -6,16 +6,12 @@ from rnaglib.dataset import RNADataset
 from rnaglib.dataset_transforms import ClusterSplitter
 from rnaglib.encoders import BoolEncoder
 from rnaglib.tasks import ResidueClassificationTask
-from rnaglib.transforms import ConnectedComponentPartition, DummyFilter, FeaturesComputer, ResidueAttributeFilter, ComposeFilters
+from rnaglib.transforms import ConnectedComponentPartition, FeaturesComputer, ResidueAttributeFilter, ComposeFilters
 
-# Lowercase pdbid -> set of author chain IDs, confirmed crystallization
-# chaperones (U1A RRM domain / Fab-Fv frameworks) by sequence identity, with
-# native-job structures (real spliceosomal assemblies, U1A's own PIE-element
-# autoregulation) excluded. Seeded from the RNA_Prot task-validity audit
-# (2026-07-18). This is a scope choice (a chaperone is a real, folded protein
-# making a real physicochemical interface, just not this RNA's evolved
-# partner), not a bug -- it belongs here, in the task, not in the annotation
-# transform.
+# Lowercase pdbid -> author chain IDs of crystallization chaperones (U1A RRM domain, Fab/Fv frameworks), identified
+# by sequence identity. Entries where the protein is a native partner (spliceosomal assemblies, U1A bound to its own
+# PIE element) are not listed. A chaperone makes a genuine protein-RNA interface, but not with the RNA's biological
+# partner, hence the option to exclude these contacts.
 CHAPERONE_CHAINS = {
     "1drz": {"A"},
     "1m5k": {"C"},
@@ -60,15 +56,18 @@ CHAPERONE_CHAINS = {
 
 
 class ProteinBindingSite(ResidueClassificationTask):
-    """The job is to predict a binary variable
-    at each residue representing the probability that a residue belongs to
-    a protein-binding interface
+    """Predict, for each residue, whether it belongs to a protein-binding interface.
+
+    The dataset is made of the connected components (backbone and base-pair edges) of RNA structures, of size within
+    ``size_thresholds`` (which excludes large ribosomal RNAs), with at least one protein-binding and one non-binding
+    residue.
 
     Task type: binary classification
     Task level: residue-level
 
-    :param tuple[int] size_thresholds: range of RNA sizes to keep in the task dataset(default (15, 500))
-    :param bool exclude_chaperone_contacts: if True, relabel as non-binding any residue whose only contributing protein chain(s) are known crystallization chaperones (see CHAPERONE_CHAINS), rather than a biological partner of this RNA (default False)
+    :param tuple[int] size_thresholds: range of RNA sizes to keep in the task dataset (default (15, 500))
+    :param graph_path: folder of rnaglib graphs to build the task from (None: the default rnaglib download)
+    :param bool exclude_chaperone_contacts: if True, relabel as non-binding any residue whose only contributing protein chain(s) are known crystallization chaperones (see CHAPERONE_CHAINS), rather than a biological partner of this RNA. Requires graphs with the 'protein_binding_chains' annotation, absent from the 2.0.2 release (default False)
     """
 
     target_var = "protein_binding"
@@ -85,9 +84,7 @@ class ProteinBindingSite(ResidueClassificationTask):
 
     @property
     def default_splitter(self):
-        """Returns the splitting strategy to be used for this specific task. Canonical splitter is ClusterSplitter which is a
-        similarity-based splitting relying on clustering which could be refined into a sequencce- or structure-based clustering
-        using distance_name argument
+        """Returns the splitting strategy to be used for this specific task: ClusterSplitter on US-align similarity.
 
         :return: the default splitter to be used for the task
         :rtype: Splitter
@@ -108,7 +105,7 @@ class ProteinBindingSite(ResidueClassificationTask):
         )
 
     def process(self) -> RNADataset:
-        """"
+        """
         Creates the task-specific dataset.
 
         :return: the task-specific dataset
@@ -128,7 +125,6 @@ class ProteinBindingSite(ResidueClassificationTask):
         filters = ComposeFilters(connected_component_filters_list)
         connected_components_partition = ConnectedComponentPartition()
 
-        # Run through database, applying our filters
         dataset = RNADataset(dataset_path=self.graph_path, debug=self.debug, in_memory=False, version=self.version)
         all_rnas = []
         os.makedirs(self.dataset_path, exist_ok=True)
@@ -138,6 +134,11 @@ class ProteinBindingSite(ResidueClassificationTask):
                 pdbid = g.graph["pdbid"].lower()
                 chaperone_chains = CHAPERONE_CHAINS.get(pdbid, set())
                 if chaperone_chains:
+                    if not all("protein_binding_chains" in data for _, data in g.nodes(data=True)):
+                        raise ValueError(
+                            f"exclude_chaperone_contacts needs the 'protein_binding_chains' residue annotation "
+                            f"(RBPTransform), missing from {g.name} in {dataset.dataset_path}: rebuild the graphs "
+                            f"with prepare_data.build_graph_from_cif and pass them as graph_path")
                     for node, data in g.nodes(data=True):
                         contributing = set(data["protein_binding_chains"])
                         if contributing and contributing <= chaperone_chains:

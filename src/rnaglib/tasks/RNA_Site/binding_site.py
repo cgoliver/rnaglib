@@ -1,7 +1,5 @@
 import os
-import numpy as np
 from tqdm import tqdm
-import networkx as nx
 
 from rnaglib.dataset import RNADataset
 from rnaglib.tasks import ResidueClassificationTask
@@ -9,7 +7,7 @@ from rnaglib.encoders import BoolEncoder
 from rnaglib.transforms import FeaturesComputer
 from rnaglib.transforms import ChainNameTransform
 from rnaglib.transforms import BindingSiteAnnotator, SmallMoleculeBindingTransform
-from rnaglib.transforms import ResidueAttributeFilter, ChainFilter, ComposeFilters
+from rnaglib.transforms import ResidueAttributeFilter, ChainFilter
 from rnaglib.transforms import ConnectedComponentPartition
 from rnaglib.dataset_transforms import SPLITTING_VARS, default_splitter_tr60_tr18, RandomSplitter, ClusterSplitter
 
@@ -24,7 +22,8 @@ class BenchmarkBindingSite(ResidueClassificationTask):
     Task type: binary classification
     Task level: residue-level
 
-    :param float cutoff: distance (in Angstroms) between an RNA atom and any small molecule atom below which the RNA residue is considered as part of a binding site (default 6.0)
+    :param float cutoff: distance (in Angstroms) between an RNA atom and any small molecule or ion atom below which the RNA residue is considered as part of a binding site (4.0, 6.0 or 8.0, default 6.0)
+    :param graph_path: folder of rnaglib graphs to build the task from (None: the default rnaglib download)
     """
     target_var = "binding_site"
     input_var = "nt_code"
@@ -32,7 +31,7 @@ class BenchmarkBindingSite(ResidueClassificationTask):
     version = "2.0.2"
     default_metric = "balanced_accuracy"
 
-    def __init__(self, cutoff=4.0,graph_path=None, **kwargs):
+    def __init__(self, cutoff=6.0, graph_path=None, **kwargs):
         self.cutoff = cutoff
         self.graph_path = graph_path
         meta = {"multi_label": False}
@@ -40,9 +39,8 @@ class BenchmarkBindingSite(ResidueClassificationTask):
 
     @property
     def default_splitter(self):
-        """Returns the splitting strategy to be used for this specific task. Canonical splitter is ClusterSplitter which is a
-        similarity-based splitting relying on clustering which could be refined into a sequencce- or structure-based clustering
-        using distance_name argument
+        """Returns the splitting strategy to be used for this specific task: the TR60/TE18 split of Su et al. (2021)
+        (random split in debug mode).
 
         :return: the default splitter to be used for the task
         :rtype: Splitter
@@ -53,7 +51,7 @@ class BenchmarkBindingSite(ResidueClassificationTask):
             return default_splitter_tr60_tr18()
 
     def process(self) -> RNADataset:
-        """"Creates the task-specific dataset.
+        """Creates the task-specific dataset.
 
         :return: the task-specific dataset
         :rtype: RNADataset
@@ -74,7 +72,7 @@ class BenchmarkBindingSite(ResidueClassificationTask):
             mass_lower_limit=30,
             mass_upper_limit=1400
         )
-        bs_annotator = BindingSiteAnnotator(include_ions=True)
+        bs_annotator = BindingSiteAnnotator(include_ions=True, cutoff=self.cutoff)
         namer = ChainNameTransform()
 
         # Run through database, applying our filters
@@ -113,8 +111,14 @@ class BindingSite(ResidueClassificationTask):
     Task type: binary classification
     Task level: residue-level
 
-    :param float cutoff: distance (in Angstroms) between an RNA atom and any small molecule atom below which the RNA residue is considered as part of a binding site (default 6.0)
-    :param tuple[int] size_thresholds: range of RNA sizes to keep in the task dataset(default (15, 500))
+    A residue is part of a binding site if any of its atoms is within ``cutoff`` of a small-molecule ligand atom.
+    The dataset is made of the connected components (backbone and base-pair edges) of the RNA structures that have at
+    least 10 binding residues, i.e. at least one binding site in the sense of HARIBOSS. Residues of the same RNA
+    that bind a ligand only in another deposition are labelled as non-binding.
+
+    :param float cutoff: distance (in Angstroms) between an RNA atom and any small molecule atom below which the RNA residue is considered as part of a binding site (4.0, 6.0 or 8.0, default 6.0)
+    :param tuple[int] size_thresholds: range of RNA sizes to keep in the task dataset (default (15, 500))
+    :param graph_path: folder of rnaglib graphs to build the task from (None: the default rnaglib download)
     """
     input_var = "nt_code"
     name = "rna_site"
@@ -128,27 +132,21 @@ class BindingSite(ResidueClassificationTask):
         super().__init__(additional_metadata=meta, size_thresholds=size_thresholds, **kwargs)
 
     def process(self) -> RNADataset:
-        """"
+        """
         Creates the task-specific dataset.
 
         :return: the task-specific dataset
         :rtype: RNADataset
         """
-        # Define your transforms
         rna_filter = ResidueAttributeFilter(attribute=self.target_var, value_checker=lambda val: val is not None, aggregation_mode="min_valid", min_valid=10)
         connected_components_partition = ConnectedComponentPartition()
 
-        connected_component_filters_list = []
-        if self.size_thresholds is not None:
-            size_filter = self.size_filter
-
-        # Run through database, applying our filters
         dataset = RNADataset(dataset_path=self.graph_path, debug=self.debug, in_memory=self.in_memory, redundancy="all", version=self.version)
         all_rnas = []
         os.makedirs(self.dataset_path, exist_ok=True)
         for rna in tqdm(dataset, total=len(dataset), desc="Processing RNAs"):
             for rna_connected_component in connected_components_partition(rna):
-                if self.size_thresholds is not None and not size_filter.forward(rna_connected_component):
+                if self.size_thresholds is not None and not self.size_filter.forward(rna_connected_component):
                     continue
                 if rna_filter.forward(rna_connected_component):
                     rna_g = rna_connected_component["rna"]
@@ -167,9 +165,8 @@ class BindingSite(ResidueClassificationTask):
 
     @property
     def default_splitter(self):
-        """Returns the splitting strategy to be used for this specific task. Canonical splitter is ClusterSplitter which is a
-        similarity-based splitting relying on clustering which could be refined into a sequencce- or structure-based clustering
-        using distance_name argument
+        """Returns the splitting strategy to be used for this specific task: ClusterSplitter on US-align similarity
+        (random split in debug mode).
 
         :return: the default splitter to be used for the task
         :rtype: Splitter

@@ -1,31 +1,30 @@
-# RBP_Node
+# RNA-Prot
 
-In this directory you can find the implementation of the `RBP-Node` task.
-This task is analagous to the `RNA-Site` task which allows the prediction of ligand binding sites at the node level,
-except that here, RNA-binding protein binding sites are predicted.
+In this directory you can find the implementation of the `RNA-Prot` task.
+This task is analogous to `RNA-Site`: it predicts, for each residue, whether it is part of a protein-binding
+interface.
 
 ## Project Structure
 
-This repository contains two files:
-
-1. `demo.py`
-2. `protein_binding_site.py`
-
-### demo.py
-
-This file contains a demonstration of how to use the `RBP-Node` task to train a simple model.
-It trains an RGCN and outputs some performance metrics.
-It can be easily expanded for further model development.
-It uses an RGCN implemented in the `learning` directory of this repo.
+1. `protein_binding_site.py`
+2. `demo.py`
 
 ### protein_binding_site.py
 
-This is the task definition using `rnaglib`'s task API. It includes:
+Task definition using `rnaglib`'s task API (`ProteinBindingSite`):
 
-- Loading and preprocessing of the entire `rnaglib` dataset except ribosomal RNA.
-- Defining the choice of splitting strategy and through inheritance the model evaluation methods.
+- The dataset contains the connected components (backbone and base-pair edges) of 15 to 500 residues, which leaves
+  out large ribosomal RNAs, with at least one protein-binding and one non-binding residue.
+- Redundancy is removed on sequence (CD-Hit) and structure (US-align), and the split clusters structures by
+  US-align similarity.
+- `exclude_chaperone_contacts=True` relabels as non-binding the residues contacted only by crystallization
+  chaperones (U1A RRM domain, Fab/Fv frameworks; see `CHAPERONE_CHAINS`), which are not biological partners of the
+  RNA.
+
+### demo.py
+
+Trains an RGCN (from the `learning` directory of this repo) and reports test metrics.
 
 ## Usage
 
-To train and evaluate the model, simply run: `python demo.py` or `python demo.py --frompickle` if you want to use a
-precomputed task, saving some execution time.
+To train and evaluate the model, run `python demo.py`.

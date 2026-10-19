@@ -1,3 +1,5 @@
+import re
+
 import torch
 import networkx as nx
 import copy
@@ -9,6 +11,22 @@ from rnaglib.algorithms import fix_buggy_edges
 from rnaglib.utils import rbf_expand
 
 from .representation import Representation
+
+
+def residue_order_key(graph):
+    """Sort key ordering the residues of ``graph`` by chain, then along the chain.
+
+    Uses the sequence position (``label_seq_id``) when every residue has one, otherwise the author residue number and
+    insertion code from the node ID (``<pdbid>.<chain>.<number><insertion code>``).
+    """
+    if all(isinstance(data.get("label_seq_id"), int) for _, data in graph.nodes(data=True)):
+        return lambda n: (graph.nodes[n]["chain_id"], graph.nodes[n]["label_seq_id"])
+
+    def author_key(n):
+        number, icode = re.fullmatch(r"(-?\d+)(.*)", n.split(".")[-1]).groups()
+        return graph.nodes[n]["chain_id"], int(number), icode
+
+    return author_key
 
 
 class GraphRepresentation(Representation):
@@ -92,7 +110,7 @@ class GraphRepresentation(Representation):
 
         # for some reason from_networkx is not working so doing by hand
         # not super efficient at the moment
-        node_map = {n: i for i, n in enumerate(sorted(graph.nodes(), key=lambda x: (graph.nodes[x]['chain_id'], graph.nodes[x]['label_seq_id'])))}
+        node_map = {n: i for i, n in enumerate(sorted(graph.nodes(), key=residue_order_key(graph)))}
         x, y = None, None
 
         if "nt_features" in features_dict:
@@ -169,10 +187,9 @@ class GraphRepresentation(Representation):
             edge_attrs = torch.zeros(edge_index.shape[1],dtype=int)
 
         else:
-            edge_index = [[node_map[u], node_map[v]] for u, v in sorted(graph.edges(), key=lambda x: (graph.nodes[x[0]]['chain_id'], graph.nodes[x[0]]['label_seq_id'], graph.nodes[x[1]]['chain_id'], graph.nodes[x[1]]['label_seq_id']))]
-            edge_index = torch.tensor(edge_index, dtype=torch.long).T
-            edge_attrs = [self.edge_map[data[self.etype_key]] for u, v, data in sorted(graph.edges(data=True), key=lambda x: (graph.nodes[x[0]]['chain_id'], graph.nodes[x[0]]['label_seq_id'], graph.nodes[x[1]]['chain_id'], graph.nodes[x[1]]['label_seq_id']))]
-            edge_attrs = torch.tensor(edge_attrs)
+            edges = sorted(graph.edges(data=True), key=lambda e: (node_map[e[0]], node_map[e[1]]))
+            edge_index = torch.tensor([[node_map[u], node_map[v]] for u, v, _ in edges], dtype=torch.long).T
+            edge_attrs = torch.tensor([self.edge_map[data[self.etype_key]] for _, _, data in edges])
 
         if self.distance_edge_features:
             edge_distances = dist_matrix[edge_index[0, :], edge_index[1, :]]

@@ -1,47 +1,40 @@
 # RNA-Site
 
 In this directory you can find the implementation of the `RNA-Site` task.
-Given an RNA structure, it predicts whether an individual node/residue is part of a binding site or not.
-Here, we implement this task on the entire `rnaglib` database as well as using a dataset and splits provided in the
-following paper:
-
+Given an RNA structure, it predicts whether each residue is part of a small-molecule binding site.
+The task is implemented on the `rnaglib` database (`BindingSite`) and on the dataset and splits of:
 
 > Hong Su, Zhenling Peng, and Jianyi Yang. Recognition of small molecule–rna binding sites using
 > rna sequence and structure. Bioinformatics, 37(1):36–42, 2021. <https://doi.org/10.1093/bioinformatics/btaa1092>
 
 ## Project Structure
 
-This repository contains four files:
-
-1. `demo.py`
-2. `binding_site.py`
+1. `binding_site.py`
+2. `demo.py`
 3. `benchmark_demo.py`
-
-### demo.py
-
-This file contains a demonstration of how to use the `RNA-Site` task, in the implementation of `binding_site.py`
-to train a simple model.
-It trains an RGCN and outputs some performance metrics. It can be easily expanded for further model development.
-It uses an RGCN implemented in the `learning` directory of this repo.
 
 ### binding_site.py
 
-This is the task definitions of the `BindingSite` task using `rnaglib`'s task API. It includes:
+Task definitions using `rnaglib`'s task API:
 
-- Loading and preprocessing of the part of `rnaglib` database that has known ligands
-- Defines choice of splitting strategy and through inheritance the model evaluation methods.
+- `BindingSite`: a residue is binding if any of its atoms lies within `cutoff` (default 6 Å) of a small-molecule
+  ligand. The dataset contains the connected components of 15 to 500 residues with at least 10 binding residues
+  (the HARIBOSS binding-site definition). Redundancy is removed on sequence (CD-Hit) and structure (US-align), and
+  the split clusters structures by US-align similarity.
+- `BenchmarkBindingSite`: same input and output, built on the chains and the TR60/TE18 split of Su et al. (2021);
+  as in that benchmark, ion-binding residues also count as binding.
 
-A second task named `BenchmarkBindingSite` is being implemented. It has the same input and output variables as `BindingSite`
-and also uses the RGCN implemented in the `learning` directory of this repo but uses the data and splits from Su et al. (2021)
-to ensure fair benchmarking with their results.
+Residues are labelled from the deposited structures only: a residue that binds a ligand in another deposition of the
+same RNA is labelled as non-binding.
+
+### demo.py
+
+Trains an RGCN (from the `learning` directory of this repo) on `BindingSite` and reports test metrics.
 
 ### benchmark_demo.py
 
-This file contains a demonstration of how to use the `RNA-Site` task, in the implementation
-of `benchmark_binding_site.py`, using splits from Su et al. (2021) to train a simple model. It trains an RGCN and
-outputs some performance metrics. It can be easily expanded for further model development. It also uses an RGCN
-implemented in the `learning` directory of this repo.
+Same as `demo.py`, on `BenchmarkBindingSite`.
 
 ## Usage
 
-To train and evaluate the model, simply run: `python demo.py`
+To train and evaluate the model, run `python demo.py` or `python benchmark_demo.py`.
