@@ -1,370 +1,749 @@
+"""Ligand identification from RNA binding pockets, split at the RNA-molecule level.
 
-import os
-import json
+Pocket-level multi-class task: given the structure of an RNA binding pocket, predict which curated
+ligand group (recognition mode) it binds.
+
+* **Pockets and labels come from the current structure graphs.** Every ligand copy annotated in the
+  graphs (``binding_small-molecule-4.0A``; rnaglib's annotation already requires the ligand to be
+  RNA-bound) with at least ``min_rna_contacts`` RNA residues within 4 A defines one pocket: the RNA
+  residues within ``pocket_cutoff`` A of that copy. Pockets and labels are therefore always consistent
+  with the graphs in ``graph_path`` (no pre-computed pocket dictionary).
+* **Curated labels.** Ligand codes are mapped to biological ligand groups (data/ligand_groups.json);
+  unmapped and excluded codes (polyamines, buffers, tRNA-attached amino acids, ...) are dropped, and
+  so are the groups in ``excluded_groups`` (default DEFAULT_EXCLUDED_GROUPS: nucleotides, nucleotide
+  cofactors and cyclic dinucleotides).
+  ``group_merges`` merges groups into coarser classes (default DEFAULT_GROUP_MERGES: nucleotide-like
+  cofactors and nucleobase-like heteroaromatics; pass {} to keep the fine groups). Graphs must be
+  built with all heavy atoms (``heavy_atoms`` node attribute), which the US-align steps use.
+* **Every binding site is kept once (duplicate sites removed).** Two pockets are at the same site
+  if both bind the same (fine) ligand group on the same RNA molecule and their sets of contacted
+  positions overlap with Jaccard > ``site_min_jaccard`` (default 0: any shared contact residue). The
+  relation is made transitive: a site is a connected component of such overlaps. Positions are chain indices for
+  ordinary RNAs (same molecule = identical sequence) and E. coli rRNA numbers for large rRNAs (chains
+  with >= ``rrna_min_length`` modelled residues, aligned to data/ecoli_rrna_reference.json), so the
+  same ribosomal site is recognised across entries and organisms. An entry with any large rRNA chain is
+  a ribosome: all its pockets get the rRNA key, including those whose main chain is a small rRNA
+  (5S, 5.8S), keyed by the large rRNA with most residues in the pocket shell (LSU if none) and sited
+  by their contacts on it plus their contacts on the main chain. One pocket per site is kept, the one
+  with the best resolution. This covers NCS copies, several chains or ribosomes per asymmetric unit, and repeated
+  depositions of the same complex. No site is removed for any other reason (no primary-site rule),
+  except the per-molecule cap below.
+* **At most ``max_sites_per_molecule`` sites per molecule** (default 3), so that an RNA with many
+  modelled ligand copies cannot dominate a class. Applied after the class filter (which is then
+  re-applied): a molecule key (one sequence, or one rRNA subunit) above the cap keeps the sites that
+  are the least structurally redundant with the rest of the dataset. Pockets of all over-cap
+  molecules are picked greedily, each time the one whose highest pocket US-align similarity to the
+  pockets kept so far is the lowest. No rule on which site is biologically relevant is used.
+* **Split at the RNA-molecule level.** The RNA molecules carrying the pockets (main chain) are
+  clustered by whole-molecule structural similarity with US-align: two molecules are linked if their
+  TM-score normalised by the longer chain is >= ``molecule_tm`` (similar molecules), or if the
+  shorter one (>= ``fragment_min_len`` nt) matches the longer with TM normalised by the shorter
+  >= ``fragment_tm`` (fragment / model of the other, e.g. an A-site oligonucleotide and a 16S rRNA).
+  All small-subunit rRNAs share one molecule key and all large-subunit rRNAs another (one reference
+  structure each, which fragments are aligned against). Two non-rRNA molecules are also linked if their
+  sequence identity over the shorter chain is >= ``molecule_seq_identity`` (default 0.9; shorter chain
+  >= ``seq_link_min_len`` nt and length ratio >= ``seq_link_min_ratio``): TM-score stays low on 15-50 nt
+  chains even between near-identical structures. Linked molecules only share a split; every conformer
+  is kept. The connected components are the split
+  groups: no RNA molecule cluster is shared between train, validation and test. Whole clusters are
+  assigned to the splits so that every class is split close to 70/15/15, in pockets and in molecule
+  clusters, with at least 3 clusters per class in validation and in test, none holding more than half of
+  a class's validation or test pockets (MoleculeClusterStratifiedSplitter).
+* **Class filter.** Ligand groups (after merging) with fewer than ``min_class_pockets`` pockets, or
+  present in fewer than ``min_class_clusters`` molecule clusters, are dropped.
+* **Training weights for sequence variants.** Pockets are kept for every distinct sequence, but
+  sequence variants of one RNA (point mutants, construct and loop swaps: identity >=
+  ``variant_identity`` over the shorter chain, same molecule cluster) binding the same fine ligand
+  group at the same site (any shared contact residue after mapping to a common numbering, transitive)
+  form one variant site. Each pocket gets ``sample_weight`` = (pockets of its class / variant sites of
+  its class) / (pockets of its variant site): within a class every site weighs the same, whatever its
+  number of variants, and each class keeps its total weight (= its pocket count), so the class
+  balance is unchanged. Weights are stored on the graphs and in
+  ``{root}/sample_weights.json``; evaluation is unweighted.
+
+Task type: multi-class classification. Task level: substructure (pocket) level.
+"""
+
+from __future__ import annotations
+
 import collections
+import hashlib
+import json
+import multiprocessing
+import os
+import subprocess
+import tempfile
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 import numpy as np
-from tqdm import tqdm
-from rdkit import Chem
-from rdkit.Chem import rdFingerprintGenerator, DataStructs
+from Bio import Align
 from scipy.sparse.csgraph import connected_components
+from tqdm import tqdm
 
-from rnaglib.tasks import RNAClassificationTask
 from rnaglib.dataset import RNADataset
+from rnaglib.dataset_transforms.splitters import Splitter
 from rnaglib.encoders import IntMappingEncoder
-from rnaglib.transforms import FeaturesComputer, PartitionFromDict
-from rnaglib.transforms.annotate.small_molecule import CRYSTALLIZATION_ADDITIVES, POLYAMINES
-from rnaglib.dataset_transforms import ClusterSplitter, CDHitComputer, StructureDistanceComputer
-from rnaglib.tasks.RNA_Ligand.prepare_dataset import PrepareDataset
+from rnaglib.tasks import RNAClassificationTask
+from rnaglib.transforms import FeaturesComputer
+from rnaglib.utils.graph_io import dump_json, load_json
+
+DATA_DIR = Path(__file__).parent / "data"
+
+
+def resolution_high(graph):
+    """Resolution of the structure a graph comes from, as a float; inf if missing or not a number."""
+    try:
+        return float(graph.graph.get("resolution_high"))
+    except (TypeError, ValueError):
+        return float("inf")
+
+
+_WORKER_TASK = None  # set by LigandIdentification.process() before forking its worker pool
+
+
+def _worker_entry_pockets(fname):
+    return _WORKER_TASK._entry_pockets(fname)
+
+
+def _as_list(value):
+    if not value:
+        return []
+    return value if isinstance(value, list) else [value]
+
+
+def _ligand_key(entry):
+    return entry.get("name"), json.dumps(entry.get("id"))
+
+
+# ligand groups left out of the task: nucleotides, nucleotide cofactors and cyclic dinucleotides. Their
+# recognition is not the target here, and in-chain nucleotides can still be mislabelled as free ligands
+DEFAULT_EXCLUDED_GROUPS = frozenset({"nucleotide", "nad_nmn", "cyclic_dinucleotide"})
+
+DEFAULT_GROUP_MERGES = {
+    "nucleotide": "nucleotide_dinucleotide",
+    "nad_nmn": "nucleotide_dinucleotide",
+    "cyclic_dinucleotide": "nucleotide_dinucleotide",
+    "guanine_like_nucleobase": "heteroaromatic_nucleobase_like",
+    "folate_pterin": "heteroaromatic_nucleobase_like",
+    "flavin": "heteroaromatic_nucleobase_like",
+}
+
+
+def _aligned_positions(aln):
+    """(query index, target index) of every aligned position of a Bio.Align alignment."""
+    for (q0, q1), (t0, t1) in zip(*aln.aligned):
+        for k in range(q1 - q0):
+            yield int(q0 + k), int(t0 + k)
+
+
+def _parse_usalign(out):
+    """(structure 1, structure 2, TM-score normalised by 1, TM-score normalised by 2) per line of US-align
+    ``-outfmt 2`` output; structures are named by their file stem."""
+    for line in out.splitlines():
+        if not line or line.startswith("#"):
+            continue
+        fields = line.split("\t")
+        yield (Path(fields[0].split(":")[0]).stem, Path(fields[1].split(":")[0]).stem,
+               float(fields[2]), float(fields[3]))
+
+
+def _jaccard(a, b):
+    a, b = set(a), set(b)
+    return len(a & b) / len(a | b) if a or b else 1.0
+
+
+class MoleculeClusterStratifiedSplitter(Splitter):
+    """Train/val/test split by whole molecule clusters, balanced per class.
+
+    Each graph carries ``molecule_cluster`` and the class in ``label_key``. Every class must have at
+    least ``min_per_split`` pockets and at least ``min_clusters_per_split`` molecule clusters in validation
+    and in test, and no single cluster may hold more than ``max_cluster_share`` of a class's validation or
+    test pockets (None: no limit); among such assignments of clusters to train/val/test, keep the one whose
+    per-class fractions of clusters and of pockets are closest (sum of squared errors) to the target
+    fractions. Both cluster constraints keep one large cluster from deciding a class's validation or test
+    score, which would make balanced accuracy rest on very few independent predictions.
+    Search (seeded): ``n_starts`` random assignments, each improved by moving one cluster at a time to
+    another split while the score, penalised by the constraint shortfall, decreases.
+    """
+
+    def __init__(self, label_key="ligand_group", n_starts=300, min_per_split=5, min_clusters_per_split=3,
+                 max_cluster_share=0.5, seed=0, **kwargs):
+        super().__init__(**kwargs)
+        self.label_key, self.n_starts, self.min_per_split, self.seed = label_key, n_starts, min_per_split, seed
+        self.min_clusters_per_split = min_clusters_per_split
+        self.max_cluster_share = max_cluster_share
+
+    def forward(self, dataset):
+        graphs = [dataset[i]["rna"].graph for i in range(len(dataset))]
+        clusters = sorted({g["molecule_cluster"] for g in graphs})
+        classes = sorted({g[self.label_key] for g in graphs})
+        c_index, k_index = {c: i for i, c in enumerate(clusters)}, {k: i for i, k in enumerate(classes)}
+        counts = np.zeros((len(clusters), len(classes)))  # pockets per (cluster, class)
+        for g in graphs:
+            counts[c_index[g["molecule_cluster"]], k_index[g[self.label_key]]] += 1
+        present = (counts > 0).astype(float)  # whether a cluster holds pockets of a class
+        target = np.array([self.split_train, self.split_valid, self.split_test])
+        rng = np.random.default_rng(self.seed)
+
+        def evaluate(assign):
+            """(constraint shortfall, score) of an assignment"""
+            per_split = np.stack([counts[assign == s].sum(0) for s in range(3)])  # pockets per (split, class)
+            per_split_clusters = np.stack([present[assign == s].sum(0) for s in range(3)])  # clusters per (split, class)
+            shortfall = (np.clip(self.min_per_split - per_split[1:], 0, None).sum()
+                         + np.clip(self.min_clusters_per_split - per_split_clusters[1:], 0, None).sum())
+            if self.max_cluster_share is not None:
+                # pockets by which the largest cluster of a class exceeds its allowed share of val / test
+                for s in (1, 2):
+                    largest = np.where(assign[:, None] == s, counts, 0).max(0)
+                    shortfall += np.clip(largest - self.max_cluster_share * per_split[s], 0, None).sum()
+            score = (((per_split / counts.sum(0) - target[:, None]) ** 2).sum()
+                     + ((per_split_clusters / present.sum(0) - target[:, None]) ** 2).sum())
+            return shortfall, score
+
+        best, best_score = None, np.inf
+        for _ in range(self.n_starts):
+            assign = rng.choice(3, size=len(clusters), p=target)
+            shortfall, score = evaluate(assign)
+            current = 100 * shortfall + score  # any shortfall outweighs any fraction error (score <= 4 per class)
+            improved = True
+            while improved:
+                improved = False
+                for c in rng.permutation(len(clusters)):
+                    for s in range(3):
+                        if s == assign[c]:
+                            continue
+                        old, assign[c] = assign[c], s
+                        shortfall, score = evaluate(assign)
+                        if 100 * shortfall + score < current - 1e-12:
+                            current, improved = 100 * shortfall + score, True
+                        else:
+                            assign[c] = old
+            shortfall, score = evaluate(assign)
+            if shortfall == 0 and score < best_score:
+                best, best_score = assign.copy(), score
+        if best is None:
+            raise ValueError(f"no cluster assignment gives >= {self.min_per_split} pockets and >= "
+                             f"{self.min_clusters_per_split} molecule clusters per class in val and test")
+        split_of = {c: best[i] for i, c in enumerate(clusters)}
+        out = [[i for i, g in enumerate(graphs) if split_of[g["molecule_cluster"]] == s] for s in range(3)]
+        return out[0], out[1], out[2]
 
 
 class LigandIdentification(RNAClassificationTask):
-    """Binding pocket-level task where the job is to predict which of a small set of ligand classes a binding
-    pocket binds, given only its structure.
+    """See module docstring.
 
-    Classes are ligand-chemistry clusters computed live from the data rather than hand-picked: every admissible
-    ligand code present in the corpus is clustered against every other by Tanimoto similarity of its Morgan
-    fingerprint (connected components at similarity >= ``tanimoto_threshold``), and every pocket is labelled with
-    its ligand's cluster. Only the ``n_classes`` largest clusters -- by pocket count *after* the structural
-    ambiguity/redundancy pass below, not raw chemical-cluster size -- are kept as classes; this two-stage
-    filtering matters because a chemical cluster's raw size doesn't predict how many of its pockets survive as
-    structurally unambiguous.
-
-    This replaces an earlier, hand-curated version of this task (a fixed set of 7 individual antibiotic codes,
-    e.g. PAR, LLL, NMY -- see git history) with a computed criterion. Classes don't need to match any
-    expert/taxonomic category (e.g. "this is the SAM riboswitch family") to be a valid target here -- the only
-    requirement is that pockets sharing a class are more structurally similar to each other than to a random
-    pocket, since structure is all the model ever sees. That's directly measurable from the US-align distances
-    already computed for redundancy removal: for a set of same-class pockets, compare their mean pairwise
-    US-align similarity to the mean similarity of random pocket pairs (the "background"). Every class this task
-    can produce clears that bar (see ``tanimoto_redesign/`` for the measurement), including ones that merge
-    ligands from textbook-distinct RNA families (e.g. SAM/NAD/plain purine nucleotides all sharing an
-    adenine-stacking sub-pocket) -- an earlier draft of this docstring wrongly called such a cluster
-    "meaningless" on taxonomic grounds without checking this, before the check showed otherwise.
-
-    Both parameters were chosen empirically, not picked a priori -- see ``src/rnaglib/tasks/RNA_Ligand/
-    tanimoto_redesign/`` for the sweep (a threshold-vs-class-size analysis over thresholds 0.6-0.9, plus the
-    intra-class-vs-background US-align similarity check) that motivated them:
-
-    - ``tanimoto_threshold=0.6``: at the default ``n_classes=3``, thresholds 0.6/0.7/0.8 all produce classes that
-      clear the background-similarity bar by a comparable margin (intra-class mean US-align similarity 0.23-0.40
-      against a ~0.19-0.20 background at every threshold; the weakest class measured, the 0.6 purine/adenine
-      cluster, still sits at 0.243, and a majority to two-thirds of its pairs individually beat the background
-      mean depending on threshold). Since raising the threshold doesn't buy a clearly stronger structural signal
-      here, 0.6 was picked instead for maximizing samples per class: its top-3 clusters total ~870
-      post-redundancy-removal pockets, versus ~648 at 0.7 and ~539 at 0.8, because a lower threshold keeps more
-      minor congeners merged into the two aminoglycoside-adjacent clusters. Re-run the similarity check in
-      ``tanimoto_redesign/`` before lowering it further -- the margin over background is not guaranteed to hold
-      at every threshold, only checked for 0.6-0.9.
-    - ``n_classes=3``: with only a handful of classes, every one of them needs to be large enough to learn from.
-      At ``tanimoto_threshold=0.6`` the top 3 clusters by post-redundancy-removal count are, in order: the core
-      deoxystreptamine aminoglycoside family (paromomycin/PAR, neomycin/NMY, and congeners -- dominant, capped by
-      ``max_per_class``), a cluster of purine/adenine-ring ligands (SAM, NAD, and plain adenine/guanine
-      nucleotides), and the gentamicin/sisomicin aminoglycoside family (LLL, GET, and congeners). The next-largest
-      cluster beyond that is a small dinucleotide-analog family (~47 pockets, well below the top 3); growing
-      ``n_classes`` past 3 is possible but shrinks the smallest included class fast, so 3 was picked to keep every
-      class reasonably sized. Changing ``tanimoto_threshold`` changes which exact clusters compete for the top
-      ``n_classes`` slots, so re-run the sweep in ``tanimoto_redesign/`` before changing either parameter.
-
-    Ligand codes that bind non-specifically (crystallization additives, polyamines -- see
-    ``EXCLUDED_LIGAND_CODES``) are dropped before clustering: they bind the sugar-phosphate backbone through
-    generic electrostatic contacts rather than a shape-complementary pocket (HARIBOSS's own annotation already
-    flags polyamine pockets as atypically small/generic), so classes built from them would have little of the
-    structural coherence this task is trying to select for. A code with no resolvable SMILES (missing from
-    ``data/ligand_smiles.json``) can't be clustered and is dropped too.
-
-    Task type: multi-class classification
-    Task level: substructure-level
-
-    :param tuple[int] size_thresholds: range of RNA sizes to keep in the task dataset (default (15, 500))
-    :param float tanimoto_threshold: Tanimoto-similarity threshold (Morgan fingerprints, connected components)
-        used to cluster ligand codes into classes (default 0.6, see class docstring for why)
-    :param int n_classes: number of largest post-redundancy-removal Tanimoto clusters to keep as classes
-        (default 3, see class docstring for why)
-    :param bool collapse_structural_duplicates: if True, the US-align redundancy-removal step reduces each
-        label-consistent structural cluster to its single highest-resolution representative. If False (default
-        here -- unlike the general Task default), all members of a label-consistent cluster are kept (mixed-label
-        clusters are still dropped either way).
-    :param int max_per_class: after redundancy removal and class selection, cap any class exceeding this many
-        pockets to its ``max_per_class`` highest-resolution members (default 120, matching the size of the
-        smallest of the top-3 classes at the default threshold -- see class docstring). Set to None to disable
-        capping. The dominant aminoglycoside cluster is expected to need this regardless of ``tanimoto_threshold``
-        or ``n_classes``: even labelled by exact ligand code with no clustering at all, paromomycin (PAR) alone
-        survives redundancy removal at ~280 pockets, more than every other single ligand combined.
+    :param graph_path: folder of all-atom rnaglib graphs (one JSON per PDB entry)
+    :param min_rna_contacts: fewest RNA residues within 4 A of a ligand copy for it to define a pocket
+    :param pocket_cutoff: pocket = RNA residues within this distance of the copy ("4.0", "6.0" or "8.0")
+    :param rrna_min_length: chains with at least this many modelled residues are treated as large
+        (SSU/LSU) rRNA and numbered in E. coli coordinates
+    :param site_min_jaccard: contact-position overlap (Jaccard) above which two pockets of one ligand group on one
+        molecule are the same binding site
+    :param molecule_tm: TM-score (normalised by the longer chain) linking two RNA molecules
+    :param fragment_tm: TM-score (normalised by the shorter chain) linking a fragment to a molecule
+    :param fragment_min_len: shortest chain allowed to be linked as a fragment
+    :param molecule_seq_identity: sequence identity (over the shorter chain) linking two non-rRNA molecules
+        (None: no sequence links)
+    :param seq_link_min_len: shortest chain allowed in a sequence link
+    :param seq_link_min_ratio: smallest length ratio (shorter / longer) allowed in a sequence link
+    :param excluded_groups: (fine) ligand groups whose pockets are dropped (None: DEFAULT_EXCLUDED_GROUPS,
+        {}: none)
+    :param group_merges: {ligand group: merged class} applied before the class filter
+        (None: DEFAULT_GROUP_MERGES, {}: no merge)
+    :param min_class_pockets: drop classes with fewer pockets than this
+    :param min_class_clusters: drop classes present in fewer molecule clusters than this
+    :param variant_identity: sequence identity above which two molecules of one cluster are variants
+    :param max_sites_per_molecule: keep at most this many binding sites per molecule key, the least
+        structurally redundant with the rest of the dataset (None: no cap)
+    :param n_jobs: worker processes building the pockets (one entry graph per task)
     """
+
     input_var = "nt_code"
-    target_var = "ligand_class"
+    target_var = "ligand_group"
     name = "rna_ligand"
-    default_metric = "auc"
-    version = "2.0.2"
+    default_metric = "balanced_accuracy"
+    version = "3.0.0"
 
-    # Non-specific binders excluded from the ligand pool: these bind the sugar-phosphate backbone through
-    # generic electrostatic contacts rather than a shape-complementary pocket (see class docstring), so
-    # classes built from them would have little structural coherence.
-    EXCLUDED_LIGAND_CODES = CRYSTALLIZATION_ADDITIVES | POLYAMINES
-
-    MORGAN_RADIUS = 2
-    MORGAN_NBITS = 2048
-
-    def __init__(self,
-        size_thresholds=(15, 500),
+    def __init__(
+        self,
         graph_path=None,
-        tanimoto_threshold=0.6,
-        n_classes=3,
-        collapse_structural_duplicates=False,
-        max_per_class=120,
-        **kwargs
+        size_thresholds=(5, 500),
+        min_rna_contacts=6,
+        pocket_cutoff="8.0",
+        rrna_min_length=700,
+        site_min_jaccard=0.0,
+        molecule_tm=0.5,
+        fragment_tm=0.7,
+        fragment_min_len=20,
+        molecule_seq_identity=0.9,
+        seq_link_min_len=18,
+        seq_link_min_ratio=0.5,
+        excluded_groups=None,
+        group_merges=None,
+        min_class_pockets=30,
+        min_class_clusters=2,
+        variant_identity=0.9,
+        max_sites_per_molecule=3,
+        n_jobs=1,
+        **kwargs,
     ):
         self.graph_path = graph_path
-        self.tanimoto_threshold = tanimoto_threshold
-        self.n_classes = n_classes
-        self.collapse_structural_duplicates = collapse_structural_duplicates
-        self.max_per_class = max_per_class
-        meta = {"multi_label": False}
+        self.min_rna_contacts = min_rna_contacts
+        self.pocket_cutoff = pocket_cutoff
+        self.rrna_min_length = rrna_min_length
+        self.site_min_jaccard = site_min_jaccard
+        self.molecule_tm = molecule_tm
+        self.fragment_tm = fragment_tm
+        self.fragment_min_len = fragment_min_len
+        self.molecule_seq_identity = molecule_seq_identity
+        self.seq_link_min_len = seq_link_min_len
+        self.seq_link_min_ratio = seq_link_min_ratio
+        self.excluded_groups = DEFAULT_EXCLUDED_GROUPS if excluded_groups is None else frozenset(excluded_groups)
+        self.group_merges = DEFAULT_GROUP_MERGES if group_merges is None else group_merges
+        self.min_class_pockets = min_class_pockets
+        self.min_class_clusters = min_class_clusters
+        self.variant_identity = variant_identity
+        self.max_sites_per_molecule = max_sites_per_molecule
+        self.n_jobs = n_jobs
 
-        # create a dict where key is RNA name and values are lists of lists [[residue 1 of binding pocket 1,...,residue N of BP 1],...,[residue 1 of BP k,...]]
-        bp_dict_path = os.path.join(os.path.dirname(__file__), "data", "bp_dict.json")
-        with open(bp_dict_path, "r") as bp_dict_json:
-            self.bp_dict = json.load(bp_dict_json)
-        self.nodes_keep = list(self.bp_dict.keys())
+        groups = json.load(open(DATA_DIR / "ligand_groups.json"))["groups"]
+        self.code_to_group = {code: group for group, codes in groups.items() for code in codes}
+        ref = json.load(open(DATA_DIR / "ecoli_rrna_reference.json"))
+        self.rrna_ref = {"SSU": ref["16S"], "LSU": ref["23S"]}
 
-        # ligands_dict maps a binding-pocket seed node to the PDB chemical component code of the ligand it contacts
-        ligands_dict_path = os.path.join(os.path.dirname(__file__), "data", "ligands_dict.json")
-        with open(ligands_dict_path, "r") as ligands_dict_json:
-            self.ligands_dict = json.load(ligands_dict_json)
+        self._aligner = Align.PairwiseAligner()
+        self._aligner.mode = "global"
+        self._aligner.match_score, self._aligner.mismatch_score = 2, -1
+        self._aligner.open_gap_score, self._aligner.extend_gap_score = -3, -1
+        self._aligner.end_gap_score = 0  # fragments align anywhere on the reference
+        self._rrna_cache = {}
 
-        # ligand_smiles maps a PDB chemical component code to a SMILES string, used to cluster ligands by
-        # Tanimoto similarity (see _cluster_ligands_by_tanimoto)
-        ligand_smiles_path = os.path.join(os.path.dirname(__file__), "data", "ligand_smiles.json")
-        with open(ligand_smiles_path, "r") as ligand_smiles_json:
-            self.ligand_smiles = json.load(ligand_smiles_json)
+        super().__init__(additional_metadata={"multi_label": False}, size_thresholds=size_thresholds, **kwargs)
 
-        # populated by process(): maps each ligand code present in the built corpus to its Tanimoto cluster
-        # label, kept around for introspection (e.g. to see which real ligands ended up in a given class)
-        self.tanimoto_clusters = {}
+    # ------------------------------------------------------------------ helpers
+    def _chains(self, graph):
+        """{chain: (ordered node ids, sequence)} for one entry graph."""
+        by_chain = collections.defaultdict(list)
+        for node, data in graph.nodes(data=True):
+            seq_id = data.get("label_seq_id")
+            by_chain[data.get("chain_id")].append((seq_id if isinstance(seq_id, int) else 10**9, node, data.get("nt_code") or "N"))
+        out = {}
+        for chain, items in by_chain.items():
+            items.sort()
+            out[chain] = ([n for _, n, _ in items], "".join(c.upper() if c else "N" for _, _, c in items))
+        return out
 
-        super().__init__(additional_metadata=meta, size_thresholds=size_thresholds, **kwargs)
+    def _map_rrna(self, seq):
+        """(subunit, {chain index -> E. coli number}) for a large rRNA chain sequence (cached)."""
+        if seq in self._rrna_cache:
+            return self._rrna_cache[seq]
+        best = None
+        for subunit, ref in self.rrna_ref.items():
+            aln = self._aligner.align(seq, ref)[0]
+            score = aln.score / min(len(seq), len(ref))
+            if best is None or score > best[0]:
+                best = (score, subunit, aln)
+        _, subunit, aln = best
+        mapping = {q: r + 1 for q, r in _aligned_positions(aln)}
+        self._rrna_cache[seq] = (subunit, mapping)
+        return subunit, mapping
 
-    def _cluster_ligands_by_tanimoto(self, ligand_codes):
-        """Clusters ligand codes by Tanimoto similarity of their Morgan fingerprints: connected components at
-        similarity >= ``self.tanimoto_threshold``, the same clustering style ``PrepareDataset`` itself uses for
-        structural neighborhoods (a single shared similarity threshold, transitive via connected components).
+    def _write_chain_pdb(self, graph, nodes, path):
+        """Writes the heavy atoms of ``nodes`` as a single-chain PDB file; returns the number of atoms written."""
+        lines, atom_id = [], 1
+        for res_id, node in enumerate(nodes, start=1):
+            data = graph.nodes[node]
+            resname = (data.get("nt_full") or data.get("nt_code") or "N")[:3].rjust(3)
+            for atom, xyz in (data.get("heavy_atoms") or {}).items():
+                if xyz is None:
+                    continue
+                name = atom if len(atom) == 4 else f" {atom:<3}"
+                lines.append(f"ATOM  {atom_id:5d} {name} {resname} A{res_id:4d}    "
+                             f"{xyz[0]:8.3f}{xyz[1]:8.3f}{xyz[2]:8.3f}  1.00  0.00           {atom[0]:>2}")
+                atom_id += 1
+        Path(path).write_text("\n".join(lines) + "\nEND\n")
+        return atom_id - 1
 
-        :param ligand_codes: iterable of PDB chemical component codes, each with an entry in ``self.ligand_smiles``
-        :return: dict mapping each ligand code to its integer cluster label
-        :rtype: dict
-        """
-        codes = sorted(ligand_codes)
-        gen = rdFingerprintGenerator.GetMorganGenerator(radius=self.MORGAN_RADIUS, fpSize=self.MORGAN_NBITS)
-        fps = [gen.GetFingerprint(Chem.MolFromSmiles(self.ligand_smiles[code])) for code in codes]
+    def _variant_sites(self, graphs):
+        """Variant-site id of each graph (see module docstring, "Training weights")."""
+        mols = collections.defaultdict(set)
+        for g in graphs:
+            if not g.graph["molecule"].startswith("rRNA_"):
+                mols[g.graph["molecule_cluster"]].add(g.graph["molecule"])
+        ref_of, pos_map = {}, {}
+        for members in mols.values():
+            refs = []
+            for m in sorted(members, key=lambda m: (-len(self.molecule_seqs[m]), m)):
+                seq = self.molecule_seqs[m]
+                for r in refs:
+                    aln = self._aligner.align(seq, self.molecule_seqs[r])[0]
+                    pairs = dict(_aligned_positions(aln))
+                    identity = sum(seq[q] == self.molecule_seqs[r][t] for q, t in pairs.items())
+                    if identity / min(len(seq), len(self.molecule_seqs[r])) >= self.variant_identity:
+                        ref_of[m], pos_map[m] = r, pairs
+                        break
+                else:
+                    refs.append(m)
+                    ref_of[m], pos_map[m] = m, None
+        by_ref = collections.defaultdict(list)
+        for k, g in enumerate(graphs):
+            m, site = g.graph["molecule"], set(g.graph["site_positions"])
+            if not m.startswith("rRNA_") and pos_map[m] is not None:
+                site = {pos_map[m][p] for p in site if p in pos_map[m]}
+            by_ref[(g.graph["ligand_group_fine"], ref_of.get(m, m))].append((k, site))
+        site_of = [None] * len(graphs)
+        for key, items in by_ref.items():
+            n = len(items)
+            overlap = np.eye(n, dtype=int)
+            for a in range(n):
+                for b in range(a):
+                    if items[a][1] & items[b][1]:
+                        overlap[a, b] = overlap[b, a] = 1
+            _, comp = connected_components(overlap, directed=False)
+            for (k, _), c in zip(items, comp):
+                site_of[k] = f"{key[0]}|{key[1]}|{c}"
+        return site_of
 
-        n = len(codes)
-        similarity = np.eye(n)
-        for i in range(n):
-            row = DataStructs.BulkTanimotoSimilarity(fps[i], fps[i + 1:])
-            for offset, sim in enumerate(row):
-                j = i + 1 + offset
-                similarity[i, j] = similarity[j, i] = sim
+    def _pocket_similarities(self, graphs, candidates, references):
+        """{(candidate, reference): US-align similarity} between pocket graphs (indices into ``graphs``).
+        Each pocket is written as one chain, residues ordered by (chain, label_seq_id); the similarity is
+        the larger of the two TM-scores, as in rnaglib's US_align_wrapper. Failed alignments count as 0."""
+        def order(g):
+            key = lambda n: (str(g.nodes[n].get("chain_id")), g.nodes[n].get("label_seq_id") if isinstance(g.nodes[n].get("label_seq_id"), int) else 10**9, str(n))
+            return sorted(g.nodes(), key=key)
 
-        adjacency = (similarity >= self.tanimoto_threshold).astype(int)
-        _, labels = connected_components(adjacency, directed=False)
-        return {code: int(label) for code, label in zip(codes, labels)}
+        sims = {}
+        with tempfile.TemporaryDirectory() as tmp:
+            for i in set(candidates) | set(references):
+                self._write_chain_pdb(graphs[i], order(graphs[i]), Path(tmp) / f"{i}.pdb")
+            listing = Path(tmp) / "references.txt"
+            listing.write_text("\n".join(f"{j}.pdb" for j in references) + "\n")
+
+            def align(i):
+                out = subprocess.run(["USalign", "-dir1", f"{tmp}/", str(listing), str(Path(tmp) / f"{i}.pdb"),
+                                      "-mol", "RNA", "-outfmt", "2"], capture_output=True, text=True).stdout
+                return {(i, int(ref)): max(tm1, tm2) for ref, _, tm1, tm2 in _parse_usalign(out)}
+
+            with ThreadPoolExecutor(max_workers=max(1, self.n_jobs)) as pool:
+                for result in tqdm(pool.map(align, candidates), total=len(candidates), desc="pocket US-align"):
+                    sims.update(result)
+        return sims
+
+    def _cap_sites_per_molecule(self, graphs, kept):
+        """Keeps at most ``max_sites_per_molecule`` pockets per molecule key. Molecules under the cap keep all
+        their pockets. For the others, pockets are picked greedily across all such molecules: at each step the
+        candidate (of a molecule with slots left) whose highest US-align similarity to every pocket kept so far
+        is the lowest, i.e. the least redundant with the rest of the dataset."""
+        cap = self.max_sites_per_molecule
+        by_molecule = collections.defaultdict(list)
+        for i in kept:
+            by_molecule[graphs[i].graph["molecule"]].append(i)
+        over = {m: members for m, members in by_molecule.items() if len(members) > cap}
+        if not over:
+            return kept
+        selected = [i for m, members in by_molecule.items() if m not in over for i in members]
+        candidates = sorted(i for members in over.values() for i in members)
+        sims = self._pocket_similarities(graphs, candidates, sorted(kept))
+        redundancy = {i: max((sims.get((i, j), 0.0) for j in selected), default=0.0) for i in candidates}
+        slots = {m: cap for m in over}
+        remaining = set(candidates)
+        while remaining:
+            best = min(remaining, key=lambda i: (redundancy[i], graphs[i].name))
+            remaining.discard(best)
+            molecule = graphs[best].graph["molecule"]
+            if slots[molecule] == 0:
+                continue
+            slots[molecule] -= 1
+            selected.append(best)
+            for i in remaining:
+                redundancy[i] = max(redundancy[i], sims.get((i, best), 0.0))
+        return sorted(selected)
+
+    # ------------------------------------------------------------------ build
+    def _entry_pockets(self, fname):
+        """Pockets of one entry graph file: (pocket names or graphs, drop Counter,
+        {molecule key: (sequence, main chain)} of the molecules its pockets sit on)."""
+        drops, molecules, pockets = collections.Counter(), {}, []
+        path = Path(self.graph_path) / fname
+        if '"binding_small-molecule-4.0A": {' not in path.read_text():
+            return pockets, drops, molecules, fname
+        rna = load_json(path)
+        pdbid = rna.graph.get("pdbid", rna.graph.get("name"))
+        copies = collections.defaultdict(lambda: {"c4": [], "shell": []})
+        for node, data in rna.nodes(data=True):
+            for entry in _as_list(data.get("binding_small-molecule-4.0A")):
+                if isinstance(entry, dict):
+                    copies[_ligand_key(entry)]["c4"].append(node)
+            for entry in _as_list(data.get(f"binding_small-molecule-{self.pocket_cutoff}A")):
+                if isinstance(entry, dict):
+                    copies[_ligand_key(entry)]["shell"].append(node)
+        chains = None
+        seen_sites = set()
+        k = 0
+        for (code, _), members in sorted(copies.items()):
+            group = self.code_to_group.get(code)
+            if group is None:
+                drops["unmapped or excluded ligand"] += 1
+                continue
+            if group in self.excluded_groups:
+                drops["excluded ligand group"] += 1
+                continue
+            if len(members["c4"]) < self.min_rna_contacts:
+                drops["too few RNA contacts"] += 1
+                continue
+            if chains is None:
+                chains = self._chains(rna)
+                # an entry is a ribosome if any of its chains is a large rRNA; all its pockets then get an rRNA key
+                large_chains = {c: self._map_rrna(s) for c, (_, s) in chains.items() if len(s) >= self.rrna_min_length}
+            main_chain = collections.Counter(rna.nodes[n]["chain_id"] for n in members["c4"]).most_common(1)[0][0]
+            order, seq = chains[main_chain]
+            index = {n: i for i, n in enumerate(order)}
+            positions = sorted(index[n] for n in members["c4"] if n in index)
+            mol_seq, mol_chain = seq, main_chain
+            if len(seq) >= self.rrna_min_length:
+                subunit, mapping = large_chains[main_chain]
+                molecule = f"rRNA_{subunit}"
+                site = sorted({mapping[p] for p in positions if p in mapping})
+            elif large_chains:
+                # pocket of a ribosome entry whose main chain is a small rRNA (5S, 5.8S), mRNA or tRNA: keyed by the
+                # large rRNA with most residues in the pocket shell (LSU, which carries 5S and 5.8S, if none), so that
+                # it falls under the same per-molecule cap. Site: E. coli numbers of its contacts on that large chain,
+                # plus "<chain sequence hash>:<index>" for its contacts on the main chain
+                shell_chains = collections.Counter(rna.nodes[n]["chain_id"] for n in members["shell"] if rna.nodes[n]["chain_id"] in large_chains)
+                if shell_chains:
+                    large = shell_chains.most_common(1)[0][0]
+                else:
+                    lsu = sorted(c for c, (sub, _) in large_chains.items() if sub == "LSU")
+                    large = lsu[0] if lsu else sorted(large_chains)[0]
+                subunit, mapping = large_chains[large]
+                molecule = f"rRNA_{subunit}"
+                large_index = {n: i for i, n in enumerate(chains[large][0])}
+                seq_hash = hashlib.md5(seq.encode()).hexdigest()[:12]
+                site = (sorted({mapping[large_index[n]] for n in members["c4"] if n in large_index and large_index[n] in mapping})
+                        + [f"{seq_hash}:{p}" for p in positions])
+                mol_seq, mol_chain = chains[large][1], large
+            else:
+                molecule = hashlib.md5(seq.encode()).hexdigest()[:12]
+                site = positions
+            molecules.setdefault(molecule, (mol_seq, mol_chain))
+            site_key = (group, molecule, tuple(site))
+            if site_key in seen_sites:  # exact repeat within the entry (NCS / multiple copies)
+                drops["duplicate site within entry"] += 1
+                continue
+            seen_sites.add(site_key)
+
+            pocket = rna.subgraph(members["shell"] or members["c4"]).copy()
+            pocket.name = f"{pdbid}_{k}"
+            k += 1
+            pocket.graph.update({
+                "name": pocket.name, "pdbid": pdbid, "ligand_code": code, "ligand_group": group,
+                "ligand_group_fine": group, "molecule": molecule, "main_chain": main_chain,
+                "site_positions": site, "resolution_high": rna.graph.get("resolution_high"),
+            })
+            if self.size_thresholds is not None and not self.size_filter.forward({"rna": pocket}):
+                drops["pocket size outside thresholds"] += 1
+                continue
+            self.add_rna_to_building_list(all_rnas=pockets, rna=pocket)
+        return pockets, drops, molecules, fname
 
     def process(self) -> RNADataset:
-        """
-        Creates the task-specific dataset.
-
-        :return: the task-specific dataset
-        :rtype: RNADataset
-        """
-        # Initialize dataset with in_memory=False to avoid loading everything at once
-        dataset = RNADataset(dataset_path=self.graph_path, in_memory=False, redundancy='all', debug=self.debug, rna_id_subset=self.nodes_keep, version=self.version)
-
-        # Instantiate filters to apply
-        # ResolutionFilter (and RNAAttributeFilter's KeyError handling underneath it) rejects an RNA outright if
-        # 'resolution_high' is missing, which silently drops every cryo-EM entry that doesn't populate that field
-        # the way X-ray entries do: checked directly, recent large cryo-EM depositions here don't even have the
-        # key in rna.graph, and this turned out to be the single biggest cause of binding pockets being discarded
-        # pre-redundancy-removal for some ligand classes. A missing value is a metadata gap, not evidence of bad
-        # quality, so it should pass; a present-but-too-coarse value should still be rejected. Written as a plain
-        # function rather than RNAAttributeFilter since that class treats a missing key as instant rejection
-        # before the value_checker ever runs, which is exactly the failure mode being fixed here.
-        def resolution_ok(rna):
-            val = rna["rna"].graph.get("resolution_high")
-            try:
-                return float(val) < 4.0
-            except (TypeError, ValueError):
-                return True
-
-        # Instantiate transforms to apply
-        nt_partition = PartitionFromDict(partition_dict=self.bp_dict)
-
-        # Phase 1: build every admissible pocket (not yet labelled), tagging each with the PDB chemical
-        # component code of its majority-contact ligand. Held in memory only transiently, so the Tanimoto
-        # clustering below sees every candidate ligand before anything is written to disk.
-        candidate_pockets = []
-        for rna in tqdm(dataset):
-            if not resolution_ok(rna):
-                continue
-            for binding_pocket_dict in nt_partition(rna):
-                if self.size_thresholds is not None:
-                    if not self.size_filter.forward(binding_pocket_dict):
-                        continue
-                pocket = binding_pocket_dict["rna"]
-                # the pocket's ligand is the chemical component labelling its seed nodes. A pocket is grown from a
-                # single ligand's >=10 contact residues, so that ligand dominates the seeds; the majority vote is
-                # robust to the few foreign seeds a BFS expansion may reach in a neighbouring site
-                codes = [self.ligands_dict[node] for node in pocket.nodes() if node in self.ligands_dict]
-                if not codes:
-                    continue
-                ligand_code = collections.Counter(codes).most_common(1)[0][0]
-                if ligand_code in self.EXCLUDED_LIGAND_CODES:
-                    continue
-                if self.ligand_smiles.get(ligand_code) is None:
-                    continue
-                pocket.graph["ligand_code"] = ligand_code
-                candidate_pockets.append(pocket)
-
-        # Phase 2: cluster the ligand codes actually present in this corpus by Tanimoto similarity, then label
-        # every pocket with its ligand's cluster. Which clusters end up largest -- and hence which become the
-        # final classes -- is only decided later, in post_process, after the structural ambiguity/redundancy
-        # pass: a chemical cluster's raw size here doesn't predict how many of its pockets survive that pass.
-        present_codes = {pocket.graph["ligand_code"] for pocket in candidate_pockets}
-        self.tanimoto_clusters = self._cluster_ligands_by_tanimoto(present_codes)
-
-        all_binding_pockets = []
+        if self.graph_path is None:
+            raise ValueError("LigandIdentification is built from all-atom graphs: set graph_path, or use "
+                             "precomputed=True to download the built task")
+        files = sorted(f for f in os.listdir(self.graph_path) if f.endswith(".json"))
+        if self.debug:
+            files = files[:300]
+        self.molecule_dir = Path(self.root) / "molecules"
+        self.molecule_dir.mkdir(parents=True, exist_ok=True)
         os.makedirs(self.dataset_path, exist_ok=True)
-        for pocket in candidate_pockets:
-            cluster_label = self.tanimoto_clusters[pocket.graph["ligand_code"]]
-            pocket.graph[self.target_var] = f"tanimoto_cluster_{cluster_label}"
-            self.add_rna_to_building_list(all_rnas=all_binding_pockets, rna=pocket)
-        dataset = self.create_dataset_from_list(all_binding_pockets)
-        return dataset
+
+        if self.n_jobs > 1:  # fork: workers inherit the task (aligner, curated groups, rRNA references)
+            global _WORKER_TASK
+            _WORKER_TASK = self
+            pool = multiprocessing.get_context("fork").Pool(self.n_jobs)
+            results = pool.imap(_worker_entry_pockets, files, chunksize=4)
+        else:
+            pool, results = None, map(self._entry_pockets, files)
+
+        self.molecule_seqs = {}  # molecule key -> sequence
+        molecule_source = {}  # molecule key -> (entry file, chain) of its first occurrence (file order)
+        self.drop_log = collections.Counter()
+        all_pockets = []
+        for pockets, drops, molecules, fname in tqdm(results, total=len(files), desc="building pockets"):
+            all_pockets += pockets
+            self.drop_log.update(drops)
+            for molecule, (seq, chain) in molecules.items():
+                if molecule not in self.molecule_seqs:
+                    self.molecule_seqs[molecule] = seq
+                    molecule_source[molecule] = (fname, chain)
+        if pool is not None:
+            pool.close()
+            pool.join()
+
+        # one PDB per molecule key (the chain of its first occurrence), for the US-align clustering
+        by_file = collections.defaultdict(list)
+        for molecule, (fname, chain) in molecule_source.items():
+            by_file[fname].append((molecule, chain))
+        for fname, items in tqdm(sorted(by_file.items()), desc="writing molecule PDBs"):
+            rna = load_json(Path(self.graph_path) / fname)
+            chains = self._chains(rna)
+            for molecule, chain in items:
+                if not self._write_chain_pdb(rna, chains[chain][0], self.molecule_dir / f"{molecule}.pdb"):
+                    raise ValueError(f"{fname}: chain {chain} has no 'heavy_atoms', graphs must be built with "
+                                     f"atom_coords_to_store=['all_atom']")
+        print("dropped ligand copies:", dict(self.drop_log))
+        return self.create_dataset_from_list(all_pockets)
+
+    def _molecule_clusters(self, molecules):
+        """{molecule key -> cluster id}: molecules linked by US-align (see module docstring), grouped
+        into connected components; a component containing an rRNA subunit is named after it."""
+        keys = sorted(molecules)
+        n = len(keys)
+        adjacency = np.eye(n, dtype=int)
+        self.molecule_links, self.molecule_seq_links = [], []
+        if n > 1:
+            with tempfile.TemporaryDirectory() as tmp:
+                listing = Path(tmp) / "list.txt"
+                listing.write_text("\n".join(f"{k}.pdb" for k in keys) + "\n")
+                out = subprocess.run(
+                    ["USalign", "-dir", f"{self.molecule_dir}/", str(listing), "-outfmt", "2", "-mol", "RNA"],
+                    capture_output=True, text=True, check=True,
+                ).stdout
+            pos = {k: i for i, k in enumerate(keys)}
+            for a, b, tm1, tm2 in _parse_usalign(out):
+                la, lb = len(self.molecule_seqs[a]), len(self.molecule_seqs[b])
+                short_tm = tm1 if la <= lb else tm2
+                long_tm = tm2 if la <= lb else tm1
+                linked = long_tm >= self.molecule_tm or (min(la, lb) >= self.fragment_min_len and short_tm >= self.fragment_tm)
+                if linked:
+                    adjacency[pos[a], pos[b]] = adjacency[pos[b], pos[a]] = 1
+                    self.molecule_links.append((a, b, tm1, tm2))
+            # sequence links: on 15-50 nt chains, TM-score stays low even between near-identical structures, so
+            # sequence-identical molecules (e.g. A-site duplex constructs differing by an overhang) could fall in
+            # different clusters. The length guards matter: with free end gaps a short chain aligns anywhere in a
+            # long one and reaches high identity by chance
+            if self.molecule_seq_identity is not None:
+                for ia, a in enumerate(keys):
+                    for b in keys[ia + 1:]:
+                        if a.startswith("rRNA_") or b.startswith("rRNA_") or adjacency[pos[a], pos[b]]:
+                            continue
+                        sa, sb = self.molecule_seqs[a], self.molecule_seqs[b]
+                        short, long_ = sorted((len(sa), len(sb)))
+                        if short < self.seq_link_min_len or short / long_ < self.seq_link_min_ratio:
+                            continue
+                        aln = self._aligner.align(sa, sb)[0]
+                        identity = sum(sa[q] == sb[t] for q, t in _aligned_positions(aln))
+                        if identity / short >= self.molecule_seq_identity:
+                            adjacency[pos[a], pos[b]] = adjacency[pos[b], pos[a]] = 1
+                            self.molecule_seq_links.append((a, b, identity / short))
+        _, labels = connected_components(adjacency, directed=False)
+        names = {labels[i]: k for i, k in enumerate(keys) if k.startswith("rRNA_")}
+        return {k: names.get(labels[i], f"mol_{labels[i]}") for i, k in enumerate(keys)}
+
+    def post_process(self):
+        graphs = [self.dataset[i]["rna"] for i in range(len(self.dataset))]
+        clusters = self._molecule_clusters({g.graph["molecule"] for g in graphs})
+        for g in graphs:
+            g.graph["molecule_cluster"] = clusters[g.graph["molecule"]]
+
+        # 1) duplicate binding sites: same fine ligand group, same molecule, overlapping contacts (transitive)
+        by_mol = collections.defaultdict(list)
+        for i, g in enumerate(graphs):
+            by_mol[(g.graph["ligand_group_fine"], g.graph["molecule"])].append(i)
+        kept = []
+        for members in by_mol.values():
+            n = len(members)
+            overlap = np.eye(n, dtype=int)
+            for a in range(n):
+                for b in range(a):
+                    if _jaccard(graphs[members[a]].graph["site_positions"], graphs[members[b]].graph["site_positions"]) > self.site_min_jaccard:
+                        overlap[a, b] = overlap[b, a] = 1
+            _, site_ids = connected_components(overlap, directed=False)
+            sites = collections.defaultdict(list)
+            for a, site in enumerate(site_ids):
+                sites[site].append(members[a])
+            kept.extend(min(site, key=lambda i: resolution_high(graphs[i])) for site in sites.values())
+        kept.sort()
+        self.n_duplicate_sites = len(graphs) - len(kept)
+        print(f"duplicate binding sites removed: {self.n_duplicate_sites}")
+
+        # 2) optional merges, then class filter
+        for i in kept:
+            g = graphs[i]
+            g.graph["ligand_group"] = self.group_merges.get(g.graph["ligand_group_fine"], g.graph["ligand_group_fine"])
+
+        def class_filter(kept):
+            pockets = collections.Counter(graphs[i].graph["ligand_group"] for i in kept)
+            cls_clusters = collections.defaultdict(set)
+            for i in kept:
+                cls_clusters[graphs[i].graph["ligand_group"]].add(graphs[i].graph["molecule_cluster"])
+            dropped = {c: {"pockets": pockets[c], "molecule_clusters": len(cls_clusters[c])} for c in pockets
+                       if pockets[c] < self.min_class_pockets or len(cls_clusters[c]) < self.min_class_clusters}
+            print(f"classes dropped (< {self.min_class_pockets} pockets or < {self.min_class_clusters} molecule clusters):",
+                  dropped)
+            return [i for i in kept if graphs[i].graph["ligand_group"] not in dropped], dropped
+
+        kept, self.dropped_groups = class_filter(kept)
+
+        # 2b) at most max_sites_per_molecule sites per molecule, chosen to be the least structurally redundant
+        # with the rest of the dataset; applied after the class filter so that sites of dropped classes take no
+        # slot, then the class filter is applied again since the cap can bring a class below its thresholds
+        if self.max_sites_per_molecule is not None:
+            n_before = len(kept)
+            kept = self._cap_sites_per_molecule(graphs, kept)
+            self.n_capped_sites = n_before - len(kept)
+            print(f"sites removed by the cap of {self.max_sites_per_molecule} per molecule: {self.n_capped_sites}")
+            kept, dropped_after_cap = class_filter(kept)
+            self.dropped_groups.update(dropped_after_cap)
+
+        # 3) training weights: one unit per variant site
+        site_of = self._variant_sites([graphs[i] for i in kept])
+        site_size = collections.Counter(site_of)
+        class_pockets = collections.Counter(graphs[i].graph["ligand_group"] for i in kept)
+        class_sites = collections.Counter(c for c, _ in {(graphs[i].graph["ligand_group"], site) for i, site in zip(kept, site_of)})
+        for i, site in zip(kept, site_of):
+            c = graphs[i].graph["ligand_group"]
+            graphs[i].graph["variant_site"] = site
+            graphs[i].graph["sample_weight"] = class_pockets[c] / class_sites[c] / site_size[site]
+        self.sample_weights = {graphs[i].name: graphs[i].graph["sample_weight"] for i in kept}
+        print(f"variant sites: {len(site_size)} for {len(kept)} pockets")
+
+        # the pockets must not carry their label outside the target: drop the residue-level ligand annotations
+        # (they name the ligand) and the entry-level ligand SMILES inherited from the entry graph
+        for i in kept:
+            for _, data in graphs[i].nodes(data=True):
+                for key in [key for key in data if key.startswith("binding_small-molecule")]:
+                    del data[key]
+            graphs[i].graph.pop("ligand_to_smiles", None)
+
+        # molecule_cluster / merged labels / weights live only in memory on the graphs above: write them back
+        if not self.in_memory:
+            for i in kept:
+                dump_json(os.path.join(self.dataset_path, f"{graphs[i].name}.json"), graphs[i])
+        self.dataset = self.dataset.subset(list_of_ids=kept)
+        kept_graphs = [graphs[i] for i in kept]
+        cluster_ids = np.array([g.graph["molecule_cluster"] for g in kept_graphs])
+        self.dataset.add_distance("molecule", (cluster_ids[:, None] != cluster_ids[None, :]).astype(float))
+        self.dataset.features_computer = self.get_task_vars()  # class mapping without the dropped classes
+        if not self.in_memory:
+            keep_names = {g.name for g in kept_graphs}
+            for f in os.listdir(self.dataset.dataset_path):
+                if f.endswith(".json") and Path(f).stem not in keep_names and f[:-5].split("_")[-1].isdigit():
+                    os.remove(Path(self.dataset.dataset_path) / f)
+            self.dataset.save_distances()
+        with open(Path(self.root) / "sample_weights.json", "w") as f:
+            json.dump(self.sample_weights, f, indent=1)
 
     def get_task_vars(self) -> FeaturesComputer:
-        """Specifies the `FeaturesComputer` object of the tasks which defines the features which have to be added to the RNAs
-        (graphs) and nucleotides (graph nodes)
-
-        :return: the features computer of the task
-        :rtype: FeaturesComputer
-        """
-        represented_values = set()
-        for rna in self.dataset:
-            represented_values.add(rna['rna'].graph[self.target_var])
-        # sorted, so that a given ligand class always maps to the same class index: iterating the set directly makes
-        # the mapping depend on string hash randomization, hence on the process, which silently invalidates any
-        # per-class metric or checkpoint reloaded in another run
-        self.mapping = {target_value: i for i, target_value in enumerate(sorted(represented_values))}
+        values = sorted({rna["rna"].graph[self.target_var] for rna in self.dataset})
+        self.mapping = {value: i for i, value in enumerate(values)}
         return FeaturesComputer(
             nt_features=self.input_var,
             rna_targets=self.target_var,
             custom_encoders={self.target_var: IntMappingEncoder(mapping=self.mapping)},
         )
 
-    def post_process(self):
-        """The task-specific post processing steps to remove redundancy, select classes and compute distances
-        which will be used by the splitters.
-
-        This mirrors the default Task.post_process, removing redundancy on sequence (CD-Hit) then on structure
-        (US-align). As in the previous, hand-curated version of this task, PrepareDataset (rather than
-        RedundancyRemover) is used for the structural pass: it additionally drops a structural-similarity cluster
-        whose pockets do not all belong to the same Tanimoto-cluster class, since structure cannot determine the
-        label there and keeping any representative would assert an arbitrary one.
-
-        The US-align step's mixed-label ambiguity check uses a stricter threshold (0.95, "plausibly the same site")
-        than its redundancy-collapse threshold (0.8, "similar enough to be a duplicate") -- see PrepareDataset's
-        docstring for why the two are decoupled.
-
-        After that structural pass, ``self.n_classes`` selects the largest surviving classes (see
-        ``_keep_top_classes`` and the class docstring for why this has to happen after, not before, the
-        structural pass), and ``self.max_per_class`` caps any of those that still dominates the dataset (see
-        ``_cap_class_sizes`` and the class docstring for why the dominant aminoglycoside cluster needs this
-        regardless of ``tanimoto_threshold``/``n_classes``).
-
-        With only a handful of classes, a debug-mode build (a fixed ~50-structure sample) can easily end up with
-        just a single matching pocket. CD-Hit/US-align can't build a pairwise similarity matrix from one sequence
-        and silently drop it, collapsing the dataset to empty -- so both distance-computation/redundancy-removal
-        passes are skipped outright below that size; this only matters for debug-mode smoke tests, since the real
-        (non-debug) dataset has far more pockets per class.
-        """
-        if len(self.dataset) < 2:
-            if not self.in_memory:
-                self.dataset.save_distances()
-            return
-
-        cd_hit_computer = CDHitComputer(similarity_threshold=0.9)
-        us_align_rr = PrepareDataset(distance_name="USalign", threshold=0.8, ambiguity_threshold=0.95,
-                                      target_name=self.target_var,
-                                      collapse_to_representative=self.collapse_structural_duplicates)
-        self.dataset = cd_hit_computer(self.dataset)
-
-        us_align_computer = StructureDistanceComputer(name="USalign")
-        self.dataset = us_align_computer(self.dataset)
-        if self.redundancy_removal:
-            self.dataset = us_align_rr(self.dataset)
-
-        if self.n_classes is not None:
-            self.dataset = self._keep_top_classes(self.dataset, self.n_classes)
-
-        if self.max_per_class is not None:
-            self.dataset = self._cap_class_sizes(self.dataset, self.max_per_class)
-
-        if not self.in_memory:
-            # PATCH: delete graphs from dataset/ lost during redundancy removal
-            for f in os.listdir(self.dataset.dataset_path):
-                if Path(f).stem not in self.dataset.all_rnas:
-                    os.remove(Path(self.dataset.dataset_path) / f)
-            self.dataset.save_distances()
-
-    def _keep_top_classes(self, dataset, n_classes):
-        """Keeps only the ``n_classes`` largest classes (by pocket count in ``dataset``), dropping every pocket
-        belonging to a smaller class.
-
-        :param RNADataset dataset: the (already structurally-filtered) dataset to select classes from
-        :param int n_classes: how many of the largest classes to keep
-        :return: the dataset restricted to those classes
-        :rtype: RNADataset
-        """
-        counts = collections.Counter(dataset[idx]["rna"].graph[self.target_var] for idx in range(len(dataset)))
-        top_labels = {label for label, _ in counts.most_common(n_classes)}
-        kept_ids = [idx for idx in range(len(dataset)) if dataset[idx]["rna"].graph[self.target_var] in top_labels]
-        return dataset.subset(list_of_ids=kept_ids)
-
-    def _cap_class_sizes(self, dataset, max_per_class):
-        """Caps any class exceeding ``max_per_class`` pockets down to its highest-resolution members.
-
-        Resolution-based rather than random, for the same reason PrepareDataset's collapse-to-representative step
-        picks the best-resolution structure: it's a deterministic, reproducible criterion that also happens to
-        favor the more trustworthy structures, instead of leaving which pockets survive up to RNG seeding.
-
-        :param RNADataset dataset: the (already redundancy-reduced) dataset to cap
-        :param int max_per_class: the maximum number of pockets to keep per class
-        :return: the capped dataset
-        :rtype: RNADataset
-        """
-        by_class = collections.defaultdict(list)
-        for idx in range(len(dataset)):
-            label = dataset[idx]["rna"].graph[self.target_var]
-            try:
-                resolution = float(dataset[idx]["rna"].graph.get("resolution_high"))
-            except (TypeError, ValueError):
-                resolution = float("inf")
-            by_class[label].append((resolution, idx))
-
-        kept_ids = []
-        for members in by_class.values():
-            members.sort(key=lambda pair: pair[0])
-            kept_ids.extend(idx for _, idx in members[:max_per_class])
-        return dataset.subset(list_of_ids=kept_ids)
-
     @property
     def default_splitter(self):
-        """Returns the splitting strategy to be used for this specific task. Canonical splitter is ClusterSplitter which is a
-        similarity-based splitting relying on clustering which could be refined into a sequencce- or structure-based clustering
-        using distance_name argument
-
-        :return: the default splitter to be used for the task
-        :rtype: Splitter
-        """
-        return ClusterSplitter(distance_name="USalign")
+        return MoleculeClusterStratifiedSplitter(label_key=self.target_var)

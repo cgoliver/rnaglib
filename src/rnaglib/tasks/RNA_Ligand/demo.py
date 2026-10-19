@@ -1,11 +1,9 @@
-import os
-import pandas as pd
 from rnaglib.tasks import LigandIdentification
 from rnaglib.transforms import GraphRepresentation
 from rnaglib.learning.task_models import PygModel
 
-# Creating task 
-ta = LigandIdentification('RNA_Ligand', recompute=True)
+# Creating task: built from a folder of all-atom rnaglib graphs (atom_coords_to_store=["all_atom"])
+ta = LigandIdentification(root="RNA_Ligand", graph_path="path/to/all_atom_graphs", recompute=True)
 
 # Adding representation
 ta.add_representation(GraphRepresentation(framework="pyg"))

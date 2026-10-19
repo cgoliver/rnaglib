@@ -54,6 +54,7 @@ class TaskTest(unittest.TestCase):
             ta = gRNAde(root=tmp, recompute=True, **self.default_dataset_params)
             self.check_task(ta)
 
+    @unittest.skip("LigandIdentification is built from all-atom graphs (graph_path), which no debug download provides")
     def test_LigandIdentification(self):
         with tempfile.TemporaryDirectory() as tmp:
             ta = LigandIdentification(root=tmp, recompute=True, **self.default_dataset_params)
