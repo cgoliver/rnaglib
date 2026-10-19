@@ -1,14 +1,9 @@
-"""
-
-Build 2.5D graphs using [fr3d-python].
-
-"""
+"""Build 2.5D RNA graphs (residues as nodes, backbone and base-pair interactions as edges) using fr3d-python."""
 
 import json
 import os
 import subprocess
 import sys
-import traceback
 from pathlib import Path
 
 import numpy as np
@@ -20,11 +15,8 @@ from loguru import logger
 try:
     from fr3d.classifiers.NA_pairwise_interactions import generatePairwiseAnnotation_import
 except ImportError:
-    print("Missing fr3d installation, pip install\
-          git+https://github.com/cgoliver/fr3d-python.git")
+    print("Missing fr3d installation: pip install git+https://github.com/cgoliver/fr3d-python.git")
 
-from rnaglib.utils import dump_json
-from rnaglib.config import GRAPH_KEYS
 from rnaglib.config import EDGE_MAP_RGLIB, EDGE_MAP_RGLIB_WITH_STACKING
 
 from rnaglib.config import get_modifications_cache
@@ -44,29 +36,62 @@ def get_rna_chains(mmcif_dict):
     ]
     cleaned = []
     for r in rna_chains:
-        sub = r.split(",")
-        cleaned.extend([s for s in sub])
+        cleaned.extend(r.split(","))
     return cleaned
 
 
-def nuc_id(raw_label):
-    """Map a raw fr3d nucleotide ID to a glib format one
+# Maximum O3'(i)-P(i+1) distance (Angstrom) for two label-consecutive residues to be joined by a backbone edge.
+# Label adjacency alone is not enough: unmodelled segments are sometimes omitted from the entity sequence, so the
+# residues on both sides of a physical chain break get consecutive label_seq_ids. A covalent O3'-P bond is ~1.6 A;
+# 4 A tolerates poorly modelled linkages while a single missing nucleotide almost always spans more.
+MAX_O3P_DIST = 4.0
 
-    :param raw_label: raw residue label from fr3d
-    :param pdbid: pdbid of rna containing of nucleotide
-    :returns str: new string with the format <pdbid>.<chain>.<pos>
+
+def get_polymer_rna_residue_keys(mmcif_dict):
+    """Return the set of (auth_asym_id, auth_seq_id, ins_code) of residues belonging to a polyribonucleotide entity.
+
+    Uses the mmCIF polymer definition (label_seq_id set + polyribonucleotide entity) rather than the chem_comp type,
+    so polymer residues typed e.g. 'non-polymer' (5' GTP) or 'RNA OH 3 prime terminus' are kept, while non-polymer
+    ligands sharing the author chain (no label_seq_id) are excluded.
     """
-    # 3OX0|1|A|C|70 -> 3ox0.A.70
-    logger.trace(raw_label)
-    pdbid, _, chain, _, pos = raw_label.split("|")
-    return f"{pdbid.lower()}.{chain}.{pos}"
+    to_list = lambda x: x if isinstance(x, list) else [x]
+    rna_entities = {
+        entity
+        for entity, entity_type in zip(to_list(mmcif_dict["_entity_poly.entity_id"]), to_list(mmcif_dict["_entity_poly.type"]))
+        if entity_type == "polyribonucleotide"
+    }
+    auth_seq = mmcif_dict["_atom_site.auth_seq_id"]
+    ins_codes = mmcif_dict.get("_atom_site.pdbx_PDB_ins_code", ["?"] * len(auth_seq))
+    keys = set()
+    for ca, cs, ic, entity, ls in zip(
+        mmcif_dict["_atom_site.auth_asym_id"], auth_seq, ins_codes,
+        mmcif_dict["_atom_site.label_entity_id"], mmcif_dict["_atom_site.label_seq_id"],
+    ):
+        if entity in rna_entities and ls not in (".", "?"):
+            keys.add((ca, int(cs), " " if ic in (".", "?") else ic))
+    return keys
 
 
-def get_residue_list(chain, XNA_linking):
-    # return sorted([r for r in chain if r.id[0] == ' '], key=lambda x: x.id[1])
+def get_residue_list(chain, poly_keys):
+    """Polymer RNA residues of `chain`, sorted in sequence (label_seq_id) order.
+
+    Sorting by author numbering misplaces residues whenever it does not follow the sequence (numbering restarts,
+    inserted segments numbered 1000+, plain numbers placed after their insertion-code variants, reversed numbering).
+    """
     return sorted(
-        [r for r in chain.get_residues() if r.id[0] == " " or r.id[0][2:] in XNA_linking], key=lambda x: (x.id[1], x.id[2])
+        [
+            r for r in chain.get_residues()
+            if (chain.id, r.id[1], r.id[2]) in poly_keys and r.xtra.get("label_seq_id") is not None
+        ],
+        key=lambda x: (x.xtra["label_seq_id"], x.id[1], x.id[2]),
     )
+
+
+def _o3p_distance(res_i, res_j):
+    """O3'(res_i)-P(res_j) distance in Angstrom, None if either atom is missing."""
+    if "O3'" not in res_i or "P" not in res_j:
+        return None
+    return round(float(res_i["O3'"] - res_j["P"]), 3)
 
 
 def rna_letters_3to1(three_letter_code: str) -> str:
@@ -211,43 +236,48 @@ def _add_sym_copy_chain(G, chain_id, sym_code, R, t):
                 G.add_edge(sym_u, sym_v, **data)
 
 
-def get_bb(structure, rna_chains, XNA_linking, pdbid=""):
-    """Get the backbone edges"""
+def get_bb(structure, rna_chains, poly_keys, pdbid=""):
+    """Get the polymer RNA residues and the backbone edges joining them.
+
+    Two residues are joined if they are consecutive in the entity sequence (label_seq_id) and their O3'-P distance
+    is at most MAX_O3P_DIST (kept on label adjacency alone if either atom is missing). The distance is stored on
+    both edges as 'o3p_dist' (None if unmeasurable). Residues without any backbone edge (isolated by chain breaks
+    on both sides) are still returned.
+
+    :returns: (backbone edges, {node: one-letter code}, {node: residue name}, {node: label_seq_id},
+        {node: Bio.PDB residue})
+    """
     bb = []
     nt_types = {}
     nt_types_full = {}
     lsi_dict = {}
+    residues = {}
     for chain in structure.get_chains():
         if chain.id not in rna_chains:
             continue
-        reslist = get_residue_list(chain, XNA_linking)
+        reslist = get_residue_list(chain, poly_keys)
         logger.debug(reslist)
 
-        for i, five_p in enumerate(reslist):
-            if i == 0:
+        for res in reslist:
+            name = _res_node_id(pdbid, chain.id, res)
+            residues[name] = res
+            nt_types[name] = rna_letters_3to1(res.get_resname())
+            nt_types_full[name] = res.get_resname()
+            lsi_dict[name] = res.xtra["label_seq_id"]
+
+        for three_p, five_p in zip(reslist, reslist[1:]):
+            if five_p.xtra["label_seq_id"] != three_p.xtra["label_seq_id"] + 1:
                 continue
-            three_p = reslist[i - 1]
             fivep_name = _res_node_id(pdbid, chain.id, five_p)
             threep_name = _res_node_id(pdbid, chain.id, three_p)
-
-            five_p_lsi = five_p.xtra.get("label_seq_id")
-            three_p_lsi = three_p.xtra.get("label_seq_id")
-            if five_p_lsi is None or three_p_lsi is None:
+            o3p_dist = _o3p_distance(three_p, five_p)
+            if o3p_dist is not None and o3p_dist > MAX_O3P_DIST:
+                logger.debug(f"{threep_name}->{fivep_name}: O3'-P {o3p_dist} A > {MAX_O3P_DIST}, no backbone edge")
                 continue
-            if int(five_p_lsi) == (int(three_p_lsi) + 1):
-                bb.append((fivep_name, threep_name, {"LW": "B53"}))
-                bb.append((threep_name, fivep_name, {"LW": "B35"}))
+            bb.append((fivep_name, threep_name, {"LW": "B53", "o3p_dist": o3p_dist}))
+            bb.append((threep_name, fivep_name, {"LW": "B35", "o3p_dist": o3p_dist}))
 
-                nt_types[fivep_name] = rna_letters_3to1(five_p.get_resname())
-                nt_types[threep_name] = rna_letters_3to1(three_p.get_resname())
-
-                nt_types_full[fivep_name] = five_p.get_resname()
-                nt_types_full[threep_name] = three_p.get_resname()
-
-                lsi_dict[fivep_name] = five_p_lsi
-                lsi_dict[threep_name] = three_p_lsi
-
-    return bb, nt_types, nt_types_full, lsi_dict
+    return bb, nt_types, nt_types_full, lsi_dict, residues
 
 
 def nt_to_rgl(nt, pdbid):
@@ -285,8 +315,9 @@ def _forgi_annotate_sse(G, rna_path, pdbid):
             check=True,
         )
         node_types = json.loads(proc.stdout)
-    except Exception as e:
-        logger.warning(f"forgi annotation failed for {pdbid}: {e}")
+    except (OSError, subprocess.CalledProcessError, json.JSONDecodeError) as e:
+        stderr = getattr(e, "stderr", None)
+        logger.warning(f"forgi annotation failed for {pdbid}: {e}" + (f"\n{stderr}" if stderr else ""))
         nx.set_node_attributes(G, None, "secondary_element")
         return
 
@@ -300,14 +331,20 @@ def _forgi_annotate_sse(G, rna_path, pdbid):
 def fr3d_to_graph(rna_path, atom_coords_to_store=["P"], include_stacking=False):
     """Use fr3d to generate networkx annotation graph.
 
-    :param rna_path: path to a PDB of the RNA structure
-    :returns nx.Graph: networkx graph with annotations
+    For multi-model entries (NMR ensembles), only the first model is used, both for coordinates and for
+    base-pair annotations.
+
+    :param rna_path: path to the mmCIF file of the RNA structure
+    :param atom_coords_to_store: atom names whose coordinates are stored as 'xyz_<atom>' node attributes, or
+        ["all_atom"] to store every heavy atom in a 'heavy_atoms' node attribute
+    :param include_stacking: also add fr3d stacking interactions as edges
+    :returns nx.MultiDiGraph: networkx graph with annotations, or None if fr3d or chain parsing fails
     """
     rna_path = Path(rna_path)
     try:
         category = "basepair,stacking" if include_stacking else "basepair"
         annot_df = generatePairwiseAnnotation_import(rna_path, category=category)
-    except Exception as e:
+    except Exception:
         logger.exception(f"Fr3D error {rna_path}")
         return None
 
@@ -323,27 +360,17 @@ def fr3d_to_graph(rna_path, atom_coords_to_store=["P"], include_stacking=False):
         logger.error(f"Couldn't identify RNA chains in {pdbid}")
         return None
 
-    # Parse Cartesian symmetry operators and identify which chains need copies.
-    # Done before building the graph so we know the scope of sym copies upfront.
+    # Cartesian symmetry operators, and the RNA chains needing a symmetry copy in the biological assembly
     operators = _parse_oper_list(struc_dict)
     sym_needs = _collect_sym_needs(struc_dict, rna_chains)
 
-    # find all XNA linking, including standard and non-standard
-    chem_comp = {}
-    chem_comp["chem_code"] = struc_dict["_chem_comp.id"]
-    chem_comp["chem_type"] = struc_dict["_chem_comp.type"]
-    XNA_linking = [
-        chem_comp["chem_code"][idx]
-        for idx, tp in enumerate(chem_comp["chem_type"])
-        if tp == "RNA linking" or tp == "DNA linking"
-    ]
-    # XNA_linking = [chem_comp['chem_code'][idx] for idx, tp in enumerate(chem_comp['chem_type']) if tp =='RNA linking']
+    poly_keys = get_polymer_rna_residue_keys(struc_dict)
 
-    # add coords with biopython
     parser = MMCIFParser()
     structure = parser.get_structure("", rna_path)[0]
+    model_num = str(structure.serial_num)
 
-    # Build an author id -> label id mapping
+    # author residue id -> label_seq_id
     auth_asym  = struc_dict["_atom_site.auth_asym_id"]
     auth_seq   = struc_dict["_atom_site.auth_seq_id"]
     label_seq  = struc_dict["_atom_site.label_seq_id"]
@@ -354,7 +381,7 @@ def fr3d_to_graph(rna_path, atom_coords_to_store=["P"], include_stacking=False):
         icode = " " if ic in (".", "?") else ic
         key = (ca, int(cs), icode)
         label_map[key] = None if ls in (".", "?") else int(ls)
-    
+
     # Attach label_seq_id to each residue's .xtra dict
     for chain in structure.get_chains():
         for residue in chain:
@@ -362,10 +389,10 @@ def fr3d_to_graph(rna_path, atom_coords_to_store=["P"], include_stacking=False):
             key = (chain.id, resseq, icode)
             residue.xtra["label_seq_id"] = label_map[key]
 
-    bbs, nt_types, nt_types_full, lsi_dict = get_bb(structure, rna_chains, XNA_linking, pdbid=pdbid)
-    # print(f"rna chain residues: {nt_types}")
+    bbs, nt_types, nt_types_full, lsi_dict, residues = get_bb(structure, rna_chains, poly_keys, pdbid=pdbid)
     logger.trace(bbs)
     G = nx.MultiDiGraph()
+    G.add_nodes_from(residues)
     G.add_edges_from(bbs)
 
     nx.set_node_attributes(G, nt_types, "nt")
@@ -374,50 +401,29 @@ def fr3d_to_graph(rna_path, atom_coords_to_store=["P"], include_stacking=False):
 
     for node in G.nodes():
         G.nodes[node]["nt_code"] = nt_types[node]
-        G.nodes[node]["nt_full"] = nt_types_full[node]
         G.nodes[node]["chain_id"] = node.split(".")[1]
         G.nodes[node]["is_modified"] = len(nt_types_full[node]) != 1
 
-    try:
-        coord_dict = {}
-        for node in G.nodes():
-            chain, pos_str = node.split(".")[1:]
-            icode = pos_str[-1] if pos_str[-1].isalpha() else ""
-            seqnum = int(pos_str[:-1] if icode else pos_str)
-            try:
-                r = structure[chain][(" ", seqnum, icode if icode else " ")]
-            except KeyError:
-                for res in structure[chain]:
-                    if res.id[1] == seqnum and res.id[2].strip() == icode:
-                        r = res
-            centroid_coord = np.mean([a.get_coord() for a in r], axis=0)
-            coord_dict[node] = {f"xyz_centroid": list(map(float, centroid_coord))}
-            if atom_coords_to_store == ["all_atom"]:
-                heavy_atoms = {
-                    a.get_name(): list(map(float, a.get_coord()))
-                    for a in r
-                    if a.element != "H" and a.element.strip() != "H"
-                }
-                coord_dict[node]["heavy_atoms"] = heavy_atoms
-            else:
-                for atom_type in atom_coords_to_store:
-                    try:
-                        atom_coord = list(map(float, r[atom_type].get_coord()))
-                    except KeyError:
-                        atom_coord = None
-                        logger.warning(f"Couldn't find {atom_type} atom")
-                    logger.debug(f"{node} {atom_coord}")
-                    coord_dict[node][f"xyz_{atom_type}"] = atom_coord
-        nx.set_node_attributes(G, coord_dict)
+    coord_dict = {}
+    for node, r in residues.items():
+        centroid_coord = np.mean([a.get_coord() for a in r], axis=0)
+        coord_dict[node] = {"xyz_centroid": list(map(float, centroid_coord))}
+        if atom_coords_to_store == ["all_atom"]:
+            coord_dict[node]["heavy_atoms"] = {
+                a.get_name(): list(map(float, a.get_coord())) for a in r if a.element.strip() != "H"
+            }
+        else:
+            for atom_type in atom_coords_to_store:
+                if atom_type in r:
+                    atom_coord = list(map(float, r[atom_type].get_coord()))
+                else:
+                    atom_coord = None
+                    logger.warning(f"{node}: no {atom_type} atom")
+                coord_dict[node][f"xyz_{atom_type}"] = atom_coord
+    nx.set_node_attributes(G, coord_dict)
 
-    except Exception as e:
-        logger.exception(f"Failed to get coordinates for {pdbid}, {e}")
-        return None
-
-    # Build full symmetry-copy chains so that cross-symmetry base pairs can be
-    # added as ordinary graph edges. Each sym copy is geometrically the image of
-    # the original chain under the corresponding Cartesian operator from
-    # _pdbx_struct_oper_list. Node IDs use the convention {pdbid}.{chain}-{sym}.{pos}.
+    # Symmetry copies of the chains of the biological assembly, so that base pairs across symmetry mates are ordinary
+    # edges. Node IDs use the convention {pdbid}.{chain}-{sym}.{pos}.
     for sym_code, chains in sym_needs.items():
         if sym_code not in operators:
             logger.warning(f"{pdbid}: sym operator {sym_code} not in _pdbx_struct_oper_list, skipping")
@@ -431,6 +437,9 @@ def fr3d_to_graph(rna_path, atom_coords_to_store=["P"], include_stacking=False):
         elabel = pair.interaction
         if elabel not in edge_map:
             continue
+        # fr3d annotates every model of an NMR ensemble, and node IDs do not carry the model number
+        if pair.source.split("|")[1] != model_num:
+            continue
 
         nt1 = nt_to_rgl(pair.source, pdbid)
         nt2 = nt_to_rgl(pair.target, pdbid)
@@ -438,17 +447,9 @@ def fr3d_to_graph(rna_path, atom_coords_to_store=["P"], include_stacking=False):
         if G.has_node(nt1) and G.has_node(nt2):
             G.add_edge(nt1, nt2, LW=elabel)
 
-
     _forgi_annotate_sse(G, rna_path, pdbid)
 
     G.graph["name"] = pdbid
     G.graph["pdbid"] = pdbid
 
     return G
-
-
-if __name__ == "__main__":
-    # doc example with multiloop
-    # fr3d_to_graph("../data/1aju.cif")
-    # multi chain
-    fr3d_to_graph("../data/structures/1fmn.cif")
