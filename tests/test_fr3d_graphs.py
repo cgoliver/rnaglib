@@ -16,6 +16,7 @@ from unittest import mock
 import networkx as nx
 import numpy as np
 import pandas as pd
+from Bio.PDB import MMCIF2Dict
 from Bio.PDB.Atom import Atom
 from Bio.PDB.Chain import Chain
 from Bio.PDB.Model import Model
@@ -25,7 +26,7 @@ from Bio.PDB.Structure import Structure
 from rnaglib.prepare_data import fr3d_2_graphs as f2g
 
 REPO = Path(__file__).resolve().parents[1]
-STRUCTURES = REPO / "src" / "rnaglib" / "prepare_data" / "structures"
+STRUCTURES = REPO / "tests" / "data"
 
 
 # --------------------------------------------------------------------------- Bio.PDB helpers
@@ -439,7 +440,7 @@ class TestFr3dToGraphSynthetic(unittest.TestCase):
 
 
 class TestFr3dToGraphReal(unittest.TestCase):
-    """Full pipeline (FR3D included) on small entries shipped with the repository."""
+    """Full pipeline (FR3D included) on the mmCIF fixtures of tests/data (1a1t reduced to its first 3 models)."""
 
     def setUp(self):
         self._env = mock.patch.dict(os.environ, {}, clear=False)
@@ -450,8 +451,11 @@ class TestFr3dToGraphReal(unittest.TestCase):
         self._env.stop()
 
     def test_nmr_ensemble_first_model_only(self):
-        # 1a1t: 25-model NMR ensemble; base pairs must come from the first model only, without duplicates
-        G = f2g.fr3d_to_graph(STRUCTURES / "1a1t.cif")
+        # 1a1t: NMR ensemble; base pairs must come from the first model only, without duplicates
+        path = STRUCTURES / "1a1t.cif"
+        models = set(MMCIF2Dict.MMCIF2Dict(str(path))["_atom_site.pdbx_PDB_model_num"])
+        self.assertGreater(len(models), 1)  # the fixture must keep several models for this test to be meaningful
+        G = f2g.fr3d_to_graph(path)
         self.assertIsNotNone(G)
         self.assertEqual(G.number_of_nodes(), 20)
         self.assertEqual(G.number_of_edges(), 54)
