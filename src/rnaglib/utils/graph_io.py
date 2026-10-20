@@ -37,9 +37,9 @@ def multigraph_to_simple(g: nx.MultiDiGraph) -> nx.DiGraph:
         if etype not in backbone_types and not simple_g.has_edge(u, v):
             basepairs.append((u, v, data))
 
+    # all nodes keep their attributes, including those without a backbone edge (base-pair-only or isolated)
     for n, data in g.nodes(data=True):
-        if n in simple_g.nodes():
-            simple_g.nodes[n].update(data)
+        simple_g.add_node(n, **data)
     simple_g.add_edges_from(basepairs)
 
     simple_g.graph = g.graph.copy()
