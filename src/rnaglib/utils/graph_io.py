@@ -273,7 +273,7 @@ def download(url, path=None, overwrite=True, retries=5, verify_ssl=True, log=Tru
     return fname
 
 
-def download_name_generator(version="2.0.2", redundancy="nr", annotated=False, record="14325118", debug=False):
+def download_name_generator(version="3.0.0", redundancy="nr", annotated=False, record="14325118", debug=False):
     """This returns the zenodo URL given dataset choices.
 
     :param version: Which data version to use.
@@ -296,7 +296,7 @@ def download_name_generator(version="2.0.2", redundancy="nr", annotated=False, r
 
 def download_graphs(
     redundancy="nr",
-    version="2.0.2",
+    version="3.0.0",
     annotated=False,
     chop=False,
     overwrite=False,
@@ -368,7 +368,7 @@ def download_graphs(
 
 def available_pdbids(
     graph_dir=None,
-    version="2.0.2",
+    version="3.0.0",
     chop=False,
     annotated=False,
     redundancy="nr",

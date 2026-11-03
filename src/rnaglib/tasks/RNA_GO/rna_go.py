@@ -110,7 +110,7 @@ class RNAGo(RNAClassificationTask):
 
     input_var = "nt_code"  # node level attribute
     target_var = "go_terms"  # graph level attribute
-    version = "2.0.2"
+    version = "3.0.0"
     default_metric = "fmax"
 
     def __init__(

@@ -29,7 +29,7 @@ class InverseFolding(ResidueClassificationTask):
     nucs = ["A", "C", "G", "U"]
     name = "rna_if"
     default_metric = "accuracy"
-    version = "2.0.2"
+    version = "3.0.0"
 
     def __init__(self, size_thresholds=(15, 300), graph_path=None, **kwargs):
         meta = {"multi_label": False}

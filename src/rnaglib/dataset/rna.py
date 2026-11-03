@@ -9,7 +9,7 @@ from rnaglib.utils import get_default_download_dir, dump_json, load_graph
 
 def rna_from_pdbid(
     pdbid,
-    version="2.0.0",
+    version="3.0.0",
     annotated=False,
     chop=False,
     redundancy="nr",

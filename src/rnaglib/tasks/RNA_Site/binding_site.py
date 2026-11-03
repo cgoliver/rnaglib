@@ -28,7 +28,7 @@ class BenchmarkBindingSite(ResidueClassificationTask):
     target_var = "binding_site"
     input_var = "nt_code"
     name = "rna_site_bench"
-    version = "2.0.2"
+    version = "3.0.0"
     default_metric = "balanced_accuracy"
 
     def __init__(self, cutoff=6.0, graph_path=None, **kwargs):
@@ -122,7 +122,7 @@ class BindingSite(ResidueClassificationTask):
     """
     input_var = "nt_code"
     name = "rna_site"
-    version = "2.0.2"
+    version = "3.0.0"
     default_metric = "balanced_accuracy"
 
     def __init__(self, cutoff=6.0, size_thresholds=(15, 500), graph_path=None, **kwargs):

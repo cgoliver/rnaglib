@@ -78,7 +78,7 @@ class RNADataset(Dataset):
         self,
         rnas: list[nx.Graph] = None,
         dataset_path: str | os.PathLike = None,
-        version="2.0.2",
+        version="3.0.0",
         redundancy="nr",
         rna_id_subset: list[str] = None,
         recompute_mapping: bool = True,

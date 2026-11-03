@@ -19,7 +19,7 @@ class VirtualScreening(Task):
     input_var = "nt_code"
     target_var = "dummy"
     name = "rna_vs"
-    version = "2.0.2"
+    version = "3.0.0"
     default_metric = "auroc"
 
     def __init__(self, ligand_framework="pyg", graph_path=None, **kwargs):
