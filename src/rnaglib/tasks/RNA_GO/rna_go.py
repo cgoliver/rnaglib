@@ -10,6 +10,7 @@ from rnaglib.encoders import MultiLabelOneHotEncoder
 from rnaglib.transforms import FeaturesComputer
 from rnaglib.dataset_transforms import ClusterSplitter, CDHitComputer
 from rnaglib.utils.rfam_utils import pdb_sel_to_rfam, get_rfam_to_go_propagated, filter_and_dedup_go_terms, get_go_dag
+from rnaglib.config.data_release import TASKS_DATA_VERSION
 
 
 class RNAGo(RNAClassificationTask):
@@ -110,7 +111,7 @@ class RNAGo(RNAClassificationTask):
 
     input_var = "nt_code"  # node level attribute
     target_var = "go_terms"  # graph level attribute
-    version = "3.0.0"
+    version = TASKS_DATA_VERSION
     default_metric = "fmax"
 
     def __init__(

@@ -7,6 +7,7 @@ from tqdm import tqdm
 from rnaglib.transforms import DummyAnnotator
 from rnaglib.tasks.RNA_VS.ligands import MolGraphEncoder
 from rnaglib.utils import graph_io
+from rnaglib.config.data_release import TASKS_DATA_VERSION
 from rnaglib.dataset import rna_from_pdbid
 
 
@@ -81,7 +82,7 @@ def load_groups():
     return all_groups
 
 
-def dump_rna_jsons(root, recompute=False, version="3.0.0"):
+def dump_rna_jsons(root, recompute=False, version=TASKS_DATA_VERSION):
     all_groups = load_groups()
     # Check data was properly downloaded by getting one graph
     if rna_from_pdbid("1k73", redundancy='all') is None:

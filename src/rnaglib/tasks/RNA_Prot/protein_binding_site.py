@@ -7,6 +7,7 @@ from rnaglib.dataset_transforms import ClusterSplitter
 from rnaglib.encoders import BoolEncoder
 from rnaglib.tasks import ResidueClassificationTask
 from rnaglib.transforms import ConnectedComponentPartition, FeaturesComputer, ResidueAttributeFilter, ComposeFilters
+from rnaglib.config.data_release import TASKS_DATA_VERSION
 
 # Lowercase pdbid -> author chain IDs of crystallization chaperones (U1A RRM domain, Fab/Fv frameworks), identified
 # by sequence identity. Entries where the protein is a native partner (spliceosomal assemblies, U1A bound to its own
@@ -74,7 +75,7 @@ class ProteinBindingSite(ResidueClassificationTask):
     input_var = "nt_code"
     name = "rna_prot"
     default_metric = "balanced_accuracy"
-    version = "3.0.0"
+    version = TASKS_DATA_VERSION
 
     def __init__(self, size_thresholds=(15, 500), graph_path=None, exclude_chaperone_contacts=False, **kwargs):
         meta = {"multi_label": False}

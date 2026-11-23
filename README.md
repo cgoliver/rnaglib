@@ -102,7 +102,7 @@ available.
 ## Dowloading whole RNA structure databases
 
 In addition to analysing RNA data, RNAglib also distributes available parsed RNA structures.
-Databases of annotated structures can be downloaded directly from [Zenodo](https://zenodo.org/records/14625192).
+Databases of annotated structures can be downloaded directly from [Zenodo](https://zenodo.org/records/14285985) (this link always points to the latest release; the version used by the code is set in `src/rnaglib/config/data_release.py`).
 
 | Version | Date     | Total RNAs | Total Non-Redundant | Non-redundant version | `rnaglib` commit |
 ---------|----------|------------|---------------------|-----------------------|------------------|

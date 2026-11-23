@@ -8,6 +8,8 @@ from pathlib import Path
 from typing import Literal
 from torch.utils.data import Dataset
 
+from rnaglib.config.data_release import DATA_VERSION
+
 from bidict import bidict
 import networkx as nx
 import numpy as np
@@ -78,7 +80,7 @@ class RNADataset(Dataset):
         self,
         rnas: list[nx.Graph] = None,
         dataset_path: str | os.PathLike = None,
-        version="3.0.0",
+        version=DATA_VERSION,
         redundancy="nr",
         rna_id_subset: list[str] = None,
         recompute_mapping: bool = True,

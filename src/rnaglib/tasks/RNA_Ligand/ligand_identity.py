@@ -81,6 +81,7 @@ from Bio import Align
 from scipy.sparse.csgraph import connected_components
 from tqdm import tqdm
 
+from rnaglib.config.data_release import TASKS_DATA_VERSION
 from rnaglib.dataset import RNADataset
 from rnaglib.dataset_transforms.splitters import Splitter
 from rnaglib.encoders import IntMappingEncoder
@@ -263,7 +264,7 @@ class LigandIdentification(RNAClassificationTask):
     target_var = "ligand_group"
     name = "rna_ligand"
     default_metric = "balanced_accuracy"
-    version = "3.0.0"
+    version = TASKS_DATA_VERSION
 
     def __init__(
         self,

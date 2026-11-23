@@ -10,6 +10,7 @@ from rnaglib.transforms import BindingSiteAnnotator, SmallMoleculeBindingTransfo
 from rnaglib.transforms import ResidueAttributeFilter, ChainFilter
 from rnaglib.transforms import ConnectedComponentPartition
 from rnaglib.dataset_transforms import SPLITTING_VARS, default_splitter_tr60_tr18, RandomSplitter, ClusterSplitter
+from rnaglib.config.data_release import TASKS_DATA_VERSION
 
 
 class BenchmarkBindingSite(ResidueClassificationTask):
@@ -28,7 +29,7 @@ class BenchmarkBindingSite(ResidueClassificationTask):
     target_var = "binding_site"
     input_var = "nt_code"
     name = "rna_site_bench"
-    version = "3.0.0"
+    version = TASKS_DATA_VERSION
     default_metric = "balanced_accuracy"
 
     def __init__(self, cutoff=6.0, graph_path=None, **kwargs):
@@ -122,7 +123,7 @@ class BindingSite(ResidueClassificationTask):
     """
     input_var = "nt_code"
     name = "rna_site"
-    version = "3.0.0"
+    version = TASKS_DATA_VERSION
     default_metric = "balanced_accuracy"
 
     def __init__(self, cutoff=6.0, size_thresholds=(15, 500), graph_path=None, **kwargs):

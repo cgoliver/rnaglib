@@ -25,9 +25,8 @@ from rnaglib.dataset_transforms import StructureDistanceComputer, CDHitComputer
 from rnaglib.dataset_transforms import RandomSplitter, Splitter, RedundancyRemover
 from rnaglib.dataset_transforms import Collater
 from rnaglib.tasks import TASKS
+from rnaglib.config.data_release import tasks_zenodo_file_url
 
-ZENOD_RECORD = "189027"
-ZENODO_URL = f"https://sandbox.zenodo.org/records/{ZENOD_RECORD}/files/"
 
 
 def _fmax_score(labels: np.ndarray, probs: np.ndarray, n_thresholds: int = 51) -> float:
@@ -154,7 +153,7 @@ class Task:
     def from_zenodo(self):
         """Downloads the task dataset from Zenodo and loads it."""
 
-        url = ZENODO_URL + f"{self.name}.tar.gz"
+        url = tasks_zenodo_file_url(f"{self.name}.tar.gz")
         print(f">>> Downloading task dataset from Zenodo {url}...")
         download(url)
         with tarfile.open(f"{self.name}.tar.gz") as tar_file:

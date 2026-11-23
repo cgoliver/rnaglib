@@ -8,6 +8,7 @@ from rnaglib.transforms import ResidueAttributeFilter, DummyFilter
 from rnaglib.transforms import ConnectedComponentPartition
 from rnaglib.transforms import BiologicalModificationAnnotator
 from rnaglib.dataset_transforms import ClusterSplitter
+from rnaglib.config.data_release import TASKS_DATA_VERSION
 
 
 class ChemicalModification(ResidueClassificationTask):
@@ -33,7 +34,7 @@ class ChemicalModification(ResidueClassificationTask):
     input_var = "nt_code"
     name = "rna_cm"
     default_metric = "balanced_accuracy"
-    version = "3.0.0"
+    version = TASKS_DATA_VERSION
 
     def __init__(self, size_thresholds=(15, 500), graph_path=None, allowed_modifications=None, **kwargs):
         meta = {'multi_label': False}

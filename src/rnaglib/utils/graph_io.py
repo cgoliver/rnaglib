@@ -15,7 +15,7 @@ import pandas as pd
 import requests
 from Bio.PDB.PDBList import PDBList
 
-ZENODO_RECORD = "14930728"
+from rnaglib.config.data_release import DATA_VERSION, ZENODO_RECORD, zenodo_file_url
 
 
 def multigraph_to_simple(g: nx.MultiDiGraph) -> nx.DiGraph:
@@ -273,7 +273,7 @@ def download(url, path=None, overwrite=True, retries=5, verify_ssl=True, log=Tru
     return fname
 
 
-def download_name_generator(version="3.0.0", redundancy="nr", annotated=False, record="14325118", debug=False):
+def download_name_generator(version=DATA_VERSION, redundancy="nr", annotated=False, record=ZENODO_RECORD, debug=False):
     """This returns the zenodo URL given dataset choices.
 
     :param version: Which data version to use.
@@ -290,13 +290,13 @@ def download_name_generator(version="3.0.0", redundancy="nr", annotated=False, r
         if version == "1.0.0":
             print("Annotated version for v 1.0.0 not available. Try a higher version")
             return None
-        return f"https://zenodo.org/records/{record}/files/rnaglib-{redundancy}-{version}-annotated.tar.gz?download=1"
-    return f"https://zenodo.org/records/{record}/files/rnaglib-{redundancy}-{version}.tar.gz?download=1"
+        return zenodo_file_url(f"rnaglib-{redundancy}-{version}-annotated.tar.gz", record=record)
+    return zenodo_file_url(f"rnaglib-{redundancy}-{version}.tar.gz", record=record)
 
 
 def download_graphs(
     redundancy="nr",
-    version="3.0.0",
+    version=DATA_VERSION,
     annotated=False,
     chop=False,
     overwrite=False,
@@ -368,7 +368,7 @@ def download_graphs(
 
 def available_pdbids(
     graph_dir=None,
-    version="3.0.0",
+    version=DATA_VERSION,
     chop=False,
     annotated=False,
     redundancy="nr",

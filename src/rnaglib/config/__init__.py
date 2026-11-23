@@ -1,3 +1,4 @@
+from .data_release import DATA_VERSION, ZENODO_RECORD, TASKS_DATA_VERSION, TASKS_ZENODO_RECORD
 from .graph_keys import GRAPH_KEYS
 from .graph_keys import TOOL
 from .graph_keys import EDGE_MAP_RGLIB, EDGE_MAP_RGLIB_WITH_STACKING

@@ -14,6 +14,7 @@ from rnaglib.dataset_transforms import ClusterSplitter, NameSplitter
 from rnaglib.encoders import BoolEncoder, NucleotideEncoder
 from rnaglib.tasks import ResidueClassificationTask
 from rnaglib.transforms import ChainFilter, ConnectedComponentPartition, DummyAnnotator, FeaturesComputer
+from rnaglib.config.data_release import TASKS_DATA_VERSION
 
 
 class InverseFolding(ResidueClassificationTask):
@@ -29,7 +30,7 @@ class InverseFolding(ResidueClassificationTask):
     nucs = ["A", "C", "G", "U"]
     name = "rna_if"
     default_metric = "accuracy"
-    version = "3.0.0"
+    version = TASKS_DATA_VERSION
 
     def __init__(self, size_thresholds=(15, 300), graph_path=None, **kwargs):
         meta = {"multi_label": False}

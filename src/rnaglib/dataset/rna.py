@@ -4,12 +4,13 @@ import tempfile
 from Bio.PDB.PDBList import PDBList
 
 from rnaglib.prepare_data import build_graph_from_cif
+from rnaglib.config.data_release import DATA_VERSION
 from rnaglib.utils import get_default_download_dir, dump_json, load_graph
 
 
 def rna_from_pdbid(
     pdbid,
-    version="3.0.0",
+    version=DATA_VERSION,
     annotated=False,
     chop=False,
     redundancy="nr",

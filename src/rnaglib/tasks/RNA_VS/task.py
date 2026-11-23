@@ -13,13 +13,14 @@ from rnaglib.transforms import Representation, FeaturesComputer
 from rnaglib.dataset_transforms import RandomSplitter, NameSplitter, Collater
 from rnaglib.tasks.RNA_VS import build_data
 from rnaglib.tasks.RNA_VS.ligands import LigandRepresentation, TestLigandRepresentation
+from rnaglib.config.data_release import TASKS_DATA_VERSION
 
 
 class VirtualScreening(Task):
     input_var = "nt_code"
     target_var = "dummy"
     name = "rna_vs"
-    version = "3.0.0"
+    version = TASKS_DATA_VERSION
     default_metric = "auroc"
 
     def __init__(self, ligand_framework="pyg", graph_path=None, **kwargs):
