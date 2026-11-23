@@ -17,10 +17,21 @@ DATA_VERSION = "3.1.0"
 ZENODO_RECORD = "24476342"
 ZENODO_BASE_URL = "https://zenodo.org"
 
+# Structures in the ``rnaglib-debug-<DATA_VERSION>`` archive (same set as 2.0.2). Chosen so every
+# task keeps some RNAs after its filters; tests and ``debug=True`` rely on that.
+DEBUG_PDBIDS = [
+    "1d0t", "1eiy", "1etf", "1fyp", "1h4q", "1h4s", "1lvj", "1n66", "1o0c", "1vc0",
+    "1vfg", "1y73", "2bj6", "2c4q", "2fgp", "2g9c", "2gv3", "2k96", "2kuv", "2lqz",
+    "2mf1", "2mis", "2mtj", "2nok", "2o3v", "2oe5", "2pxd", "2pxk", "2ro2", "2vpl",
+    "2xsl", "2zh8", "300d", "3b5s", "3bbi", "3e5c", "3ftf", "3g4m", "3ger", "3ges",
+    "3sn2", "409d", "437d", "468d", "4aob", "4fel", "4fep", "4kr3", "4lvx", "4nmg",
+]
+
 # --- Precomputed task datasets ---
 # Database version the benchmark tasks are built from. Kept separate from DATA_VERSION so a new
-# database release does not silently change benchmark data; bump it deliberately.
-TASKS_DATA_VERSION = "3.0.0"
+# database release does not silently change benchmark data; bump it deliberately
+# (precomputed task archives on TASKS_ZENODO_RECORD are unaffected).
+TASKS_DATA_VERSION = "3.1.0"
 TASKS_ZENODO_RECORD = "189027"
 TASKS_ZENODO_BASE_URL = "https://sandbox.zenodo.org"
 

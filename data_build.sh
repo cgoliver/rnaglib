@@ -7,7 +7,7 @@
 # Produces in <build_root>/release-<version>/:
 #   rnaglib-all-<version>.tar.gz    every RNA-containing PDB entry
 #   rnaglib-nr-<version>.tar.gz     subset in the BGSU non-redundant set (4.0A)
-#   rnaglib-debug-<version>.tar.gz  10 structures for tests / debug=True
+#   rnaglib-debug-<version>.tar.gz  DEBUG_PDBIDS from data_release.py, for tests / debug=True
 # Then upload with: python scripts/zenodo_upload.py <build_root>/release-<version>/*.tar.gz
 # and set DATA_VERSION / ZENODO_RECORD in src/rnaglib/config/data_release.py.
 set -euo pipefail
@@ -33,13 +33,17 @@ rnaglib_prepare_data -s "$STRUCTS" -o "$BUILDS" -t "$ALL" -nw "$NW" -c
 "$PY" - "$BUILDS" "$ALL" "$NR" "$DEBUG" <<'EOF'
 import os, shutil, sys
 from pathlib import Path
+from rnaglib.config.data_release import DEBUG_PDBIDS
 from rnaglib.utils.graph_io import get_rna_list
 
 builds, all_tag, nr_tag, debug_tag = sys.argv[1:]
 src = Path(builds) / all_tag / "graphs"
 built = sorted(p.stem for p in src.glob("*.json"))
 nr = set(get_rna_list(nr_only=True))
-for tag, ids in [(nr_tag, [i for i in built if i in nr]), (debug_tag, built[:10])]:
+missing = sorted(set(DEBUG_PDBIDS) - set(built))
+if missing:
+    sys.exit(f"Debug structures missing from the build: {missing}")
+for tag, ids in [(nr_tag, [i for i in built if i in nr]), (debug_tag, sorted(DEBUG_PDBIDS))]:
     dst = Path(builds) / tag / "graphs"
     if dst.exists():
         shutil.rmtree(dst)
