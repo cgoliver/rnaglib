@@ -1,5 +1,6 @@
 """Abstract task classes"""
 
+from collections import defaultdict
 from collections.abc import Sequence
 from functools import cached_property
 import hashlib
@@ -629,18 +630,17 @@ class ClassificationTask(Task):
             return self.compute_one_metric(all_preds, all_probs, all_labels)
         # Here we have a list of preds [(n1,), (n2,)...] for each residue in each RNA
         # Either compute the overall flattened results, or aggregate by system
-        sorted_keys = []
-        metrics = []
+        # Average each metric over the systems where it could be computed. Systems with a single
+        # label class are skipped, and compute_one_metric may return a partial dict, so aggregate
+        # per key (if no system qualifies, only the global metrics below are reported).
+        per_system = defaultdict(list)
         for pred, prob, label in zip(all_preds, all_probs, all_labels, strict=False):
             # Can't compute metrics over just one class
             if len(np.unique(label)) == 1:
                 continue
-            one_metric = self.compute_one_metric(pred, prob, label)
-            metrics.append([v for k, v in sorted(one_metric.items())])
-            sorted_keys = sorted(one_metric.keys())
-        metrics = np.array(metrics)
-        mean_metrics = np.mean(metrics, axis=0)
-        metrics = {k: v for k, v in zip(sorted_keys, mean_metrics, strict=False)}
+            for k, v in self.compute_one_metric(pred, prob, label).items():
+                per_system[k].append(v)
+        metrics = {k: np.mean(vs, axis=0) for k, vs in sorted(per_system.items())}
 
         # Get the flattened result, renamed to include "global"
         all_preds = np.concatenate(all_preds)

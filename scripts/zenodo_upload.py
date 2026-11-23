@@ -38,6 +38,7 @@ def main():
     ap.add_argument("--record", default=ZENODO_RECORD, help="record to create a new version of")
     ap.add_argument("--draft", help="reuse an existing draft id instead of creating a new version")
     ap.add_argument("--token-file", type=Path)
+    ap.add_argument("--replace", action="store_true", help="replace files of the same name inherited from the previous version")
     ap.add_argument("--publish", action="store_true", help="publish the draft (irreversible: mints a DOI)")
     args = ap.parse_args()
 
@@ -59,7 +60,10 @@ def main():
     bucket = draft["links"]["bucket"]
     for path in args.files:
         if path.name in existing:
-            sys.exit(f"{path.name} already in draft {did}; refusing to overwrite")
+            if not args.replace:
+                sys.exit(f"{path.name} already in draft {did}; pass --replace to overwrite it")
+            print(f"Removing inherited {path.name} from draft...")
+            check(s.delete(f"{API}/{did}/files/{existing[path.name]['id']}"))
         size = path.stat().st_size
         print(f"Uploading {path.name} ({size / 1e6:.1f} MB)...", flush=True)
         with open(path, "rb") as fh:

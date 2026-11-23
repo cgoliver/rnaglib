@@ -14,7 +14,7 @@ DATA_VERSION = "3.1.0"
 
 # Zenodo record holding the current release. Each new Zenodo version gets a new record id;
 # new versions inherit the previous files, so this record also serves older data versions.
-ZENODO_RECORD = "24476342"
+ZENODO_RECORD = "24479063"
 ZENODO_BASE_URL = "https://zenodo.org"
 
 # Structures in the ``rnaglib-debug-<DATA_VERSION>`` archive (same set as 2.0.2). Chosen so every
